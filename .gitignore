@@ -1,0 +1,47 @@
+node_modules/
+
+# Superseded / archived trees (never delete—move content here instead of deleting)
+**/0. archive/
+
+dist/
+extension/out/
+extension/compiler/
+extension/media/viewer.js
+extension/media/*.map
+extension/schemas/
+*.vsix
+.DS_Store
+*.log
+
+# Agent-context files (internal only — never publish)
+STRATEGIC_BRIEF.md
+**/STRATEGIC_BRIEF.md
+CLAUDE.md
+**/CLAUDE.md
+*ai-agent-rules*.md
+**/*ai-agent-rules*.md
+
+# Maintainer-local roadmap (internal planning, not part of the published surface)
+roadmap.md
+
+# Claude Code worktrees and per-agent state
+.claude/
+**/.claude/
+
+# Internal / scratch files (not for public repo)
+stakeholders.md
+test-comprehensive.mjs
+test-extreme.mjs
+test-params.mjs
+test-parse.mjs
+quick-build-extension.sh
+quick-start-util.sh
+
+# Local environment / secrets
+.env
+.env.*
+!.env.example
+.env.local
+.env.*.local
+*.pem
+*.key

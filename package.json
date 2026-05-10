@@ -1,0 +1,70 @@
+{
+  "name": "transitrix-studio",
+  "version": "0.4.0",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "extension"
+  ],
+  "description": "VS Code extension and CLI for editing and previewing Transitrix diagrams (BPMN, Goals, FGCA, …).",
+  "license": "MIT",
+  "homepage": "https://github.com/transitrix/transitrix-studio#readme",
+  "bugs": {
+    "url": "https://github.com/transitrix/transitrix-studio/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/transitrix/transitrix-studio.git"
+  },
+  "keywords": [
+    "bpmn",
+    "transitrix",
+    "diagrams",
+    "enterprise-architecture"
+  ],
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "compile": "tsc --noEmit",
+    "compile:extension": "tsc -p extension/tsconfig.json --noEmit",
+    "build": "tsc -p tsconfig.build.json",
+    "build:webview": "node scripts/build-webview.mjs",
+    "extension:bundle": "node scripts/build-extension-bundle.mjs",
+    "extension:prep": "npm run build && npm run build:webview && node scripts/sync-extension-compiler.mjs && npm run extension:bundle",
+    "pretest": "npm run build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "metrics:baseline": "npm run build && node scripts/measure-baseline.mjs",
+    "cervin": "tsx src/cli.ts",
+    "ui:dev": "vite dev --config ui/vite.config.ts",
+    "ui:build": "vite build --config ui/vite.config.ts",
+    "ui:preview": "npm run build && npm run ui:build && vite preview --config ui/vite.config.ts",
+    "bump-extension-version": "node scripts/bump-extension-version.mjs",
+    "package-extension": "npm run extension:prep && npm run bump-extension-version && cd extension && vsce package"
+  },
+  "bin": {
+    "cervin": "./dist/cli.js"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "elkjs": "^0.9.3",
+    "js-yaml": "^4.1.0",
+    "xmlbuilder2": "^3.1.1"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^22.15.29",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^3.9.1",
+    "bpmn-js": "^18.3.2",
+    "bpmn-moddle": "^10.0.0",
+    "esbuild": "^0.25.12",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.6",
+    "vitest": "^3.2.1"
+  }
+}

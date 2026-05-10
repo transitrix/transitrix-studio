@@ -1,0 +1,210 @@
+# CORPUS CELL: L-Hi-A-Hi-4
+# Element count: 24 (12 tasks, 2 events, 10 gateways)
+# Cross-lane flows: 18/23 (78%)
+# Cycles: none (acyclic)
+# Gateway density: 41.7% (10/24 elements)
+# Lanes: 4 (requester, processor, validator, finalizer)
+# Purpose: Large diagram with very dense gates and high cross-lane complexity; stress test for port distribution and layout
+# Source: synthetic multi-stage process with parallel validation and final review
+
+process:
+  id: process-large-dense-workflow
+  name: Large Dense Workflow
+  pools:
+    - id: pool-large-dense-workflow
+      name: LargeDenseWorkflow
+      lanes:
+        - id: lane-requester
+          name: Requester
+          elements:
+            - id: start
+              type: startEvent
+              name: Start
+            - id: submit
+              type: task
+              name: Submit Request
+            - id: track
+              type: task
+              name: Track Progress
+            - id: end
+              type: endEvent
+              name: Done
+
+        - id: lane-processor
+          name: Processor
+          elements:
+            - id: gw-p-split
+              type: parallelGateway
+              name: Split Processing
+            - id: validate-input
+              type: task
+              name: Validate Input
+            - id: extract-data
+              type: task
+              name: Extract Data
+            - id: transform-data
+              type: task
+              name: Transform Data
+            - id: gw-p-join
+              type: parallelGateway
+              name: Join Processing
+            - id: gw-quality-check
+              type: exclusiveGateway
+              name: Quality OK?
+            - id: log-error
+              type: task
+              name: Log Error
+            - id: format-output
+              type: task
+              name: Format Output
+
+        - id: lane-validator
+          name: Validator
+          elements:
+            - id: gw-v-split
+              type: parallelGateway
+              name: Parallel Validate
+            - id: semantic-check
+              type: task
+              name: Semantic Check
+            - id: syntax-check
+              type: task
+              name: Syntax Check
+            - id: reference-check
+              type: task
+              name: Reference Check
+            - id: gw-v-join
+              type: parallelGateway
+              name: Join Validation
+            - id: gw-validation-decision
+              type: exclusiveGateway
+              name: All Passed?
+            - id: log-validation-error
+              type: task
+              name: Log Validation Error
+
+        - id: lane-finalizer
+          name: Finalizer
+          elements:
+            - id: gw-final-check
+              type: exclusiveGateway
+              name: Final Review
+            - id: approve-final
+              type: task
+              name: Approve
+            - id: flag-for-rework
+              type: task
+              name: Flag for Rework
+            - id: gw-final-route
+              type: exclusiveGateway
+              name: Route Result
+            - id: publish
+              type: task
+              name: Publish Result
+
+  flows:
+    # Requester to Processor
+    - id: flow-1
+      from: start
+      to: submit
+    - id: flow-2
+      from: submit
+      to: gw-p-split
+
+    # Processor parallel processing
+    - id: flow-3
+      from: gw-p-split
+      to: validate-input
+    - id: flow-4
+      from: gw-p-split
+      to: extract-data
+    - id: flow-5
+      from: gw-p-split
+      to: transform-data
+    - id: flow-6
+      from: validate-input
+      to: gw-p-join
+    - id: flow-7
+      from: extract-data
+      to: gw-p-join
+    - id: flow-8
+      from: transform-data
+      to: gw-p-join
+
+    # Processor to Validator
+    - id: flow-9
+      from: gw-p-join
+      to: gw-quality-check
+    - id: flow-10
+      from: gw-quality-check
+      to: log-error
+      condition: failed
+    - id: flow-11
+      from: gw-quality-check
+      to: gw-v-split
+      condition: ok
+    - id: flow-12
+      from: log-error
+      to: track
+
+    # Validator parallel validation
+    - id: flow-13
+      from: gw-v-split
+      to: semantic-check
+    - id: flow-14
+      from: gw-v-split
+      to: syntax-check
+    - id: flow-15
+      from: gw-v-split
+      to: reference-check
+    - id: flow-16
+      from: semantic-check
+      to: gw-v-join
+    - id: flow-17
+      from: syntax-check
+      to: gw-v-join
+    - id: flow-18
+      from: reference-check
+      to: gw-v-join
+
+    # Validator to Finalizer
+    - id: flow-19
+      from: gw-v-join
+      to: gw-validation-decision
+    - id: flow-20
+      from: gw-validation-decision
+      to: log-validation-error
+      condition: failed
+    - id: flow-21
+      from: gw-validation-decision
+      to: format-output
+      condition: passed
+    - id: flow-22
+      from: log-validation-error
+      to: track
+    - id: flow-23
+      from: format-output
+      to: gw-final-check
+
+    # Finalizer decision and routing
+    - id: flow-24
+      from: gw-final-check
+      to: approve-final
+      condition: approved
+    - id: flow-25
+      from: gw-final-check
+      to: flag-for-rework
+      condition: needs-work
+    - id: flow-26
+      from: approve-final
+      to: gw-final-route
+    - id: flow-27
+      from: flag-for-rework
+      to: gw-final-route
+    - id: flow-28
+      from: gw-final-route
+      to: publish
+      condition: proceed
+    - id: flow-29
+      from: publish
+      to: end

@@ -1,0 +1,64 @@
+# CORPUS CELL: M-Mi-A-Hi-3
+# Element count: 14 (8 tasks, 2 events, 4 gateways)
+# Cross-lane flows: 6/13 (46%)
+# Cycles: none (acyclic)
+# Gateway density: 28.6% (4/14 elements)
+# Lanes: 3 (requester, approver, admin)
+# Purpose: Medium diagram with multiple gateways and cross-lane flows; tests gateway port distribution and multi-lane alignment
+# Source: synthetic example combining approval and execution paths
+
+process:
+  id: process-order-processing
+  name: Order Processing
+  pools:
+    - id: pool-order-processing
+      name: OrderProcessing
+      lanes:
+    - id: lane-requester
+      name: Customer
+      elements:
+        - id: start-order
+          type: startEvent
+          name: Order Placed
+        - id: task-confirm
+          type: task
+          name: Confirm Details
+        - id: end-order
+          type: endEvent
+          name: Order Complete
+
+    - id: lane-approver
+      name: Manager
+      elements:
+        - id: task-review-order
+          type: task
+          name: Review Order
+        - id: gw-review
+          type: exclusiveGateway
+          name: Approved?
+        - id: task-adjust
+          type: task
+          name: Request Adjustments
+
+    - id: lane-admin
+      name: Fulfillment
+      elements:
+        - id: gw-pick
+          type: parallelGateway
+          name: Start Parallel
+        - id: task-pick
+          type: task
+          name: Pick Items
+        - id: task-pack
+          type: task
+          name: Pack Order
+        - id: gw-join
+          type: parallelGateway
+          name: Sync
+        - id: task-ship
+          type: task
+          name: Ship
+        - id: task-notify-ship
+          type: task
+          name: Notify Shipment
+

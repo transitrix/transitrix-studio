@@ -1,0 +1,63 @@
+# CORPUS CELL: M-Mi-A-Hi-2
+# Element count: 13 (7 tasks, 2 events, 4 gateways)
+# Cross-lane flows: 5/12 (42%)
+# Cycles: none (acyclic)
+# Gateway density: 30.8% (4/13 elements)
+# Lanes: 2 (executor, manager)
+# Purpose: Medium, cross-lane, high gateway density; tests multi-gate coordination and port distribution
+# Source: synthetic parallel approval workflow
+
+process:
+  id: process-parallel-approval
+  name: Parallel Approval Process
+  pools:
+    - id: pool-parallel-approval
+      name: ParallelApproval
+      lanes:
+    - id: lane-executor
+      name: Executor
+      elements:
+        - id: start
+          type: startEvent
+          name: Begin
+        - id: task-plan
+          type: task
+          name: Plan Work
+        - id: gw-parallel-split
+          type: parallelGateway
+          name: Start Parallel
+        - id: task-design
+          type: task
+          name: Design
+        - id: task-test
+          type: task
+          name: Test
+        - id: gw-parallel-join
+          type: parallelGateway
+          name: Sync
+
+    - id: lane-manager
+      name: Manager
+      elements:
+        - id: task-review
+          type: task
+          name: Review Plan
+        - id: gw-approve-split
+          type: exclusiveGateway
+          name: Approved?
+        - id: task-approve
+          type: task
+          name: Approve
+        - id: task-reject
+          type: task
+          name: Reject
+        - id: task-notify
+          type: task
+          name: Notify
+        - id: gw-final
+          type: exclusiveGateway
+          name: Final?
+        - id: end
+          type: endEvent
+          name: End
+

@@ -1,0 +1,107 @@
+name: Metrics Regression Tests
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    name: Build & Test with Metrics Regression
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build project
+        run: npm run build
+
+      - name: Run tests
+        run: npm test
+        continue-on-error: true
+
+      - name: Compute metrics delta
+        id: metrics-diff
+        run: |
+          node scripts/ci-metrics-diff.mjs tests/snapshots/metrics-baseline.json > metrics-report.json 2>&1
+          exit_code=$?
+          echo "exit_code=${exit_code}" >> $GITHUB_OUTPUT
+          exit ${exit_code}
+        continue-on-error: true
+
+      - name: Post metrics comment
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const report = JSON.parse(fs.readFileSync('metrics-report.json', 'utf8'));
+
+            let comment = '## 📊 Metrics Regression Report\n\n';
+
+            if (report.hasViolations) {
+              comment += '❌ **Metric violations detected**\n\n';
+            } else {
+              comment += '✅ **All metrics within tolerance**\n\n';
+            }
+
+            // Summary section
+            comment += `### Summary\n`;
+            comment += `- Diagrams tested: ${report.totalDiagrams}\n`;
+            comment += `- Successful: ${report.successCount}\n`;
+            comment += `- Failed: ${report.errorCount}\n`;
+
+            if (report.violations && report.violations.length > 0) {
+              comment += `- Violations: ${report.violations.length}\n\n`;
+              comment += `### Violations\n`;
+              report.violations.forEach(v => {
+                comment += `- **${v.diagram}** → ${v.metric}: ${v.baseline} → ${v.current} (delta: ${v.delta})\n`;
+              });
+            } else {
+              comment += `- Violations: 0\n`;
+            }
+
+            if (report.details && report.details.length > 0) {
+              comment += `\n### Details\n`;
+              report.details.forEach(d => {
+                if (d.metrics) {
+                  comment += `\n**${d.diagram}**\n`;
+                  comment += '| Metric | Baseline | Current | Delta | Status |\n';
+                  comment += '|--------|----------|---------|-------|--------|\n';
+                  Object.entries(d.metrics).forEach(([metric, data]) => {
+                    const statusIcon = data.violation ? '❌' : '✓';
+                    comment += `| ${metric} | ${data.baseline} | ${data.current} | ${data.delta} | ${statusIcon} |\n`;
+                  });
+                }
+              });
+            }
+
+            // Post comment
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+      - name: Fail if violations detected
+        if: steps.metrics-diff.outputs.exit_code != '0'
+        run: |
+          echo "Metric regression detected. See PR comment for details."
+          exit 1

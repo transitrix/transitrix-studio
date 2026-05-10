@@ -1,0 +1,165 @@
+{
+  "version": "0.1",
+  "date": "2026-05-04T05:02:03.611Z",
+  "corpusCount": 11,
+  "successCount": 8,
+  "errorCount": 3,
+  "results": {
+    "approval-single-lane.cervin.yaml": {
+      "status": "error",
+      "error": "DSL validation failed"
+    },
+    "large-cyclic-workflow.cervin.yaml": {
+      "status": "success",
+      "elementCount": 21,
+      "flowCount": 25,
+      "metrics": {
+        "crossings": 1,
+        "bends": 33,
+        "edgeLength": 7018.666666666667,
+        "waypointDensity": 3.32,
+        "spineDeviation": 82,
+        "emptyArea": 0.7965322633390317,
+        "portViolations": 7,
+        "portUniqueness": 0.7,
+        "laneAxisAlignment": 1,
+        "layoutScore": 0
+      },
+      "timestamp": "2026-05-04T05:02:03.430Z"
+    },
+    "large-dense-workflow.cervin.yaml": {
+      "status": "success",
+      "elementCount": 24,
+      "flowCount": 29,
+      "metrics": {
+        "crossings": 2,
+        "bends": 44,
+        "edgeLength": 9379.666666666668,
+        "waypointDensity": 3.5172413793103448,
+        "spineDeviation": 115,
+        "emptyArea": 0.8726630283244544,
+        "portViolations": 7,
+        "portUniqueness": 0.6333333333333333,
+        "laneAxisAlignment": 1,
+        "layoutScore": 0
+      },
+      "timestamp": "2026-05-04T05:02:03.473Z"
+    },
+    "large-order-process.cervin.yaml": {
+      "status": "error",
+      "error": "DSL validation failed"
+    },
+    "medium-complex-workflow.cervin.yaml": {
+      "status": "success",
+      "elementCount": 15,
+      "flowCount": 18,
+      "metrics": {
+        "crossings": 1,
+        "bends": 25,
+        "edgeLength": 5216,
+        "waypointDensity": 3.388888888888889,
+        "spineDeviation": 82,
+        "emptyArea": 0.7922882843352348,
+        "portViolations": 3,
+        "portUniqueness": 0.611111111111111,
+        "laneAxisAlignment": 1,
+        "layoutScore": 0
+      },
+      "timestamp": "2026-05-04T05:02:03.500Z"
+    },
+    "order-processing.cervin.yaml": {
+      "status": "success",
+      "elementCount": 7,
+      "flowCount": 6,
+      "metrics": {
+        "crossings": 0,
+        "bends": 2,
+        "edgeLength": 704,
+        "waypointDensity": 2.3333333333333335,
+        "spineDeviation": 0,
+        "emptyArea": 0.5462701149425288,
+        "portViolations": 1,
+        "portUniqueness": 1,
+        "laneAxisAlignment": 1,
+        "layoutScore": 0
+      },
+      "timestamp": "2026-05-04T05:02:03.516Z"
+    },
+    "parallel-approval.cervin.yaml": {
+      "status": "error",
+      "error": "DSL validation failed"
+    },
+    "simple-approval.cervin.yaml": {
+      "status": "success",
+      "elementCount": 7,
+      "flowCount": 7,
+      "metrics": {
+        "crossings": 0,
+        "bends": 10,
+        "edgeLength": 1534,
+        "waypointDensity": 3.4285714285714284,
+        "spineDeviation": 41,
+        "emptyArea": 0.7764882411250177,
+        "portViolations": 3,
+        "portUniqueness": 0.5,
+        "laneAxisAlignment": 1,
+        "layoutScore": 0
+      },
+      "timestamp": "2026-05-04T05:02:03.533Z"
+    },
+    "simple-linear.cervin.yaml": {
+      "status": "success",
+      "elementCount": 6,
+      "flowCount": 5,
+      "metrics": {
+        "crossings": 0,
+        "bends": 0,
+        "edgeLength": 440,
+        "waypointDensity": 2,
+        "spineDeviation": 0,
+        "emptyArea": 0.5258771929824562,
+        "portViolations": 0,
+        "portUniqueness": 1,
+        "laneAxisAlignment": 1,
+        "layoutScore": 0
+      },
+      "timestamp": "2026-05-04T05:02:03.547Z"
+    },
+    "small-dense-approval.cervin.yaml": {
+      "status": "success",
+      "elementCount": 10,
+      "flowCount": 11,
+      "metrics": {
+        "crossings": 0,
+        "bends": 18,
+        "edgeLength": 2142,
+        "waypointDensity": 3.6363636363636362,
+        "spineDeviation": 41,
+        "emptyArea": 0.8091206777597997,
+        "portViolations": 3,
+        "portUniqueness": 0.5,
+        "laneAxisAlignment": 1,
+        "layoutScore": 0
+      },
+      "timestamp": "2026-05-04T05:02:03.564Z"
+    },
+    "xlarge-stress-test.cervin.yaml": {
+      "status": "success",
+      "elementCount": 41,
+      "flowCount": 54,
+      "metrics": {
+        "crossings": 1,
+        "bends": 90,
+        "edgeLength": 11691.25,
+        "waypointDensity": 3.6666666666666665,
+        "spineDeviation": 148,
+        "emptyArea": 0.8282701728700941,
+        "portViolations": 6,
+        "portUniqueness": 0.4074074074074074,
+        "laneAxisAlignment": 1,
+        "layoutScore": 0
+      },
+      "timestamp": "2026-05-04T05:02:03.610Z"
+    }
+  }
+}

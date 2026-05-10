@@ -1,0 +1,31 @@
+{
+  "name": "@transitrix/diagrams",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Shared rendering, validation, and pure mutations for Transitrix custom diagram formats.",
+  "license": "MIT",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc -p .",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "reactflow": "^11.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.28",
+    "@types/react-dom": "^19.2.3",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "reactflow": "^11.11.4",
+    "typescript": "^5.0.0",
+    "vitest": "^3.0.0"
+  }
+}

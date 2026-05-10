@@ -1,0 +1,42 @@
+goal_types:
+  - { name: "Strategy",      level: 0 }
+  - { name: "Business Goal", level: 1 }
+  - { name: "Project",       level: 2 }
+
+goals:
+  - id: 1
+    name: "Triple revenue in 3 years"
+    type: "Strategy"
+    level: 0
+    parent_id: 0
+    tag: "north-star"
+
+  - id: 2
+    name: "Launch in 3 EU markets"
+    type: "Business Goal"
+    level: 1
+    parent_id: 1
+
+  - id: 3
+    name: "Launch in MENA"
+    type: "Business Goal"
+    level: 1
+    parent_id: 1
+
+  - id: 4
+    name: "Open Berlin office"
+    type: "Project"
+    level: 2
+    parent_id: 2
+
+  - id: 5
+    name: "Obtain EU regulatory approval"
+    type: "Project"
+    level: 2
+    parent_id: 2
+
+  - id: 6
+    name: "Partner with Dubai distributor"
+    type: "Project"
+    level: 2
+    parent_id: 3

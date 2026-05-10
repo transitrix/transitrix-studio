@@ -1,0 +1,2 @@
+# No external Python dependencies for core functionality
+# Svgbob is installed via cargo, not pip

@@ -1,0 +1,141 @@
+{
+  "name": "transitrix-studio",
+  "displayName": "Transitrix Studio",
+  "publisher": "transitrix",
+  "version": "0.4.0",
+  "description": "Preview Transitrix diagrams (BPMN, Goals, FGCA, …) inside VS Code.",
+  "license": "MIT",
+  "icon": "icon.png",
+  "homepage": "https://github.com/transitrix/transitrix-studio#readme",
+  "bugs": {
+    "url": "https://github.com/transitrix/transitrix-studio/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/transitrix/transitrix-studio.git"
+  },
+  "keywords": [
+    "bpmn",
+    "transitrix",
+    "diagram",
+    "enterprise-architecture"
+  ],
+  "categories": [
+    "Visualization",
+    "Other"
+  ],
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "main": "./out/extension.js",
+  "type": "module",
+  "activationEvents": [
+    "workspaceContains:**/*.cervin.yaml",
+    "workspaceContains:**/*.bpmn.yaml",
+    "workspaceContains:**/*.goals.transitrix.yaml"
+  ],
+  "contributes": {
+    "configuration": {
+      "title": "Transitrix Studio",
+      "properties": {
+        "cervin.fileExtensions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            ".cervin.yaml",
+            ".bpmn.yaml"
+          ],
+          "description": "File suffixes recognized as Transitrix BPMN source files (must include the leading dot)."
+        },
+        "cervin.exportEnabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show experimental BPMN/SVG/PNG export commands (not finished yet)."
+        }
+      }
+    },
+    "languages": [
+      {
+        "id": "cervin-yaml",
+        "aliases": [
+          "Transitrix BPMN YAML",
+          "BPMN YAML"
+        ],
+        "extensions": [
+          ".cervin.yaml",
+          ".bpmn.yaml"
+        ],
+        "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "transitrix-goals",
+        "aliases": [
+          "Transitrix Goals",
+          "Goals Tree"
+        ],
+        "extensions": [
+          ".goals.transitrix.yaml"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "cervin.openPreview",
+        "title": "Transitrix: Open Preview",
+        "category": "Transitrix",
+        "icon": "$(graph)"
+      },
+      {
+        "command": "cervin.exportSvg",
+        "title": "Transitrix: Export as SVG",
+        "category": "Transitrix",
+        "enablement": "config.cervin.exportEnabled"
+      },
+      {
+        "command": "cervin.exportPng",
+        "title": "Transitrix: Export as PNG",
+        "category": "Transitrix",
+        "enablement": "config.cervin.exportEnabled"
+      },
+      {
+        "command": "cervin.exportBpmn",
+        "title": "Transitrix: Export as .bpmn",
+        "category": "Transitrix",
+        "enablement": "config.cervin.exportEnabled"
+      },
+      {
+        "command": "transitrixStudio.previewGoals",
+        "title": "Transitrix: Preview goal tree",
+        "category": "Transitrix",
+        "icon": "$(type-hierarchy)"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "when": "resourceFilename =~ /\\.(cervin|bpmn)\\.yaml$/",
+          "command": "cervin.openPreview",
+          "group": "navigation@-10"
+        },
+        {
+          "when": "resourceFilename =~ /\\.goals\\.transitrix\\.yaml$/",
+          "command": "transitrixStudio.previewGoals",
+          "group": "navigation@-10"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "cd .. && npm run extension:prep"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "elkjs": "^0.9.3",
+    "js-yaml": "^4.1.0",
+    "xmlbuilder2": "^3.1.1"
+  }
+}

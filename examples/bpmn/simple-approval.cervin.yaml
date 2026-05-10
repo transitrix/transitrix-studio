@@ -1,0 +1,44 @@
+process:
+  id: simple-approval
+  name: Simple Approval Process
+  pools:
+    - id: pool-approval
+      name: Approval Flow
+      lanes:
+        - id: lane-requester
+          name: Requester
+          elements:
+            - id: start
+              type: startEvent
+              name: Request Submitted
+            - id: task-prepare
+              type: task
+              name: Prepare Document
+            - id: end-approved
+              type: endEvent
+              name: Request Approved
+            - id: end-rejected
+              type: endEvent
+              name: Request Rejected
+        - id: lane-approver
+          name: Approver
+          elements:
+            - id: task-review
+              type: task
+              name: Review Document
+            - id: gw-decision
+              type: exclusiveGateway
+              name: Approve?
+  flows:
+    - from: start
+      to: task-prepare
+    - from: task-prepare
+      to: task-review
+    - from: task-review
+      to: gw-decision
+    - from: gw-decision
+      to: end-approved
+      condition: yes
+    - from: gw-decision
+      to: end-rejected
+      condition: no
