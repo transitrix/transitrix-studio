@@ -5,7 +5,7 @@ import * as vscode from 'vscode';
 import type { CompileFn } from './preview.js';
 import { CervinPreview } from './preview.js';
 import { GoalsPreview } from './goals-preview.js';
-import { FGCAPreview } from './fgca-preview.js';
+import { FGCAPreview, FGAPreview } from './fgca-preview.js';
 import type { LayoutMetrics, ValidationReport } from './types.js';
 import {
   documentMatchesCervinSource,
@@ -19,6 +19,10 @@ function isGoalsFile(doc: vscode.TextDocument): boolean {
 
 function isFGCAFile(doc: vscode.TextDocument): boolean {
   return doc.fileName.endsWith('.fgca.transitrix.yaml');
+}
+
+function isFGAFile(doc: vscode.TextDocument): boolean {
+  return doc.fileName.endsWith('.fga.transitrix.yaml');
 }
 
 async function loadCompiler(ext: vscode.ExtensionContext): Promise<CompileFn> {
@@ -68,6 +72,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   );
   const goalsPreview = new GoalsPreview();
   const fgcaPreview = new FGCAPreview();
+  const fgaPreview = new FGAPreview();
 
   context.subscriptions.push(
     vscode.commands.registerCommand('cervin.openPreview', async () => {
@@ -100,15 +105,25 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       }
       await fgcaPreview.showOrReveal(doc);
     }),
+    vscode.commands.registerCommand('transitrixStudio.previewFGA', async () => {
+      const doc = vscode.window.activeTextEditor?.document;
+      if (!doc || !isFGAFile(doc)) {
+        vscode.window.showWarningMessage('Open a *.fga.transitrix.yaml file first.');
+        return;
+      }
+      await fgaPreview.showOrReveal(doc);
+    }),
     vscode.workspace.onDidSaveTextDocument((doc) => {
       if (isGoalsFile(doc)) { void goalsPreview.refreshSaved(doc); return; }
       if (isFGCAFile(doc)) { void fgcaPreview.refreshSaved(doc); return; }
+      if (isFGAFile(doc)) { void fgaPreview.refreshSaved(doc); return; }
       if (!documentMatchesCervinSource(doc)) return;
       void preview.refreshSaved(doc);
     }),
     vscode.workspace.onDidOpenTextDocument(async (doc) => {
       if (isGoalsFile(doc)) { await goalsPreview.showOrReveal(doc); return; }
-      if (isFGCAFile(doc)) { await fgcaPreview.showOrReveal(doc); }
+      if (isFGCAFile(doc)) { await fgcaPreview.showOrReveal(doc); return; }
+      if (isFGAFile(doc)) { await fgaPreview.showOrReveal(doc); }
     }),
   );
 }

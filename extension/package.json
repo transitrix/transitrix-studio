@@ -90,6 +90,17 @@
           ".goals.transitrix.yaml"
         ],
         "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "transitrix-fga",
+        "aliases": [
+          "Transitrix FGA",
+          "Factor-Goal-Activity"
+        ],
+        "extensions": [
+          ".fga.transitrix.yaml"
+        ],
+        "configuration": "./language-configuration.json"
       }
     ],
     "commands": [
@@ -128,6 +139,12 @@
         "title": "Transitrix: Preview FGCA diagram",
         "category": "Transitrix",
         "icon": "$(type-hierarchy)"
+      },
+      {
+        "command": "transitrixStudio.previewFGA",
+        "title": "Transitrix: Preview FGA diagram",
+        "category": "Transitrix",
+        "icon": "$(type-hierarchy)"
       }
     ],
     "menus": {
@@ -145,6 +162,11 @@
         {
           "when": "resourceFilename =~ /\\.fgca\\.transitrix\\.yaml$/",
           "command": "transitrixStudio.previewFGCA",
+          "group": "navigation@-10"
+        },
+        {
+          "when": "resourceFilename =~ /\\.fga\\.transitrix\\.yaml$/",
+          "command": "transitrixStudio.previewFGA",
           "group": "navigation@-10"
         }
       ]

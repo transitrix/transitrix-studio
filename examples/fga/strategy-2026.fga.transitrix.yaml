@@ -1,0 +1,45 @@
+notation: fga
+title: Strategy 2026
+description: Factor–Goal–Activity view (Changes column hidden)
+version: "0.1"
+date: "2026-05-11"
+author: Transitrix
+
+factors:
+  - id: 1
+    name: Market growth
+  - id: 2
+    name: Regulatory pressure
+  - id: 3
+    name: Technology shift
+
+goals:
+  - id: 1
+    name: Expand market share
+    factor: [{ id: 1 }]
+  - id: 2
+    name: Achieve compliance
+    factor: [{ id: 2 }]
+  - id: 3
+    name: Modernise platform
+    factor: [{ id: 3 }, { id: 1 }]
+
+activities:
+  - id: 1
+    name: Launch in two new regions
+    goal_id: 1
+  - id: 2
+    name: Partner channel programme
+    goal_id: 1
+  - id: 3
+    name: GDPR gap assessment
+    goal_id: 2
+  - id: 4
+    name: Policy and training rollout
+    goal_id: 2
+  - id: 5
+    name: Migrate to cloud-native stack
+    goal_id: 3
+  - id: 6
+    name: API gateway rollout
+    goal_id: 3

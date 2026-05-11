@@ -14,7 +14,7 @@ interface FGCADoc {
   notation: string;
   factors: FactorItem[];
   goals: GoalItem[];
-  changes: ChangeItem[];
+  changes?: ChangeItem[];
   activities: ActivityItem[];
 }
 
@@ -60,7 +60,62 @@ function validateFGCA(input: unknown): ValidationResult {
       }
     }
   }
-  for (const c of doc.changes) {
+  for (const c of (doc.changes ?? [])) {
+    if (!goalIds.has(c.goal_id)) {
+      warnings.push({ code: 'BROKEN_REF', message: `Change ${c.id} references missing goal ${c.goal_id}` });
+    }
+    for (const aid of (c.activity_ids ?? [])) {
+      if (!activityIds.has(aid)) {
+        warnings.push({ code: 'BROKEN_REF', message: `Change ${c.id} references missing activity ${aid}` });
+      }
+    }
+  }
+
+  return { valid: errors.length === 0, errors, warnings };
+}
+
+function validateFGA(input: unknown): ValidationResult {
+  const errors: ValidationError[] = [];
+  const warnings: Array<{ code: string; message: string }> = [];
+
+  if (!input || typeof input !== 'object') {
+    return { valid: false, errors: [{ code: 'SCHEMA_INVALID', message: 'Input must be an object' }], warnings };
+  }
+
+  const raw = input as Record<string, unknown>;
+
+  if (raw.notation === undefined) {
+    errors.push({ code: 'MISSING_NOTATION', message: 'notation field is required' });
+    return { valid: false, errors, warnings };
+  }
+  if (raw.notation !== 'fga') {
+    errors.push({ code: 'WRONG_NOTATION', message: `notation must be "fga", got "${String(raw.notation)}"` });
+    return { valid: false, errors, warnings };
+  }
+
+  if (!Array.isArray(raw.factors)) errors.push({ code: 'SCHEMA_INVALID', message: 'factors must be an array' });
+  if (!Array.isArray(raw.goals)) errors.push({ code: 'SCHEMA_INVALID', message: 'goals must be an array' });
+  if (!Array.isArray(raw.activities)) errors.push({ code: 'SCHEMA_INVALID', message: 'activities must be an array' });
+  if (errors.length > 0) return { valid: false, errors, warnings };
+
+  const doc = raw as unknown as FGCADoc;
+  const factorIds = new Set(doc.factors.map(f => f.id));
+  const goalIds = new Set(doc.goals.map(g => g.id));
+  const activityIds = new Set(doc.activities.map(a => a.id));
+
+  for (const g of doc.goals) {
+    for (const f of (g.factor ?? [])) {
+      if (!factorIds.has(f.id)) {
+        warnings.push({ code: 'BROKEN_REF', message: `Goal ${g.id} references missing factor ${f.id}` });
+      }
+    }
+  }
+  for (const a of doc.activities) {
+    if (a.goal_id != null && !goalIds.has(a.goal_id)) {
+      warnings.push({ code: 'BROKEN_REF', message: `Activity ${a.id} references missing goal ${a.goal_id}` });
+    }
+  }
+  for (const c of (doc.changes ?? [])) {
     if (!goalIds.has(c.goal_id)) {
       warnings.push({ code: 'BROKEN_REF', message: `Change ${c.id} references missing goal ${c.goal_id}` });
     }
@@ -94,12 +149,15 @@ const COL_LABELS: Record<string, string> = {
 interface LayoutNode { id: string; x: number; y: number; label: string; col: string; }
 interface LayoutEdge { sx: number; sy: number; tx: number; ty: number; }
 
-function layoutFGCA(doc: FGCADoc): { nodes: LayoutNode[]; edges: LayoutEdge[]; width: number; height: number } {
-  const cols = ['factor', 'goal', 'change', 'activity'] as const;
+function layoutFGCA(doc: FGCADoc, hideChanges = false): { nodes: LayoutNode[]; edges: LayoutEdge[]; width: number; height: number } {
+  const cols = hideChanges
+    ? (['factor', 'goal', 'activity'] as const)
+    : (['factor', 'goal', 'change', 'activity'] as const);
+  const changes = doc.changes ?? [];
   const colItems: Record<string, Array<{ id: string; label: string }>> = {
     factor:   doc.factors.map(f => ({ id: `factor_${f.id}`,   label: f.name })),
     goal:     doc.goals.map(g   => ({ id: `goal_${g.id}`,     label: g.name })),
-    change:   doc.changes.map(c => ({ id: `change_${c.id}`,   label: c.name })),
+    change:   changes.map(c => ({ id: `change_${c.id}`,   label: c.name })),
     activity: doc.activities.map(a => ({ id: `activity_${a.id}`, label: a.name })),
   };
 
@@ -130,21 +188,32 @@ function layoutFGCA(doc: FGCADoc): { nodes: LayoutNode[]; edges: LayoutEdge[]; w
   for (const g of doc.goals) {
     for (const f of (g.factor ?? [])) addEdge(`factor_${f.id}`, `goal_${g.id}`);
   }
-  for (const c of doc.changes) {
-    addEdge(`goal_${c.goal_id}`, `change_${c.id}`);
-  }
-  for (const c of doc.changes) {
-    for (const aid of c.activity_ids) addEdge(`change_${c.id}`, `activity_${aid}`);
-  }
-  const coveredActivities = new Set(doc.changes.flatMap(c => c.activity_ids));
-  for (const a of doc.activities) {
-    if (a.goal_id != null && !coveredActivities.has(a.id)) {
-      addEdge(`goal_${a.goal_id}`, `activity_${a.id}`);
+  if (hideChanges) {
+    const connectedViaChange = new Set<number>();
+    for (const c of changes) {
+      for (const aid of c.activity_ids) {
+        addEdge(`goal_${c.goal_id}`, `activity_${aid}`);
+        connectedViaChange.add(aid);
+      }
+    }
+    for (const a of doc.activities) {
+      if (a.goal_id != null && !connectedViaChange.has(a.id)) {
+        addEdge(`goal_${a.goal_id}`, `activity_${a.id}`);
+      }
+    }
+  } else {
+    for (const c of changes) addEdge(`goal_${c.goal_id}`, `change_${c.id}`);
+    for (const c of changes) for (const aid of c.activity_ids) addEdge(`change_${c.id}`, `activity_${aid}`);
+    const coveredActivities = new Set(changes.flatMap(c => c.activity_ids));
+    for (const a of doc.activities) {
+      if (a.goal_id != null && !coveredActivities.has(a.id)) {
+        addEdge(`goal_${a.goal_id}`, `activity_${a.id}`);
+      }
     }
   }
 
   const maxNodeBottom = nodes.reduce((m, n) => Math.max(m, n.y + NODE_H), PAD + HEADER_H + ROW_GAP + NODE_H);
-  const width = PAD * 2 + 4 * COL_STRIDE - COL_GAP;
+  const width = PAD * 2 + cols.length * COL_STRIDE - COL_GAP;
   const height = maxNodeBottom + PAD;
 
   return { nodes, edges, width, height };
@@ -156,9 +225,11 @@ function escXml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-function buildSvg(doc: FGCADoc): string {
-  const { nodes, edges, width, height } = layoutFGCA(doc);
-  const cols = ['factor', 'goal', 'change', 'activity'] as const;
+function buildSvg(doc: FGCADoc, hideChanges = false): string {
+  const { nodes, edges, width, height } = layoutFGCA(doc, hideChanges);
+  const cols = hideChanges
+    ? (['factor', 'goal', 'activity'] as const)
+    : (['factor', 'goal', 'change', 'activity'] as const);
 
   const headerSvg = cols.map((col, ci) => {
     const x = PAD + ci * COL_STRIDE;
@@ -270,5 +341,69 @@ export class FGCAPreview {
       .get<ThemeId>('theme', 'transitrix');
 
     return buildDiagramFrame({ filename, notation: 'FGCA', svgContent, errorMsg, warnings, themeId });
+  }
+}
+
+// ── FGAPreview webview class ──────────────────────────────────────────────────
+
+export class FGAPreview {
+  readonly panelTitle = 'FGA Preview';
+  private panel: vscode.WebviewPanel | undefined;
+  private trackedUri: string | undefined;
+
+  isShowingDocument(uri: vscode.Uri): boolean {
+    return this.panel != null && this.trackedUri === uri.toString();
+  }
+
+  async showOrReveal(doc: vscode.TextDocument): Promise<void> {
+    this.trackedUri = doc.uri.toString();
+    if (this.panel) {
+      this.panel.title = `${this.panelTitle} — ${path.basename(doc.fileName)}`;
+      this.panel.reveal(vscode.ViewColumn.Beside, true);
+    } else {
+      this.panel = vscode.window.createWebviewPanel(
+        'fgaPreview',
+        `${this.panelTitle} — ${path.basename(doc.fileName)}`,
+        { viewColumn: vscode.ViewColumn.Beside, preserveFocus: false },
+        { enableScripts: false, retainContextWhenHidden: true },
+      );
+      this.panel.onDidDispose(() => { this.panel = undefined; this.trackedUri = undefined; });
+    }
+    await this.pushDocument(doc);
+  }
+
+  async refreshSaved(doc: vscode.TextDocument): Promise<void> {
+    if (!this.isShowingDocument(doc.uri)) return;
+    await this.pushDocument(doc);
+  }
+
+  private async pushDocument(doc: vscode.TextDocument): Promise<void> {
+    if (!this.panel) return;
+    this.panel.webview.html = this.buildHtml(doc.getText(), path.basename(doc.fileName));
+  }
+
+  private buildHtml(yamlText: string, filename: string): string {
+    let svgContent = '';
+    let errorMsg = '';
+    let warnings: string[] = [];
+
+    try {
+      const parsed = yaml.load(yamlText) as unknown;
+      const v = validateFGA(parsed);
+      warnings = v.warnings.map(w => `${w.code}: ${w.message}`);
+      if (!v.valid) {
+        errorMsg = v.errors.map(e => `${e.code}: ${e.message}`).join('\n');
+      } else {
+        svgContent = buildSvg(parsed as FGCADoc, true);
+      }
+    } catch (e) {
+      errorMsg = (e as Error).message ?? 'Parse error';
+    }
+
+    const themeId = vscode.workspace
+      .getConfiguration('transitrix')
+      .get<ThemeId>('theme', 'transitrix');
+
+    return buildDiagramFrame({ filename, notation: 'FGA', svgContent, errorMsg, warnings, themeId });
   }
 }
