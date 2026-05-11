@@ -3,7 +3,7 @@ import { Handle, Position } from "reactflow";
 
 const NODE_WIDTH = 250;
 const NODE_HEIGHT = 80;
-const DEFAULT_BG = "#e0e7ff";
+const DEFAULT_BG = "var(--ts-layer-goal)";
 
 export interface FGCAGoalNodeProps {
   data: {
@@ -29,7 +29,7 @@ const FGCAGoalNode = memo(({ data, isConnectable }: FGCAGoalNodeProps) => {
         height: NODE_HEIGHT,
         padding: "6px 8px",
         fontSize: "12px",
-        borderColor: data.borderColor ?? "#94a3b8",
+        borderColor: data.borderColor ?? "var(--ts-node-stroke)",
         borderWidth: data.borderWidth ?? 1,
         borderStyle: "solid",
         borderRadius: "0.75rem",
@@ -39,11 +39,11 @@ const FGCAGoalNode = memo(({ data, isConnectable }: FGCAGoalNodeProps) => {
         justifyContent: "center",
         alignItems: "center",
         textAlign: "center",
-        color: "#1e293b",
+        color: "var(--ts-text-primary)",
       }}
     >
-      <Handle type="target" position={Position.Left} isConnectable={false} style={{ background: "#555" }} />
-      <Handle type="source" position={Position.Right} isConnectable={isConnectable} style={{ background: "#555" }} />
+      <Handle type="target" position={Position.Left} isConnectable={false} style={{ background: "var(--ts-node-stroke)" }} />
+      <Handle type="source" position={Position.Right} isConnectable={isConnectable} style={{ background: "var(--ts-node-stroke)" }} />
       <div
         style={{
           fontWeight: 600,
@@ -60,7 +60,7 @@ const FGCAGoalNode = memo(({ data, isConnectable }: FGCAGoalNodeProps) => {
       >
         {data.name}
       </div>
-      <div style={{ fontSize: "10px", color: "#64748b", marginTop: 2 }}>
+      <div style={{ fontSize: "10px", color: "var(--ts-text-secondary)", marginTop: 2 }}>
         G-{String(data.id).padStart(4, "0")} | Lvl: {level}
       </div>
     </div>

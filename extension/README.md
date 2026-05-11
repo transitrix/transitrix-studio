@@ -8,7 +8,7 @@ Live **preview** for Transitrix diagram formats inside VS Code:
 
 The preview panel opens automatically when you open a recognised file, and refreshes on every save.
 
-Recognised BPMN file suffixes are configured with **`cervin.fileExtensions`** (Settings → Transitrix Studio).
+Recognised BPMN file suffixes are configured in **Settings → Transitrix Studio**.
 
 **Development:** from the repository root run `npm run extension:prep`, then use the **Extension: Transitrix Studio** launch configuration in `.vscode/launch.json`.
 

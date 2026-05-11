@@ -5,6 +5,7 @@ import * as vscode from 'vscode';
 import type { CompileFn } from './preview.js';
 import { CervinPreview } from './preview.js';
 import { GoalsPreview } from './goals-preview.js';
+import { FGCAPreview } from './fgca-preview.js';
 import type { LayoutMetrics, ValidationReport } from './types.js';
 import {
   documentMatchesCervinSource,
@@ -14,6 +15,10 @@ import {
 
 function isGoalsFile(doc: vscode.TextDocument): boolean {
   return doc.fileName.endsWith('.goals.transitrix.yaml');
+}
+
+function isFGCAFile(doc: vscode.TextDocument): boolean {
+  return doc.fileName.endsWith('.fgca.transitrix.yaml');
 }
 
 async function loadCompiler(ext: vscode.ExtensionContext): Promise<CompileFn> {
@@ -62,6 +67,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     compiler().then((c) => c(yaml)),
   );
   const goalsPreview = new GoalsPreview();
+  const fgcaPreview = new FGCAPreview();
 
   context.subscriptions.push(
     vscode.commands.registerCommand('cervin.openPreview', async () => {
@@ -86,18 +92,23 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       }
       await goalsPreview.showOrReveal(doc);
     }),
-    vscode.workspace.onDidSaveTextDocument((doc) => {
-      if (isGoalsFile(doc)) {
-        void goalsPreview.refreshSaved(doc);
+    vscode.commands.registerCommand('transitrixStudio.previewFGCA', async () => {
+      const doc = vscode.window.activeTextEditor?.document;
+      if (!doc || !isFGCAFile(doc)) {
+        vscode.window.showWarningMessage('Open a *.fgca.transitrix.yaml file first.');
         return;
       }
+      await fgcaPreview.showOrReveal(doc);
+    }),
+    vscode.workspace.onDidSaveTextDocument((doc) => {
+      if (isGoalsFile(doc)) { void goalsPreview.refreshSaved(doc); return; }
+      if (isFGCAFile(doc)) { void fgcaPreview.refreshSaved(doc); return; }
       if (!documentMatchesCervinSource(doc)) return;
       void preview.refreshSaved(doc);
     }),
     vscode.workspace.onDidOpenTextDocument(async (doc) => {
-      if (isGoalsFile(doc)) {
-        await goalsPreview.showOrReveal(doc);
-      }
+      if (isGoalsFile(doc)) { await goalsPreview.showOrReveal(doc); return; }
+      if (isFGCAFile(doc)) { await fgcaPreview.showOrReveal(doc); }
     }),
   );
 }

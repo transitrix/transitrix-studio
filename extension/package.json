@@ -53,6 +53,17 @@
           "type": "boolean",
           "default": false,
           "description": "Show experimental BPMN/SVG/PNG export commands (not finished yet)."
+        },
+        "transitrix.theme": {
+          "type": "string",
+          "enum": ["transitrix", "transitrix-dark", "vscode-adaptive"],
+          "enumDescriptions": [
+            "Transitrix light theme (default)",
+            "Transitrix dark theme",
+            "Follow the active VS Code color theme"
+          ],
+          "default": "transitrix",
+          "description": "Color theme for Transitrix diagram previews (Goals, FGCA, and other static notation previews)."
         }
       }
     },
@@ -111,6 +122,12 @@
         "title": "Transitrix: Preview goal tree",
         "category": "Transitrix",
         "icon": "$(type-hierarchy)"
+      },
+      {
+        "command": "transitrixStudio.previewFGCA",
+        "title": "Transitrix: Preview FGCA diagram",
+        "category": "Transitrix",
+        "icon": "$(type-hierarchy)"
       }
     ],
     "menus": {
@@ -123,6 +140,11 @@
         {
           "when": "resourceFilename =~ /\\.goals\\.transitrix\\.yaml$/",
           "command": "transitrixStudio.previewGoals",
+          "group": "navigation@-10"
+        },
+        {
+          "when": "resourceFilename =~ /\\.fgca\\.transitrix\\.yaml$/",
+          "command": "transitrixStudio.previewFGCA",
           "group": "navigation@-10"
         }
       ]

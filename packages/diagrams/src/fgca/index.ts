@@ -1,5 +1,7 @@
 export { buildFGCALayout, NODE_WIDTH, NODE_HEIGHT, COLUMN_GAP, ROW_GAP, COLUMN_BG } from "./layout";
 export type { FGCALayoutInput } from "./layout";
+export { validateFGCADoc } from "./validate";
+export type { FGCADoc, FGCAValidationResult, FGCAValidationError, FGCAValidationWarning } from "./validate";
 export {
   ALL_FGCA_COLUMNS,
   FGCA_COLUMN_LABELS,

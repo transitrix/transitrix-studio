@@ -17,12 +17,12 @@ export interface FGCAChangeNodeProps {
 const FGCAChangeNode = memo(({ data, isConnectable }: FGCAChangeNodeProps) => (
   <div
     style={{
-      background: "#dbeafe",
+      background: "var(--ts-layer-change)",
       width: NODE_WIDTH,
       height: NODE_HEIGHT,
       padding: "6px 8px",
       fontSize: "12px",
-      borderColor: data.borderColor ?? "#94a3b8",
+      borderColor: data.borderColor ?? "var(--ts-node-stroke)",
       borderWidth: data.borderWidth ?? 1,
       borderStyle: "solid",
       borderRadius: "0.75rem",
@@ -32,11 +32,11 @@ const FGCAChangeNode = memo(({ data, isConnectable }: FGCAChangeNodeProps) => (
       justifyContent: "center",
       alignItems: "center",
       textAlign: "center",
-      color: "#1e293b",
+      color: "var(--ts-text-primary)",
     }}
   >
-    <Handle type="target" position={Position.Left} isConnectable={isConnectable} style={{ background: "#555" }} />
-    <Handle type="source" position={Position.Right} isConnectable={false} style={{ background: "#555" }} />
+    <Handle type="target" position={Position.Left} isConnectable={isConnectable} style={{ background: "var(--ts-node-stroke)" }} />
+    <Handle type="source" position={Position.Right} isConnectable={false} style={{ background: "var(--ts-node-stroke)" }} />
     <div
       style={{
         fontWeight: 600,
@@ -53,7 +53,7 @@ const FGCAChangeNode = memo(({ data, isConnectable }: FGCAChangeNodeProps) => (
     >
       {data.name}
     </div>
-    <div style={{ fontSize: "10px", color: "#64748b", marginTop: 2 }}>
+    <div style={{ fontSize: "10px", color: "var(--ts-text-secondary)", marginTop: 2 }}>
       C-{String(data.id).padStart(3, "0")}
     </div>
   </div>

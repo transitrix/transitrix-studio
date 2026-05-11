@@ -2,3 +2,9 @@ src/**
 tsconfig.json
 .vscode-test/**
 **/*.map
+
+# Dependencies are bundled by esbuild into out/extension.js — node_modules
+# does not need to ship inside the VSIX. Excluding it also avoids the
+# case-insensitive duplicate-paths error vsce raises with npm workspaces.
+node_modules/**
+**/node_modules/**

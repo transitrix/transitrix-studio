@@ -18,12 +18,12 @@ export interface FGCAActivityNodeProps {
 const FGCAActivityNode = memo(({ data, isConnectable }: FGCAActivityNodeProps) => (
   <div
     style={{
-      background: "#d4edda",
+      background: "var(--ts-layer-activity)",
       width: NODE_WIDTH,
       height: NODE_HEIGHT,
       padding: "6px 8px",
       fontSize: "12px",
-      borderColor: data.borderColor ?? "#94a3b8",
+      borderColor: data.borderColor ?? "var(--ts-node-stroke)",
       borderWidth: data.borderWidth ?? 1,
       borderStyle: "solid",
       borderRadius: "0.75rem",
@@ -33,11 +33,11 @@ const FGCAActivityNode = memo(({ data, isConnectable }: FGCAActivityNodeProps) =
       justifyContent: "center",
       alignItems: "center",
       textAlign: "center",
-      color: "#1e293b",
+      color: "var(--ts-text-primary)",
     }}
   >
-    <Handle type="target" position={Position.Left} isConnectable={isConnectable} style={{ background: "#555" }} />
-    <Handle type="source" position={Position.Right} isConnectable={false} style={{ background: "#555" }} />
+    <Handle type="target" position={Position.Left} isConnectable={isConnectable} style={{ background: "var(--ts-node-stroke)" }} />
+    <Handle type="source" position={Position.Right} isConnectable={false} style={{ background: "var(--ts-node-stroke)" }} />
     <div
       style={{
         fontWeight: 600,
@@ -54,7 +54,7 @@ const FGCAActivityNode = memo(({ data, isConnectable }: FGCAActivityNodeProps) =
     >
       {data.name}
     </div>
-    <div style={{ fontSize: "10px", color: "#64748b", marginTop: 2 }}>
+    <div style={{ fontSize: "10px", color: "var(--ts-text-secondary)", marginTop: 2 }}>
       {data.activityTypeName ?? "Activity"} | A-{String(data.id).padStart(3, "0")}
     </div>
   </div>

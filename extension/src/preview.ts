@@ -1,5 +1,6 @@
 import * as path from 'node:path';
 import * as vscode from 'vscode';
+import { getBaseResetCss } from '../../packages/diagrams/src/theme/index.js';
 
 import type { LayoutMetrics, ValidationReport } from './types.js';
 
@@ -97,8 +98,8 @@ export class CervinPreview {
   <link rel="stylesheet" href="${cssDiagram}" />
   <link rel="stylesheet" href="${cssBpmn}" />
   <style>
-    *,*:before,*:after{box-sizing:border-box;}
-    html,body{width:100%;height:100%;margin:0;padding:0;overflow:hidden;}
+    ${getBaseResetCss()}
+    html,body{width:100%;height:100%;overflow:hidden;}
     /* flex chain so layout height reaches #canvas — otherwise diagram-js measures ~0px */
     body{display:flex;flex-direction:column;min-height:0;}
     #toolbar{flex-shrink:0;border-bottom:1px solid var(--vscode-panel-border);padding:6px 8px;font-family:var(--vscode-font-family);font-size:12px;display:flex;flex-direction:column;gap:6px;}
