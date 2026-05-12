@@ -58,9 +58,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     if (!compileFn) {
       try {
         compileFn = await loadCompiler(context);
-      } catch {
+      } catch (err) {
+        const detail = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+        console.error('Transitrix Studio: loadCompiler failed:', err);
         throw new Error(
-          "Cervin: compiler bundle not found. Run the 'extension:prep' build step and reload the extension.",
+          `Transitrix Studio: compiler bundle failed to load — ${detail}. Run the 'extension:prep' build step and reload the extension.`,
         );
       }
     }

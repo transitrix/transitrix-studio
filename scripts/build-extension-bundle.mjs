@@ -50,4 +50,10 @@ await esbuild.build({
   target: 'node18',
   sourcemap: false,
   logLevel: 'info',
+  // Inject createRequire so any dynamic `require(...)` in bundled CJS
+  // dependencies falls through to Node's real module resolver. Same
+  // pattern as build-compiler-bundle.mjs.
+  banner: {
+    js: "import { createRequire as __createRequire__ } from 'node:module'; const require = __createRequire__(import.meta.url);",
+  },
 });

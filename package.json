@@ -1,10 +1,9 @@
 {
   "name": "transitrix-studio",
-  "version": "0.4.0",
+  "version": "0.4.8",
   "private": true,
   "workspaces": [
-    "packages/*",
-    "extension"
+    "packages/*"
   ],
   "description": "VS Code extension and CLI for editing and previewing Transitrix diagrams (BPMN, Goals, FGCA, …).",
   "license": "MIT",
@@ -32,7 +31,7 @@
     "build": "tsc -p tsconfig.build.json",
     "build:webview": "node scripts/build-webview.mjs",
     "extension:bundle": "node scripts/build-extension-bundle.mjs",
-    "extension:prep": "npm run build && npm run build:webview && node scripts/sync-extension-compiler.mjs && npm run extension:bundle",
+    "extension:prep": "npm run build:webview && node scripts/build-compiler-bundle.mjs && npm run extension:bundle",
     "pretest": "npm run build",
     "test": "vitest run",
     "test:watch": "vitest",

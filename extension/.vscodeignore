@@ -3,8 +3,24 @@ tsconfig.json
 .vscode-test/**
 **/*.map
 
-# Dependencies are bundled by esbuild into out/extension.js — node_modules
-# does not need to ship inside the VSIX. Excluding it also avoids the
-# case-insensitive duplicate-paths error vsce raises with npm workspaces.
-node_modules/**
-**/node_modules/**
+# node_modules IS shipped inside the VSIX so the compiler bundle can resolve
+# runtime dependencies (ajv, elkjs, etc.) via require at runtime. The
+# build-compiler-bundle.mjs step installs a clean, workspace-ignored
+# node_modules tree before vsce packages — that avoids the case-insensitive
+# duplicate-paths issue that npm workspace symlinks would otherwise cause.
+# Exclude noise that ships inside dep packages but is not needed at runtime
+# (only matches files DEEP inside node_modules, not the extension's own
+# README.md / CHANGELOG.md / etc. at the package root):
+node_modules/**/*.ts
+node_modules/**/*.md
+node_modules/**/CHANGELOG*
+node_modules/**/HISTORY*
+node_modules/**/AUTHORS*
+node_modules/**/CONTRIBUTORS*
+node_modules/**/test/**
+node_modules/**/tests/**
+node_modules/**/__tests__/**
+node_modules/**/example/**
+node_modules/**/examples/**
+node_modules/**/docs/**
+node_modules/**/.github/**
