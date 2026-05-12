@@ -6,6 +6,7 @@ import type { CompileFn } from './preview.js';
 import { CervinPreview } from './preview.js';
 import { GoalsPreview } from './goals-preview.js';
 import { FGCAPreview, FGAPreview } from './fgca-preview.js';
+import { ActivitiesPreview } from './activities-preview.js';
 import type { LayoutMetrics, ValidationReport } from './types.js';
 import {
   documentMatchesCervinSource,
@@ -23,6 +24,10 @@ function isFGCAFile(doc: vscode.TextDocument): boolean {
 
 function isFGAFile(doc: vscode.TextDocument): boolean {
   return doc.fileName.endsWith('.fga.transitrix.yaml');
+}
+
+function isActivitiesFile(doc: vscode.TextDocument): boolean {
+  return doc.fileName.endsWith('.activities.transitrix.yaml');
 }
 
 async function loadCompiler(ext: vscode.ExtensionContext): Promise<CompileFn> {
@@ -75,6 +80,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const goalsPreview = new GoalsPreview();
   const fgcaPreview = new FGCAPreview();
   const fgaPreview = new FGAPreview();
+  const activitiesPreview = new ActivitiesPreview();
 
   context.subscriptions.push(
     vscode.commands.registerCommand('cervin.openPreview', async () => {
@@ -115,17 +121,27 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       }
       await fgaPreview.showOrReveal(doc);
     }),
+    vscode.commands.registerCommand('transitrixStudio.previewActivities', async () => {
+      const doc = vscode.window.activeTextEditor?.document;
+      if (!doc || !isActivitiesFile(doc)) {
+        vscode.window.showWarningMessage('Open a *.activities.transitrix.yaml file first.');
+        return;
+      }
+      await activitiesPreview.showOrReveal(doc);
+    }),
     vscode.workspace.onDidSaveTextDocument((doc) => {
       if (isGoalsFile(doc)) { void goalsPreview.refreshSaved(doc); return; }
       if (isFGCAFile(doc)) { void fgcaPreview.refreshSaved(doc); return; }
       if (isFGAFile(doc)) { void fgaPreview.refreshSaved(doc); return; }
+      if (isActivitiesFile(doc)) { void activitiesPreview.refreshSaved(doc); return; }
       if (!documentMatchesCervinSource(doc)) return;
       void preview.refreshSaved(doc);
     }),
     vscode.workspace.onDidOpenTextDocument(async (doc) => {
       if (isGoalsFile(doc)) { await goalsPreview.showOrReveal(doc); return; }
       if (isFGCAFile(doc)) { await fgcaPreview.showOrReveal(doc); return; }
-      if (isFGAFile(doc)) { await fgaPreview.showOrReveal(doc); }
+      if (isFGAFile(doc)) { await fgaPreview.showOrReveal(doc); return; }
+      if (isActivitiesFile(doc)) { await activitiesPreview.showOrReveal(doc); }
     }),
   );
 }

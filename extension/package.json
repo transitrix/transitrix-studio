@@ -149,6 +149,12 @@
         "title": "Transitrix: Preview FGA diagram",
         "category": "Transitrix",
         "icon": "$(type-hierarchy)"
+      },
+      {
+        "command": "transitrixStudio.previewActivities",
+        "title": "Transitrix: Preview activity network diagram",
+        "category": "Transitrix",
+        "icon": "$(type-hierarchy)"
       }
     ],
     "menus": {
@@ -171,6 +177,11 @@
         {
           "when": "resourceFilename =~ /\\.fga\\.transitrix\\.yaml$/",
           "command": "transitrixStudio.previewFGA",
+          "group": "navigation@-10"
+        },
+        {
+          "when": "resourceFilename =~ /\\.activities\\.transitrix\\.yaml$/",
+          "command": "transitrixStudio.previewActivities",
           "group": "navigation@-10"
         }
       ]

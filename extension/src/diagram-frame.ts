@@ -16,6 +16,8 @@ export interface DiagramFrameOpts {
   warnings?: string[];
   /** VS Code theme variant to apply. Defaults to "transitrix". */
   themeId?: ThemeId;
+  /** Additional CSS injected after the base theme CSS. Use for notation-specific styles. */
+  extraStyles?: string;
 }
 
 function escXml(s: string): string {
@@ -30,7 +32,7 @@ function escXml(s: string): string {
 export function buildDiagramFrame(opts: DiagramFrameOpts): string {
   const {
     filename, notation, svgContent = '', errorMsg = '',
-    warnings = [], themeId = 'transitrix',
+    warnings = [], themeId = 'transitrix', extraStyles = '',
   } = opts;
 
   const errBlock = errorMsg
@@ -54,6 +56,7 @@ export function buildDiagramFrame(opts: DiagramFrameOpts): string {
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline';">
   <style>
 ${generateWebviewCss(themeId)}
+${extraStyles}
   </style>
 </head>
 <body data-theme="${escXml(themeId)}">
