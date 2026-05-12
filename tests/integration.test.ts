@@ -12,7 +12,7 @@ import { layoutProcess } from '../src/layout.js';
 import { irFromValidatedDsl, parseYamlToIr, type YamlDocumentRoot } from '../src/parser.js';
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
-const sampleCervinPath = join(repoRoot, 'examples', 'bpmn', 'order-fulfillment.cervin.yaml');
+const sampleCervinPath = join(repoRoot, 'examples', 'bpmn', 'order-fulfillment.bpmn.yaml');
 
 describe('parser', () => {
   it('parses sample and collects flows', () => {
@@ -179,17 +179,18 @@ describe('layout', () => {
   });
 
   it('cross-lane flow keeps at least two waypoints once geometry exists', async () => {
-    const featurePath = join(repoRoot, 'examples', 'bpmn', 'feature-release.cervin.yaml');
+    const featurePath = join(repoRoot, 'examples', 'bpmn', 'feature-release.bpmn.yaml');
     const yaml = await readFile(featurePath, 'utf8');
     const ir = parseYamlToIr(yaml);
     const layout = await layoutProcess(ir);
-    const bridge = layout.flows.find((f) => f.from === 'draft-notes' && f.to === 'gw-parallel-split');
+    // task-regression (QA) → gw-deploy-split (DevOps): cross-lane forward flow
+    const bridge = layout.flows.find((f) => f.from === 'task-regression' && f.to === 'gw-deploy-split');
     expect(bridge?.waypoints.length).toBeGreaterThanOrEqual(2);
   });
 
   // RD-046: cross-lane X-alignment regression tests
   it('element X coordinates are independent of laneVerticalGap (phase-1 separation invariant)', async () => {
-    const featurePath = join(repoRoot, 'examples', 'bpmn', 'feature-release.cervin.yaml');
+    const featurePath = join(repoRoot, 'examples', 'bpmn', 'feature-release.bpmn.yaml');
     const yaml = await readFile(featurePath, 'utf8');
     const ir = parseYamlToIr(yaml);
     const baseline = await layoutProcess(ir, { laneVerticalGap: 40 });
@@ -202,17 +203,15 @@ describe('layout', () => {
   });
 
   it('forward cross-lane flows: target element is to the right of source (RD-046)', async () => {
-    const featurePath = join(repoRoot, 'examples', 'bpmn', 'feature-release.cervin.yaml');
+    const featurePath = join(repoRoot, 'examples', 'bpmn', 'feature-release.bpmn.yaml');
     const yaml = await readFile(featurePath, 'utf8');
     const ir = parseYamlToIr(yaml);
     const layout = await layoutProcess(ir);
 
-    // Known forward cross-lane pairs in feature-release.cervin.yaml
+    // Known forward cross-lane pairs in feature-release.bpmn.yaml
     const forwardCrossLanePairs: [string, string][] = [
-      ['draft-notes', 'gw-parallel-split'],   // lane-product → lane-platform
-      ['gw-parallel-join', 'sec-review'],      // lane-platform → lane-governance
-      ['cab-approved-merge', 'promote-staging'], // lane-governance → lane-platform
-      ['promote-staging', 'widen-traffic'],    // lane-platform → lane-ops
+      ['task-build', 'task-manual-qa'],    // lane-dev → lane-qa
+      ['task-regression', 'gw-deploy-split'], // lane-qa → lane-infra
     ];
 
     for (const [fromId, toId] of forwardCrossLanePairs) {
@@ -590,6 +589,96 @@ describe('layout', () => {
       expect(seg, `segment (${wps[i].x.toFixed(0)},${wps[i].y.toFixed(0)})→(${wps[i + 1].x.toFixed(0)},${wps[i + 1].y.toFixed(0)}) intersects bot-task-1`).toBe(false);
       expect(seg2, `segment (${wps[i].x.toFixed(0)},${wps[i].y.toFixed(0)})→(${wps[i + 1].x.toFixed(0)},${wps[i + 1].y.toFixed(0)}) intersects bot-task-2`).toBe(false);
     }
+  });
+  // TX-023: direction-aware gateway port assignment (same-lane TOP/BOTTOM for vertical branches)
+  it('TX-023 — same-lane gateway branches above/below exit TOP/BOTTOM vertices', async () => {
+    // feature-release: gw-deploy-split (parallelGateway) in lane-infra
+    //   → task-health  (above gateway center Y)  must exit TOP vertex
+    //   → task-staging (below gateway center Y)  must exit BOTTOM vertex
+    const featurePath = join(repoRoot, 'examples', 'bpmn', 'feature-release.bpmn.yaml');
+    const yaml = await readFile(featurePath, 'utf8');
+    const ir = parseYamlToIr(yaml);
+    const layout = await layoutProcess(ir);
+
+    const gwB = layout.elements.get('gw-deploy-split')!;
+    expect(gwB, 'gw-deploy-split must be in layout').toBeDefined();
+    const gwTop = gwB.y;
+    const gwBottom = gwB.y + gwB.height;
+    const gwCX = gwB.x + gwB.width / 2;
+
+    const toHealth = layout.flows.find(f => f.from === 'gw-deploy-split' && f.to === 'task-health');
+    const toStaging = layout.flows.find(f => f.from === 'gw-deploy-split' && f.to === 'task-staging');
+    expect(toHealth, 'gw-deploy-split → task-health must exist').toBeDefined();
+    expect(toStaging, 'gw-deploy-split → task-staging must exist').toBeDefined();
+
+    // Health Check is above gw-deploy-split → must exit TOP vertex (wp[0].y === gwB.y)
+    const healthStart = toHealth!.waypoints[0];
+    expect(healthStart.x).toBeCloseTo(gwCX, 0);
+    expect(healthStart.y).toBeCloseTo(gwTop, 0);
+
+    // Deploy to Staging is below gw-deploy-split → must exit BOTTOM vertex (wp[0].y === gwB.y + gwB.height)
+    const stagingStart = toStaging!.waypoints[0];
+    expect(stagingStart.x).toBeCloseTo(gwCX, 0);
+    expect(stagingStart.y).toBeCloseTo(gwBottom, 0);
+  });
+
+  it('TX-023 — R4 cross-lane gateway exit: gw-decision → task-pay exits BOTTOM', async () => {
+    // ai-expense-approval: gw-decision (Manager lane) → task-pay (Finance lane, below)
+    // R4 must assign BOTTOM exit so the path goes downward without detour.
+    const aePath = join(repoRoot, 'examples', 'bpmn', 'ai-expense-approval.bpmn.yaml');
+    const yaml = await readFile(aePath, 'utf8');
+    const ir = parseYamlToIr(yaml);
+    const layout = await layoutProcess(ir);
+
+    const gwB = layout.elements.get('gw-decision')!;
+    expect(gwB, 'gw-decision must be in layout').toBeDefined();
+    const gwBottom = gwB.y + gwB.height;
+    const gwCX = gwB.x + gwB.width / 2;
+
+    const flow = layout.flows.find(f => f.from === 'gw-decision' && f.to === 'task-pay');
+    expect(flow, 'gw-decision → task-pay must exist').toBeDefined();
+
+    const startPt = flow!.waypoints[0];
+    expect(startPt.x).toBeCloseTo(gwCX, 0);          // exits BOTTOM center-x
+    expect(startPt.y).toBeCloseTo(gwBottom, 0);        // exits BOTTOM y
+
+    // Must go downward in the first segment (no upward detour)
+    const secondPt = flow!.waypoints[1];
+    expect(secondPt.y).toBeGreaterThanOrEqual(startPt.y);
+
+    // Path must have ≤ 5 waypoints (clean L-shape, no excessive bends)
+    expect(flow!.waypoints.length).toBeLessThanOrEqual(5);
+  });
+
+  it('TX-023 — two same-lane gateway branches use distinct exit vertices', async () => {
+    // simple-approval: gw-approve (XOR) has two same-lane flows (→task-notify-ok, →task-notify-reject).
+    // ELK places them above and below the gateway center (delta ~50 px and ~82 px) so each gets
+    // a distinct vertex: top for the upward flow, bottom for the downward flow.
+    // The key invariant: no two outgoing same-lane flows share the same starting waypoint.
+    const path_ = join(repoRoot, 'examples', 'bpmn', 'simple-approval.bpmn.yaml');
+    const yaml = await readFile(path_, 'utf8');
+    const ir = parseYamlToIr(yaml);
+    const layout = await layoutProcess(ir);
+
+    const gwB = layout.elements.get('gw-approve')!;
+    expect(gwB, 'gw-approve must be in layout').toBeDefined();
+    const gwCX = gwB.x + gwB.width / 2;
+    const gwTop = gwB.y;
+    const gwBottom = gwB.y + gwB.height;
+
+    const toOk = layout.flows.find(f => f.from === 'gw-approve' && f.to === 'task-notify-ok');
+    const toReject = layout.flows.find(f => f.from === 'gw-approve' && f.to === 'task-notify-reject');
+    expect(toOk, 'gw-approve → task-notify-ok must exist').toBeDefined();
+    expect(toReject, 'gw-approve → task-notify-reject must exist').toBeDefined();
+
+    const okStart = toOk!.waypoints[0];
+    const rejectStart = toReject!.waypoints[0];
+
+    // Both flows exit from the diamond center-x but different Y (TOP vs BOTTOM vertices)
+    expect(okStart.x).toBeCloseTo(gwCX, 0);
+    expect(rejectStart.x).toBeCloseTo(gwCX, 0);
+    expect(okStart.y).toBeCloseTo(gwTop, 0);      // above target → TOP exit
+    expect(rejectStart.y).toBeCloseTo(gwBottom, 0); // below target → BOTTOM exit
   });
 });
 

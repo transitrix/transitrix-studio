@@ -632,14 +632,24 @@ export async function layoutProcess(
       .filter(f => f.toB.y + f.toB.height / 2 > gwCY + GATEWAY_VERTEX_THRESHOLD_PX)
       .sort((a, b) => (b.toB.y + b.toB.height / 2) - (a.toB.y + a.toB.height / 2)); // descending cy
 
-    // For same-lane flows, always use RIGHT port + Y-offset to maintain the
-    // horizontal port rule. TOP/BOTTOM ports are never used for same-lane flows.
-    // Combine all flows (above, level, below) and spread them via Y-offset.
-    const allFlows = flows.sort((a, b) => a.toB.y - b.toB.y);
-    if (allFlows.length > 1) {
-      const total = (allFlows.length - 1) * MULTI_EXIT_OFFSET_STEP_PX;
-      allFlows.forEach((f, i) => {
-        // No port assignment (defaults to 'right' in routeSameLane)
+    // Direction-aware vertex assignment:
+    //   most-above flow  → TOP vertex  (distinct diamond point, clean L-shape)
+    //   most-below flow  → BOTTOM vertex
+    //   remaining (level or extras beyond first above/below) → RIGHT + Y-offset
+    if (above.length > 0) flowExitPort.set(above[0].id, 'top');
+    if (below.length > 0) flowExitPort.set(below[0].id, 'bottom');
+
+    const rightFlows = [
+      ...above.slice(1),
+      ...flows.filter(f =>
+        Math.abs(f.toB.y + f.toB.height / 2 - gwCY) <= GATEWAY_VERTEX_THRESHOLD_PX,
+      ),
+      ...below.slice(1),
+    ].sort((a, b) => a.toB.y - b.toB.y);
+
+    if (rightFlows.length > 1) {
+      const total = (rightFlows.length - 1) * MULTI_EXIT_OFFSET_STEP_PX;
+      rightFlows.forEach((f, i) => {
         flowExitYOffset.set(f.id, -total / 2 + i * MULTI_EXIT_OFFSET_STEP_PX);
       });
     }

@@ -359,8 +359,14 @@ export function countPortViolations(layout: LayoutIr): number {
     const entryPort = determinePort(flow.waypoints, toBounds, 'entry')
 
     if (isSameLane) {
-      // Must be left or right
-      if (!['LEFT', 'RIGHT'].includes(exitPort) || !['LEFT', 'RIGHT'].includes(entryPort)) {
+      // Entry must always be LEFT or RIGHT.
+      // Exit must be LEFT or RIGHT for non-gateways.
+      // Gateways may also exit TOP (target above) or BOTTOM (target below) — R2 vertex rule.
+      const isSourceGateway = GATEWAY_TYPES.has(fromEl.type)
+      const validExit = isSourceGateway
+        ? ['LEFT', 'RIGHT', 'TOP', 'BOTTOM'].includes(exitPort)
+        : ['LEFT', 'RIGHT'].includes(exitPort)
+      if (!validExit || !['LEFT', 'RIGHT'].includes(entryPort)) {
         violations++
       }
     } else {
@@ -371,13 +377,18 @@ export function countPortViolations(layout: LayoutIr): number {
       if (sourceLaneIdx === undefined || targetLaneIdx === undefined) continue
 
       if (sourceLaneIdx < targetLaneIdx) {
-        // Target lane is below source: exit must be RIGHT or BOTTOM, entry must be LEFT or TOP
-        if (!['RIGHT', 'BOTTOM'].includes(exitPort) || !['LEFT', 'TOP'].includes(entryPort)) {
+        // Target lane is below source: exit must be RIGHT or BOTTOM.
+        // Entry: determinePort returns the direction-of-travel of the last segment, not the
+        // physical side of the target. Rightward last segment (RIGHT) = entering LEFT side of
+        // target (normal). Downward last segment (BOTTOM) = entering TOP of target (straight-down).
+        if (!['RIGHT', 'BOTTOM'].includes(exitPort) || !['RIGHT', 'BOTTOM'].includes(entryPort)) {
           violations++
         }
       } else if (sourceLaneIdx > targetLaneIdx) {
-        // Target lane is above source: exit must be RIGHT or TOP, entry must be LEFT or BOTTOM
-        if (!['RIGHT', 'TOP'].includes(exitPort) || !['LEFT', 'BOTTOM'].includes(entryPort)) {
+        // Target lane is above source: exit must be RIGHT or TOP.
+        // Rightward last segment (RIGHT) = entering LEFT side of target (normal).
+        // Upward last segment (TOP) = entering BOTTOM of target (straight-up).
+        if (!['RIGHT', 'TOP'].includes(exitPort) || !['RIGHT', 'TOP'].includes(entryPort)) {
           violations++
         }
       }

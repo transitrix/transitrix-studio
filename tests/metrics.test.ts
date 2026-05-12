@@ -391,128 +391,151 @@ function createCrossLaneLayoutWithWaypoints(
     } as LayoutIr
 }
 
+// Strategy-1 semantics: determinePort returns direction-of-travel of the first/last segment.
+// Cross-lane DOWN (srcIdx < tgtIdx): valid exit = {RIGHT, BOTTOM}, valid entry = {RIGHT, BOTTOM}
+//   RIGHT exit = last exit segment goes rightward; BOTTOM exit = last exit segment goes downward
+//   RIGHT entry = last entry segment goes rightward (enters target from LEFT side physically)
+//   BOTTOM entry = last entry segment goes downward (enters target from TOP physically)
+// Cross-lane UP (srcIdx > tgtIdx): valid exit = {RIGHT, TOP}, valid entry = {RIGHT, TOP}
+//   TOP exit = last exit segment goes upward; TOP entry = last entry segment goes upward
 describe('Cross-lane port validation (RD-116)', () => {
   describe('Cross-lane DOWN (target lane index > source lane index)', () => {
-    it('should accept RIGHT exit and LEFT entry', () => {
-      // RIGHT exit: p1 < p2 in X, same Y (p2.x > p1.x)
-      // LEFT entry: pn < pn1 in X, same Y (pn.x < pn1.x)
+    it('should accept RIGHT exit and RIGHT entry', () => {
+      // Flow goes: right → down → left bend → right to target (enters target from LEFT side)
       const layout = createCrossLaneLayoutWithWaypoints('lane1', 'lane2', [
-        { x: 125, y: 125 }, // p1: center of source
-        { x: 200, y: 125 }, // p2: going right (RIGHT exit: p2.x > p1.x)
-        { x: 200, y: 325 }, // pn1: at right side
-        { x: 100, y: 325 }, // pn: coming back left (LEFT entry: pn.x < pn1.x)
+        { x: 125, y: 125 }, // p1: source center
+        { x: 200, y: 125 }, // p2: going right → RIGHT exit
+        { x: 200, y: 325 }, // bend: go down
+        { x: 50, y: 325 },  // go left past target
+        { x: 125, y: 325 }, // pn: go right to target → RIGHT entry
       ])
       expect(countPortViolations(layout)).toBe(0)
     })
 
-    it('should accept RIGHT exit and TOP entry', () => {
+    it('should accept RIGHT exit and BOTTOM entry', () => {
+      // Flow goes right then down, approaches target from above going downward
       const layout = createCrossLaneLayoutWithWaypoints('lane1', 'lane2', [
-        { x: 125, y: 125 },
-        { x: 200, y: 125 }, // RIGHT exit: p2.x > p1.x
-        { x: 125, y: 250 }, // pn1
-        { x: 125, y: 200 }, // pn: TOP entry (pn.y < pn1.y)
+        { x: 125, y: 125 }, // p1: source center
+        { x: 200, y: 125 }, // p2: going right → RIGHT exit
+        { x: 200, y: 275 }, // bend: go down
+        { x: 125, y: 275 }, // go left to target column
+        { x: 125, y: 325 }, // pn: going down → BOTTOM entry
       ])
       expect(countPortViolations(layout)).toBe(0)
     })
 
-    it('should accept BOTTOM exit and LEFT entry', () => {
+    it('should accept BOTTOM exit and RIGHT entry', () => {
+      // Flow exits downward then routes left and approaches target going rightward
       const layout = createCrossLaneLayoutWithWaypoints('lane1', 'lane2', [
-        { x: 125, y: 125 },
-        { x: 125, y: 200 }, // BOTTOM exit: p2.y > p1.y
-        { x: 200, y: 325 }, // pn1: at right side
-        { x: 100, y: 325 }, // pn: LEFT entry (pn.x < pn1.x)
+        { x: 125, y: 125 }, // p1: source center
+        { x: 125, y: 200 }, // p2: going down → BOTTOM exit
+        { x: 50, y: 200 },  // bend: go left
+        { x: 50, y: 325 },  // go down to target row
+        { x: 125, y: 325 }, // pn: going right → RIGHT entry
       ])
       expect(countPortViolations(layout)).toBe(0)
     })
 
-    it('should accept BOTTOM exit and TOP entry', () => {
+    it('should accept BOTTOM exit and BOTTOM entry', () => {
+      // Flow exits downward and enters target from above going downward
       const layout = createCrossLaneLayoutWithWaypoints('lane1', 'lane2', [
-        { x: 125, y: 125 },
-        { x: 125, y: 200 }, // BOTTOM exit: p2.y > p1.y
-        { x: 125, y: 250 }, // pn1
-        { x: 125, y: 200 }, // pn: TOP entry (pn.y < pn1.y)
+        { x: 125, y: 125 }, // p1: source center
+        { x: 125, y: 200 }, // p2: going down → BOTTOM exit
+        { x: 125, y: 275 }, // pn1: continue down
+        { x: 125, y: 325 }, // pn: going down → BOTTOM entry
       ])
       expect(countPortViolations(layout)).toBe(0)
     })
 
     it('should reject LEFT exit (invalid for down)', () => {
+      // Flow goes left from source — invalid for a cross-lane DOWN flow
       const layout = createCrossLaneLayoutWithWaypoints('lane1', 'lane2', [
-        { x: 125, y: 125 },
-        { x: 50, y: 125 }, // LEFT exit (p2.x < p1.x) - INVALID for down
-        { x: 50, y: 325 },
-        { x: 125, y: 325 },
+        { x: 125, y: 125 }, // p1: source center
+        { x: 50, y: 125 },  // p2: going left → LEFT exit (INVALID)
+        { x: 50, y: 325 },  // bend: go down
+        { x: 125, y: 325 }, // pn: going right → RIGHT entry (valid)
       ])
       expect(countPortViolations(layout)).toBe(1)
     })
 
-    it('should reject BOTTOM entry (invalid for down)', () => {
+    it('should reject LEFT entry (invalid for down)', () => {
+      // Flow exits right but last segment goes leftward (enters from right side going left)
       const layout = createCrossLaneLayoutWithWaypoints('lane1', 'lane2', [
-        { x: 125, y: 125 },
-        { x: 200, y: 125 }, // RIGHT exit (valid)
-        { x: 125, y: 300 }, // pn1
-        { x: 125, y: 350 }, // pn: BOTTOM entry (pn.y > pn1.y) - INVALID for down
+        { x: 125, y: 125 }, // p1: source center
+        { x: 200, y: 125 }, // p2: going right → RIGHT exit (valid)
+        { x: 200, y: 325 }, // bend: go down
+        { x: 100, y: 325 }, // pn: going left → LEFT entry (INVALID)
       ])
       expect(countPortViolations(layout)).toBe(1)
     })
   })
 
   describe('Cross-lane UP (target lane index < source lane index)', () => {
-    it('should accept RIGHT exit and LEFT entry', () => {
+    it('should accept RIGHT exit and RIGHT entry', () => {
+      // Flow goes: right → up → left bend → right to target
       const layout = createCrossLaneLayoutWithWaypoints('lane2', 'lane1', [
-        { x: 125, y: 325 }, // p1: center of source (lane2)
-        { x: 200, y: 325 }, // p2: RIGHT exit (p2.x > p1.x)
-        { x: 200, y: 125 }, // pn1: at right side
-        { x: 100, y: 125 }, // pn: LEFT entry (pn.x < pn1.x, target in lane1)
+        { x: 125, y: 325 }, // p1: source center (lane2, lower)
+        { x: 200, y: 325 }, // p2: going right → RIGHT exit
+        { x: 200, y: 125 }, // bend: go up
+        { x: 50, y: 125 },  // go left past target
+        { x: 125, y: 125 }, // pn: going right → RIGHT entry
       ])
       expect(countPortViolations(layout)).toBe(0)
     })
 
-    it('should accept RIGHT exit and BOTTOM entry', () => {
+    it('should accept RIGHT exit and TOP entry', () => {
+      // Flow exits right then approaches target from below going upward
       const layout = createCrossLaneLayoutWithWaypoints('lane2', 'lane1', [
-        { x: 125, y: 325 },
-        { x: 200, y: 325 }, // RIGHT exit (p2.x > p1.x)
-        { x: 125, y: 100 }, // pn1
-        { x: 125, y: 150 }, // pn: BOTTOM entry (pn.y > pn1.y - going down)
+        { x: 125, y: 325 }, // p1: source center (lane2, lower)
+        { x: 200, y: 325 }, // p2: going right → RIGHT exit
+        { x: 200, y: 175 }, // bend: go up
+        { x: 125, y: 175 }, // go left to target column
+        { x: 125, y: 125 }, // pn: going up → TOP entry
       ])
       expect(countPortViolations(layout)).toBe(0)
     })
 
-    it('should accept TOP exit and LEFT entry', () => {
+    it('should accept TOP exit and RIGHT entry', () => {
+      // Flow exits upward then routes and enters target going rightward
       const layout = createCrossLaneLayoutWithWaypoints('lane2', 'lane1', [
-        { x: 125, y: 325 },
-        { x: 125, y: 250 }, // TOP exit (p2.y < p1.y)
-        { x: 200, y: 125 }, // pn1: at right side
-        { x: 100, y: 125 }, // pn: LEFT entry (pn.x < pn1.x)
+        { x: 125, y: 325 }, // p1: source center (lane2, lower)
+        { x: 125, y: 250 }, // p2: going up → TOP exit
+        { x: 50, y: 250 },  // bend: go left
+        { x: 50, y: 125 },  // go up to target row
+        { x: 125, y: 125 }, // pn: going right → RIGHT entry
       ])
       expect(countPortViolations(layout)).toBe(0)
     })
 
-    it('should accept TOP exit and BOTTOM entry', () => {
+    it('should accept TOP exit and TOP entry', () => {
+      // Flow exits upward and enters target from below going upward
       const layout = createCrossLaneLayoutWithWaypoints('lane2', 'lane1', [
-        { x: 125, y: 325 },
-        { x: 125, y: 250 }, // TOP exit (p2.y < p1.y)
-        { x: 125, y: 100 }, // pn1
-        { x: 125, y: 150 }, // pn: BOTTOM entry (pn.y > pn1.y - going down)
+        { x: 125, y: 325 }, // p1: source center (lane2, lower)
+        { x: 125, y: 250 }, // p2: going up → TOP exit
+        { x: 125, y: 175 }, // pn1: continue up
+        { x: 125, y: 125 }, // pn: going up → TOP entry
       ])
       expect(countPortViolations(layout)).toBe(0)
     })
 
     it('should reject LEFT exit (invalid for up)', () => {
+      // Flow goes left from source — invalid for a cross-lane UP flow
       const layout = createCrossLaneLayoutWithWaypoints('lane2', 'lane1', [
-        { x: 125, y: 325 },
-        { x: 50, y: 325 }, // LEFT exit - INVALID for up
-        { x: 50, y: 125 },
-        { x: 125, y: 125 },
+        { x: 125, y: 325 }, // p1: source center
+        { x: 50, y: 325 },  // p2: going left → LEFT exit (INVALID)
+        { x: 50, y: 125 },  // bend: go up
+        { x: 125, y: 125 }, // pn: going right → RIGHT entry (valid)
       ])
       expect(countPortViolations(layout)).toBe(1)
     })
 
-    it('should reject TOP entry (invalid for up)', () => {
+    it('should reject LEFT entry (invalid for up)', () => {
+      // Flow exits right but last segment goes leftward
       const layout = createCrossLaneLayoutWithWaypoints('lane2', 'lane1', [
-        { x: 125, y: 325 },
-        { x: 200, y: 325 }, // RIGHT exit (valid)
-        { x: 125, y: 150 }, // pn1
-        { x: 125, y: 100 }, // pn: TOP entry (pn.y < pn1.y) - INVALID for up
+        { x: 125, y: 325 }, // p1: source center
+        { x: 200, y: 325 }, // p2: going right → RIGHT exit (valid)
+        { x: 200, y: 125 }, // bend: go up
+        { x: 100, y: 125 }, // pn: going left → LEFT entry (INVALID)
       ])
       expect(countPortViolations(layout)).toBe(1)
     })
@@ -520,63 +543,58 @@ describe('Cross-lane port validation (RD-116)', () => {
 })
 
 describe('Vertical port direction detection (RD-115)', () => {
-  // RD-115 tests verify vertical port direction detection using valid cross-lane combinations
-  // Each test exercises port detection with vertical waypoint segments while satisfying RD-116 rules
+  // RD-115 tests verify that vertical (TOP/BOTTOM) port directions are correctly detected
+  // and accepted when valid under Strategy-1 semantics.
+  // All tests use valid port combinations so expect 0 violations.
 
-  it('should detect exit port BOTTOM (DOWN flow with BOTTOM+TOP)', () => {
-    // Source in lane1, target in lane2 (below) - DOWN flow
-    // Exit BOTTOM (p2.y > p1.y) paired with entry TOP (valid for DOWN)
+  it('should detect and accept exit port BOTTOM (DOWN flow with BOTTOM+RIGHT)', () => {
+    // Source in lane1, target in lane2 (below) — DOWN flow
+    // BOTTOM exit: first segment goes downward; RIGHT entry: last segment goes rightward
     const layout = createCrossLaneLayoutWithWaypoints('lane1', 'lane2', [
       { x: 125, y: 125 }, // p1: source center
-      { x: 125, y: 175 }, // p2: going down (p2.y > p1.y) → BOTTOM exit
-      { x: 125, y: 250 }, // pn1: midpoint
-      { x: 125, y: 300 }, // pn: higher than pn1 (pn.y > pn1.y) → BOTTOM entry -- WAIT, needs TOP
+      { x: 125, y: 200 }, // p2: going down → BOTTOM exit
+      { x: 50, y: 200 },  // go left
+      { x: 50, y: 325 },  // go down to target row
+      { x: 125, y: 325 }, // pn: going right → RIGHT entry
     ])
-    // Need to adjust: for DOWN flow, entry must be TOP or LEFT
-    // So pn.y < pn1.y for TOP entry
-    const correctedLayout = createCrossLaneLayoutWithWaypoints('lane1', 'lane2', [
-      { x: 125, y: 125 }, // p1: source center
-      { x: 125, y: 175 }, // p2: going down → BOTTOM exit
-      { x: 125, y: 250 }, // pn1: midpoint (lower)
-      { x: 125, y: 200 }, // pn: going up to target (pn.y < pn1.y) → TOP entry
-    ])
-    expect(countPortViolations(correctedLayout)).toBe(0)
+    expect(countPortViolations(layout)).toBe(0)
   })
 
-  it('should detect exit port TOP (UP flow with TOP+BOTTOM)', () => {
-    // Source in lane2, target in lane1 (above) - UP flow
-    // Exit TOP (p2.y < p1.y) paired with entry BOTTOM (valid for UP)
+  it('should detect and accept exit port TOP (UP flow with TOP+RIGHT)', () => {
+    // Source in lane2, target in lane1 (above) — UP flow
+    // TOP exit: first segment goes upward; RIGHT entry: last segment goes rightward
     const layout = createCrossLaneLayoutWithWaypoints('lane2', 'lane1', [
       { x: 125, y: 325 }, // p1: source center (lane2)
-      { x: 125, y: 275 }, // p2: going up (p2.y < p1.y) → TOP exit
-      { x: 125, y: 150 }, // pn1: midpoint (lower Y)
-      { x: 125, y: 200 }, // pn: going down to target (pn.y > pn1.y) → BOTTOM entry
+      { x: 125, y: 250 }, // p2: going up → TOP exit
+      { x: 50, y: 250 },  // go left
+      { x: 50, y: 125 },  // go up to target row
+      { x: 125, y: 125 }, // pn: going right → RIGHT entry
     ])
     expect(countPortViolations(layout)).toBe(0)
   })
 
-  it('should detect entry port BOTTOM (UP flow with RIGHT+BOTTOM)', () => {
-    // Source in lane2, target in lane1 (above) - UP flow
-    // Valid for UP: exit (RIGHT or TOP), entry (LEFT or BOTTOM)
-    // Exit RIGHT (horizontal) paired with entry BOTTOM (vertical, pn.y > pn1.y)
-    const layout = createCrossLaneLayoutWithWaypoints('lane2', 'lane1', [
-      { x: 125, y: 325 }, // p1: source center (lane2, lower)
-      { x: 175, y: 325 }, // p2: going right (p2.x > p1.x) → RIGHT exit
-      { x: 175, y: 100 }, // pn1: at right side, high up (midpoint)
-      { x: 175, y: 150 }, // pn: going down (pn.y > pn1.y) → BOTTOM entry
-    ])
-    expect(countPortViolations(layout)).toBe(0)
-  })
-
-  it('should detect entry port TOP (DOWN flow with RIGHT+TOP)', () => {
-    // Source in lane1, target in lane2 (below) - DOWN flow
-    // Valid for DOWN: exit (RIGHT or BOTTOM), entry (LEFT or TOP)
-    // Exit RIGHT (horizontal) paired with entry TOP (vertical, pn.y < pn1.y)
+  it('should detect and accept entry port BOTTOM (DOWN flow with RIGHT+BOTTOM)', () => {
+    // Source in lane1, target in lane2 (below) — DOWN flow
+    // RIGHT exit + BOTTOM entry: last segment goes downward (enters target from above)
     const layout = createCrossLaneLayoutWithWaypoints('lane1', 'lane2', [
-      { x: 125, y: 125 }, // p1: source center (lane1, higher)
-      { x: 175, y: 125 }, // p2: going right (p2.x > p1.x) → RIGHT exit
-      { x: 175, y: 300 }, // pn1: at right side, lower (midpoint)
-      { x: 175, y: 250 }, // pn: going up (pn.y < pn1.y) → TOP entry
+      { x: 125, y: 125 }, // p1: source center (lane1)
+      { x: 200, y: 125 }, // p2: going right → RIGHT exit
+      { x: 200, y: 275 }, // go down to approach target
+      { x: 125, y: 275 }, // go left to target column
+      { x: 125, y: 325 }, // pn: going down → BOTTOM entry
+    ])
+    expect(countPortViolations(layout)).toBe(0)
+  })
+
+  it('should detect and accept entry port TOP (UP flow with RIGHT+TOP)', () => {
+    // Source in lane2, target in lane1 (above) — UP flow
+    // RIGHT exit + TOP entry: last segment goes upward (enters target from below)
+    const layout = createCrossLaneLayoutWithWaypoints('lane2', 'lane1', [
+      { x: 125, y: 325 }, // p1: source center (lane2)
+      { x: 200, y: 325 }, // p2: going right → RIGHT exit
+      { x: 200, y: 175 }, // go up to approach target
+      { x: 125, y: 175 }, // go left to target column
+      { x: 125, y: 125 }, // pn: going up → TOP entry
     ])
     expect(countPortViolations(layout)).toBe(0)
   })

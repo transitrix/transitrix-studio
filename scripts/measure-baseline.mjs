@@ -16,18 +16,18 @@ import { computeLayoutMetrics } from '../dist/metrics.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const projectRoot = path.resolve(__dirname, '..')
-const corpusDir = path.join(projectRoot, 'examples', 'bpmn', 'corpus')
+const examplesDir = path.join(projectRoot, 'examples', 'bpmn')
 const snapshotsDir = path.join(projectRoot, 'tests', 'snapshots')
 const baselineFile = path.join(snapshotsDir, 'metrics-baseline.json')
 
 /**
- * Find all corpus YAML files
+ * Find all BPMN example YAML files (*.bpmn.yaml)
  */
 async function findCorpusFiles() {
-  const files = await fs.readdir(corpusDir)
+  const files = await fs.readdir(examplesDir)
   return files
-    .filter((f) => f.endsWith('.cervin.yaml'))
-    .map((f) => path.join(corpusDir, f))
+    .filter((f) => f.endsWith('.bpmn.yaml'))
+    .map((f) => path.join(examplesDir, f))
     .sort()
 }
 
