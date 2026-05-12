@@ -1,5 +1,10 @@
 notation: fgca
 spec_version: "0.1"
+title: Strategy 2026 — FGCA chain
+description: Factor → Goal → Change → Activity decomposition for the 2026 plan.
+version: "0.1"
+date: "2026-05-11"
+author: Transitrix
 
 factors:
   - id: 1

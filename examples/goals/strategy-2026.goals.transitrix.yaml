@@ -1,3 +1,11 @@
+notation: goals
+spec_version: "0.1"
+title: Strategy 2026 — goals tree
+description: Goal tree across Strategy → Business Goal → Project levels for the 2026 plan.
+version: "0.1"
+date: "2026-05-11"
+author: Transitrix
+
 goal_types:
   - { name: "Strategy",      level: 0 }
   - { name: "Business Goal", level: 1 }
