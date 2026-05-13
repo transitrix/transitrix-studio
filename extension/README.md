@@ -2,9 +2,12 @@
 
 Live **preview** for Transitrix diagram formats inside VS Code:
 
-- **BPMN** — `.cervin.yaml` and `.bpmn.yaml` sources (YAML DSL → BPMN 2.0)
-- **Goals tree** — `.goals.transitrix.yaml` sources (hierarchical goal tree)
-- **FGCA**, capability map, and further formats shipping incrementally
+- **BPMN** — `.bpmn.transitrix.yaml` (YAML DSL → BPMN 2.0); legacy `.cervin.yaml` also supported
+- **Goals tree** — `.goals.transitrix.yaml` (hierarchical goal decomposition)
+- **FGCA** — `.fgca.transitrix.yaml` (factors, goals, changes, activities map)
+- **FGA** — `.fga.transitrix.yaml` (factors, goals, activities — change-free view)
+- **Activities / AoN** — `.activities.transitrix.yaml` (activity network with critical path)
+- **Nested blocks** — `.blocks.transitrix.txt` (ASCII block diagrams via Svgbob; requires Python 3 + `svgbob_cli`)
 
 The preview panel opens automatically when you open a recognised file, and refreshes on every save.
 

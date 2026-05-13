@@ -1,10 +1,27 @@
-# Studio examples by tool
+# Transitrix Studio — examples
 
-Examples are grouped by format / tool. Add a new subfolder when introducing another text format in Studio.
+One subfolder per diagram format. Open any example file in VS Code with the Transitrix Studio extension installed to see a live preview.
 
-For how `examples/` fits into the rest of the repo, see [`docs/repo-layout.md`](../docs/repo-layout.md).
+| Folder | File extension | Format | Description |
+|---|---|---|---|
+| [`bpmn/`](bpmn/) | `*.bpmn.yaml` | BPMN | Business process diagrams with lanes, gateways, and flows |
+| [`goals/`](goals/) | `*.goals.transitrix.yaml` | Goals tree | Hierarchical goal decomposition (Strategy → Business Goal → Project) |
+| [`fgca/`](fgca/) | `*.fgca.transitrix.yaml` | FGCA | Factor → Goal → Change → Activity chain |
+| [`fga/`](fga/) | `*.fga.transitrix.yaml` | FGA | Factor → Goal → Activity (FGCA without Changes) |
+| [`activities/`](activities/) | `*.activities.transitrix.yaml` | Activity network | AoN / PSND precedence diagram with critical path |
+| [`blocks/`](blocks/) | `*.blocks.transitrix.txt` | Nested block diagrams | ASCII art architecture maps rendered via svgbob |
 
-| Folder | Tool | Contents |
-| --- | --- | --- |
-| [`bpmn/`](bpmn/) | BPMN via Cervin YAML DSL | Demo `.cervin.yaml` / `.bpmn.yaml` and regression `corpus/` |
-| [`nested-blocks/`](nested-blocks/) | Nested block diagrams (Svgbob) | ASCII and Markdown table sources for `backends/blocks/` |
+Each folder contains a `README.md` with format documentation and the list of example files.
+
+## Quick start
+
+1. Install the **Transitrix Studio** extension in VS Code.
+2. Open any example file — the preview panel opens automatically beside the editor.
+3. Edit and save the file to refresh the preview.
+
+## Notes on nested-blocks/
+
+The `nested-blocks/` folder is a legacy location kept for reference.
+New blocks examples belong in `blocks/`.
+
+For how `examples/` fits into the broader repo layout, see [`docs/repo-layout.md`](../docs/repo-layout.md).

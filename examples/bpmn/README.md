@@ -1,3 +1,73 @@
+# BPMN diagrams
+
+Business Process Model and Notation diagrams defined in a compact YAML DSL.
+
+**File extensions:** `*.bpmn.yaml`
+
+## Minimal structure
+
+```yaml
+process:
+  id: my-process
+  name: My Process
+  pools:
+    - id: pool-1
+      name: Pool Name
+      lanes:
+        - id: lane-requester
+          name: Requester
+          elements:
+            - id: start-1
+              type: startEvent
+              name: Start
+            - id: task-1
+              type: task
+              name: Do something
+            - id: end-1
+              type: endEvent
+              name: End
+
+  flows:
+    - id: f1
+      from: start-1
+      to: task-1
+    - id: f2
+      from: task-1
+      to: end-1
+```
+
+## Element types
+
+| `type` value | Description |
+|---|---|
+| `startEvent` | Start event (circle) |
+| `endEvent` | End event (thick circle) |
+| `task` | Task (rounded rectangle) |
+| `exclusiveGateway` | XOR gateway (diamond, X mark) |
+| `parallelGateway` | AND gateway (diamond, + mark) |
+| `inclusiveGateway` | OR gateway (diamond, O mark) |
+
+## Flow conditions
+
+Add a `condition` field to a flow from a gateway:
+
+```yaml
+flows:
+  - id: f-yes
+    from: gw-approve
+    to: task-notify-ok
+    condition: 'status == "approved"'
+```
+
+## Rules
+
+- Every process must have at least one `startEvent` and one `endEvent`.
+- All element and flow IDs must be unique within the file.
+- Elements belong to a lane; flows connect elements across any lanes.
+- Multiple pools and multiple lanes per pool are supported.
+
+---
+
 # Test Corpus Catalog
 
 **Version:** 0.4  
