@@ -68,6 +68,16 @@
           ],
           "default": "transitrix",
           "description": "Color theme for Transitrix diagram previews (Goals, FGCA, and other static notation previews)."
+        },
+        "transitrix.pythonPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the Python 3 executable used for nested block diagram previews. Leave empty to auto-detect: 'py' on Windows (Python Launcher), 'python3' on macOS/Linux. Example: /usr/local/bin/python3 or C:\\Python311\\python.exe"
+        },
+        "transitrix.svgbobPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the svgbob_cli executable used for nested block diagram previews. Leave empty to use 'svgbob_cli' from PATH. Install with: cargo install svgbob_cli"
         }
       }
     },
@@ -155,7 +165,19 @@
         "title": "Transitrix: Preview activity network diagram",
         "category": "Transitrix",
         "icon": "$(type-hierarchy)"
-      }
+      },
+      {
+        "command": "transitrixStudio.previewBlocks",
+        "title": "Transitrix: Preview nested block diagram",
+        "category": "Transitrix",
+        "icon": "$(type-hierarchy)"
+      },
+      {
+        "command": "transitrixStudio.saveBlocksAsSvg",
+        "title": "Transitrix: Save block diagram as SVG",
+        "category": "Transitrix",
+        "icon": "$(save)"
+      },
     ],
     "menus": {
       "editor/title": [
@@ -183,7 +205,22 @@
           "when": "resourceFilename =~ /\\.activities\\.transitrix\\.yaml$/",
           "command": "transitrixStudio.previewActivities",
           "group": "navigation@-10"
-        }
+        },
+        {
+          "when": "resourceFilename =~ /\\.blocks\\.transitrix\\.txt$/",
+          "command": "transitrixStudio.previewBlocks",
+          "group": "navigation@-10"
+        },
+        {
+          "when": "resourceFilename =~ /\\.blocks\\.transitrix\\.txt$/",
+          "command": "transitrixStudio.saveBlocksAsSvg",
+          "group": "navigation@-9"
+        },
+        {
+          "when": "activeWebviewPanelId == blocksPreview",
+          "command": "transitrixStudio.saveBlocksAsSvg",
+          "group": "navigation@-9"
+        },
       ]
     }
   },

@@ -95,7 +95,7 @@ def main() -> None:
         is_not_found = "ENOENT" in msg or "no such file" in lowered or lowered.startswith("[errno 2]")
         fix_prompt = _SVGBOB_FIX_PROMPT if is_not_found else None
         display_msg = (
-            "svgbob_cli not found. See the prompt below to install it."
+            f"svgbob_cli not found. See the prompt below to install it."
             if is_not_found else msg
         )
         _emit({"ok": False, "message": display_msg, "details": [msg] if is_not_found else [], "fixPrompt": fix_prompt})

@@ -10,7 +10,23 @@ extension/media/viewer.js
 extension/media/*.map
 extension/schemas/
 *.vsix
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+
+# macOS / Windows filesystem noise
 .DS_Store
+**/.DS_Store
+.AppleDouble
+.LSOverride
+__MACOSX/
+.Spotlight-V100
+.Trashes
+.fseventsd
+Thumbs.db
+ehthumbs.db
+Desktop.ini
 *.log
 
 # Agent-context files (internal only — never publish)
