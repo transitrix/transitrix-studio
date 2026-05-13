@@ -1,7 +1,7 @@
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 import yaml from 'js-yaml';
-import { buildDiagramFrame, type ThemeId } from './diagram-frame.js';
+import { buildDiagramFrame, prepareSvgForExport, type ThemeId } from './diagram-frame.js';
 
 // ── Inline types (mirror packages/diagrams/src/fgca/types.ts) ─────────────────
 
@@ -286,6 +286,7 @@ export class FGCAPreview {
   readonly panelTitle = 'FGCA Preview';
   private panel: vscode.WebviewPanel | undefined;
   private trackedUri: string | undefined;
+  private lastSvg = '';
 
   isShowingDocument(uri: vscode.Uri): boolean {
     return this.panel != null && this.trackedUri === uri.toString();
@@ -336,11 +337,33 @@ export class FGCAPreview {
       errorMsg = (e as Error).message ?? 'Parse error';
     }
 
+    this.lastSvg = svgContent;
+
     const themeId = vscode.workspace
       .getConfiguration('transitrix')
       .get<ThemeId>('theme', 'transitrix');
 
     return buildDiagramFrame({ filename, notation: 'FGCA', svgContent, errorMsg, warnings, themeId });
+  }
+
+  async saveAsSvg(): Promise<void> {
+    if (!this.lastSvg) {
+      vscode.window.showWarningMessage('No diagram rendered yet. Open a *.fgca.transitrix.yaml file first.');
+      return;
+    }
+    const sourceUri = this.trackedUri ? vscode.Uri.parse(this.trackedUri) : undefined;
+    const stem = sourceUri
+      ? path.basename(sourceUri.fsPath).replace(/\.fgca\.transitrix\.yaml$/, '')
+      : 'diagram';
+    const defaultUri = sourceUri
+      ? vscode.Uri.file(path.join(path.dirname(sourceUri.fsPath), `${stem}.svg`))
+      : vscode.Uri.file(`${stem}.svg`);
+    const target = await vscode.window.showSaveDialog({ defaultUri, filters: { 'SVG Image': ['svg'] } });
+    if (!target) return;
+    const themeId = vscode.workspace.getConfiguration('transitrix').get<ThemeId>('theme', 'transitrix');
+    const svg = prepareSvgForExport(this.lastSvg, themeId);
+    await vscode.workspace.fs.writeFile(target, Buffer.from(svg, 'utf-8'));
+    vscode.window.showInformationMessage(`Saved: ${path.basename(target.fsPath)}`);
   }
 }
 
@@ -350,6 +373,7 @@ export class FGAPreview {
   readonly panelTitle = 'FGA Preview';
   private panel: vscode.WebviewPanel | undefined;
   private trackedUri: string | undefined;
+  private lastSvg = '';
 
   isShowingDocument(uri: vscode.Uri): boolean {
     return this.panel != null && this.trackedUri === uri.toString();
@@ -400,10 +424,32 @@ export class FGAPreview {
       errorMsg = (e as Error).message ?? 'Parse error';
     }
 
+    this.lastSvg = svgContent;
+
     const themeId = vscode.workspace
       .getConfiguration('transitrix')
       .get<ThemeId>('theme', 'transitrix');
 
     return buildDiagramFrame({ filename, notation: 'FGA', svgContent, errorMsg, warnings, themeId });
+  }
+
+  async saveAsSvg(): Promise<void> {
+    if (!this.lastSvg) {
+      vscode.window.showWarningMessage('No diagram rendered yet. Open a *.fga.transitrix.yaml file first.');
+      return;
+    }
+    const sourceUri = this.trackedUri ? vscode.Uri.parse(this.trackedUri) : undefined;
+    const stem = sourceUri
+      ? path.basename(sourceUri.fsPath).replace(/\.fga\.transitrix\.yaml$/, '')
+      : 'diagram';
+    const defaultUri = sourceUri
+      ? vscode.Uri.file(path.join(path.dirname(sourceUri.fsPath), `${stem}.svg`))
+      : vscode.Uri.file(`${stem}.svg`);
+    const target = await vscode.window.showSaveDialog({ defaultUri, filters: { 'SVG Image': ['svg'] } });
+    if (!target) return;
+    const themeId = vscode.workspace.getConfiguration('transitrix').get<ThemeId>('theme', 'transitrix');
+    const svg = prepareSvgForExport(this.lastSvg, themeId);
+    await vscode.workspace.fs.writeFile(target, Buffer.from(svg, 'utf-8'));
+    vscode.window.showInformationMessage(`Saved: ${path.basename(target.fsPath)}`);
   }
 }

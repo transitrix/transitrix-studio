@@ -178,6 +178,30 @@
         "category": "Transitrix",
         "icon": "$(save)"
       },
+      {
+        "command": "transitrixStudio.saveGoalsAsSvg",
+        "title": "Transitrix: Save goal tree as SVG",
+        "category": "Transitrix",
+        "icon": "$(save)"
+      },
+      {
+        "command": "transitrixStudio.saveFGCAAsSvg",
+        "title": "Transitrix: Save FGCA diagram as SVG",
+        "category": "Transitrix",
+        "icon": "$(save)"
+      },
+      {
+        "command": "transitrixStudio.saveFGAAsSvg",
+        "title": "Transitrix: Save FGA diagram as SVG",
+        "category": "Transitrix",
+        "icon": "$(save)"
+      },
+      {
+        "command": "transitrixStudio.saveActivitiesAsSvg",
+        "title": "Transitrix: Save activity network as SVG",
+        "category": "Transitrix",
+        "icon": "$(save)"
+      }
     ],
     "menus": {
       "editor/title": [
@@ -221,6 +245,46 @@
           "command": "transitrixStudio.saveBlocksAsSvg",
           "group": "navigation@-9"
         },
+        {
+          "when": "resourceFilename =~ /\\.goals\\.transitrix\\.yaml$/",
+          "command": "transitrixStudio.saveGoalsAsSvg",
+          "group": "navigation@-9"
+        },
+        {
+          "when": "activeWebviewPanelId == goalsPreview",
+          "command": "transitrixStudio.saveGoalsAsSvg",
+          "group": "navigation@-9"
+        },
+        {
+          "when": "resourceFilename =~ /\\.fgca\\.transitrix\\.yaml$/",
+          "command": "transitrixStudio.saveFGCAAsSvg",
+          "group": "navigation@-9"
+        },
+        {
+          "when": "activeWebviewPanelId == fgcaPreview",
+          "command": "transitrixStudio.saveFGCAAsSvg",
+          "group": "navigation@-9"
+        },
+        {
+          "when": "resourceFilename =~ /\\.fga\\.transitrix\\.yaml$/",
+          "command": "transitrixStudio.saveFGAAsSvg",
+          "group": "navigation@-9"
+        },
+        {
+          "when": "activeWebviewPanelId == fgaPreview",
+          "command": "transitrixStudio.saveFGAAsSvg",
+          "group": "navigation@-9"
+        },
+        {
+          "when": "resourceFilename =~ /\\.activities\\.transitrix\\.yaml$/",
+          "command": "transitrixStudio.saveActivitiesAsSvg",
+          "group": "navigation@-9"
+        },
+        {
+          "when": "activeWebviewPanelId == activitiesPreview",
+          "command": "transitrixStudio.saveActivitiesAsSvg",
+          "group": "navigation@-9"
+        }
       ]
     }
   },

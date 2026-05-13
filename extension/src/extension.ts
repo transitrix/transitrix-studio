@@ -146,6 +146,18 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand('transitrixStudio.saveBlocksAsSvg', () =>
       blocksPreview.saveAsSvg(),
     ),
+    vscode.commands.registerCommand('transitrixStudio.saveGoalsAsSvg', () =>
+      goalsPreview.saveAsSvg(),
+    ),
+    vscode.commands.registerCommand('transitrixStudio.saveFGCAAsSvg', () =>
+      fgcaPreview.saveAsSvg(),
+    ),
+    vscode.commands.registerCommand('transitrixStudio.saveFGAAsSvg', () =>
+      fgaPreview.saveAsSvg(),
+    ),
+    vscode.commands.registerCommand('transitrixStudio.saveActivitiesAsSvg', () =>
+      activitiesPreview.saveAsSvg(),
+    ),
     vscode.workspace.onDidSaveTextDocument((doc) => {
       if (isGoalsFile(doc)) { void goalsPreview.refreshSaved(doc); return; }
       if (isFGCAFile(doc)) { void fgcaPreview.refreshSaved(doc); return; }

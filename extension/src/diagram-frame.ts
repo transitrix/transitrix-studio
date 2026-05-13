@@ -1,7 +1,16 @@
 import type { ThemeId } from '../../packages/diagrams/src/theme/index.js';
-import { generateWebviewCss } from '../../packages/diagrams/src/theme/index.js';
+import { generateWebviewCss, generateSvgEmbedCss } from '../../packages/diagrams/src/theme/index.js';
 
 export type { ThemeId };
+
+/**
+ * Injects a <style> block with all --ts-* CSS variable definitions into an SVG string,
+ * making it self-contained for file export (no external stylesheet required).
+ */
+export function prepareSvgForExport(svg: string, themeId: ThemeId = 'transitrix'): string {
+  const css = generateSvgEmbedCss(themeId);
+  return svg.replace(/(<svg\b[^>]*>)/, `$1<style>${css}</style>`);
+}
 
 export interface DiagramFrameOpts {
   /** Short filename shown in toolbar (e.g. "strategy-2026.fgca.transitrix.yaml"). */

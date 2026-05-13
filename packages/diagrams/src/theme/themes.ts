@@ -93,6 +93,18 @@ ${levelRules}
 }
 
 /**
+ * Generates a self-contained CSS block for embedding inside a standalone SVG file.
+ * Defines all --ts-* custom properties on :root so diagram classes resolve correctly
+ * when the SVG is opened outside of VS Code.
+ * vscode-adaptive falls back to the light palette (runtime VS Code variables are unavailable).
+ */
+export function generateSvgEmbedCss(themeId: ThemeId): string {
+  const variant = themeId === 'transitrix-dark' ? 'dark' : 'light';
+  const adaptive = themeId === 'transitrix-dark' ? TRANSITRIX_DARK : TRANSITRIX_LIGHT;
+  return `:root{${adaptiveVars(adaptive)}${diagramVars(variant)}}${diagramClassCss()}`;
+}
+
+/**
  * Generates complete CSS for a static SVG diagram webview.
  *
  * For transitrix/transitrix-dark: sets --ts-* vars with fixed brand colors.
