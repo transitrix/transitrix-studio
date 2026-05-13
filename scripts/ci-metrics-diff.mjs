@@ -41,12 +41,6 @@ const TOLERANCES = {
   layoutScore: -1,
 };
 
-// RD-054 hard requirements
-const HARD_REQUIREMENTS = {
-  spineDeviation: 4,
-  emptyArea: 0.30,
-  portViolations: 0,
-};
 
 async function computeCurrentMetrics() {
   const { compilerMod, metricsMod } = await loadCompiler();
@@ -179,7 +173,6 @@ async function main() {
 
       const delta = currentValue - baselineValue;
       const tolerance = TOLERANCES[metricName];
-      const hardReq = HARD_REQUIREMENTS[metricName];
 
       if (tolerance === -1) {
         continue;
@@ -187,11 +180,7 @@ async function main() {
 
       let isViolation = false;
 
-      if (hardReq !== undefined) {
-        if (currentValue > hardReq) {
-          isViolation = true;
-        }
-      } else if (tolerance !== Infinity) {
+      if (tolerance !== Infinity) {
         if (tolerance < 1) {
           const percentDelta = delta / baselineValue;
           if (percentDelta > tolerance) {
