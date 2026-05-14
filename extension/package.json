@@ -126,6 +126,17 @@
           ".products.transitrix.yaml"
         ],
         "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "transitrix-applications",
+        "aliases": [
+          "Transitrix Applications",
+          "Applications Catalogue"
+        ],
+        "extensions": [
+          ".applications.transitrix.yaml"
+        ],
+        "configuration": "./language-configuration.json"
       }
     ],
     "commands": [
@@ -218,6 +229,12 @@
         "title": "Transitrix: Preview product catalogue",
         "category": "Transitrix",
         "icon": "$(list-unordered)"
+      },
+      {
+        "command": "transitrixStudio.previewApplications",
+        "title": "Transitrix: Preview application catalogue",
+        "category": "Transitrix",
+        "icon": "$(list-unordered)"
       }
     ],
     "menus": {
@@ -305,6 +322,11 @@
         {
           "when": "resourceFilename =~ /\\.products\\.transitrix\\.yaml$/",
           "command": "transitrixStudio.previewProducts",
+          "group": "navigation@-10"
+        },
+        {
+          "when": "resourceFilename =~ /\\.applications\\.transitrix\\.yaml$/",
+          "command": "transitrixStudio.previewApplications",
           "group": "navigation@-10"
         }
       ]

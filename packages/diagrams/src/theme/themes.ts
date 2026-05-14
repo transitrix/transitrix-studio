@@ -24,6 +24,8 @@ const TRANSITRIX_LIGHT: AdaptiveTokens = {
   statusWarningFg: '#854d0e',
   statusInfoBg:    '#e0f2fe',
   statusInfoFg:    '#0c4a6e',
+  statusErrorBg:   '#fee2e2',
+  statusErrorFg:   '#991b1b',
 };
 
 const TRANSITRIX_DARK: AdaptiveTokens = {
@@ -41,6 +43,8 @@ const TRANSITRIX_DARK: AdaptiveTokens = {
   statusWarningFg: '#fcd34d',
   statusInfoBg:    '#071e2e',
   statusInfoFg:    '#7dd3fc',
+  statusErrorBg:   '#2c0a0a',
+  statusErrorFg:   '#fca5a5',
 };
 
 function adaptiveVars(t: AdaptiveTokens): string {
@@ -59,6 +63,8 @@ function adaptiveVars(t: AdaptiveTokens): string {
     `${CSS_VAR.statusWarningFg}:${t.statusWarningFg}`,
     `${CSS_VAR.statusInfoBg}:${t.statusInfoBg}`,
     `${CSS_VAR.statusInfoFg}:${t.statusInfoFg}`,
+    `${CSS_VAR.statusErrorBg}:${t.statusErrorBg}`,
+    `${CSS_VAR.statusErrorFg}:${t.statusErrorFg}`,
   ].join(';') + ';';
 }
 
@@ -167,6 +173,8 @@ body[data-theme="vscode-adaptive"]{
   ${cv.statusWarningFg}:${TRANSITRIX_LIGHT.statusWarningFg};
   ${cv.statusInfoBg}:${TRANSITRIX_LIGHT.statusInfoBg};
   ${cv.statusInfoFg}:${TRANSITRIX_LIGHT.statusInfoFg};
+  ${cv.statusErrorBg}:${TRANSITRIX_LIGHT.statusErrorBg};
+  ${cv.statusErrorFg}:${TRANSITRIX_LIGHT.statusErrorFg};
   ${diagramVars('light')}
 }
 body[data-theme="vscode-adaptive"].vscode-dark{
@@ -176,6 +184,8 @@ body[data-theme="vscode-adaptive"].vscode-dark{
   ${cv.statusWarningFg}:${TRANSITRIX_DARK.statusWarningFg};
   ${cv.statusInfoBg}:${TRANSITRIX_DARK.statusInfoBg};
   ${cv.statusInfoFg}:${TRANSITRIX_DARK.statusInfoFg};
+  ${cv.statusErrorBg}:${TRANSITRIX_DARK.statusErrorBg};
+  ${cv.statusErrorFg}:${TRANSITRIX_DARK.statusErrorFg};
   ${diagramVars('dark')}
 }
 body[data-theme="vscode-adaptive"].vscode-high-contrast{${diagramVars('hc')}}

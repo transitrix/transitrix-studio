@@ -8,6 +8,7 @@ import { GoalsPreview } from './goals-preview.js';
 import { FGCAPreview, FGAPreview } from './fgca-preview.js';
 import { ActivitiesPreview } from './activities-preview.js';
 import { BlocksPreview } from './blocks-preview.js';
+import { ApplicationsPreview } from './applications-preview.js';
 import { ProductsPreview } from './products-preview.js';
 import type { LayoutMetrics, ValidationReport } from './types.js';
 import {
@@ -34,6 +35,10 @@ function isActivitiesFile(doc: vscode.TextDocument): boolean {
 
 function isBlocksFile(doc: vscode.TextDocument): boolean {
   return doc.fileName.endsWith('.blocks.transitrix.txt');
+}
+
+function isApplicationsFile(doc: vscode.TextDocument): boolean {
+  return doc.fileName.endsWith('.applications.transitrix.yaml');
 }
 
 function isProductsFile(doc: vscode.TextDocument): boolean {
@@ -92,6 +97,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const fgaPreview = new FGAPreview();
   const activitiesPreview = new ActivitiesPreview();
   const blocksPreview = new BlocksPreview(context.extensionPath);
+  const applicationsPreview = new ApplicationsPreview();
   const productsPreview = new ProductsPreview();
 
   context.subscriptions.push(
@@ -164,6 +170,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand('transitrixStudio.saveActivitiesAsSvg', () =>
       activitiesPreview.saveAsSvg(),
     ),
+    vscode.commands.registerCommand('transitrixStudio.previewApplications', async () => {
+      const doc = vscode.window.activeTextEditor?.document;
+      if (!doc || !isApplicationsFile(doc)) {
+        vscode.window.showWarningMessage('Open a *.applications.transitrix.yaml file first.');
+        return;
+      }
+      await applicationsPreview.showOrReveal(doc);
+    }),
     vscode.commands.registerCommand('transitrixStudio.previewProducts', async () => {
       const doc = vscode.window.activeTextEditor?.document;
       if (!doc || !isProductsFile(doc)) {
@@ -178,6 +192,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       if (isFGAFile(doc)) { void fgaPreview.refreshSaved(doc); return; }
       if (isActivitiesFile(doc)) { void activitiesPreview.refreshSaved(doc); return; }
       if (isBlocksFile(doc)) { void blocksPreview.refreshSaved(doc); return; }
+      if (isApplicationsFile(doc)) { void applicationsPreview.refreshSaved(doc); return; }
       if (isProductsFile(doc)) { void productsPreview.refreshSaved(doc); return; }
       if (!documentMatchesCervinSource(doc)) return;
       void preview.refreshSaved(doc);
@@ -188,6 +203,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       if (isFGAFile(doc)) { await fgaPreview.showOrReveal(doc); return; }
       if (isActivitiesFile(doc)) { await activitiesPreview.showOrReveal(doc); return; }
       if (isBlocksFile(doc)) { await blocksPreview.showOrReveal(doc); return; }
+      if (isApplicationsFile(doc)) { await applicationsPreview.showOrReveal(doc); return; }
       if (isProductsFile(doc)) { await productsPreview.showOrReveal(doc); }
     }),
   );

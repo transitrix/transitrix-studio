@@ -11,6 +11,7 @@ One subfolder per diagram format. Open any example file in VS Code with the Tran
 | [`activities/`](activities/) | `*.activities.transitrix.yaml` | Activity network | AoN / PSND precedence diagram with critical path |
 | [`blocks/`](blocks/) | `*.blocks.transitrix.txt` | Nested block diagrams | ASCII art architecture maps rendered via svgbob |
 | [`products/`](products/) | `*.products.transitrix.yaml` | Products catalogue | Portfolio of digital products, services, platforms, and bundles |
+| [`applications/`](applications/) | `*.applications.transitrix.yaml` | Applications catalogue | Inventory of applications, integrations, platforms, and data stores |
 
 Each folder contains a `README.md` with format documentation and the list of example files.
 

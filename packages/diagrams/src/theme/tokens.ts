@@ -53,6 +53,8 @@ export interface AdaptiveTokens {
   statusWarningFg:  string;
   statusInfoBg:     string;
   statusInfoFg:     string;
+  statusErrorBg:    string;
+  statusErrorFg:    string;
 }
 
 /** CSS custom property names for --ts-* variables. */
@@ -71,6 +73,8 @@ export const CSS_VAR = {
   statusWarningFg:  '--ts-status-warning-fg',
   statusInfoBg:     '--ts-status-info-bg',
   statusInfoFg:     '--ts-status-info-fg',
+  statusErrorBg:    '--ts-status-error-bg',
+  statusErrorFg:    '--ts-status-error-fg',
   layerFactor:      '--ts-layer-factor',
   layerGoal:        '--ts-layer-goal',
   layerChange:      '--ts-layer-change',
