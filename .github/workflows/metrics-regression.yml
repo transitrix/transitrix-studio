@@ -32,9 +32,8 @@ jobs:
       - name: Build project
         run: npm run build
 
-      - name: Run tests
+      - name: Run core + diagrams tests
         run: npm test
-        continue-on-error: true
 
       - name: Compute metrics delta
         id: metrics-diff
