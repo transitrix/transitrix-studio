@@ -37,37 +37,49 @@ export const STRUCTURAL = {
   headerText:    { light: '#374151', dark: '#e5e7eb', hc: '#ffffff' },
 } as const;
 
-/** Adaptive shell tokens (background, text, border). */
+/** Adaptive shell tokens (background, text, border, status). */
 export interface AdaptiveTokens {
-  bg:          string;
-  bgSurface:   string;
-  bgElevated:  string;
-  text:        string;
-  textMuted:   string;
-  textInverse: string;
-  border:      string;
-  divider:     string;
+  bg:               string;
+  bgSurface:        string;
+  bgElevated:       string;
+  text:             string;
+  textMuted:        string;
+  textInverse:      string;
+  border:           string;
+  divider:          string;
+  statusSuccessBg:  string;
+  statusSuccessFg:  string;
+  statusWarningBg:  string;
+  statusWarningFg:  string;
+  statusInfoBg:     string;
+  statusInfoFg:     string;
 }
 
 /** CSS custom property names for --ts-* variables. */
 export const CSS_VAR = {
-  bg:            '--ts-bg',
-  bgSurface:     '--ts-bg-surface',
-  bgElevated:    '--ts-bg-elevated',
-  text:          '--ts-text',
-  textMuted:     '--ts-text-muted',
-  textInverse:   '--ts-text-inverse',
-  border:        '--ts-border',
-  divider:       '--ts-divider',
-  layerFactor:   '--ts-layer-factor',
-  layerGoal:     '--ts-layer-goal',
-  layerChange:   '--ts-layer-change',
-  layerActivity: '--ts-layer-activity',
-  nodeStroke:    '--ts-node-stroke',
-  edgeStroke:    '--ts-edge-stroke',
-  textPrimary:   '--ts-text-primary',
-  textSecondary: '--ts-text-secondary',
-  headerText:    '--ts-header-text',
+  bg:               '--ts-bg',
+  bgSurface:        '--ts-bg-surface',
+  bgElevated:       '--ts-bg-elevated',
+  text:             '--ts-text',
+  textMuted:        '--ts-text-muted',
+  textInverse:      '--ts-text-inverse',
+  border:           '--ts-border',
+  divider:          '--ts-divider',
+  statusSuccessBg:  '--ts-status-success-bg',
+  statusSuccessFg:  '--ts-status-success-fg',
+  statusWarningBg:  '--ts-status-warning-bg',
+  statusWarningFg:  '--ts-status-warning-fg',
+  statusInfoBg:     '--ts-status-info-bg',
+  statusInfoFg:     '--ts-status-info-fg',
+  layerFactor:      '--ts-layer-factor',
+  layerGoal:        '--ts-layer-goal',
+  layerChange:      '--ts-layer-change',
+  layerActivity:    '--ts-layer-activity',
+  nodeStroke:       '--ts-node-stroke',
+  edgeStroke:       '--ts-edge-stroke',
+  textPrimary:      '--ts-text-primary',
+  textSecondary:    '--ts-text-secondary',
+  headerText:       '--ts-header-text',
 } as const;
 
 export function getBaseResetCss(): string {

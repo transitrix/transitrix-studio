@@ -8,6 +8,7 @@ Live **preview** for Transitrix diagram formats inside VS Code:
 - **FGA** — `.fga.transitrix.yaml` (factors, goals, activities — change-free view)
 - **Activities / AoN** — `.activities.transitrix.yaml` (activity network with critical path)
 - **Nested blocks** — `.blocks.transitrix.txt` (ASCII block diagrams via Svgbob; requires Python 3 + `svgbob_cli`)
+- **Products catalogue** — `.products.transitrix.yaml` (digital products, services, platforms, and bundles)
 
 The preview panel opens automatically when you open a recognised file, and refreshes on every save.
 

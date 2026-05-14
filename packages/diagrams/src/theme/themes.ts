@@ -10,25 +10,37 @@ import {
 export type ThemeId = 'transitrix' | 'transitrix-dark' | 'vscode-adaptive';
 
 const TRANSITRIX_LIGHT: AdaptiveTokens = {
-  bg:          '#ffffff',
-  bgSurface:   '#f8fafc',
-  bgElevated:  '#f1f5f9',
-  text:        '#0f172a',
-  textMuted:   '#64748b',
-  textInverse: '#ffffff',
-  border:      '#e2e8f0',
-  divider:     '#cbd5e1',
+  bg:              '#ffffff',
+  bgSurface:       '#f8fafc',
+  bgElevated:      '#f1f5f9',
+  text:            '#0f172a',
+  textMuted:       '#64748b',
+  textInverse:     '#ffffff',
+  border:          '#e2e8f0',
+  divider:         '#cbd5e1',
+  statusSuccessBg: '#d1fae5',
+  statusSuccessFg: '#065f46',
+  statusWarningBg: '#fef9c3',
+  statusWarningFg: '#854d0e',
+  statusInfoBg:    '#e0f2fe',
+  statusInfoFg:    '#0c4a6e',
 };
 
 const TRANSITRIX_DARK: AdaptiveTokens = {
-  bg:          '#0a1628',
-  bgSurface:   '#0f1f3d',
-  bgElevated:  '#162544',
-  text:        '#f1f5f9',
-  textMuted:   '#94a3b8',
-  textInverse: '#0f172a',
-  border:      '#1e3a5f',
-  divider:     '#1a3050',
+  bg:              '#0a1628',
+  bgSurface:       '#0f1f3d',
+  bgElevated:      '#162544',
+  text:            '#f1f5f9',
+  textMuted:       '#94a3b8',
+  textInverse:     '#0f172a',
+  border:          '#1e3a5f',
+  divider:         '#1a3050',
+  statusSuccessBg: '#022c22',
+  statusSuccessFg: '#6ee7b7',
+  statusWarningBg: '#1e1500',
+  statusWarningFg: '#fcd34d',
+  statusInfoBg:    '#071e2e',
+  statusInfoFg:    '#7dd3fc',
 };
 
 function adaptiveVars(t: AdaptiveTokens): string {
@@ -41,6 +53,12 @@ function adaptiveVars(t: AdaptiveTokens): string {
     `${CSS_VAR.textInverse}:${t.textInverse}`,
     `${CSS_VAR.border}:${t.border}`,
     `${CSS_VAR.divider}:${t.divider}`,
+    `${CSS_VAR.statusSuccessBg}:${t.statusSuccessBg}`,
+    `${CSS_VAR.statusSuccessFg}:${t.statusSuccessFg}`,
+    `${CSS_VAR.statusWarningBg}:${t.statusWarningBg}`,
+    `${CSS_VAR.statusWarningFg}:${t.statusWarningFg}`,
+    `${CSS_VAR.statusInfoBg}:${t.statusInfoBg}`,
+    `${CSS_VAR.statusInfoFg}:${t.statusInfoFg}`,
   ].join(';') + ';';
 }
 
@@ -143,9 +161,23 @@ body[data-theme="vscode-adaptive"]{
   ${cv.textInverse}:var(--vscode-editor-background);
   ${cv.border}:var(--vscode-panel-border);
   ${cv.divider}:var(--vscode-panel-border);
+  ${cv.statusSuccessBg}:${TRANSITRIX_LIGHT.statusSuccessBg};
+  ${cv.statusSuccessFg}:${TRANSITRIX_LIGHT.statusSuccessFg};
+  ${cv.statusWarningBg}:${TRANSITRIX_LIGHT.statusWarningBg};
+  ${cv.statusWarningFg}:${TRANSITRIX_LIGHT.statusWarningFg};
+  ${cv.statusInfoBg}:${TRANSITRIX_LIGHT.statusInfoBg};
+  ${cv.statusInfoFg}:${TRANSITRIX_LIGHT.statusInfoFg};
   ${diagramVars('light')}
 }
-body[data-theme="vscode-adaptive"].vscode-dark{${diagramVars('dark')}}
+body[data-theme="vscode-adaptive"].vscode-dark{
+  ${cv.statusSuccessBg}:${TRANSITRIX_DARK.statusSuccessBg};
+  ${cv.statusSuccessFg}:${TRANSITRIX_DARK.statusSuccessFg};
+  ${cv.statusWarningBg}:${TRANSITRIX_DARK.statusWarningBg};
+  ${cv.statusWarningFg}:${TRANSITRIX_DARK.statusWarningFg};
+  ${cv.statusInfoBg}:${TRANSITRIX_DARK.statusInfoBg};
+  ${cv.statusInfoFg}:${TRANSITRIX_DARK.statusInfoFg};
+  ${diagramVars('dark')}
+}
 body[data-theme="vscode-adaptive"].vscode-high-contrast{${diagramVars('hc')}}
 ${shell}
 ${classes}`;

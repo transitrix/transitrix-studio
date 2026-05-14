@@ -10,6 +10,7 @@ One subfolder per diagram format. Open any example file in VS Code with the Tran
 | [`fga/`](fga/) | `*.fga.transitrix.yaml` | FGA | Factor → Goal → Activity (FGCA without Changes) |
 | [`activities/`](activities/) | `*.activities.transitrix.yaml` | Activity network | AoN / PSND precedence diagram with critical path |
 | [`blocks/`](blocks/) | `*.blocks.transitrix.txt` | Nested block diagrams | ASCII art architecture maps rendered via svgbob |
+| [`products/`](products/) | `*.products.transitrix.yaml` | Products catalogue | Portfolio of digital products, services, platforms, and bundles |
 
 Each folder contains a `README.md` with format documentation and the list of example files.
 

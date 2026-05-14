@@ -115,6 +115,17 @@
           ".fga.transitrix.yaml"
         ],
         "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "transitrix-products",
+        "aliases": [
+          "Transitrix Products",
+          "Products Catalogue"
+        ],
+        "extensions": [
+          ".products.transitrix.yaml"
+        ],
+        "configuration": "./language-configuration.json"
       }
     ],
     "commands": [
@@ -201,6 +212,12 @@
         "title": "Transitrix: Save activity network as SVG",
         "category": "Transitrix",
         "icon": "$(save)"
+      },
+      {
+        "command": "transitrixStudio.previewProducts",
+        "title": "Transitrix: Preview product catalogue",
+        "category": "Transitrix",
+        "icon": "$(list-unordered)"
       }
     ],
     "menus": {
@@ -284,6 +301,11 @@
           "when": "activeWebviewPanelId == activitiesPreview",
           "command": "transitrixStudio.saveActivitiesAsSvg",
           "group": "navigation@-9"
+        },
+        {
+          "when": "resourceFilename =~ /\\.products\\.transitrix\\.yaml$/",
+          "command": "transitrixStudio.previewProducts",
+          "group": "navigation@-10"
         }
       ]
     }

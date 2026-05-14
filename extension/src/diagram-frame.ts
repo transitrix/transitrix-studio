@@ -19,6 +19,11 @@ export interface DiagramFrameOpts {
   notation: string;
   /** Rendered SVG string. Empty string or omitted → no diagram rendered. */
   svgContent?: string;
+  /**
+   * HTML body content (e.g. a table). When present, rendered in the canvas instead of svgContent.
+   * The string is placed raw (unescaped) — caller is responsible for safe HTML.
+   */
+  bodyContent?: string;
   /** Hard error message (parse / validation failure). Displayed in red above the canvas. */
   errorMsg?: string;
   /** Non-fatal warnings. Each rendered as a yellow strip above the canvas. */
@@ -32,6 +37,14 @@ export interface DiagramFrameOpts {
    * Use for dependency-not-found errors where an agent can resolve the issue.
    */
   fixPrompt?: string;
+  /** Document title shown as a large header above the canvas. Sourced from YAML frontmatter. */
+  title?: string;
+  /** Subtitle or description shown below the title. Sourced from YAML frontmatter. */
+  subtitle?: string;
+  /** Version string for the metadata strip (e.g. "1.0"). */
+  version?: string;
+  /** Date string for the metadata strip (e.g. "2026-05-13"). */
+  date?: string;
 }
 
 function escXml(s: string): string {
@@ -73,11 +86,23 @@ const FIX_PROMPT_CSS = `
 }
 `;
 
+const FRAME_HEADER_CSS = `
+.frame-header{padding:16px 20px 0;}
+.frame-title{font-size:18px;font-weight:700;color:var(--ts-text,#0f172a);margin-bottom:4px;}
+.frame-subtitle{font-size:13px;color:var(--ts-text-muted,#64748b);margin-bottom:4px;}
+.frame-meta{font-size:11px;color:var(--ts-text-muted,#64748b);letter-spacing:0.04em;}
+`;
+
 export function buildDiagramFrame(opts: DiagramFrameOpts): string {
   const {
-    filename, notation, svgContent = '', errorMsg = '',
-    warnings = [], themeId = 'transitrix', extraStyles = '', fixPrompt = '',
+    filename, notation,
+    svgContent = '', bodyContent,
+    errorMsg = '', warnings = [],
+    themeId = 'transitrix', extraStyles = '', fixPrompt = '',
+    title, subtitle, version, date,
   } = opts;
+
+  const canvasContent = bodyContent ?? svgContent;
 
   const errBlock = errorMsg
     ? `<pre style="color:var(--vscode-errorForeground,#b91c1c);white-space:pre-wrap;padding:12px 16px;">${escXml(errorMsg)}</pre>`
@@ -96,7 +121,16 @@ export function buildDiagramFrame(opts: DiagramFrameOpts): string {
       ).join('')
     : '';
 
-  const caption = svgContent
+  const metaParts = [version ? `v${escXml(version)}` : null, date ? escXml(date) : null].filter(Boolean);
+  const headerBlock = title
+    ? `<div class="frame-header">
+  <div class="frame-title">${escXml(title)}</div>
+  ${subtitle ? `<div class="frame-subtitle">${escXml(subtitle)}</div>` : ''}
+  ${metaParts.length > 0 ? `<div class="frame-meta">${metaParts.join(' · ')}</div>` : ''}
+</div>`
+    : '';
+
+  const caption = canvasContent && !title
     ? `<div class="diagram-caption">${escXml(notation)} — ${escXml(filename)}</div>`
     : '';
 
@@ -108,14 +142,16 @@ export function buildDiagramFrame(opts: DiagramFrameOpts): string {
   <style>
 ${generateWebviewCss(themeId)}
 ${FIX_PROMPT_CSS}
+${FRAME_HEADER_CSS}
 ${extraStyles}
   </style>
 </head>
 <body data-theme="${escXml(themeId)}">
   <div id="toolbar">${escXml(notation)}: ${escXml(filename)}</div>
   ${errBlock}${fixPromptBlock}${warnBlock}
+  ${headerBlock}
   <div id="canvas">
-    ${svgContent}
+    ${canvasContent}
     ${caption}
   </div>
 </body>
