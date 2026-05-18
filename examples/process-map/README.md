@@ -10,7 +10,8 @@ A process landscape map is a top-level catalogue of an organisation's processes,
 
 | File | Description |
 |---|---|
-| [`enterprise.process-map.transitrix.yaml`](enterprise.process-map.transitrix.yaml) | Three-group enterprise landscape with nine processes |
+| [`enterprise.process-map.transitrix.yaml`](enterprise.process-map.transitrix.yaml) | Compact three-group landscape with nine processes |
+| [`northbay-retail.process-map.transitrix.yaml`](northbay-retail.process-map.transitrix.yaml) | Realistic 25-process landscape for a mid-size retailer; capability IDs cross-reference [`northbay-retail.capability-map.transitrix.yaml`](../capability-map/northbay-retail.capability-map.transitrix.yaml) |
 
 ## Notation header
 

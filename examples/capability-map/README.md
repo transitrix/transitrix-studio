@@ -10,7 +10,8 @@ A capability map is a hierarchical view of what an organisation can do (its capa
 
 | File | Description |
 |---|---|
-| [`business.capability-map.transitrix.yaml`](business.capability-map.transitrix.yaml) | Three-domain business map with cross-cutting H capabilities and nested levels |
+| [`business.capability-map.transitrix.yaml`](business.capability-map.transitrix.yaml) | Compact three-domain business map with cross-cutting H capabilities and nested levels |
+| [`northbay-retail.capability-map.transitrix.yaml`](northbay-retail.capability-map.transitrix.yaml) | Realistic 31-capability map for a mid-size retailer (three verticals × three levels, three horizontals) |
 
 ## Notation header
 

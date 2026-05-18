@@ -10,7 +10,8 @@ A scenario represents an alternative strategic development path for an organisat
 
 | File | Description |
 |---|---|
-| [`optimistic-2027.scenarios.transitrix.yaml`](optimistic-2027.scenarios.transitrix.yaml) | Aggressive expansion scenario with vision, factors, and reference lists |
+| [`optimistic-2027.scenarios.transitrix.yaml`](optimistic-2027.scenarios.transitrix.yaml) | Compact scenario with vision, three factors, and reference lists |
+| [`omnichannel-2028.scenarios.transitrix.yaml`](omnichannel-2028.scenarios.transitrix.yaml) | Realistic retail omnichannel scenario; references the NorthBay capability and process maps |
 
 ## Notation header
 
