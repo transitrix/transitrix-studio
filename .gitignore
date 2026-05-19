@@ -9,6 +9,7 @@ extension/compiler/
 extension/media/viewer.js
 extension/media/*.map
 extension/schemas/
+extension/backends/
 output/
 *.vsix
 # Python bytecode

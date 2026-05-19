@@ -11,7 +11,7 @@ await fs.rm(mediaDir, { recursive: true, force: true });
 await fs.mkdir(mediaDir, { recursive: true });
 
 await esbuild.build({
-  entryPoints: [path.join(root, 'webview', 'viewer.ts')],
+  entryPoints: [path.join(root, 'extension', 'webview', 'viewer.ts')],
   bundle: true,
   outfile: path.join(mediaDir, 'viewer.js'),
   platform: 'browser',
