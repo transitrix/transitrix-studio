@@ -32,6 +32,9 @@ jobs:
       - name: Build project
         run: npm run build
 
+      - name: Prepare extension assets
+        run: npm run extension:prep
+
       - name: Run core + diagrams tests
         run: npm test
 
