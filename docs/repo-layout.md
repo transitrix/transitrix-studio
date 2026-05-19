@@ -7,25 +7,33 @@ This document maps **top-level folders** to **roles** so you know where to look 
 ## Mental model
 
 ```
-                    ┌─────────────────────────────────────┐
-                    │  Specs, methodology, JSON schemas   │
-                    │  method/  notation-kit/  schemas/   │
-                    └─────────────────────────────────────┘
-                                         │
-                    ┌────────────────────┴────────────────────┐
-                    │         Node / TypeScript core          │
-                    │  Parser → Layout → Emitter, CLI, HTTP   │
-                    │              src/                       │
-                    └────────────────────┬────────────────────┘
-          ┌──────────────────────────────┼──────────────────────────────┐
-          │                              │                              │
-   ┌──────▼──────┐                ┌───────▼───────┐              ┌─────────▼─────────┐
-   │  extension/ │                │     ui/       │              │ backends/blocks │
-   │  VS Code    │                │  Vite web UI │              │ Python + Svgbob  │
-   └─────────────┘                └───────────────┘              └──────────────────┘
+                    ┌──────────────────────────────────┐
+                    │  JSON schemas, Python backends   │
+                    │  schemas/   backends/blocks/     │
+                    └──────────────────────────────────┘
+                                       │
+       ┌───────────────────────────────┼───────────────────────────────┐
+       │                               │                               │
+┌──────▼──────────┐         ┌──────────▼──────────┐         ┌──────────▼──────────┐
+│      src/       │         │ packages/diagrams/  │         │   backends/blocks/  │
+│  BPMN compiler  │         │  Notation modules:  │         │   Python + Svgbob   │
+│  CLI, HTTP API  │         │  goals, fgca, …     │         │  nested-blocks gen  │
+└──────┬──────────┘         └──────────┬──────────┘         └──────────┬──────────┘
+       │                               │                               │
+       └────────────────────┬──────────┴──────────────────────┬────────┘
+                            │                                 │
+                  ┌─────────▼─────────┐               ┌───────▼───────┐
+                  │    extension/     │               │      ui/      │
+                  │   VS Code ext.    │               │ Vite web UI   │
+                  │ (bundles src/ +   │               │ for serve API │
+                  │  diagrams + Py)   │               │               │
+                  └───────────────────┘               └───────────────┘
 ```
 
-All BPMN authoring shares the **`src/`** pipeline (`compile` API). **`backends/blocks/`** is invoked as a **separate process** from Node (nested-blocks previews).
+**Two runtime surfaces consume the cores:**
+
+- **VS Code extension** (`extension/`) bundles the BPMN compiler from `src/`, validators from `packages/diagrams/`, the schemas, and the Python backends — all via `npm run extension:prep`.
+- **CLI / local server** (`cervin`, `cervin serve`) runs `src/` directly with Node and shells out to `backends/blocks/` for nested-block previews.
 
 ---
 
@@ -33,42 +41,75 @@ All BPMN authoring shares the **`src/`** pipeline (`compile` API). **`backends/b
 
 | Path | Role |
 |------|------|
-| [`src/`](../src/) | **Core**: YAML DSL → BPMN XML; layout; validation hooks; **`cervin` CLI**; **`cervin serve`** HTTP handler. Compiled to `dist/`. |
-| [`extension/`](../extension/) | **VS Code extension**: commands, preview webview; bundles compiler output copied by `npm run extension:prep`. |
-| [`ui/`](../ui/) | **Browser UI** for local server: editor + BPMN viewer + nested-blocks tab; proxies to `/api/*` in dev (`vite.config.ts`). |
-| [`webview/`](../webview/) | Shared / legacy webview scripting for the extension (**check `extension/`** for what is actually wired). |
-| [`backends/blocks/`](../backends/blocks/) | **Polyglot backend**: nested block diagrams → SVG via Svgbob; **`blocks_stdio.py`** for Studio IPC. |
-| [`examples/`](../examples/) | **Samples by tool**: [`bpmn/`](../examples/bpmn/) (YAML demos + corpus), [`nested-blocks/`](../examples/nested-blocks/) (Ascii/Markdown for Svgbob). See [`examples/README.md`](../examples/README.md). |
-| [`tests/`](../tests/) | **Vitest** suite; integration and API tests assume repo layout (paths joined to `examples/…`). |
-| [`scripts/`](../scripts/) | Build, baseline metrics, optional debug tooling (`scripts/debug/`). |
-| [`method/`](../method/) | Transitrix **methodology** (audit, validation levels, routing rules catalog) — normative prose, not runtime code. |
-| [`notation-kit/`](../notation-kit/) | **Notation artefacts** tied to the DSL (rules, glossary pointers, YAML examples alongside schema **where maintained**); distinct from runnable `schemas/` duplicates where noted in RDs. |
-| [`schemas/`](../schemas/) | **JSON Schema** copies / sources for AJV (e.g. `bpmn-dsl.schema.json`). |
-| [`docs/`](../docs/) | **Project docs**: validation catalogue notes, metrics baselines policies, **this layout map**. |
+| [`src/`](../src/) | **BPMN compiler + CLI engine.** YAML DSL → BPMN XML; layout (ELK); validation (AJV); the **`cervin` CLI** and **`cervin serve`** HTTP handler. Despite the generic name, this folder is **only the BPMN core** — notation-specific code lives in `packages/diagrams/`. (Predates the workspace split.) |
+| [`packages/diagrams/`](../packages/diagrams/) | **`@transitrix/diagrams` workspace.** Library modules for each non-BPMN notation: goals, fgca, activities, products, applications, scenarios, process-map, capability-map, blocks. Each notation has its own `src/<notation>/{types,validate,index}.ts` plus an `__tests__/` folder. |
+| [`extension/`](../extension/) | **VS Code extension.** Activates previews per notation (`extension/src/*-preview.ts`). Build outputs land in `extension/{compiler,schemas,backends,node_modules,out,media}/` — **all gitignored, all regenerated by `npm run extension:prep`**. |
+| [`extension/webview/`](../extension/webview/) | Browser-side entry point for the BPMN viewer webview (`viewer.ts`). Bundled into `extension/media/viewer.js` by `scripts/build-webview.mjs`. |
+| [`ui/`](../ui/) | **Local browser UI** for `cervin serve`. Vite app: BPMN editor + viewer + nested-blocks tab. Proxies `/api/*` to the local Node server in dev (`vite.config.ts`). |
+| [`backends/blocks/`](../backends/blocks/) | **Python backend for nested-block diagrams** (Svgbob-based). `blocks_stdio.py` is invoked as a child process by both `src/blocks-backend.ts` (CLI) and the VS Code extension. Copied into `extension/backends/blocks/` by `extension:prep`. |
+| [`examples/`](../examples/) | **Sample YAML by notation**: `bpmn/`, `activities/`, `applications/`, `products/`, `scenarios/`, `process-map/`, `capability-map/`, `goals/`, `fgca/`, `fga/`, `blocks/`, `nested-blocks/`. Each subfolder has a README. |
+| [`schemas/`](../schemas/) | **JSON Schemas for AJV**: `bpmn-dsl.schema.json` (DSL grammar), `cervinrc.schema.json` (config file). Copied into `extension/schemas/` by `extension:prep`. |
+| [`tests/`](../tests/) | **Vitest root suite.** BPMN compiler tests, layout/routing, integration, metrics regression. See *Two-suite test strategy* below. |
+| [`scripts/`](../scripts/) | Build and dev tooling: `build-compiler-bundle.mjs`, `build-webview.mjs`, `build-extension-bundle.mjs`, `bump-extension-version.mjs`, `measure-baseline.mjs`, `ci-metrics-diff.mjs`. |
+| [`docs/`](../docs/) | **Project documentation**: this layout map, glossary, metrics baselines, validation notes. |
+| [`output/`](../output/) | **Build output** for `build-extension.bat` — packaged `.vsix` files. Gitignored. |
+| [`0. archive/`](../0.%20archive/) | **Superseded trees and accepted-task records.** Gitignored. Move content here instead of deleting. |
 
-Configuration at repo root (`package.json`, `tsconfig*.json`, `.vscode/`): orchestrate build, lint, extension packaging.
+Root config files (`package.json`, `tsconfig*.json`, `.vscode/`, `.github/workflows/`): orchestrate build, lint, test, extension packaging, CI.
 
 ---
 
-## “Where do I change …?”
+## Two-suite test strategy
+
+`npm test` (root) runs **two** Vitest suites in sequence:
+
+| Suite | Location | What it covers | Vitest config |
+|-------|----------|----------------|---------------|
+| **Core** (`test:core`) | [`tests/`](../tests/) | BPMN compiler: parser, validator, layout, emitter, CLI, HTTP, integration, metrics regression. | Root `vitest.config.ts` |
+| **Diagrams** (`test:diagrams`) | [`packages/diagrams/src/*/__tests__/`](../packages/diagrams/) | Notation modules: each notation's validator and (where applicable) layout/mutations. Plus example-file regression tests. | [`packages/diagrams/vitest.config.ts`](../packages/diagrams/vitest.config.ts) |
+
+### Where to put a new test
+
+- **Adding to or modifying the BPMN compiler / layout / CLI / HTTP server?** → `tests/`. Use the existing fixtures under `examples/bpmn/`.
+- **Adding or changing a notation module under `packages/diagrams/`?** → `packages/diagrams/src/<notation>/__tests__/`. Co-locate with the code being tested.
+- **Adding an example YAML file in `examples/<notation>/`?** → the per-notation `__tests__/validate.test.ts` files auto-scan their `examples/<notation>/` folder and validate every YAML — no extra test code needed.
+- **Cross-cutting integration (touching both BPMN core and a notation module)?** → root `tests/` is the right home.
+
+Both suites are required to pass — CI (`.github/workflows/metrics-regression.yml`) runs `npm test` end-to-end and blocks PR merges on any failure.
+
+---
+
+## "Where do I change …?"
 
 | Task | Likely location |
 |------|----------------|
-| BPMN DSL parsing / schema errors | [`src/parser.ts`](../src/parser.ts), [`schemas/`](../schemas/) |
-| Layout / routing quality | [`src/layout.ts`](../src/layout.ts), [`src/layout-options.ts`](../src/layout-options.ts); rules in [`method/methodology.md`](../method/methodology.md) §6–7 |
+| BPMN DSL parsing / schema errors | [`src/parser.ts`](../src/parser.ts), [`schemas/bpmn-dsl.schema.json`](../schemas/bpmn-dsl.schema.json) |
+| BPMN layout / routing quality | [`src/layout.ts`](../src/layout.ts), [`src/layout-options.ts`](../src/layout-options.ts) |
 | BPMN XML output | [`src/emitter.ts`](../src/emitter.ts) |
 | CLI behaviour | [`src/cli.ts`](../src/cli.ts), [`src/cli-parse.ts`](../src/cli-parse.ts) |
-| Web server / compile APIs | [`src/serve-ui.ts`](../src/serve-ui.ts); UI dev parity in [`ui/vite.config.ts`](../ui/vite.config.ts) |
-| VS Code UX | [`extension/src/`](../extension/src/) |
-| Web UI panels (BPMN + nested-blocks) | [`ui/src/main.ts`](../ui/src/main.ts), [`ui/src/style.css`](../ui/src/style.css) |
-| Svgbob / nested-blocks generator | [`backends/blocks/`](../backends/blocks/), samples in [`examples/nested-blocks/`](../examples/nested-blocks/) |
-| New **text format** in Studio | Add **`examples/<tool>/`**, optionally **`src/<feature>`** or **`backends/<name>/`**; register preview/CLI parity; extend this doc. |
+| `cervin serve` HTTP API | [`src/serve-ui.ts`](../src/serve-ui.ts); UI dev parity in [`ui/vite.config.ts`](../ui/vite.config.ts) |
+| VS Code commands and previews | [`extension/src/`](../extension/src/) |
+| Browser UI panels (BPMN + nested-blocks) | [`ui/src/main.ts`](../ui/src/main.ts), [`ui/src/style.css`](../ui/src/style.css) |
+| Svgbob / nested-blocks generator | [`backends/blocks/`](../backends/blocks/), samples in [`examples/nested-blocks/`](../examples/nested-blocks/) and [`examples/blocks/`](../examples/blocks/) |
+| Validation rules for a non-BPMN notation | [`packages/diagrams/src/<notation>/validate.ts`](../packages/diagrams/) |
+| Preview rendering for a non-BPMN notation | [`extension/src/<notation>-preview.ts`](../extension/src/) (HTML; inlines a copy of the validator) |
+| Adding a new notation | Pattern in [TX-020 archive](../0.%20archive/tasks/TX-020.md): library module under `packages/diagrams/src/<notation>/`, preview under `extension/src/<notation>-preview.ts`, wiring in `extension/src/extension.ts` and `extension/package.json`, example in `examples/<notation>/`. |
 
 ---
 
-## Optional future tightening (not done by default)
+## Build outputs (all gitignored, regenerated by `extension:prep`)
 
-Grouping **`src/`**, **`ui/`**, and **`extension/`** under a single parent (e.g. `studio/`) can reduce root clutter but **touches many paths** (VSIX scripts, Vitest imports, Launch configs). Prefer a dedicated PR if you pursue it; until then **this document is the authoritative map**.
+| Path | Source | Purpose |
+|------|--------|---------|
+| `extension/compiler/` | `src/compiler.ts`, `src/metrics.ts` (esbuild) | Bundled compiler the extension loads at runtime |
+| `extension/schemas/` | `schemas/` (copy) | AJV schemas inside the packaged extension |
+| `extension/backends/` | `backends/blocks/` (copy) | Python runtime scripts inside the packaged extension |
+| `extension/node_modules/` | `extension/package.json` (clean install) | Runtime npm deps for the packaged extension |
+| `extension/out/` | `extension/src/` (esbuild) | Bundled extension entry (`extension.js`) |
+| `extension/media/` | `extension/webview/viewer.ts` + bpmn-js assets | Browser-side webview bundle and stylesheets |
+| `dist/` | `src/` (tsc) | Compiled JS for the CLI binary (`bin/cervin`) |
+| `output/` | `build-extension.bat` | Packaged `.vsix` files for distribution |
+
 ---
 
-**Last updated:** 2026-05-06
+**Last updated:** 2026-05-19
