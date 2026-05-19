@@ -47,9 +47,11 @@ async function computeCurrentMetrics() {
   const { compileCervinYamlWithLayout } = compilerMod;
   const { computeLayoutMetrics } = metricsMod;
 
-  const corpusDir = path.join(projectRoot, 'examples', 'bpmn', 'corpus');
+  // Mirror scripts/measure-baseline.mjs: BPMN corpus lives directly under
+  // examples/bpmn/ (no nested corpus/ subfolder) and uses the .bpmn.yaml suffix.
+  const corpusDir = path.join(projectRoot, 'examples', 'bpmn');
   const files = await fs.readdir(corpusDir);
-  const yamlFiles = files.filter(f => f.endsWith('.cervin.yaml'));
+  const yamlFiles = files.filter(f => f.endsWith('.bpmn.yaml'));
 
   const results = {};
 
