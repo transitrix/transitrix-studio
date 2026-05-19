@@ -137,6 +137,39 @@
           ".applications.transitrix.yaml"
         ],
         "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "transitrix-process-map",
+        "aliases": [
+          "Transitrix Process Map",
+          "Process Landscape Map"
+        ],
+        "extensions": [
+          ".process-map.transitrix.yaml"
+        ],
+        "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "transitrix-scenarios",
+        "aliases": [
+          "Transitrix Scenarios",
+          "Scenario Planning"
+        ],
+        "extensions": [
+          ".scenarios.transitrix.yaml"
+        ],
+        "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "transitrix-capability-map",
+        "aliases": [
+          "Transitrix Capability Map",
+          "Capabilities Map"
+        ],
+        "extensions": [
+          ".capability-map.transitrix.yaml"
+        ],
+        "configuration": "./language-configuration.json"
       }
     ],
     "commands": [
@@ -235,6 +268,24 @@
         "title": "Transitrix: Preview application catalogue",
         "category": "Transitrix",
         "icon": "$(list-unordered)"
+      },
+      {
+        "command": "transitrixStudio.previewProcessMap",
+        "title": "Transitrix: Preview process landscape map",
+        "category": "Transitrix",
+        "icon": "$(list-tree)"
+      },
+      {
+        "command": "transitrixStudio.previewScenarios",
+        "title": "Transitrix: Preview scenario",
+        "category": "Transitrix",
+        "icon": "$(milestone)"
+      },
+      {
+        "command": "transitrixStudio.previewCapabilityMap",
+        "title": "Transitrix: Preview capability map",
+        "category": "Transitrix",
+        "icon": "$(type-hierarchy)"
       }
     ],
     "menus": {
@@ -327,6 +378,21 @@
         {
           "when": "resourceFilename =~ /\\.applications\\.transitrix\\.yaml$/",
           "command": "transitrixStudio.previewApplications",
+          "group": "navigation@-10"
+        },
+        {
+          "when": "resourceFilename =~ /\\.process-map\\.transitrix\\.yaml$/",
+          "command": "transitrixStudio.previewProcessMap",
+          "group": "navigation@-10"
+        },
+        {
+          "when": "resourceFilename =~ /\\.scenarios\\.transitrix\\.yaml$/",
+          "command": "transitrixStudio.previewScenarios",
+          "group": "navigation@-10"
+        },
+        {
+          "when": "resourceFilename =~ /\\.capability-map\\.transitrix\\.yaml$/",
+          "command": "transitrixStudio.previewCapabilityMap",
           "group": "navigation@-10"
         }
       ]

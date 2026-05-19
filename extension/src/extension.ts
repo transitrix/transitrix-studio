@@ -10,6 +10,9 @@ import { ActivitiesPreview } from './activities-preview.js';
 import { BlocksPreview } from './blocks-preview.js';
 import { ApplicationsPreview } from './applications-preview.js';
 import { ProductsPreview } from './products-preview.js';
+import { ProcessMapPreview } from './process-map-preview.js';
+import { ScenariosPreview } from './scenarios-preview.js';
+import { CapabilityMapPreview } from './capability-map-preview.js';
 import type { LayoutMetrics, ValidationReport } from './types.js';
 import {
   documentMatchesCervinSource,
@@ -43,6 +46,18 @@ function isApplicationsFile(doc: vscode.TextDocument): boolean {
 
 function isProductsFile(doc: vscode.TextDocument): boolean {
   return doc.fileName.endsWith('.products.transitrix.yaml');
+}
+
+function isProcessMapFile(doc: vscode.TextDocument): boolean {
+  return doc.fileName.endsWith('.process-map.transitrix.yaml');
+}
+
+function isScenariosFile(doc: vscode.TextDocument): boolean {
+  return doc.fileName.endsWith('.scenarios.transitrix.yaml');
+}
+
+function isCapabilityMapFile(doc: vscode.TextDocument): boolean {
+  return doc.fileName.endsWith('.capability-map.transitrix.yaml');
 }
 
 async function loadCompiler(ext: vscode.ExtensionContext): Promise<CompileFn> {
@@ -99,6 +114,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const blocksPreview = new BlocksPreview(context.extensionPath);
   const applicationsPreview = new ApplicationsPreview();
   const productsPreview = new ProductsPreview();
+  const processMapPreview = new ProcessMapPreview();
+  const scenariosPreview = new ScenariosPreview();
+  const capabilityMapPreview = new CapabilityMapPreview();
 
   context.subscriptions.push(
     vscode.commands.registerCommand('cervin.openPreview', async () => {
@@ -186,6 +204,30 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       }
       await productsPreview.showOrReveal(doc);
     }),
+    vscode.commands.registerCommand('transitrixStudio.previewProcessMap', async () => {
+      const doc = vscode.window.activeTextEditor?.document;
+      if (!doc || !isProcessMapFile(doc)) {
+        vscode.window.showWarningMessage('Open a *.process-map.transitrix.yaml file first.');
+        return;
+      }
+      await processMapPreview.showOrReveal(doc);
+    }),
+    vscode.commands.registerCommand('transitrixStudio.previewScenarios', async () => {
+      const doc = vscode.window.activeTextEditor?.document;
+      if (!doc || !isScenariosFile(doc)) {
+        vscode.window.showWarningMessage('Open a *.scenarios.transitrix.yaml file first.');
+        return;
+      }
+      await scenariosPreview.showOrReveal(doc);
+    }),
+    vscode.commands.registerCommand('transitrixStudio.previewCapabilityMap', async () => {
+      const doc = vscode.window.activeTextEditor?.document;
+      if (!doc || !isCapabilityMapFile(doc)) {
+        vscode.window.showWarningMessage('Open a *.capability-map.transitrix.yaml file first.');
+        return;
+      }
+      await capabilityMapPreview.showOrReveal(doc);
+    }),
     vscode.workspace.onDidSaveTextDocument((doc) => {
       if (isGoalsFile(doc)) { void goalsPreview.refreshSaved(doc); return; }
       if (isFGCAFile(doc)) { void fgcaPreview.refreshSaved(doc); return; }
@@ -194,6 +236,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       if (isBlocksFile(doc)) { void blocksPreview.refreshSaved(doc); return; }
       if (isApplicationsFile(doc)) { void applicationsPreview.refreshSaved(doc); return; }
       if (isProductsFile(doc)) { void productsPreview.refreshSaved(doc); return; }
+      if (isProcessMapFile(doc)) { void processMapPreview.refreshSaved(doc); return; }
+      if (isScenariosFile(doc)) { void scenariosPreview.refreshSaved(doc); return; }
+      if (isCapabilityMapFile(doc)) { void capabilityMapPreview.refreshSaved(doc); return; }
       if (!documentMatchesCervinSource(doc)) return;
       void preview.refreshSaved(doc);
     }),
@@ -204,7 +249,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       if (isActivitiesFile(doc)) { await activitiesPreview.showOrReveal(doc); return; }
       if (isBlocksFile(doc)) { await blocksPreview.showOrReveal(doc); return; }
       if (isApplicationsFile(doc)) { await applicationsPreview.showOrReveal(doc); return; }
-      if (isProductsFile(doc)) { await productsPreview.showOrReveal(doc); }
+      if (isProductsFile(doc)) { await productsPreview.showOrReveal(doc); return; }
+      if (isProcessMapFile(doc)) { await processMapPreview.showOrReveal(doc); return; }
+      if (isScenariosFile(doc)) { await scenariosPreview.showOrReveal(doc); return; }
+      if (isCapabilityMapFile(doc)) { await capabilityMapPreview.showOrReveal(doc); }
     }),
   );
 }
