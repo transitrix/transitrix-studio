@@ -64,8 +64,14 @@ export function validateProductsCatalogue(input: unknown): ValidationResult {
   const seenIds = new Set<string>();
 
   for (let i = 0; i < products.length; i++) {
-    const p = products[i] as Record<string, unknown>;
+    const rawProduct = products[i];
     const idx = `products[${i}]`;
+
+    if (!rawProduct || typeof rawProduct !== 'object') {
+      errors.push({ code: 'PROD-003', message: `${idx} must be an object` });
+      continue;
+    }
+    const p = rawProduct as Record<string, unknown>;
 
     // PROD-003: required per-product fields
     if (!p['product_id'] || typeof p['product_id'] !== 'string' || !(p['product_id'] as string).trim()) {

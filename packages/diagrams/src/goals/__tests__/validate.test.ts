@@ -91,4 +91,39 @@ describe('validateGoalTree', () => {
     };
     expect(validateGoalTree(tree).errors.some(e => e.code === 'CYCLE_DETECTED')).toBe(true);
   });
+
+  // Pre-release blocker regression tests (orchestrator review 2026-05-21).
+  it('[blocker] tolerates a null element in goals[] without throwing', () => {
+    const tree = { ...VALID_TREE, goals: [null] };
+    const r = validateGoalTree(tree);
+    expect(r.valid).toBe(false);
+    expect(r.errors.some(e => e.code === 'SCHEMA_INVALID')).toBe(true);
+  });
+
+  it('[blocker] tolerates a non-object element in goals[] without throwing', () => {
+    const tree = { ...VALID_TREE, goals: ['x'] };
+    const r = validateGoalTree(tree);
+    expect(r.valid).toBe(false);
+    expect(r.errors.some(e => e.code === 'SCHEMA_INVALID')).toBe(true);
+  });
+
+  it('[blocker] rejects non-numeric level (does not silently slip a string compare)', () => {
+    const tree = {
+      ...VALID_TREE,
+      goals: [{ id: 1, name: 'A', type: 'Strategy', level: '5', parent_id: 0 }],
+    };
+    const r = validateGoalTree(tree);
+    expect(r.valid).toBe(false);
+    expect(r.errors.some(e => e.code === 'SCHEMA_INVALID' && /level/.test(e.message))).toBe(true);
+  });
+
+  it('[blocker] rejects missing level (does not silently slip undefined > N)', () => {
+    const tree = {
+      ...VALID_TREE,
+      goals: [{ id: 1, name: 'A', type: 'Strategy', parent_id: 0 }],
+    };
+    const r = validateGoalTree(tree);
+    expect(r.valid).toBe(false);
+    expect(r.errors.some(e => e.code === 'SCHEMA_INVALID' && /level/.test(e.message))).toBe(true);
+  });
 });

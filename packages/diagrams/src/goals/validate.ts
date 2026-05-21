@@ -24,30 +24,40 @@ export function validateGoalTree(input: unknown): ValidationResult {
   const idSet = new Set<number>();
 
   for (let i = 0; i < tree.goals.length; i++) {
-    const g = tree.goals[i];
+    const g = tree.goals[i] as unknown;
     const path = `goals[${i}]`;
 
-    if (typeof g.id !== 'number') {
+    if (!g || typeof g !== 'object') {
+      errors.push({ code: 'SCHEMA_INVALID', message: 'goal entry must be an object', path });
+      continue;
+    }
+    const goal = g as { id?: unknown; name?: unknown; level?: unknown; type?: unknown };
+
+    if (typeof goal.id !== 'number') {
       errors.push({ code: 'SCHEMA_INVALID', message: 'goal id must be a number', path });
       continue;
     }
-    if (!g.name || typeof g.name !== 'string' || g.name.trim() === '') {
-      errors.push({ code: 'EMPTY_NAME', message: `Goal ${g.id} has empty name`, path });
+    if (!goal.name || typeof goal.name !== 'string' || goal.name.trim() === '') {
+      errors.push({ code: 'EMPTY_NAME', message: `Goal ${goal.id} has empty name`, path });
     }
 
-    if (idSet.has(g.id)) {
-      errors.push({ code: 'DUPLICATE_ID', message: `Duplicate goal id: ${g.id}`, path });
+    if (idSet.has(goal.id)) {
+      errors.push({ code: 'DUPLICATE_ID', message: `Duplicate goal id: ${goal.id}`, path });
     } else {
-      idSet.add(g.id);
+      idSet.add(goal.id);
     }
 
-    if (g.level > maxLevel) {
-      errors.push({ code: 'MAX_LEVEL_EXCEEDED', message: `Goal ${g.id} level ${g.level} exceeds max ${maxLevel}`, path });
+    if (typeof goal.level !== 'number' || !Number.isFinite(goal.level)) {
+      errors.push({ code: 'SCHEMA_INVALID', message: `Goal ${goal.id} level must be a finite number`, path });
+      continue;
+    }
+    if (goal.level > maxLevel) {
+      errors.push({ code: 'MAX_LEVEL_EXCEEDED', message: `Goal ${goal.id} level ${goal.level} exceeds max ${maxLevel}`, path });
     }
 
-    const expectedLevel = typeMap.get(g.type);
-    if (expectedLevel !== undefined && expectedLevel !== g.level) {
-      warnings.push({ code: 'TYPE_LEVEL_MISMATCH', message: `Goal ${g.id} type "${g.type}" expects level ${expectedLevel}, got ${g.level}`, path });
+    const expectedLevel = typeof goal.type === 'string' ? typeMap.get(goal.type) : undefined;
+    if (expectedLevel !== undefined && expectedLevel !== goal.level) {
+      warnings.push({ code: 'TYPE_LEVEL_MISMATCH', message: `Goal ${goal.id} type "${String(goal.type)}" expects level ${expectedLevel}, got ${goal.level}`, path });
     }
   }
 
@@ -57,6 +67,7 @@ export function validateGoalTree(input: unknown): ValidationResult {
   for (let i = 0; i < tree.goals.length; i++) {
     const g = tree.goals[i];
     const path = `goals[${i}]`;
+    if (!g || typeof g !== 'object') continue;
     if (g.parent_id !== 0 && !idSet.has(g.parent_id)) {
       warnings.push({ code: 'BROKEN_PARENT_REF', message: `Goal ${g.id} references missing parent ${g.parent_id} — moved to backlog`, path });
     }

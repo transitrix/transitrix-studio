@@ -192,6 +192,24 @@ describe('validateCapabilityMap', () => {
     const r = validateCapabilityMap({ ...VALID_MAP, capability_map: map });
     expect(r.valid).toBe(true);
   });
+
+  // Pre-release blocker regression (orchestrator review 2026-05-21).
+  it('[blocker] tolerates a null element in capabilities[] without throwing', () => {
+    const map = { ...VALID_MAP.capability_map, capabilities: [null] };
+    const r = validateCapabilityMap({ ...VALID_MAP, capability_map: map });
+    expect(r.valid).toBe(false);
+    expect(r.errors.some(e => e.code === 'CMAP-003')).toBe(true);
+  });
+
+  it('[blocker] tolerates a null child capability without throwing', () => {
+    const map = {
+      ...VALID_MAP.capability_map,
+      capabilities: [{ id: 'V1', name: 'X', current_maturity: 2, children: [null] }],
+    };
+    const r = validateCapabilityMap({ ...VALID_MAP, capability_map: map });
+    expect(r.valid).toBe(false);
+    expect(r.errors.some(e => e.code === 'CMAP-003')).toBe(true);
+  });
 });
 
 describe('capability-map examples (regression)', () => {

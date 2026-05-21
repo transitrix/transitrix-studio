@@ -188,6 +188,24 @@ describe('validateProcessMap', () => {
     const r = validateProcessMap({ ...VALID_MAP, process_map: map });
     expect(r.valid).toBe(true);
   });
+
+  // Pre-release blocker regression (orchestrator review 2026-05-21).
+  it('[blocker] tolerates a null element in groups[] without throwing', () => {
+    const map = { ...VALID_MAP.process_map, groups: [null] };
+    const r = validateProcessMap({ ...VALID_MAP, process_map: map });
+    expect(r.valid).toBe(false);
+    expect(r.errors.some(e => e.code === 'PMAP-003')).toBe(true);
+  });
+
+  it('[blocker] tolerates a null element in processes[] without throwing', () => {
+    const map = {
+      ...VALID_MAP.process_map,
+      groups: [{ id: 'g1', name: 'G', type: 'operating', processes: [null] }],
+    };
+    const r = validateProcessMap({ ...VALID_MAP, process_map: map });
+    expect(r.valid).toBe(false);
+    expect(r.errors.some(e => e.code === 'PMAP-005')).toBe(true);
+  });
 });
 
 describe('process-map examples (regression)', () => {
