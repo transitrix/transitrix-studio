@@ -67,8 +67,14 @@ export function validateApplicationsCatalogue(input: unknown): ValidationResult 
   const seenIds = new Set<string>();
 
   for (let i = 0; i < applications.length; i++) {
-    const a = applications[i] as Record<string, unknown>;
+    const rawApp = applications[i];
     const idx = `applications[${i}]`;
+
+    if (!rawApp || typeof rawApp !== 'object') {
+      errors.push({ code: 'APP-003', message: `${idx} must be an object` });
+      continue;
+    }
+    const a = rawApp as Record<string, unknown>;
 
     // APP-003: required per-application fields
     if (!a['app_id'] || typeof a['app_id'] !== 'string' || !(a['app_id'] as string).trim()) {
@@ -111,9 +117,14 @@ export function validateApplicationsCatalogue(input: unknown): ValidationResult 
 
     // APP-009: integrations[].direction enum
     if (Array.isArray(a['integrations'])) {
-      const integrations = a['integrations'] as Record<string, unknown>[];
+      const integrations = a['integrations'] as unknown[];
       for (let j = 0; j < integrations.length; j++) {
-        const intg = integrations[j];
+        const rawIntg = integrations[j];
+        if (!rawIntg || typeof rawIntg !== 'object') {
+          errors.push({ code: 'APP-009', message: `${idx}.integrations[${j}] must be an object` });
+          continue;
+        }
+        const intg = rawIntg as Record<string, unknown>;
         if (intg['direction'] !== undefined && !VALID_DIRECTIONS.has(intg['direction'] as IntegrationDirection)) {
           errors.push({ code: 'APP-009', message: `${idx}.integrations[${j}]: direction "${intg['direction']}" must be one of: inbound, outbound, bidirectional` });
         }

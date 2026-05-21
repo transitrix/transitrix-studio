@@ -170,6 +170,28 @@ describe('validateScenario', () => {
     const r = validateScenario({ ...VALID_SCENARIO, scenario: scn });
     expect(r.valid).toBe(true);
   });
+
+  // Pre-release blocker regression (orchestrator review 2026-05-21).
+  it('[blocker] tolerates a null element in factors_view[] without throwing', () => {
+    const scn = { ...VALID_SCENARIO.scenario, factors_view: [null] };
+    const r = validateScenario({ ...VALID_SCENARIO, scenario: scn });
+    expect(r.valid).toBe(false);
+    expect(r.errors.some(e => e.code === 'SCN-005')).toBe(true);
+  });
+
+  it('[blocker] tolerates a null element in goals[] without throwing', () => {
+    const scn = { ...VALID_SCENARIO.scenario, goals: [null] };
+    const r = validateScenario({ ...VALID_SCENARIO, scenario: scn });
+    expect(r.valid).toBe(false);
+    expect(r.errors.some(e => e.code === 'SCN-007')).toBe(true);
+  });
+
+  it('[blocker] tolerates a string element in applications[] without throwing', () => {
+    const scn = { ...VALID_SCENARIO.scenario, applications: ['x'] };
+    const r = validateScenario({ ...VALID_SCENARIO, scenario: scn });
+    expect(r.valid).toBe(false);
+    expect(r.errors.some(e => e.code === 'SCN-012')).toBe(true);
+  });
 });
 
 describe('scenarios examples (regression)', () => {

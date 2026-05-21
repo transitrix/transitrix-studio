@@ -75,4 +75,25 @@ describe('layoutGoalTree', () => {
     // Level 2 nodes (id 3, 4) should be hidden
     expect(layout.nodes.every(n => n.data.level <= 1)).toBe(true);
   });
+
+  // Pre-release blocker regression (orchestrator review 2026-05-21).
+  it('[blocker] does not stack-overflow on a self-parent cycle', () => {
+    const cyclic: GoalTree = {
+      goal_types: [{ name: 'X', level: 0 }],
+      goals: [{ id: 1, name: 'self-parent', type: 'X', level: 0, parent_id: 1 }],
+    };
+    // Without a visited-set inside placeSubtree, this recurses forever.
+    expect(() => layoutGoalTree(cyclic)).not.toThrow();
+  });
+
+  it('[blocker] does not stack-overflow on a 2-node mutual cycle', () => {
+    const cyclic: GoalTree = {
+      goal_types: [{ name: 'X', level: 0 }, { name: 'Y', level: 1 }],
+      goals: [
+        { id: 1, name: 'A', type: 'X', level: 0, parent_id: 2 },
+        { id: 2, name: 'B', type: 'Y', level: 1, parent_id: 1 },
+      ],
+    };
+    expect(() => layoutGoalTree(cyclic)).not.toThrow();
+  });
 });

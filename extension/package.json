@@ -32,7 +32,17 @@
   "activationEvents": [
     "workspaceContains:**/*.cervin.yaml",
     "workspaceContains:**/*.bpmn.yaml",
-    "workspaceContains:**/*.goals.transitrix.yaml"
+    "workspaceContains:**/*.goals.transitrix.yaml",
+    "workspaceContains:**/*.fgca.transitrix.yaml",
+    "workspaceContains:**/*.fga.transitrix.yaml",
+    "workspaceContains:**/*.activities.transitrix.yaml",
+    "workspaceContains:**/*.blocks.transitrix.txt",
+    "workspaceContains:**/*.applications.transitrix.yaml",
+    "workspaceContains:**/*.products.transitrix.yaml",
+    "workspaceContains:**/*.process-map.transitrix.yaml",
+    "workspaceContains:**/*.scenarios.transitrix.yaml",
+    "workspaceContains:**/*.capability-map.transitrix.yaml",
+    "workspaceContains:**/*.process-blueprint.transitrix.yaml"
   ],
   "contributes": {
     "configuration": {

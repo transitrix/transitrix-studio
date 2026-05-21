@@ -167,7 +167,7 @@ export function buildFGCALayout({
   // Change→Activity edges
   if (visibleColumns.has("change") && visibleColumns.has("activity")) {
     changes.forEach((c) => {
-      c.activity_ids.forEach((aid) => {
+      (c.activity_ids ?? []).forEach((aid) => {
         edges.push({
           id: `edge_c${c.id}_a${aid}`,
           source: `change_${c.id}`,
@@ -183,7 +183,7 @@ export function buildFGCALayout({
   // Goal→Activity direct edges (only for activities not already covered via a Change link)
   if (visibleColumns.has("goal") && visibleColumns.has("activity")) {
     const coveredActivityIds = visibleColumns.has("change")
-      ? new Set(changes.flatMap((c) => c.activity_ids))
+      ? new Set(changes.flatMap((c) => c.activity_ids ?? []))
       : new Set<number>();
     activities.forEach((a) => {
       const gid = a.goal_id;

@@ -2,7 +2,7 @@ import { createReadStream, existsSync } from 'node:fs'
 import { readFile, stat } from 'node:fs/promises'
 import { createServer } from 'node:http'
 import process from 'node:process'
-import { basename, dirname, extname, relative, resolve as pathResolve } from 'node:path'
+import { basename, dirname, extname, resolve as pathResolve, sep as pathSep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import type { IncomingMessage, ServerResponse } from 'node:http'
@@ -54,9 +54,14 @@ function resolveUiDist(): string {
   )
 }
 
-function isInsideRoot(staticRoot: string, candidateAbs: string): boolean {
-  const rel = relative(pathResolve(staticRoot), pathResolve(candidateAbs))
-  return rel === '' || !rel.startsWith('..')
+export function isInsideRoot(staticRoot: string, candidateAbs: string): boolean {
+  // path.relative() returns the raw second argument when the two paths live on
+  // different Windows drives — and that does not start with `..`, so a naive
+  // relative-based check would silently let `D:\b` "live inside" `C:\a`.
+  // A direct prefix comparison with the path separator catches that.
+  const root = pathResolve(staticRoot)
+  const candidate = pathResolve(candidateAbs)
+  return candidate === root || candidate.startsWith(root + pathSep)
 }
 
 async function serveFile(res: ServerResponse, filePath: string): Promise<void> {
@@ -66,7 +71,16 @@ async function serveFile(res: ServerResponse, filePath: string): Promise<void> {
     'Content-Length': String(st.size),
     'Cache-Control': 'no-cache',
   })
-  createReadStream(filePath).pipe(res)
+  const stream = createReadStream(filePath)
+  stream.on('error', (err) => {
+    // Stream errors fire after headers are already written; the client cannot
+    // be told via status code, so abort the socket instead of letting the
+    // unhandled error crash the process.
+    // eslint-disable-next-line no-console
+    console.error('serveFile: read stream error', err)
+    res.destroy(err)
+  })
+  stream.pipe(res)
 }
 
 export async function handleCompile(req: IncomingMessage, res: ServerResponse): Promise<void> {

@@ -63,8 +63,14 @@ export function validateProcessMap(input: unknown): ValidationResult {
   const seenProcessIds = new Set<string>();
 
   for (let gi = 0; gi < groups.length; gi++) {
-    const g = groups[gi] as Record<string, unknown>;
+    const rawGroup = groups[gi];
     const gIdx = `groups[${gi}]`;
+
+    if (!rawGroup || typeof rawGroup !== 'object') {
+      errors.push({ code: 'PMAP-003', message: `${gIdx} must be an object` });
+      continue;
+    }
+    const g = rawGroup as Record<string, unknown>;
 
     if (!g['id'] || typeof g['id'] !== 'string' || !(g['id'] as string).trim()) {
       errors.push({ code: 'PMAP-003', message: `${gIdx}: id is required` });
@@ -93,8 +99,14 @@ export function validateProcessMap(input: unknown): ValidationResult {
 
     const list = (processes ?? []) as unknown[];
     for (let pi = 0; pi < list.length; pi++) {
-      const p = list[pi] as Record<string, unknown>;
+      const rawProcess = list[pi];
       const pIdx = `${gIdx}.processes[${pi}]`;
+
+      if (!rawProcess || typeof rawProcess !== 'object') {
+        errors.push({ code: 'PMAP-005', message: `${pIdx} must be an object` });
+        continue;
+      }
+      const p = rawProcess as Record<string, unknown>;
 
       if (!p['process_id'] || typeof p['process_id'] !== 'string' || !(p['process_id'] as string).trim()) {
         errors.push({ code: 'PMAP-005', message: `${pIdx}: process_id is required` });
