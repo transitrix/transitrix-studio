@@ -78,7 +78,7 @@ export function validateProcessBlueprint(input: unknown): ValidationResult {
     if (!isNonEmptyString(s['id'])) {
       errors.push({ code: 'BP-005', message: `${path}.id is required` });
     } else {
-      const sid = s['id'];
+      const sid = s['id'].trim();
       if (stageIds.has(sid)) {
         errors.push({ code: 'BP-006', message: `Duplicate stage id: "${sid}"` });
       } else {
@@ -137,13 +137,14 @@ export function validateProcessBlueprint(input: unknown): ValidationResult {
             errors.push({ code: 'BP-008', message: `${path}.stages[${j}] must be a string` });
             continue;
           }
-          if (!stageIds.has(ref)) {
+          const refTrimmed = ref.trim();
+          if (!stageIds.has(refTrimmed)) {
             errors.push({
               code: 'BP-008',
               message: `${path}.stages[${j}] references undeclared stage "${ref}"`,
             });
           } else {
-            usedStageIds.add(ref);
+            usedStageIds.add(refTrimmed);
           }
         }
 

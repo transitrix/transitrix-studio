@@ -49,8 +49,8 @@ function resolveOptions(options: ProcessBlueprintLayoutOptions | undefined): Req
 function buildStageIndex(stages: Stage[]): Map<string, number> {
   const idx = new Map<string, number>();
   for (let i = 0; i < stages.length; i++) {
-    const sid = stages[i]?.id;
-    if (typeof sid === 'string' && sid.length > 0 && !idx.has(sid)) {
+    const sid = typeof stages[i]?.id === 'string' ? stages[i].id.trim() : '';
+    if (sid.length > 0 && !idx.has(sid)) {
       idx.set(sid, i);
     }
   }
@@ -69,7 +69,7 @@ function pillsForEntry(
   const seen = new Set<number>();
   for (const ref of entry.stages) {
     if (typeof ref !== 'string') continue;
-    const i = stageIndexById.get(ref);
+    const i = stageIndexById.get(ref.trim());
     if (i === undefined) continue;
     if (seen.has(i)) continue;
     seen.add(i);

@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import yaml from 'js-yaml';
 import { validateProcessBlueprint } from '../validate.js';
+
+const EXAMPLES_DIR = path.resolve(process.cwd(), '..', '..', 'examples', 'process-blueprint');
 
 const VALID_BLUEPRINT = {
   notation: 'process-blueprint',
@@ -128,6 +133,35 @@ describe('validateProcessBlueprint', () => {
       },
     });
     expect(r.errors.some(e => e.code === 'BP-006' && /Duplicate/.test(e.message))).toBe(true);
+  });
+
+  it('BP-006: treats ids that differ only in surrounding whitespace as duplicates', () => {
+    const r = validateProcessBlueprint({
+      ...VALID_BLUEPRINT,
+      process_blueprint: {
+        ...VALID_BLUEPRINT.process_blueprint,
+        stages: [
+          { id: 'STAGE-1', name: 'A', goal: 'G', result: 'R' },
+          { id: 'STAGE-1 ', name: 'B', goal: 'G', result: 'R' },
+        ],
+      },
+    });
+    expect(r.errors.some(e => e.code === 'BP-006' && /Duplicate/.test(e.message))).toBe(true);
+  });
+
+  it('BP-008: tolerates whitespace around aspect stage refs (matches trimmed stage ids)', () => {
+    const r = validateProcessBlueprint({
+      ...VALID_BLUEPRINT,
+      process_blueprint: {
+        ...VALID_BLUEPRINT.process_blueprint,
+        stages: [{ id: 'STAGE-1', name: 'A', goal: 'G', result: 'R' }],
+        systems: [{ id: 'APPLICATION-X-1', name: 'X', stages: [' STAGE-1 '] }],
+        actors: undefined,
+        equipment: undefined,
+        information_entities: undefined,
+      },
+    });
+    expect(r.errors.some(e => e.code === 'BP-008')).toBe(false);
   });
 
   it('BP-006: rejects stage id that does not match STAGE grammar', () => {
@@ -266,4 +300,18 @@ describe('validateProcessBlueprint', () => {
     expect(r.valid).toBe(true);
     expect(r.warnings).toHaveLength(0);
   });
+});
+
+describe('process-blueprint examples (regression)', () => {
+  const files = fs.readdirSync(EXAMPLES_DIR).filter(f => f.endsWith('.yaml'));
+  expect(files.length).toBeGreaterThan(0);
+  for (const file of files) {
+    it(`validates examples/process-blueprint/${file}`, () => {
+      const text = fs.readFileSync(path.join(EXAMPLES_DIR, file), 'utf8');
+      const parsed = yaml.load(text);
+      const r = validateProcessBlueprint(parsed);
+      expect(r.errors).toEqual([]);
+      expect(r.valid).toBe(true);
+    });
+  }
 });
