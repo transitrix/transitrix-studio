@@ -2,7 +2,7 @@
   "name": "transitrix-studio",
   "displayName": "Transitrix Studio",
   "publisher": "transitrix",
-  "version": "0.4.18",
+  "version": "0.4.19",
   "description": "Preview Transitrix diagrams (BPMN, Goals, FGCA, …) inside VS Code.",
   "license": "MIT",
   "icon": "icon.png",
