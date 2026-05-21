@@ -3,12 +3,25 @@ import * as vscode from 'vscode';
 import yaml from 'js-yaml';
 import { buildDiagramFrame, prepareSvgForExport, type ThemeId } from './diagram-frame.js';
 
-// ── Inline types (mirror packages/diagrams/src/fgca/types.ts) ─────────────────
+// ── Inline types ──────────────────────────────────────────────────────────────
+//
+// FGCA (spec: notations/02-fgca.md) — flat arrays at top level; spec and
+// example are consistent.
+//
+// FGA (spec: notations/03-fga.md v0.1) — nested root key `fga:`:
+//   fga:
+//     id: "FGA-..."
+//     factors:
+//       - id: "FACTOR-..." name: "..." type: external|internal
+//         goals:
+//           - id: "GOAL-..." name: "..."
+//             activities:
+//               - id: "ACT-..." name: "..."
 
-interface FactorItem { id: number; name: string; }
-interface GoalItem { id: number; name: string; level?: number; factor?: Array<{ id: number }>; }
-interface ChangeItem { id: number; name: string; goal_id: number; activity_ids: number[]; }
-interface ActivityItem { id: number; name: string; goal_id?: number | null; }
+interface FactorItem { id: number | string; name: string; }
+interface GoalItem { id: number | string; name: string; level?: number; factor?: Array<{ id: number | string }>; }
+interface ChangeItem { id: number | string; name: string; goal_id: number | string; activity_ids: Array<number | string>; }
+interface ActivityItem { id: number | string; name: string; goal_id?: number | string | null; }
 
 interface FGCADoc {
   notation: string;
@@ -17,6 +30,13 @@ interface FGCADoc {
   changes?: ChangeItem[];
   activities: ActivityItem[];
 }
+
+// Canonical FGA nested types (spec v0.1)
+interface FGAActivityItem { id: string; name: string; owner?: string; status?: string; due_date?: string; }
+interface FGAGoalItem    { id: string; name: string; activities: FGAActivityItem[]; }
+interface FGAFactorItem  { id: string; name: string; type: 'external' | 'internal'; goals: FGAGoalItem[]; }
+interface FGARoot        { id: string; name: string; description?: string; period?: string; factors: FGAFactorItem[]; }
+interface FGADoc         { notation: string; fga: FGARoot; }
 
 interface ValidationError { code: string; message: string; }
 interface ValidationResult { valid: boolean; errors: ValidationError[]; warnings: Array<{ code: string; message: string }>; }
@@ -93,40 +113,73 @@ function validateFGA(input: unknown): ValidationResult {
     return { valid: false, errors, warnings };
   }
 
-  if (!Array.isArray(raw.factors)) errors.push({ code: 'SCHEMA_INVALID', message: 'factors must be an array' });
-  if (!Array.isArray(raw.goals)) errors.push({ code: 'SCHEMA_INVALID', message: 'goals must be an array' });
-  if (!Array.isArray(raw.activities)) errors.push({ code: 'SCHEMA_INVALID', message: 'activities must be an array' });
-  if (errors.length > 0) return { valid: false, errors, warnings };
+  if (!raw.fga || typeof raw.fga !== 'object') {
+    errors.push({ code: 'MISSING_ROOT', message: 'fga root key is required' });
+    return { valid: false, errors, warnings };
+  }
 
-  const doc = raw as unknown as FGCADoc;
-  const factorIds = new Set(doc.factors.map(f => f.id));
-  const goalIds = new Set(doc.goals.map(g => g.id));
-  const activityIds = new Set(doc.activities.map(a => a.id));
+  const fga = raw.fga as Record<string, unknown>;
+  if (!Array.isArray(fga.factors)) {
+    errors.push({ code: 'SCHEMA_INVALID', message: 'fga.factors must be an array' });
+    return { valid: false, errors, warnings };
+  }
 
-  for (const g of doc.goals) {
-    for (const f of (g.factor ?? [])) {
-      if (!factorIds.has(f.id)) {
-        warnings.push({ code: 'BROKEN_REF', message: `Goal ${g.id} references missing factor ${f.id}` });
+  for (const factor of fga.factors as Array<Record<string, unknown>>) {
+    if (!factor.id || !factor.name) {
+      errors.push({ code: 'SCHEMA_INVALID', message: `Factor missing required id or name` });
+    }
+    if (!factor.type) {
+      warnings.push({ code: 'MISSING_FIELD', message: `Factor "${factor.id}" missing type (expected "external" or "internal")` });
+    }
+    if (!Array.isArray(factor.goals)) {
+      errors.push({ code: 'SCHEMA_INVALID', message: `Factor "${factor.id}" goals must be an array` });
+      continue;
+    }
+    for (const goal of factor.goals as Array<Record<string, unknown>>) {
+      if (!goal.id || !goal.name) {
+        errors.push({ code: 'SCHEMA_INVALID', message: `Goal missing required id or name under factor "${factor.id}"` });
       }
-    }
-  }
-  for (const a of doc.activities) {
-    if (a.goal_id != null && !goalIds.has(a.goal_id)) {
-      warnings.push({ code: 'BROKEN_REF', message: `Activity ${a.id} references missing goal ${a.goal_id}` });
-    }
-  }
-  for (const c of (doc.changes ?? [])) {
-    if (!goalIds.has(c.goal_id)) {
-      warnings.push({ code: 'BROKEN_REF', message: `Change ${c.id} references missing goal ${c.goal_id}` });
-    }
-    for (const aid of (c.activity_ids ?? [])) {
-      if (!activityIds.has(aid)) {
-        warnings.push({ code: 'BROKEN_REF', message: `Change ${c.id} references missing activity ${aid}` });
+      if (!Array.isArray(goal.activities)) {
+        errors.push({ code: 'SCHEMA_INVALID', message: `Goal "${goal.id}" activities must be an array` });
+        continue;
+      }
+      for (const act of goal.activities as Array<Record<string, unknown>>) {
+        if (!act.id || !act.name) {
+          errors.push({ code: 'SCHEMA_INVALID', message: `Activity missing required id or name under goal "${goal.id}"` });
+        }
       }
     }
   }
 
   return { valid: errors.length === 0, errors, warnings };
+}
+
+// Convert canonical nested FGA → flat FGCADoc for the existing layout engine
+function fgaToFlat(doc: FGADoc): FGCADoc {
+  const factors: FactorItem[] = [];
+  const goals: GoalItem[] = [];
+  const activities: ActivityItem[] = [];
+
+  const goalSeen = new Set<string>();
+
+  for (const factor of doc.fga.factors) {
+    factors.push({ id: factor.id, name: factor.name });
+    for (const goal of factor.goals) {
+      if (!goalSeen.has(goal.id)) {
+        goals.push({ id: goal.id, name: goal.name, factor: [{ id: factor.id }] });
+        goalSeen.add(goal.id);
+      } else {
+        // Goal appears under multiple factors — add factor reference
+        const existing = goals.find(g => g.id === goal.id);
+        if (existing) existing.factor = [...(existing.factor ?? []), { id: factor.id }];
+      }
+      for (const act of goal.activities) {
+        activities.push({ id: act.id, name: act.name, goal_id: goal.id });
+      }
+    }
+  }
+
+  return { notation: 'fga', factors, goals, activities };
 }
 
 // ── Inline layout ─────────────────────────────────────────────────────────────
@@ -189,7 +242,7 @@ function layoutFGCA(doc: FGCADoc, hideChanges = false): { nodes: LayoutNode[]; e
     for (const f of (g.factor ?? [])) addEdge(`factor_${f.id}`, `goal_${g.id}`);
   }
   if (hideChanges) {
-    const connectedViaChange = new Set<number>();
+    const connectedViaChange = new Set<number | string>();
     for (const c of changes) {
       for (const aid of c.activity_ids) {
         addEdge(`goal_${c.goal_id}`, `activity_${aid}`);
@@ -418,7 +471,8 @@ export class FGAPreview {
       if (!v.valid) {
         errorMsg = v.errors.map(e => `${e.code}: ${e.message}`).join('\n');
       } else {
-        svgContent = buildSvg(parsed as FGCADoc, true);
+        const flat = fgaToFlat(parsed as FGADoc);
+        svgContent = buildSvg(flat, true);
       }
     } catch (e) {
       errorMsg = (e as Error).message ?? 'Parse error';

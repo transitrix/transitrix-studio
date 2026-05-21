@@ -3,17 +3,27 @@ import * as vscode from 'vscode';
 import yaml from 'js-yaml';
 import { buildDiagramFrame, prepareSvgForExport, type ThemeId } from './diagram-frame.js';
 
-// ── Inline types (mirror packages/diagrams/src/goals/types.ts) ──────────────
+// ── Canonical types (spec: notations/04-goals.md v0.2) ──────────────────────
+//
+// goals_tree:
+//   id: "GT-..."
+//   name: "..."
+//   description?: "..."
+//   root:
+//     goal_id: "GOAL-..."
+//     children?:
+//       - goal_id: "GOAL-..."
+//         children?: [...]
 
-interface GoalType { name: string; level: number; }
-interface Goal {
-  id: number; name: string; type: string; level: number; parent_id: number;
-  tag?: string; description?: string;
-}
-interface GoalTree { goal_types: GoalType[]; goals: Goal[]; }
+interface TreeNode { goal_id: string; children?: TreeNode[]; }
+interface GoalsTreeRoot { id: string; name: string; description?: string; root: TreeNode; }
+interface GoalsTreeDoc { goals_tree: GoalsTreeRoot; }
 
-interface LaidOutNode { id: number; x: number; y: number; width: number; height: number; data: Goal; }
-interface LaidOutEdge { source: number; target: number; }
+// Internal flat representation used by the layout engine
+interface FlatGoal { id: string; label: string; depth: number; parentId: string | null; }
+
+interface LaidOutNode { id: string; x: number; y: number; width: number; height: number; depth: number; label: string; }
+interface LaidOutEdge { source: string; target: string; }
 interface GoalTreeLayout {
   nodes: LaidOutNode[];
   edges: LaidOutEdge[];
@@ -23,63 +33,98 @@ interface GoalTreeLayout {
 interface ValidationError { code: string; message: string; }
 interface ValidationResult { valid: boolean; errors: ValidationError[]; warnings: Array<{ code: string; message: string }> }
 
-// ── Inline validation (minimal subset for preview) ───────────────────────────
+// ── Validation ───────────────────────────────────────────────────────────────
 
 function validateGoalTree(input: unknown): ValidationResult {
   const errors: ValidationError[] = [];
   const warnings: Array<{ code: string; message: string }> = [];
+
   if (!input || typeof input !== 'object') {
     return { valid: false, errors: [{ code: 'SCHEMA_INVALID', message: 'Input must be an object' }], warnings };
   }
-  const raw = input as Record<string, unknown>;
-  if (!Array.isArray(raw.goals)) errors.push({ code: 'SCHEMA_INVALID', message: 'goals must be an array' });
-  if (!Array.isArray(raw.goal_types)) errors.push({ code: 'SCHEMA_INVALID', message: 'goal_types must be an array' });
-  if (errors.length > 0) return { valid: false, errors, warnings };
 
-  const tree = raw as unknown as GoalTree;
-  const allIds = new Set(tree.goals.map(g => g.id));
-  for (const g of tree.goals) {
-    if (!g.name?.trim()) errors.push({ code: 'EMPTY_NAME', message: `Goal ${g.id} has empty name` });
+  const raw = input as Record<string, unknown>;
+
+  if (!raw.goals_tree || typeof raw.goals_tree !== 'object') {
+    errors.push({ code: 'MISSING_ROOT', message: 'goals_tree root key is required' });
+    return { valid: false, errors, warnings };
   }
-  for (const g of tree.goals) {
-    if (g.parent_id !== 0 && !allIds.has(g.parent_id)) {
-      warnings.push({ code: 'BROKEN_PARENT_REF', message: `Goal ${g.id} references missing parent ${g.parent_id}` });
+
+  const tree = raw.goals_tree as Record<string, unknown>;
+
+  if (!tree.root || typeof tree.root !== 'object') {
+    errors.push({ code: 'MISSING_ROOT', message: 'goals_tree.root is required' });
+    return { valid: false, errors, warnings };
+  }
+
+  const root = tree.root as Record<string, unknown>;
+  if (!root.goal_id || typeof root.goal_id !== 'string') {
+    errors.push({ code: 'MISSING_GOAL_ID', message: 'goals_tree.root.goal_id must be a non-empty string' });
+  }
+
+  // Check for cycles via DFS
+  function checkCycles(node: TreeNode, seen: Set<string>): boolean {
+    if (seen.has(node.goal_id)) {
+      warnings.push({ code: 'CYCLE_DETECTED', message: `goal_id "${node.goal_id}" appears more than once in the tree` });
+      return false;
     }
+    seen.add(node.goal_id);
+    for (const child of (node.children ?? [])) checkCycles(child, new Set(seen));
+    return true;
   }
+
+  if (errors.length === 0) {
+    checkCycles(raw.goals_tree as unknown as GoalsTreeRoot['root'] & { children?: TreeNode[] }, new Set());
+  }
+
   return { valid: errors.length === 0, errors, warnings };
 }
 
-// ── Inline layout ────────────────────────────────────────────────────────────
+// ── Flatten nested tree → internal flat list ─────────────────────────────────
+
+function flattenTree(node: TreeNode, depth: number, parentId: string | null, out: FlatGoal[]): void {
+  out.push({ id: node.goal_id, label: node.goal_id, depth, parentId });
+  for (const child of (node.children ?? [])) {
+    flattenTree(child, depth + 1, node.goal_id, out);
+  }
+}
+
+// ── Layout ───────────────────────────────────────────────────────────────────
 
 const NODE_W = 250;
-const NODE_H = 80;
+const NODE_H = 60;
 const RANK_SEP = 100;
-const NODE_SEP = 32;
+const NODE_SEP = 24;
 
-function layoutGoalTree(tree: GoalTree): GoalTreeLayout {
-  const goalById = new Map(tree.goals.map(g => [g.id, g]));
-  const children = new Map<number, number[]>();
-  for (const g of tree.goals) {
-    if (!children.has(g.parent_id)) children.set(g.parent_id, []);
-    children.get(g.parent_id)!.push(g.id);
+function layoutGoalTree(doc: GoalsTreeDoc): GoalTreeLayout {
+  const flat: FlatGoal[] = [];
+  flattenTree(doc.goals_tree.root, 0, null, flat);
+
+  const byId = new Map(flat.map(g => [g.id, g]));
+  const childrenOf = new Map<string | null, string[]>();
+  for (const g of flat) {
+    const key = g.parentId;
+    if (!childrenOf.has(key)) childrenOf.set(key, []);
+    childrenOf.get(key)!.push(g.id);
   }
-  const allIds = new Set(tree.goals.map(g => g.id));
-  const roots = tree.goals.filter(g => g.parent_id === 0 || !allIds.has(g.parent_id));
+
   const nodes: LaidOutNode[] = [];
   const edges: LaidOutEdge[] = [];
   const colNextY = new Map<number, number>();
 
-  function placeNode(id: number): { top: number; bottom: number } {
-    const goal = goalById.get(id);
+  function placeNode(id: string): { top: number; bottom: number } {
+    const goal = byId.get(id);
     if (!goal) return { top: 0, bottom: 0 };
-    const col = goal.level;
-    const kids = children.get(id) ?? [];
+    const col = goal.depth;
+    const kids = childrenOf.get(id) ?? [];
+
     if (kids.length === 0) {
       const y = colNextY.get(col) ?? 0;
       colNextY.set(col, y + NODE_H + NODE_SEP);
-      nodes.push({ id, x: col * (NODE_W + RANK_SEP), y, width: NODE_W, height: NODE_H, data: goal });
+      nodes.push({ id, x: col * (NODE_W + RANK_SEP), y, width: NODE_W, height: NODE_H, depth: col, label: goal.label });
       return { top: y, bottom: y + NODE_H };
     }
+
     const spans = kids.map(c => placeNode(c));
     for (const c of kids) edges.push({ source: id, target: c });
     const spanTop = Math.min(...spans.map(s => s.top));
@@ -87,14 +132,11 @@ function layoutGoalTree(tree: GoalTree): GoalTreeLayout {
     const idealY = spanTop + (spanBot - spanTop) / 2 - NODE_H / 2;
     const finalY = Math.max(idealY, colNextY.get(col) ?? 0);
     colNextY.set(col, finalY + NODE_H + NODE_SEP);
-    nodes.push({ id, x: col * (NODE_W + RANK_SEP), y: finalY, width: NODE_W, height: NODE_H, data: goal });
+    nodes.push({ id, x: col * (NODE_W + RANK_SEP), y: finalY, width: NODE_W, height: NODE_H, depth: col, label: goal.label });
     return { top: Math.min(finalY, spanTop), bottom: Math.max(finalY + NODE_H, spanBot) };
   }
 
-  for (const root of roots) {
-    placeNode(root.id);
-    for (const [col, y] of colNextY) colNextY.set(col, y + NODE_SEP);
-  }
+  placeNode(doc.goals_tree.root.goal_id);
 
   if (nodes.length === 0) return { nodes: [], edges: [], bounds: { x: 0, y: 0, width: 0, height: 0 } };
   const minX = Math.min(...nodes.map(n => n.x));
@@ -110,7 +152,7 @@ function escXml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-function layoutToSvg(layout: GoalTreeLayout, tree: GoalTree): string {
+function layoutToSvg(layout: GoalTreeLayout, treeName: string): string {
   const pad = 24;
   const w = layout.bounds.width + pad * 2;
   const h = layout.bounds.height + pad * 2;
@@ -118,6 +160,7 @@ function layoutToSvg(layout: GoalTreeLayout, tree: GoalTree): string {
   const oy = -layout.bounds.y + pad;
 
   const nodeMap = new Map(layout.nodes.map(n => [n.id, n]));
+
   function edgePath(e: LaidOutEdge): string {
     const s = nodeMap.get(e.source);
     const t = nodeMap.get(e.target);
@@ -134,21 +177,14 @@ function layoutToSvg(layout: GoalTreeLayout, tree: GoalTree): string {
     `<path d="${edgePath(e)}" class="diagram-edge" marker-end="url(#arrow)"/>`
   ).join('\n');
 
-  const typeMap = new Map(tree.goal_types.map(gt => [gt.name, gt.level]));
-  function levelOf(goal: Goal): number {
-    return typeMap.get(goal.type) ?? goal.level;
-  }
-
   const nodeSvg = layout.nodes.map(n => {
     const x = n.x + ox;
     const y = n.y + oy;
-    const level = levelOf(n.data) % 8;
-    const label = n.data.name.length > 38 ? n.data.name.slice(0, 36) + '…' : n.data.name;
-    const typeLabel = n.data.type || '';
+    const level = n.depth % 8;
+    const label = n.label.length > 36 ? n.label.slice(0, 34) + '…' : n.label;
     return `<g>
   <rect class="diagram-node level-${level}" x="${x}" y="${y}" width="${n.width}" height="${n.height}" rx="8"/>
-  <text class="text-primary" x="${x + n.width / 2}" y="${y + 30}" text-anchor="middle" font-size="13" font-weight="600" font-family="system-ui,sans-serif">${escXml(label)}</text>
-  <text class="text-secondary" x="${x + n.width / 2}" y="${y + 52}" text-anchor="middle" font-size="11" font-family="system-ui,sans-serif">${escXml(typeLabel)}</text>
+  <text class="text-primary" x="${x + n.width / 2}" y="${y + n.height / 2 + 5}" text-anchor="middle" font-size="12" font-weight="600" font-family="system-ui,sans-serif">${escXml(label)}</text>
 </g>`;
   }).join('\n');
 
@@ -214,9 +250,9 @@ export class GoalsPreview {
       if (!v.valid) {
         errorMsg = v.errors.map(e => `${e.code}: ${e.message}`).join('\n');
       } else {
-        const tree = parsed as GoalTree;
-        const layout = layoutGoalTree(tree);
-        svgContent = layoutToSvg(layout, tree);
+        const doc = parsed as GoalsTreeDoc;
+        const layout = layoutGoalTree(doc);
+        svgContent = layoutToSvg(layout, doc.goals_tree.name ?? '');
       }
     } catch (e) {
       errorMsg = (e as Error).message ?? 'Parse error';
