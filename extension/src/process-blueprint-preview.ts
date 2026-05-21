@@ -36,7 +36,7 @@ function layoutToSvg(layout: ProcessBlueprintLayout): string {
       `<rect class="diagram-node level-1" x="${s.x + ox}" y="${s.y + oy}" width="${s.width}" height="${s.height}"/>`,
     );
     parts.push(
-      `<text class="text-primary" x="${s.x + ox + s.width / 2}" y="${s.y + oy + s.height / 2 + 4}" text-anchor="middle" font-size="13" font-weight="600" font-family="system-ui,sans-serif">${escXml(truncate(s.name, 28))}</text>`,
+      `<text class="text-primary" x="${s.x + ox + s.width / 2}" y="${s.y + oy + s.height / 2}" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="600" font-family="system-ui,sans-serif">${escXml(truncate(s.name, 28))}</text>`,
     );
   }
 
@@ -84,7 +84,7 @@ function layoutToSvg(layout: ProcessBlueprintLayout): string {
       );
       const label = p.id ? `${p.name} · ${p.id}` : p.name;
       parts.push(
-        `<text class="text-primary" x="${p.x + ox + p.width / 2}" y="${p.y + oy + p.height / 2 + 4}" text-anchor="middle" font-size="11" font-weight="500" font-family="system-ui,sans-serif">${escXml(truncate(label, Math.floor(p.width / 8)))}</text>`,
+        `<text class="text-primary" x="${p.x + ox + p.width / 2}" y="${p.y + oy + p.height / 2}" text-anchor="middle" dominant-baseline="central" font-size="11" font-weight="500" font-family="system-ui,sans-serif">${escXml(truncate(label, Math.floor(p.width / 8)))}</text>`,
       );
     }
   }
