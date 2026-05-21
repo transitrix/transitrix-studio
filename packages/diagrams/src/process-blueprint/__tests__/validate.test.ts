@@ -284,16 +284,9 @@ describe('validateProcessBlueprint', () => {
     expect(r.valid).toBe(true);
   });
 
-  it('BP-012: warns when an aspect entry references a single stage', () => {
-    const r = validateProcessBlueprint({
-      ...VALID_BLUEPRINT,
-      process_blueprint: {
-        ...VALID_BLUEPRINT.process_blueprint,
-        systems: [{ id: 'APPLICATION-OMS-1', name: 'OMS', stages: ['STAGE-1'] }],
-      },
-    });
-    expect(r.warnings.some(w => w.code === 'BP-012')).toBe(true);
-  });
+  // BP-012 was removed from the spec on 2026-05-21 (methodology PR #15):
+  // a single-stage aspect entry is normal, valid blueprint content and the
+  // warning fired on the common case. Studio side dropped to match.
 
   it('happy path: surfaces no warnings on a well-formed multi-stage blueprint', () => {
     const r = validateProcessBlueprint(VALID_BLUEPRINT);
