@@ -170,6 +170,17 @@
           ".capability-map.transitrix.yaml"
         ],
         "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "transitrix-process-blueprint",
+        "aliases": [
+          "Transitrix Process Blueprint",
+          "Process Blueprint"
+        ],
+        "extensions": [
+          ".process-blueprint.transitrix.yaml"
+        ],
+        "configuration": "./language-configuration.json"
       }
     ],
     "commands": [
@@ -286,6 +297,18 @@
         "title": "Transitrix: Preview capability map",
         "category": "Transitrix",
         "icon": "$(type-hierarchy)"
+      },
+      {
+        "command": "transitrixStudio.previewProcessBlueprint",
+        "title": "Transitrix: Preview process blueprint",
+        "category": "Transitrix",
+        "icon": "$(layout)"
+      },
+      {
+        "command": "transitrixStudio.saveProcessBlueprintAsSvg",
+        "title": "Transitrix: Save process blueprint as SVG",
+        "category": "Transitrix",
+        "icon": "$(save)"
       }
     ],
     "menus": {
@@ -394,6 +417,21 @@
           "when": "resourceFilename =~ /\\.capability-map\\.transitrix\\.yaml$/",
           "command": "transitrixStudio.previewCapabilityMap",
           "group": "navigation@-10"
+        },
+        {
+          "when": "resourceFilename =~ /\\.process-blueprint\\.transitrix\\.yaml$/",
+          "command": "transitrixStudio.previewProcessBlueprint",
+          "group": "navigation@-10"
+        },
+        {
+          "when": "resourceFilename =~ /\\.process-blueprint\\.transitrix\\.yaml$/",
+          "command": "transitrixStudio.saveProcessBlueprintAsSvg",
+          "group": "navigation@-9"
+        },
+        {
+          "when": "activeWebviewPanelId == processBlueprintPreview",
+          "command": "transitrixStudio.saveProcessBlueprintAsSvg",
+          "group": "navigation@-9"
         }
       ]
     }
