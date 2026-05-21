@@ -75,8 +75,13 @@ export function validateScenario(input: unknown): ValidationResult {
       const seen = new Set<string>();
       const fv = s['factors_view'] as unknown[];
       for (let i = 0; i < fv.length; i++) {
-        const f = fv[i] as Record<string, unknown>;
+        const rawFactor = fv[i];
         const idx = `factors_view[${i}]`;
+        if (!rawFactor || typeof rawFactor !== 'object') {
+          errors.push({ code: 'SCN-005', message: `${idx} must be an object` });
+          continue;
+        }
+        const f = rawFactor as Record<string, unknown>;
         if (!f['factor_id'] || typeof f['factor_id'] !== 'string' || !(f['factor_id'] as string).trim()) {
           errors.push({ code: 'SCN-005', message: `${idx}: factor_id is required` });
         } else {
@@ -100,9 +105,14 @@ export function validateScenario(input: unknown): ValidationResult {
     }
     const seen = new Set<string>();
     for (let i = 0; i < list.length; i++) {
-      const item = list[i] as Record<string, unknown>;
+      const rawItem = list[i];
       const idx = `${spec.field}[${i}]`;
-      const id = item?.[spec.idField];
+      if (!rawItem || typeof rawItem !== 'object') {
+        errors.push({ code: spec.errorCode, message: `${idx} must be an object` });
+        continue;
+      }
+      const item = rawItem as Record<string, unknown>;
+      const id = item[spec.idField];
       if (!id || typeof id !== 'string' || !(id as string).trim()) {
         errors.push({ code: spec.errorCode, message: `${idx}: ${spec.idField} is required` });
       } else {

@@ -227,4 +227,30 @@ describe('validateApplicationsCatalogue', () => {
     const r = validateApplicationsCatalogue({ ...VALID_CATALOGUE, applications_catalogue: cat });
     expect(r.valid).toBe(true);
   });
+
+  // Pre-release blocker regression (orchestrator review 2026-05-21).
+  it('[blocker] tolerates a null element in applications[] without throwing', () => {
+    const cat = { ...VALID_CATALOGUE.applications_catalogue, applications: [null] };
+    const r = validateApplicationsCatalogue({ ...VALID_CATALOGUE, applications_catalogue: cat });
+    expect(r.valid).toBe(false);
+    expect(r.errors.some(e => e.code === 'APP-003')).toBe(true);
+  });
+
+  it('[blocker] tolerates a string element in applications[] without throwing', () => {
+    const cat = { ...VALID_CATALOGUE.applications_catalogue, applications: ['x'] };
+    const r = validateApplicationsCatalogue({ ...VALID_CATALOGUE, applications_catalogue: cat });
+    expect(r.valid).toBe(false);
+    expect(r.errors.some(e => e.code === 'APP-003')).toBe(true);
+  });
+
+  it('[blocker] tolerates a null integration entry without throwing', () => {
+    const apps = [{
+      app_id: 'A1', name: 'X', type: 'application', status: 'Active',
+      integrations: [null],
+    }];
+    const cat = { ...VALID_CATALOGUE.applications_catalogue, applications: apps };
+    const r = validateApplicationsCatalogue({ ...VALID_CATALOGUE, applications_catalogue: cat });
+    expect(r.valid).toBe(false);
+    expect(r.errors.some(e => e.code === 'APP-009')).toBe(true);
+  });
 });

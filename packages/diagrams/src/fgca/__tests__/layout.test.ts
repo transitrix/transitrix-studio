@@ -166,4 +166,14 @@ describe("buildFGCALayout — columns are positioned left to right", () => {
     const a = nodes.find((n) => n.type === "fgcaActivity")!;
     expect(c.position.x).toBeLessThan(a.position.x);
   });
+
+  // Pre-release blocker regression (orchestrator review 2026-05-21).
+  it("[blocker] tolerates a change with no activity_ids (optional per validator)", () => {
+    const changesNoIds: BdnChangeWithActivities[] = [
+      { id: 100, name: "No activities", goal_id: 10 } as BdnChangeWithActivities,
+    ];
+    expect(() =>
+      buildFGCALayout({ factors, goals, changes: changesNoIds, activities, visibleColumns: ALL_COLS }),
+    ).not.toThrow();
+  });
 });

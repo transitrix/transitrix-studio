@@ -221,4 +221,19 @@ describe('validateProductsCatalogue', () => {
     const r = validateProductsCatalogue({ ...VALID_CATALOGUE, products_catalogue: cat });
     expect(r.valid).toBe(true);
   });
+
+  // Pre-release blocker regression (orchestrator review 2026-05-21).
+  it('[blocker] tolerates a null element in products[] without throwing', () => {
+    const cat = { ...VALID_CATALOGUE.products_catalogue, products: [null] };
+    const r = validateProductsCatalogue({ ...VALID_CATALOGUE, products_catalogue: cat });
+    expect(r.valid).toBe(false);
+    expect(r.errors.some(e => e.code === 'PROD-003')).toBe(true);
+  });
+
+  it('[blocker] tolerates a string element in products[] without throwing', () => {
+    const cat = { ...VALID_CATALOGUE.products_catalogue, products: ['x'] };
+    const r = validateProductsCatalogue({ ...VALID_CATALOGUE, products_catalogue: cat });
+    expect(r.valid).toBe(false);
+    expect(r.errors.some(e => e.code === 'PROD-003')).toBe(true);
+  });
 });

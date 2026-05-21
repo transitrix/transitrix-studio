@@ -59,12 +59,19 @@ export function layoutGoalTree(tree: GoalTree, options: LayoutOptions = {}): Goa
     columnNextY.set(col, (columnNextY.get(col) ?? 0) + delta);
   }
 
+  const placed = new Set<number>();
+
   function placeSubtree(id: number): { top: number; bottom: number } {
     const goal = goalById.get(id);
     if (!goal || hiddenSubtrees.has(id)) return { top: 0, bottom: 0 };
+    // Guard against cycles (parent-of-itself, mutual parenting). Without
+    // validateGoalTree() upstream, layoutGoalTree must not stack-overflow on
+    // malformed input — drop any subtree we've already placed.
+    if (placed.has(id)) return { top: 0, bottom: 0 };
+    placed.add(id);
 
     const col = goal.level;
-    const childIds = (children.get(id) ?? []).filter(c => !hiddenSubtrees.has(c));
+    const childIds = (children.get(id) ?? []).filter(c => !hiddenSubtrees.has(c) && !placed.has(c));
     const isCollapsedRoot = hiddenSet.has(id) && childIds.length > 0;
     const hasHiddenChildren = childIds.length < (children.get(id) ?? []).length;
 
@@ -101,7 +108,7 @@ export function layoutGoalTree(tree: GoalTree, options: LayoutOptions = {}): Goa
   }
 
   for (const root of roots) {
-    if (!hiddenSubtrees.has(root.id)) {
+    if (!hiddenSubtrees.has(root.id) && !placed.has(root.id)) {
       placeSubtree(root.id);
       // Add inter-root gap
       for (const [col, y] of columnNextY) {

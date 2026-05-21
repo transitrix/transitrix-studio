@@ -66,8 +66,14 @@ function validateCapabilityTree(
   seenIds: Set<string>,
 ): void {
   for (let i = 0; i < nodes.length; i++) {
-    const node = nodes[i] as Record<string, unknown>;
+    const rawNode = nodes[i];
     const nodePath = `${pathPrefix}[${i}]`;
+
+    if (!rawNode || typeof rawNode !== 'object') {
+      errors.push({ code: 'CMAP-003', message: `${nodePath} must be an object` });
+      continue;
+    }
+    const node = rawNode as Record<string, unknown>;
 
     if (!node['id'] || typeof node['id'] !== 'string' || !(node['id'] as string).trim()) {
       errors.push({ code: 'CMAP-003', message: `${nodePath}: id is required` });

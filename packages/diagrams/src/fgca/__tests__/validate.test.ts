@@ -117,4 +117,26 @@ describe('validateFGCADoc', () => {
     const result = validateFGCADoc({ ...VALID_DOC, spec_version: '0.1' });
     expect(result.valid).toBe(true);
   });
+
+  // Pre-release blocker regression (orchestrator review 2026-05-21).
+  it('[blocker] tolerates a null element in goals[] without throwing', () => {
+    const r = validateFGCADoc({ ...VALID_DOC, goals: [null] });
+    expect(r.valid).toBe(false);
+    expect(r.errors.some(e => e.code === 'SCHEMA_INVALID')).toBe(true);
+  });
+  it('[blocker] tolerates a string element in factors[] without throwing', () => {
+    const r = validateFGCADoc({ ...VALID_DOC, factors: ['x'] });
+    expect(r.valid).toBe(false);
+    expect(r.errors.some(e => e.code === 'SCHEMA_INVALID')).toBe(true);
+  });
+  it('[blocker] tolerates a null element in changes[] without throwing', () => {
+    const r = validateFGCADoc({ ...VALID_DOC, changes: [null] });
+    expect(r.valid).toBe(false);
+    expect(r.errors.some(e => e.code === 'SCHEMA_INVALID')).toBe(true);
+  });
+  it('[blocker] tolerates a null element in activities[] without throwing', () => {
+    const r = validateFGCADoc({ ...VALID_DOC, activities: [null] });
+    expect(r.valid).toBe(false);
+    expect(r.errors.some(e => e.code === 'SCHEMA_INVALID')).toBe(true);
+  });
 });

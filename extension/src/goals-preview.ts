@@ -74,7 +74,7 @@ function validateGoalTree(input: unknown): ValidationResult {
   }
 
   if (errors.length === 0) {
-    checkCycles(raw.goals_tree as unknown as GoalsTreeRoot['root'] & { children?: TreeNode[] }, new Set());
+    checkCycles(tree.root as unknown as TreeNode, new Set());
   }
 
   return { valid: errors.length === 0, errors, warnings };

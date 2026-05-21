@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
 import { MAX_COMPILE_BODY_BYTES } from '../src/http-body-limit.js';
-import { handleBlocksCompile, handleCompile } from '../src/serve-ui.js';
+import { handleBlocksCompile, handleCompile, isInsideRoot } from '../src/serve-ui.js';
 
 // Minimal YAML that compiles successfully (two elements + one flow).
 const VALID_YAML = `
@@ -161,5 +161,35 @@ describe('handleBlocksCompile', () => {
     const res = mockRes();
     await handleBlocksCompile(req, res);
     expect(res.captured.statusCode).toBe(413);
+  });
+});
+
+// Pre-release blocker regression (orchestrator review 2026-05-21).
+describe('isInsideRoot', () => {
+  it('accepts the root itself', () => {
+    expect(isInsideRoot('/srv/ui', '/srv/ui')).toBe(true);
+  });
+
+  it('accepts a descendant', () => {
+    expect(isInsideRoot('/srv/ui', '/srv/ui/index.html')).toBe(true);
+    expect(isInsideRoot('/srv/ui', '/srv/ui/assets/app.js')).toBe(true);
+  });
+
+  it('rejects a parent-traversal path', () => {
+    expect(isInsideRoot('/srv/ui', '/srv/secret.txt')).toBe(false);
+    expect(isInsideRoot('/srv/ui', '/etc/passwd')).toBe(false);
+  });
+
+  it('rejects a sibling whose name starts with the root name (prefix-only attack)', () => {
+    // "/srv/ui-evil/..." shares the prefix "/srv/ui" but is a different directory.
+    expect(isInsideRoot('/srv/ui', '/srv/ui-evil/file.txt')).toBe(false);
+  });
+
+  it('[blocker] rejects a path on a different Windows drive', () => {
+    // path.relative('C:\\a', 'D:\\b') returns 'D:\\b' which does not start with '..';
+    // a relative-based check passes that as "inside the root". The fix uses a
+    // direct prefix comparison so cross-drive paths are correctly rejected.
+    if (process.platform !== 'win32') return; // path semantics differ on POSIX
+    expect(isInsideRoot('C:\\srv\\ui', 'D:\\evil\\file.txt')).toBe(false);
   });
 });
