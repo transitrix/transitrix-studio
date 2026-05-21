@@ -1,0 +1,63 @@
+notation: process-blueprint
+spec_version: "0.1"
+
+process_blueprint:
+  id: PROCESS_BLUEPRINT-FULFIL-1
+  name: "Order fulfilment blueprint"
+  description: "End-to-end blueprint of the order fulfilment value chain."
+  period: "2026"
+  version: "0.1"
+  date: "2026-05-21"
+  author: "Valerii Korobeinikov"
+
+  stages:
+    - id: STAGE-1
+      name: "Receive order"
+      goal: "Capture a validated customer order."
+      result: "Validated order record in OMS."
+    - id: STAGE-2
+      name: "Pick & pack"
+      goal: "Assemble the physical order from inventory."
+      result: "Packed shipment ready for carrier handover."
+    - id: STAGE-3
+      name: "Ship"
+      goal: "Hand the shipment to the carrier and notify the customer."
+      result: "In-transit shipment with tracking number sent to the customer."
+
+  systems:
+    - id: APPLICATION-OMS-1
+      name: "Order Management"
+      stages: [STAGE-1, STAGE-2, STAGE-3]
+    - name: "Legacy CRM"
+      stages: [STAGE-1]
+    - id: APPLICATION-WMS-1
+      name: "Warehouse Management"
+      stages: [STAGE-2]
+    - id: APPLICATION-CARRIER-API-1
+      name: "Carrier integration"
+      stages: [STAGE-3]
+
+  actors:
+    - id: ROLE-CUSTOMER-SVC-1
+      name: "Customer service"
+      stages: [STAGE-1]
+    - id: ROLE-WAREHOUSE-OP-1
+      name: "Warehouse operator"
+      stages: [STAGE-2, STAGE-3]
+    - id: ROLE-LOGISTICS-COORD-1
+      name: "Logistics coordinator"
+      stages: [STAGE-3]
+
+  equipment:
+    - name: "Barcode scanner"
+      stages: [STAGE-2, STAGE-3]
+    - name: "Packing station"
+      stages: [STAGE-2]
+
+  information_entities:
+    - name: "Customer order"
+      stages: [STAGE-1, STAGE-2, STAGE-3]
+    - name: "Inventory record"
+      stages: [STAGE-2]
+    - name: "Shipment manifest"
+      stages: [STAGE-3]
