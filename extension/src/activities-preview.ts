@@ -93,11 +93,11 @@ ${nodeSvg}
 // ── Gantt SVG renderer ───────────────────────────────────────────────────────
 
 const G_DAY_W = 24;       // px per calendar day on the timeline axis
-const G_ROW_H = 28;
+const G_ROW_H = 40;       // row height — taller than the bar so links have inter-row breathing room
 const G_LABEL_COL_W = 220;
 const G_HEADER_H = 36;
 const G_PAD = 24;
-const G_BAR_INSET_Y = 4;  // top/bottom inset of bars inside the row band
+const G_BAR_INSET_Y = 8;  // top/bottom inset of bars inside the row band (sets inter-row gap = 2*INSET = 16px)
 
 function parseISO(s: string): Date {
   const [y, m, d] = s.split('-').map((p) => Number.parseInt(p, 10));
@@ -209,22 +209,36 @@ function ganttSvg(layout: GanttLayout): string {
 
   // Link lines — Finish-to-Start.
   //
-  // Routing rule: the vertical sits at the source bar's right edge (x = sx),
-  // which is also the column-grid boundary. Successor bars start at that
-  // same boundary in computed mode, so the vertical runs along their LEFT
-  // EDGE rather than crossing their interior. This is the MS Project /
-  // Primavera convention — links travel along column rails, not through bar
-  // bodies.
+  // Routing strategy:
   //
-  // - Comfortable gap (tx well past sx): midpoint elbow inside the gap.
-  // - Adjacent (tx == sx, no weekend between source.end+1 and target.start):
-  //   vertical at the column boundary; short horizontal stub into target.
-  // - True overlap (tx < sx, possible in pinned mode where a successor's
-  //   pinned start_date precedes its predecessor's end_date): detour BELOW
-  //   both rows so the link doesn't run through either bar.
+  // - **Comfortable gap** (tx well past sx, e.g., weekend separates the two
+  //   dates): single midpoint elbow inside the gap. The vertical sits between
+  //   source-end and target-start, naturally clear of both bars.
+  //
+  // - **Adjacent / near-adjacent** (tx == sx or near it — the convergent
+  //   case where successors begin in the source's end column): a Z-shape
+  //   that takes the long vertical OUT of the source-end column so it
+  //   doesn't visually graze successor left edges. Routing:
+  //   1. Exit source right edge, step RIGHT by a small stub.
+  //   2. Drop DOWN to the y-midpoint between the source and target rows
+  //      (lands in the inter-row band where no bar is drawn).
+  //   3. Step LEFT past source's right edge (the "back" step) into the
+  //      column UNDER source's bar — safe because we're below source row.
+  //   4. Drop the rest of the way DOWN to the target row.
+  //   5. Sweep RIGHT into target's left edge.
+  //   Result: the long vertical sits to the left of the busy convergent
+  //   column, the short verticals are in the inter-row band, and the arrow
+  //   enters target from the left.
+  //
+  // - **True backward** (tx < sx — possible in pinned mode where a
+  //   successor's pinned start_date precedes its predecessor's end_date):
+  //   detour BELOW both rows so the link doesn't run inside either bar.
   const linkParts: string[] = [];
   const LINK_GAP = 4;
   const LINK_MIN_STUB = 6;
+  const STUB_OUT = 8;       // right-stub past source before turning down
+  const BACK_OFFSET = 8;    // back-step distance to the LEFT of sx for the long vertical
+  const ENTER_DEPTH = 4;    // how far inside target the arrow path lands (marker tip ~1px further)
   for (const link of layout.links) {
     const sourceBar = bars.find(b => b.id === link.sourceId);
     const targetBar = bars.find(b => b.id === link.targetId);
@@ -239,22 +253,21 @@ function ganttSvg(layout: GanttLayout): string {
     const marker = link.isCritical ? 'gantt-arrow-crit' : 'gantt-arrow';
 
     let d: string;
-    if (tx > sx + LINK_MIN_STUB * 2) {
-      // Comfortable gap — midpoint elbow inside the gap so the vertical sits
-      // visually between source-end and target-start, away from both bars.
+    if (tx > sx + STUB_OUT * 2) {
+      // Comfortable gap — single midpoint elbow inside the gap.
       const sxStart = sx + LINK_GAP;
       const txEnd = tx - LINK_GAP;
       const midX = (sxStart + txEnd) / 2;
       d = `M${sxStart},${sy} L${midX},${sy} L${midX},${ty} L${txEnd},${ty}`;
     } else if (tx >= sx) {
-      // Adjacent or near-adjacent — vertical at the column boundary x = sx.
-      // The final horizontal stub lands at min(sx + 6, tx + 6) so the arrow
-      // sits a few px inside the target bar's left edge zone (bars are ≥1 day
-      // = 24px wide, so the stub never reaches the right edge).
-      const finalX = Math.max(sx + LINK_MIN_STUB, tx + LINK_MIN_STUB - LINK_GAP);
-      d = `M${sx},${sy} L${sx},${ty} L${finalX},${ty}`;
+      // Adjacent or near-adjacent — Z-shape going around source's right edge.
+      const stubX = sx + STUB_OUT;
+      const backX = sx - BACK_OFFSET;
+      const midY = (sy + ty) / 2;
+      const enterX = tx + ENTER_DEPTH;
+      d = `M${sx},${sy} L${stubX},${sy} L${stubX},${midY} L${backX},${midY} L${backX},${ty} L${enterX},${ty}`;
     } else {
-      // True backward (tx < sx, pinned-mode overlap): detour below both rows.
+      // True backward (tx < sx) — detour below both rows.
       const hookY = Math.max(sy, ty) + G_ROW_H / 2 + 6;
       const sxOut = sx + LINK_GAP;
       const txIn = tx + LINK_MIN_STUB;
