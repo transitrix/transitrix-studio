@@ -209,73 +209,118 @@ function ganttSvg(layout: GanttLayout): string {
 
   // Link lines — Finish-to-Start.
   //
-  // Routing strategy:
+  // Routing strategy is **trunk + branches per source**:
   //
-  // - **Comfortable gap** (tx well past sx, e.g., weekend separates the two
-  //   dates): single midpoint elbow inside the gap. The vertical sits between
-  //   source-end and target-start, naturally clear of both bars.
+  // - Outgoing links from the same source share ONE trunk (the Z-shape that
+  //   exits source's right edge, drops to the inter-row band immediately
+  //   below source, steps back to the LEFT of the source-end column, and
+  //   descends to the deepest target). Each link contributes a horizontal
+  //   BRANCH off the trunk at its target's row, ending with an arrowhead
+  //   inside the target bar's left edge.
   //
-  // - **Adjacent / near-adjacent** (tx == sx or near it — the convergent
-  //   case where successors begin in the source's end column): a Z-shape
-  //   that takes the long vertical OUT of the source-end column so it
-  //   doesn't visually graze successor left edges. Routing:
-  //   1. Exit source right edge, step RIGHT by a small stub.
-  //   2. Drop DOWN to the y-midpoint between the source and target rows
-  //      (lands in the inter-row band where no bar is drawn).
-  //   3. Step LEFT past source's right edge (the "back" step) into the
-  //      column UNDER source's bar — safe because we're below source row.
-  //   4. Drop the rest of the way DOWN to the target row.
-  //   5. Sweep RIGHT into target's left edge.
-  //   Result: the long vertical sits to the left of the busy convergent
-  //   column, the short verticals are in the inter-row band, and the arrow
-  //   enters target from the left.
+  // This solves three problems with per-link routing:
   //
-  // - **True backward** (tx < sx — possible in pinned mode where a
-  //   successor's pinned start_date precedes its predecessor's end_date):
-  //   detour BELOW both rows so the link doesn't run inside either bar.
+  // 1. **Layering**: per-link rendering drew identical right-stubs and
+  //    short verticals four times (once per outgoing link from A-002 in
+  //    platform-launch), with the last-drawn gray covering the orange
+  //    critical link's overlapping segments. The trunk is drawn once.
+  //
+  // 2. **midY landing on a bar row**: per-link midY = (sy + ty)/2 lands on
+  //    an intermediate row's CENTER when target is an even number of rows
+  //    below source (e.g., A-002 → A-005 lands midY on A-003's bar row,
+  //    pulling the back-step horizontal through A-003's bar). The trunk's
+  //    midY is fixed to the inter-row band immediately below source, so the
+  //    back-step is always in safe empty space.
+  //
+  // 3. **Visual consistency**: the trunk colour is critical (orange) if
+  //    ANY outgoing link from this source is on the critical path, so the
+  //    critical-path lineage is visible from source down to the critical
+  //    target. Branches are coloured per link, so non-critical successors
+  //    show in gray with their own arrows.
+  //
+  // Backward links (tx < sx — pinned-mode overlap where target.start_date
+  // precedes source.end_date, or targets sorted above source in the row
+  // order) use the existing detour-below routing.
   const linkParts: string[] = [];
   const LINK_GAP = 4;
   const LINK_MIN_STUB = 6;
   const STUB_OUT = 8;       // right-stub past source before turning down
   const BACK_OFFSET = 8;    // back-step distance to the LEFT of sx for the long vertical
   const ENTER_DEPTH = 4;    // how far inside target the arrow path lands (marker tip ~1px further)
-  for (const link of layout.links) {
-    const sourceBar = bars.find(b => b.id === link.sourceId);
-    const targetBar = bars.find(b => b.id === link.targetId);
-    if (!sourceBar || !targetBar) continue;
-    const sourceEndOffset = daysBetween(layout.timelineStart, sourceBar.endDate);
-    const targetStartOffset = daysBetween(layout.timelineStart, targetBar.startDate);
-    const sx = ox + G_LABEL_COL_W + (sourceEndOffset + 1) * G_DAY_W;
-    const sy = yByBarId.get(link.sourceId) ?? 0;
-    const tx = ox + G_LABEL_COL_W + targetStartOffset * G_DAY_W;
-    const ty = yByBarId.get(link.targetId) ?? 0;
-    const cls = link.isCritical ? 'diagram-edge critical-edge' : 'diagram-edge';
-    const marker = link.isCritical ? 'gantt-arrow-crit' : 'gantt-arrow';
 
-    let d: string;
-    if (tx > sx + STUB_OUT * 2) {
-      // Comfortable gap — single midpoint elbow inside the gap.
-      const sxStart = sx + LINK_GAP;
-      const txEnd = tx - LINK_GAP;
-      const midX = (sxStart + txEnd) / 2;
-      d = `M${sxStart},${sy} L${midX},${sy} L${midX},${ty} L${txEnd},${ty}`;
-    } else if (tx >= sx) {
-      // Adjacent or near-adjacent — Z-shape going around source's right edge.
+  // Group links by source so all outgoing links share one trunk.
+  const linksBySource = new Map<string, typeof layout.links>();
+  for (const link of layout.links) {
+    let list = linksBySource.get(link.sourceId);
+    if (!list) {
+      list = [];
+      linksBySource.set(link.sourceId, list);
+    }
+    list.push(link);
+  }
+
+  for (const [sourceId, outgoing] of linksBySource) {
+    const sourceBar = bars.find(b => b.id === sourceId);
+    if (!sourceBar) continue;
+    const sourceEndOffset = daysBetween(layout.timelineStart, sourceBar.endDate);
+    const sx = ox + G_LABEL_COL_W + (sourceEndOffset + 1) * G_DAY_W;
+    const sy = yByBarId.get(sourceId) ?? 0;
+
+    type Target = { link: typeof outgoing[number]; tx: number; ty: number };
+    const forward: Target[] = [];
+    const backward: Target[] = [];
+    for (const link of outgoing) {
+      const targetBar = bars.find(b => b.id === link.targetId);
+      if (!targetBar) continue;
+      const targetStartOffset = daysBetween(layout.timelineStart, targetBar.startDate);
+      const tx = ox + G_LABEL_COL_W + targetStartOffset * G_DAY_W;
+      const ty = yByBarId.get(link.targetId) ?? 0;
+      // "Forward" here means below source on the timeline (ty > sy). Pinned
+      // mode can place a successor above its predecessor or to the left of
+      // its end date — both go through the backward branch.
+      if (ty > sy && tx >= sx) forward.push({ link, tx, ty });
+      else backward.push({ link, tx, ty });
+    }
+
+    if (forward.length > 0) {
+      const deepestTy = Math.max(...forward.map(t => t.ty));
+      // Fix the back-step y to the inter-row band immediately below source.
+      // This keeps it in safe empty space regardless of how far below the
+      // deepest target sits, and it never lands on an intermediate row.
+      const midY = sy + G_ROW_H / 2;
       const stubX = sx + STUB_OUT;
       const backX = sx - BACK_OFFSET;
-      const midY = (sy + ty) / 2;
-      const enterX = tx + ENTER_DEPTH;
-      d = `M${sx},${sy} L${stubX},${sy} L${stubX},${midY} L${backX},${midY} L${backX},${ty} L${enterX},${ty}`;
-    } else {
-      // True backward (tx < sx) — detour below both rows.
-      const hookY = Math.max(sy, ty) + G_ROW_H / 2 + 6;
-      const sxOut = sx + LINK_GAP;
-      const txIn = tx + LINK_MIN_STUB;
-      d = `M${sxOut},${sy} L${sxOut},${hookY} L${txIn},${hookY} L${txIn},${ty}`;
+
+      const trunkCritical = forward.some(t => t.link.isCritical);
+      const trunkCls = trunkCritical ? 'diagram-edge critical-edge' : 'diagram-edge';
+
+      // Trunk: source right edge → right stub → down to midY → back left →
+      // down to the deepest target row. No arrow on the trunk itself.
+      const trunkD =
+        `M${sx},${sy} L${stubX},${sy} L${stubX},${midY} L${backX},${midY} L${backX},${deepestTy}`;
+      linkParts.push(`<path d="${trunkD}" class="${trunkCls}" fill="none"/>`);
+
+      // Branches: short horizontals at each target's row, from the trunk's
+      // x = backX into the target's left edge. The arrowhead lives a few px
+      // inside the target bar.
+      for (const t of forward) {
+        const cls = t.link.isCritical ? 'diagram-edge critical-edge' : 'diagram-edge';
+        const marker = t.link.isCritical ? 'gantt-arrow-crit' : 'gantt-arrow';
+        const enterX = t.tx + ENTER_DEPTH;
+        const branchD = `M${backX},${t.ty} L${enterX},${t.ty}`;
+        linkParts.push(`<path d="${branchD}" class="${cls}" fill="none" marker-end="url(#${marker})"/>`);
+      }
     }
-    linkParts.push(
-      `<path d="${d}" class="${cls}" fill="none" marker-end="url(#${marker})"/>`,
-    );
+
+    for (const t of backward) {
+      const cls = t.link.isCritical ? 'diagram-edge critical-edge' : 'diagram-edge';
+      const marker = t.link.isCritical ? 'gantt-arrow-crit' : 'gantt-arrow';
+      const hookY = Math.max(sy, t.ty) + G_ROW_H / 2 + 6;
+      const sxOut = sx + LINK_GAP;
+      const txIn = t.tx + LINK_MIN_STUB;
+      const d = `M${sxOut},${sy} L${sxOut},${hookY} L${txIn},${hookY} L${txIn},${t.ty}`;
+      linkParts.push(`<path d="${d}" class="${cls}" fill="none" marker-end="url(#${marker})"/>`);
+    }
   }
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
