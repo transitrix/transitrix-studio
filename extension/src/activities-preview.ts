@@ -207,8 +207,13 @@ function ganttSvg(layout: GanttLayout): string {
     }
   }
 
-  // Link lines
+  // Link lines — Finish-to-Start elbow with the vertical anchored at the
+  // midpoint of the inter-bar gap (looks balanced regardless of gap width).
+  // A 4px gap on each side stops the line from fusing with the bar edges,
+  // and the arrowhead lives in that gap so it doesn't overlap the target.
   const linkParts: string[] = [];
+  const LINK_GAP = 4;
+  const LINK_MIN_STUB = 6;
   for (const link of layout.links) {
     const sourceBar = bars.find(b => b.id === link.sourceId);
     const targetBar = bars.find(b => b.id === link.targetId);
@@ -220,13 +225,39 @@ function ganttSvg(layout: GanttLayout): string {
     const tx = ox + G_LABEL_COL_W + targetStartOffset * G_DAY_W;
     const ty = yByBarId.get(link.targetId) ?? 0;
     const cls = link.isCritical ? 'diagram-edge critical-edge' : 'diagram-edge';
-    // Right-angle elbow.
+    const marker = link.isCritical ? 'gantt-arrow-crit' : 'gantt-arrow';
+
+    const sxStart = sx + LINK_GAP;
+    const txEnd = tx - LINK_GAP;
+    let d: string;
+    if (txEnd - sxStart >= LINK_MIN_STUB * 2) {
+      // Forward link with comfortable gap: midpoint vertical.
+      const midX = (sxStart + txEnd) / 2;
+      d = `M${sxStart},${sy} L${midX},${sy} L${midX},${ty} L${txEnd},${ty}`;
+    } else if (txEnd > sxStart) {
+      // Tight gap: keep the stub but distribute it.
+      const stubX = sxStart + Math.max(0, (txEnd - sxStart) / 2);
+      d = `M${sxStart},${sy} L${stubX},${sy} L${stubX},${ty} L${txEnd},${ty}`;
+    } else {
+      // Backward/overlap (target starts at or before source ends): route
+      // below both rows so the link doesn't cross the source bar.
+      const hookY = Math.max(sy, ty) + G_ROW_H / 2 + 6;
+      d = `M${sxStart},${sy} L${sxStart + LINK_MIN_STUB},${sy} L${sxStart + LINK_MIN_STUB},${hookY} L${txEnd - LINK_MIN_STUB},${hookY} L${txEnd - LINK_MIN_STUB},${ty} L${txEnd},${ty}`;
+    }
     linkParts.push(
-      `<path d="M${sx},${sy} L${sx + 6},${sy} L${sx + 6},${ty} L${tx},${ty}" class="${cls}" fill="none"/>`,
+      `<path d="${d}" class="${cls}" fill="none" marker-end="url(#${marker})"/>`,
     );
   }
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+<defs>
+  <marker id="gantt-arrow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="userSpaceOnUse">
+    <path d="M0,0 L0,6 L6,3 z" class="arrow-fill"/>
+  </marker>
+  <marker id="gantt-arrow-crit" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="userSpaceOnUse">
+    <path d="M0,0 L0,6 L6,3 z" class="arrow-fill-critical"/>
+  </marker>
+</defs>
 ${headerParts.join('\n')}
 ${rowParts.join('\n')}
 ${linkParts.join('\n')}
