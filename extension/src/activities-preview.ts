@@ -270,34 +270,80 @@ function buildCanvasContent(doc: ActivityDoc): string {
   const network = networkSvg(doc);
   const gantt: GanttResult = computeGanttLayout(doc);
 
-  const networkSection = `<section class="diagram-section">
-  <h3 class="section-heading">Network view — Project Schedule Network Diagram (PSND)</h3>
-  ${network}
-</section>`;
-
-  let ganttSection: string;
+  let ganttHeading: string;
+  let ganttBody: string;
   if (isGanttUnavailable(gantt)) {
-    ganttSection = `<section class="diagram-section">
-  <h3 class="section-heading">Gantt view</h3>
-  <div class="section-notice">${escXml(gantt.reason)}</div>
-</section>`;
+    ganttHeading = 'Gantt view — unavailable';
+    ganttBody = `<div class="section-notice">${escXml(gantt.reason)}</div>`;
   } else {
     const modeLabel = gantt.mode === 'computed'
       ? `computed mode (project ${gantt.timelineStart} → ${gantt.timelineEnd})`
       : `pinned mode (${gantt.timelineStart} → ${gantt.timelineEnd})`;
-    ganttSection = `<section class="diagram-section">
-  <h3 class="section-heading">Gantt view — ${escXml(modeLabel)}</h3>
-  ${ganttSvg(gantt)}
-</section>`;
+    ganttHeading = `Gantt view — ${modeLabel}`;
+    ganttBody = ganttSvg(gantt);
   }
 
-  return networkSection + ganttSection;
+  // Pure-CSS tab switcher: hidden radio inputs at the top, labels styled as
+  // tabs, panels shown via `:checked ~ section[data-view=…]`. Works under the
+  // webview's `enableScripts: false` + script-less CSP because no JS is
+  // involved — the browser handles `:checked` natively.
+  return `<input type="radio" id="view-network" name="view-tabs" class="view-radio" checked>
+<input type="radio" id="view-gantt" name="view-tabs" class="view-radio">
+<nav class="view-tabs" role="tablist">
+  <label for="view-network" class="view-tab" data-tab="network">Network</label>
+  <label for="view-gantt" class="view-tab" data-tab="gantt">Gantt</label>
+</nav>
+<section class="diagram-section" data-view="network">
+  <h3 class="section-heading">Network view — Project Schedule Network Diagram (PSND)</h3>
+  ${network}
+</section>
+<section class="diagram-section" data-view="gantt">
+  <h3 class="section-heading">${escXml(ganttHeading)}</h3>
+  ${ganttBody}
+</section>`;
 }
 
 // ── Extra CSS injected into the diagram frame ───────────────────────────────
 
 const ACTIVITIES_STYLES = `
-  .diagram-section { margin: 16px 0; }
+  /* ── View switcher (CSS-only, no JS) ────────────────────────────────── */
+  /* Move the radios fully off-screen rather than just hiding via opacity —
+     keeps them keyboard-focusable while not taking layout space, and stops
+     the webview default styles from showing a 13px input box. */
+  .view-radio { position: absolute; left: -9999px; width: 1px; height: 1px; }
+  .view-tabs { display: flex; gap: 4px; padding: 12px 16px 0; border-bottom: 1px solid var(--ts-border, #cbd5e1); margin-bottom: 8px; }
+  .view-tab {
+    padding: 6px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ts-text-muted, #64748b);
+    background: transparent;
+    border: 1px solid transparent;
+    border-bottom: none;
+    border-radius: 6px 6px 0 0;
+    cursor: pointer;
+    user-select: none;
+    margin-bottom: -1px;
+  }
+  .view-tab:hover { color: var(--ts-text, #0f172a); background: var(--ts-bg-subtle, #f1f5f9); }
+  /* Default state: both panels hidden until a radio activates one. */
+  .diagram-section[data-view] { display: none; }
+  /* Network tab/panel active. */
+  .view-radio#view-network:checked ~ .view-tabs .view-tab[data-tab="network"] {
+    color: var(--ts-text, #0f172a);
+    background: var(--ts-bg-surface, #ffffff);
+    border-color: var(--ts-border, #cbd5e1);
+  }
+  .view-radio#view-network:checked ~ section[data-view="network"] { display: block; }
+  /* Gantt tab/panel active. */
+  .view-radio#view-gantt:checked ~ .view-tabs .view-tab[data-tab="gantt"] {
+    color: var(--ts-text, #0f172a);
+    background: var(--ts-bg-surface, #ffffff);
+    border-color: var(--ts-border, #cbd5e1);
+  }
+  .view-radio#view-gantt:checked ~ section[data-view="gantt"] { display: block; }
+
+  .diagram-section { margin: 8px 0 16px; }
   .section-heading { font-size: 13px; font-weight: 600; color: var(--ts-text-muted, #64748b); margin: 0 16px 8px; letter-spacing: 0.02em; }
   .section-notice { margin: 0 16px; padding: 10px 14px; border-left: 3px solid var(--ts-text-muted, #94a3b8); background: var(--ts-bg-subtle, #f8fafc); color: var(--ts-text-muted, #64748b); font-size: 12px; }
 
