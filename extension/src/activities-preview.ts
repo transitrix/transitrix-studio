@@ -207,10 +207,21 @@ function ganttSvg(layout: GanttLayout): string {
     }
   }
 
-  // Link lines — Finish-to-Start elbow with the vertical anchored at the
-  // midpoint of the inter-bar gap (looks balanced regardless of gap width).
-  // A 4px gap on each side stops the line from fusing with the bar edges,
-  // and the arrowhead lives in that gap so it doesn't overlap the target.
+  // Link lines — Finish-to-Start.
+  //
+  // Routing rule: the vertical sits at the source bar's right edge (x = sx),
+  // which is also the column-grid boundary. Successor bars start at that
+  // same boundary in computed mode, so the vertical runs along their LEFT
+  // EDGE rather than crossing their interior. This is the MS Project /
+  // Primavera convention — links travel along column rails, not through bar
+  // bodies.
+  //
+  // - Comfortable gap (tx well past sx): midpoint elbow inside the gap.
+  // - Adjacent (tx == sx, no weekend between source.end+1 and target.start):
+  //   vertical at the column boundary; short horizontal stub into target.
+  // - True overlap (tx < sx, possible in pinned mode where a successor's
+  //   pinned start_date precedes its predecessor's end_date): detour BELOW
+  //   both rows so the link doesn't run through either bar.
   const linkParts: string[] = [];
   const LINK_GAP = 4;
   const LINK_MIN_STUB = 6;
@@ -227,22 +238,27 @@ function ganttSvg(layout: GanttLayout): string {
     const cls = link.isCritical ? 'diagram-edge critical-edge' : 'diagram-edge';
     const marker = link.isCritical ? 'gantt-arrow-crit' : 'gantt-arrow';
 
-    const sxStart = sx + LINK_GAP;
-    const txEnd = tx - LINK_GAP;
     let d: string;
-    if (txEnd - sxStart >= LINK_MIN_STUB * 2) {
-      // Forward link with comfortable gap: midpoint vertical.
+    if (tx > sx + LINK_MIN_STUB * 2) {
+      // Comfortable gap — midpoint elbow inside the gap so the vertical sits
+      // visually between source-end and target-start, away from both bars.
+      const sxStart = sx + LINK_GAP;
+      const txEnd = tx - LINK_GAP;
       const midX = (sxStart + txEnd) / 2;
       d = `M${sxStart},${sy} L${midX},${sy} L${midX},${ty} L${txEnd},${ty}`;
-    } else if (txEnd > sxStart) {
-      // Tight gap: keep the stub but distribute it.
-      const stubX = sxStart + Math.max(0, (txEnd - sxStart) / 2);
-      d = `M${sxStart},${sy} L${stubX},${sy} L${stubX},${ty} L${txEnd},${ty}`;
+    } else if (tx >= sx) {
+      // Adjacent or near-adjacent — vertical at the column boundary x = sx.
+      // The final horizontal stub lands at min(sx + 6, tx + 6) so the arrow
+      // sits a few px inside the target bar's left edge zone (bars are ≥1 day
+      // = 24px wide, so the stub never reaches the right edge).
+      const finalX = Math.max(sx + LINK_MIN_STUB, tx + LINK_MIN_STUB - LINK_GAP);
+      d = `M${sx},${sy} L${sx},${ty} L${finalX},${ty}`;
     } else {
-      // Backward/overlap (target starts at or before source ends): route
-      // below both rows so the link doesn't cross the source bar.
+      // True backward (tx < sx, pinned-mode overlap): detour below both rows.
       const hookY = Math.max(sy, ty) + G_ROW_H / 2 + 6;
-      d = `M${sxStart},${sy} L${sxStart + LINK_MIN_STUB},${sy} L${sxStart + LINK_MIN_STUB},${hookY} L${txEnd - LINK_MIN_STUB},${hookY} L${txEnd - LINK_MIN_STUB},${ty} L${txEnd},${ty}`;
+      const sxOut = sx + LINK_GAP;
+      const txIn = tx + LINK_MIN_STUB;
+      d = `M${sxOut},${sy} L${sxOut},${hookY} L${txIn},${hookY} L${txIn},${ty}`;
     }
     linkParts.push(
       `<path d="${d}" class="${cls}" fill="none" marker-end="url(#${marker})"/>`,
