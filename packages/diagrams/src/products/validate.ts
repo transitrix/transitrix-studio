@@ -1,12 +1,7 @@
 import type { ProductsCatalogueFile, ProductType, ProductStatus } from './types.js';
+import type { ValidationError, ValidationWarning, ValidationResult } from '../validation-types.js';
 
-export interface ValidationError { code: string; message: string; }
-export interface ValidationWarning { code: string; message: string; }
-export interface ValidationResult {
-  valid: boolean;
-  errors: ValidationError[];
-  warnings: ValidationWarning[];
-}
+export type { ValidationError, ValidationWarning, ValidationResult };
 
 const VALID_TYPES = new Set<ProductType>(['digital_product', 'service', 'platform', 'bundle']);
 const VALID_STATUSES = new Set<ProductStatus>(['Draft', 'Active', 'Deprecated']);

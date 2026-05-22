@@ -1,12 +1,7 @@
 import type { AspectCategory } from './types.js';
+import type { ValidationError, ValidationWarning, ValidationResult } from '../validation-types.js';
 
-export interface ValidationError { code: string; message: string; }
-export interface ValidationWarning { code: string; message: string; }
-export interface ValidationResult {
-  valid: boolean;
-  errors: ValidationError[];
-  warnings: ValidationWarning[];
-}
+export type { ValidationError, ValidationWarning, ValidationResult };
 
 const ID_GRAMMAR_RE = /^[A-Z][A-Z_]*(-[A-Z0-9][A-Z0-9_]*)*-\d+$/;
 const PROCESS_BLUEPRINT_ID_RE = /^PROCESS_BLUEPRINT(-[A-Z0-9][A-Z0-9_]*)*-\d+$/;

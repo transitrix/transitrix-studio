@@ -1,12 +1,7 @@
 import type { CapabilityType } from './types.js';
+import type { ValidationError, ValidationWarning, ValidationResult } from '../validation-types.js';
 
-export interface ValidationError { code: string; message: string; }
-export interface ValidationWarning { code: string; message: string; }
-export interface ValidationResult {
-  valid: boolean;
-  errors: ValidationError[];
-  warnings: ValidationWarning[];
-}
+export type { ValidationError, ValidationWarning, ValidationResult };
 
 const VALID_TYPES = new Set<CapabilityType>(['domain', 'supporting']);
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;

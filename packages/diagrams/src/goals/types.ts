@@ -31,23 +31,16 @@ export interface GoalTree {
   goals: Goal[];
 }
 
-export interface ValidationError {
-  code: string;
-  message: string;
-  path?: string;
-}
+// Validation result shape moved to the shared `validation-types.ts` module
+// (one canonical definition across every notation). The re-exports below
+// preserve the public type surface this module historically exposed.
+export type {
+  ValidationError,
+  ValidationWarning,
+  ValidationResult,
+} from '../validation-types.js';
 
-export interface ValidationWarning {
-  code: string;
-  message: string;
-  path?: string;
-}
-
-export interface ValidationResult {
-  valid: boolean;
-  errors: ValidationError[];
-  warnings: ValidationWarning[];
-}
+import type { ValidationError } from '../validation-types.js';
 
 export interface MutationResult<T> {
   ok: boolean;
