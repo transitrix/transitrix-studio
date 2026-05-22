@@ -129,3 +129,36 @@ describe('computeCpm — edge cases', () => {
     expect(result.get('B')!.slack).toBe(0);
   });
 });
+
+describe('computeCpm — cycle defence', () => {
+  // Pre-release should-fix: Kahn's topo-order silently omits cyclic nodes.
+  // The validator's ACT-006 is the authoritative cycle error, but
+  // layoutActivities is reachable without validation, so computeCpm must
+  // still produce an entry for every activity (filled with neutral values
+  // for omitted cyclic ones) — otherwise consumers see `undefined` and
+  // bars render without CPM data.
+
+  it('emits entries for every activity on a 2-node mutual cycle', () => {
+    const result = computeCpm([
+      { id: 'A', name: 'A', duration: 3, predecessors: ['B'] },
+      { id: 'B', name: 'B', duration: 2, predecessors: ['A'] },
+    ]);
+    expect(result.size).toBe(2);
+    expect(result.get('A')).toMatchObject({ es: 0, ef: 0, slack: 0, isCritical: false });
+    expect(result.get('B')).toMatchObject({ es: 0, ef: 0, slack: 0, isCritical: false });
+  });
+
+  it('keeps real CPM data for the acyclic prefix when a cycle exists downstream', () => {
+    // A → B is acyclic; C ↔ D is a mutual cycle disconnected from A/B.
+    const result = computeCpm([
+      { id: 'A', name: 'A', duration: 5 },
+      { id: 'B', name: 'B', duration: 3, predecessors: ['A'] },
+      { id: 'C', name: 'C', duration: 2, predecessors: ['D'] },
+      { id: 'D', name: 'D', duration: 2, predecessors: ['C'] },
+    ]);
+    expect(result.get('A')?.ef).toBe(5);
+    expect(result.get('B')?.ef).toBe(8);
+    expect(result.get('C')).toMatchObject({ es: 0, ef: 0, isCritical: false });
+    expect(result.get('D')).toMatchObject({ es: 0, ef: 0, isCritical: false });
+  });
+});
