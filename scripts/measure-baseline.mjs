@@ -38,7 +38,7 @@ async function main() {
   try {
     const corpusFiles = await findCorpusFiles()
     if (corpusFiles.length === 0) {
-      console.warn('⚠️  No corpus files found in', corpusDir)
+      console.warn('⚠️  No corpus files found in', examplesDir)
       process.exit(1)
     }
 

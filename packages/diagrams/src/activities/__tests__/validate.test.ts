@@ -124,6 +124,43 @@ describe('validateActivities', () => {
     expect(r.errors.some(e => e.code === 'ACT-008')).toBe(false);
   });
 
+  it('ACT-008 — rejects non-ISO start_date format', () => {
+    const r = validateActivities({
+      notation: 'activities',
+      activities: [
+        { id: 'A-001', name: 'Task', duration: 5, start_date: 'June 1 2026' },
+      ],
+    });
+    expect(r.valid).toBe(false);
+    expect(r.errors.some(e => e.code === 'ACT-008' && /start_date/.test(e.message))).toBe(true);
+  });
+
+  it('ACT-008 — rejects non-ISO end_date format', () => {
+    const r = validateActivities({
+      notation: 'activities',
+      activities: [
+        { id: 'A-001', name: 'Task', duration: 5, end_date: '2026/06/30' },
+      ],
+    });
+    expect(r.valid).toBe(false);
+    expect(r.errors.some(e => e.code === 'ACT-008' && /end_date/.test(e.message))).toBe(true);
+  });
+
+  it('ACT-008 — does not raise the order-compare error when dates are malformed', () => {
+    // If start_date and end_date are both wrongly formatted, the file already
+    // has two ACT-008 format errors — adding a third "end < start" complaint
+    // on top would be misleading because the lexicographic compare is
+    // meaningless on non-ISO strings.
+    const r = validateActivities({
+      notation: 'activities',
+      activities: [
+        { id: 'A-001', name: 'Task', duration: 5, start_date: 'tomorrow', end_date: 'yesterday' },
+      ],
+    });
+    expect(r.errors.filter(e => e.code === 'ACT-008').length).toBe(2);
+    expect(r.errors.every(e => /must be ISO 8601 YYYY-MM-DD/.test(e.message))).toBe(true);
+  });
+
   it('ACT-009 — rejects negative duration', () => {
     const r = validateActivities({
       notation: 'activities',

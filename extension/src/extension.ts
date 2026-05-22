@@ -92,21 +92,29 @@ function notYet(label: string): void {
 }
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
-  let compileFn: CompileFn | undefined;
+  // TX-R003: cache the in-flight Promise, not the resolved result. Two
+  // concurrent calls during the brief window before `loadCompiler` resolves
+  // would otherwise both pass the `if (!compileFn)` guard and run the loader
+  // twice. A failed load clears the cached Promise so a retry can attempt to
+  // re-load (transient errors).
+  let compilerPromise: Promise<CompileFn> | undefined;
 
-  async function compiler(): Promise<CompileFn> {
-    if (!compileFn) {
-      try {
-        compileFn = await loadCompiler(context);
-      } catch (err) {
-        const detail = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
-        console.error('Transitrix Studio: loadCompiler failed:', err);
-        throw new Error(
-          `Transitrix Studio: compiler bundle failed to load — ${detail}. Run the 'extension:prep' build step and reload the extension.`,
-        );
-      }
+  function compiler(): Promise<CompileFn> {
+    if (!compilerPromise) {
+      compilerPromise = (async () => {
+        try {
+          return await loadCompiler(context);
+        } catch (err) {
+          compilerPromise = undefined;
+          const detail = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+          console.error('Transitrix Studio: loadCompiler failed:', err);
+          throw new Error(
+            `Transitrix Studio: compiler bundle failed to load — ${detail}. Run the 'extension:prep' build step and reload the extension.`,
+          );
+        }
+      })();
     }
-    return compileFn;
+    return compilerPromise;
   }
 
   const preview = new CervinPreview(context.extensionUri, (yaml: string) =>
