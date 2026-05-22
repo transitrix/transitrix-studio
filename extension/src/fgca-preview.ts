@@ -288,7 +288,7 @@ function buildSvg(doc: FGCADoc, hideChanges = false): string {
     const x = PAD + ci * COL_STRIDE;
     return [
       `<rect class="diagram-node layer-${col}" x="${x}" y="${PAD}" width="${NODE_W}" height="${HEADER_H}" rx="6"/>`,
-      `<text class="text-header" x="${x + NODE_W / 2}" y="${PAD + HEADER_H - 9}" text-anchor="middle" font-size="12" font-family="system-ui,sans-serif">${escXml(COL_LABELS[col])}</text>`,
+      `<text class="text-header" x="${x + NODE_W / 2}" y="${PAD + HEADER_H / 2}" text-anchor="middle" dominant-baseline="central" font-size="12" font-family="system-ui,sans-serif">${escXml(COL_LABELS[col])}</text>`,
     ].join('\n');
   }).join('\n');
 
