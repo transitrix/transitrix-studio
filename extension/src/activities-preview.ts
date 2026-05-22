@@ -283,22 +283,34 @@ function ganttSvg(layout: GanttLayout): string {
     }
 
     if (forward.length > 0) {
-      const deepestTy = Math.max(...forward.map(t => t.ty));
-      // Fix the back-step y to the inter-row band immediately below source.
-      // This keeps it in safe empty space regardless of how far below the
-      // deepest target sits, and it never lands on an intermediate row.
       const midY = sy + G_ROW_H / 2;
       const stubX = sx + STUB_OUT;
       const backX = sx - BACK_OFFSET;
 
-      const trunkCritical = forward.some(t => t.link.isCritical);
-      const trunkCls = trunkCritical ? 'diagram-edge critical-edge' : 'diagram-edge';
+      // Top of the trunk (right stub + short vertical at stubX + back-step at
+      // midY). All outgoing routes traverse this segment, so it's coloured by
+      // "any outgoing critical" — orange if at least one successor is on the
+      // critical path, gray otherwise.
+      const anyCritical = forward.some(t => t.link.isCritical);
+      const topCls = anyCritical ? 'diagram-edge critical-edge' : 'diagram-edge';
+      const topD = `M${sx},${sy} L${stubX},${sy} L${stubX},${midY} L${backX},${midY}`;
+      linkParts.push(`<path d="${topD}" class="${topCls}" fill="none"/>`);
 
-      // Trunk: source right edge → right stub → down to midY → back left →
-      // down to the deepest target row. No arrow on the trunk itself.
-      const trunkD =
-        `M${sx},${sy} L${stubX},${sy} L${stubX},${midY} L${backX},${midY} L${backX},${deepestTy}`;
-      linkParts.push(`<path d="${trunkD}" class="${trunkCls}" fill="none"/>`);
+      // Long vertical at x = backX, split at each target's row. Each segment
+      // is coloured by whether any route still served by it (= targets at or
+      // below the segment's bottom) is on the critical path. This way the
+      // orange line stops at the deepest critical target's row — the part of
+      // the trunk that purely carries non-critical routes shows in gray.
+      const sortedForward = [...forward].sort((a, b) => a.ty - b.ty);
+      let segTop = midY;
+      for (let i = 0; i < sortedForward.length; i++) {
+        const segBottom = sortedForward[i].ty;
+        const segCritical = sortedForward.slice(i).some(t => t.link.isCritical);
+        const segCls = segCritical ? 'diagram-edge critical-edge' : 'diagram-edge';
+        const segD = `M${backX},${segTop} L${backX},${segBottom}`;
+        linkParts.push(`<path d="${segD}" class="${segCls}" fill="none"/>`);
+        segTop = segBottom;
+      }
 
       // Branches: short horizontals at each target's row, from the trunk's
       // x = backX into the target's left edge. The arrowhead lives a few px
