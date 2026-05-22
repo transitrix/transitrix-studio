@@ -147,13 +147,6 @@ export function validateProcessBlueprint(input: unknown): ValidationResult {
             usedStageIds.add(refTrimmed);
           }
         }
-
-        if (entryStages.length === 1) {
-          warnings.push({
-            code: 'BP-012',
-            message: `${path}.stages references a single stage — entry may be a candidate for inlining into the stage description`,
-          });
-        }
       }
 
       const entryId = e['id'];
