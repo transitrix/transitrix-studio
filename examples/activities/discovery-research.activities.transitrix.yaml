@@ -1,0 +1,61 @@
+notation: activities
+spec_version: "0.1"
+
+title: Discovery research — Q4 backlog
+description: |
+  Early-stage discovery work whose dates are not yet committed. Activities
+  carry durations and predecessors, so the network view (PSND/AoN) renders
+  with the critical path. The Gantt view degrades gracefully — no
+  project.start_date and no per-activity pinned dates — and the preview
+  shows a non-blocking notice instead of erroring.
+
+  Use this file as the network-only companion to
+  `platform-launch.activities.transitrix.yaml`, which carries a `project:`
+  block and renders the Gantt view as well.
+version: "0.1"
+date: "2026-05-22"
+author: "Valerii Korobeinikov"
+
+# No `project:` block — dates are deliberately not committed at the
+# discovery stage. The Gantt view will not render; the network view does.
+
+activities:
+  - id: D-001
+    name: Stakeholder interviews
+    duration: 8
+    sort: 10
+    tags: [discovery, research]
+
+  - id: D-002
+    name: Competitive landscape scan
+    duration: 5
+    sort: 20
+    tags: [discovery, research]
+
+  - id: D-003
+    name: Synthesise findings
+    duration: 4
+    sort: 30
+    predecessors: [D-001, D-002]
+    tags: [discovery, synthesis]
+
+  - id: D-004
+    name: Concept options workshop
+    duration: 3
+    sort: 40
+    predecessors: [D-003]
+    tags: [discovery, workshop]
+
+  - id: D-005
+    name: Feasibility assessment
+    duration: 6
+    sort: 50
+    predecessors: [D-004]
+    tags: [discovery, feasibility]
+
+  - id: M-DECISION
+    name: Go / no-go decision
+    duration: 0                # milestone — zero-duration leaf
+    sort: 60
+    predecessors: [D-005]
+    tags: [milestone, gate]
