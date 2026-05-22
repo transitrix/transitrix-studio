@@ -7,6 +7,7 @@ import type {
 } from './types.js';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const VALID_WEEKDAYS = new Set(['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']);
 
 export function validateActivities(input: unknown): ActivityValidationResult {
   const errors: ActivityValidationError[] = [];
@@ -31,6 +32,58 @@ export function validateActivities(input: unknown): ActivityValidationResult {
   if (!Array.isArray(raw.activities)) {
     errors.push({ code: 'SCHEMA_INVALID', message: 'activities must be an array', path: 'activities' });
     return { valid: false, errors, warnings };
+  }
+
+  // ACT-014 / ACT-015: project.calendar validation (run before per-activity loop;
+  // surfaces clearly even when activities also have issues).
+  if (raw.project && typeof raw.project === 'object') {
+    const project = raw.project as Record<string, unknown>;
+    const cal = project.calendar;
+    if (cal && typeof cal === 'object') {
+      const calendar = cal as Record<string, unknown>;
+      if (calendar.working_days !== undefined) {
+        if (!Array.isArray(calendar.working_days)) {
+          errors.push({ code: 'ACT-014', message: 'project.calendar.working_days must be an array of weekday names', path: 'project.calendar.working_days' });
+        } else {
+          const seen = new Set<string>();
+          for (let i = 0; i < calendar.working_days.length; i++) {
+            const raw = calendar.working_days[i];
+            const day = typeof raw === 'string' ? raw.toLowerCase() : '';
+            if (!VALID_WEEKDAYS.has(day)) {
+              errors.push({
+                code: 'ACT-014',
+                message: `project.calendar.working_days[${i}] "${String(raw)}" must be one of: mon, tue, wed, thu, fri, sat, sun`,
+                path: `project.calendar.working_days[${i}]`,
+              });
+            } else if (seen.has(day)) {
+              errors.push({
+                code: 'ACT-014',
+                message: `project.calendar.working_days has duplicate entry "${day}"`,
+                path: `project.calendar.working_days[${i}]`,
+              });
+            } else {
+              seen.add(day);
+            }
+          }
+        }
+      }
+      if (calendar.holidays !== undefined) {
+        if (!Array.isArray(calendar.holidays)) {
+          errors.push({ code: 'ACT-015', message: 'project.calendar.holidays must be an array of ISO 8601 dates', path: 'project.calendar.holidays' });
+        } else {
+          for (let i = 0; i < calendar.holidays.length; i++) {
+            const h = calendar.holidays[i];
+            if (typeof h !== 'string' || !DATE_RE.test(h)) {
+              errors.push({
+                code: 'ACT-015',
+                message: `project.calendar.holidays[${i}] "${String(h)}" must be an ISO 8601 date (YYYY-MM-DD)`,
+                path: `project.calendar.holidays[${i}]`,
+              });
+            }
+          }
+        }
+      }
+    }
   }
 
   const doc = raw as unknown as ActivityDoc;
@@ -175,6 +228,79 @@ export function validateActivities(input: unknown): ActivityValidationResult {
         path: `activities[${i}]`,
       });
     }
+  }
+
+  // ACT-016: milestone (duration=0) with both pinned dates MUST have start == end.
+  for (let i = 0; i < doc.activities.length; i++) {
+    const a = doc.activities[i];
+    if (a.duration === 0 && a.start_date && a.end_date && a.start_date !== a.end_date) {
+      errors.push({
+        code: 'ACT-016',
+        message: `Milestone "${a.id}" has duration 0 but start_date "${a.start_date}" ≠ end_date "${a.end_date}"`,
+        path: `activities[${i}]`,
+      });
+    }
+  }
+
+  if (errors.length > 0) return { valid: false, errors, warnings };
+
+  // ACT-017 / ACT-018: phase warnings. A "phase" is an activity that is referenced
+  // by another activity's `parent` field. ACT-017 warns when a phase carries its
+  // own duration/dates (those roll up from children). ACT-018 warns when an
+  // activity that looks like a phase (no duration, no pinned dates) has no
+  // children — possibly an unused placeholder.
+  const childCount = new Map<string, number>();
+  for (const a of doc.activities) {
+    if (typeof a.parent === 'string' && a.parent.length > 0) {
+      childCount.set(a.parent, (childCount.get(a.parent) ?? 0) + 1);
+    }
+  }
+  for (let i = 0; i < doc.activities.length; i++) {
+    const a = doc.activities[i];
+    const isReferencedAsParent = (childCount.get(a.id) ?? 0) > 0;
+    if (isReferencedAsParent) {
+      const carriesOwnTiming =
+        (a.duration !== undefined && a.duration !== null) ||
+        typeof a.start_date === 'string' ||
+        typeof a.end_date === 'string';
+      if (carriesOwnTiming) {
+        warnings.push({
+          code: 'ACT-017',
+          message: `Phase "${a.id}" carries its own duration/dates — those should roll up from children, not be authored directly`,
+          path: `activities[${i}]`,
+        });
+      }
+    } else {
+      // Not referenced as parent. ACT-018 only fires when the activity LOOKS
+      // like a phase: no duration declared and no pinned dates. A leaf without
+      // duration is already covered by ACT-011 — the same activity may surface
+      // both warnings, which is correct (separate concerns: CPM-unfit vs
+      // empty-phase).
+      const looksLikePhase =
+        (a.duration === undefined || a.duration === null) &&
+        !a.start_date &&
+        !a.end_date;
+      if (looksLikePhase) {
+        warnings.push({
+          code: 'ACT-018',
+          message: `Activity "${a.id}" has no duration and no children — may be an empty phase`,
+          path: `activities[${i}]`,
+        });
+      }
+    }
+  }
+
+  // ACT-019: Gantt view will not render when neither project.start_date nor
+  // any per-activity pinned date pair is present. Network view is unaffected.
+  const hasProjectStart = typeof doc.project?.start_date === 'string' && doc.project.start_date.length > 0;
+  const hasPinnedActivity = doc.activities.some(
+    (a) => typeof a.start_date === 'string' && typeof a.end_date === 'string',
+  );
+  if (!hasProjectStart && !hasPinnedActivity) {
+    warnings.push({
+      code: 'ACT-019',
+      message: 'Gantt view will not render: project.start_date is absent and no activity has both start_date and end_date pinned. Network view is unaffected.',
+    });
   }
 
   return { valid: errors.length === 0, errors, warnings };
