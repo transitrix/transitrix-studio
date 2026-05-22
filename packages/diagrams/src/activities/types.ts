@@ -34,23 +34,18 @@ export interface ActivityDoc {
   activities: Activity[];
 }
 
-export interface ActivityValidationError {
-  code: string;
-  message: string;
-  path?: string;
-}
+// Activities historically exposed PREFIXED validation type names. Keep them
+// as aliases of the shared shape (`../validation-types.ts`) so external
+// consumers keep working.
+import type {
+  ValidationError as SharedValidationError,
+  ValidationWarning as SharedValidationWarning,
+  ValidationResult as SharedValidationResult,
+} from '../validation-types.js';
 
-export interface ActivityValidationWarning {
-  code: string;
-  message: string;
-  path?: string;
-}
-
-export interface ActivityValidationResult {
-  valid: boolean;
-  errors: ActivityValidationError[];
-  warnings: ActivityValidationWarning[];
-}
+export type ActivityValidationError = SharedValidationError;
+export type ActivityValidationWarning = SharedValidationWarning;
+export type ActivityValidationResult = SharedValidationResult;
 
 export interface CpmValues {
   es: number;

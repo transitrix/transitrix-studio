@@ -8,3 +8,4 @@ export * from "./process-map/index";
 export * from "./products/index";
 export * from "./scenarios/index";
 export * from "./theme/index";
+export * from "./validation-types";

@@ -1,22 +1,16 @@
 import type { FactorItem, GoalItem, BdnChangeWithActivities, ActivityItem } from './types.js';
+import type {
+  ValidationError,
+  ValidationWarning,
+  ValidationResult,
+} from '../validation-types.js';
 
-export interface FGCAValidationError {
-  code: string;
-  message: string;
-  path?: string;
-}
-
-export interface FGCAValidationWarning {
-  code: string;
-  message: string;
-  path?: string;
-}
-
-export interface FGCAValidationResult {
-  valid: boolean;
-  errors: FGCAValidationError[];
-  warnings: FGCAValidationWarning[];
-}
+// FGCA historically exposed PREFIXED validation type names. Keep them as
+// aliases of the shared shape so external consumers (preview, tests) keep
+// working without churn.
+export type FGCAValidationError = ValidationError;
+export type FGCAValidationWarning = ValidationWarning;
+export type FGCAValidationResult = ValidationResult;
 
 export interface FGCADoc {
   notation: string;
