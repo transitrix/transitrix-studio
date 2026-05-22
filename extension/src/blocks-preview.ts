@@ -142,17 +142,11 @@ export class BlocksPreview {
       const svgbobPath = cfg.get<string>('svgbobPath') || 'svgbob_cli';
       const payload = JSON.stringify({ mode: 'ascii', source, svgbobCommand: svgbobPath });
 
-      let proc: cp.ChildProcess;
-      try {
-        proc = cp.spawn(pythonPath, [scriptPath], { stdio: ['pipe', 'pipe', 'pipe'] });
-      } catch (err: unknown) {
-        resolve({
-          ok: false,
-          message: `Python not found at "${pythonPath}". See the prompt below to install it.`,
-          fixPrompt: PYTHON_FIX_PROMPT,
-        });
-        return;
-      }
+      // `cp.spawn` does not throw synchronously when the executable is
+      // missing — ENOENT surfaces via the `'error'` event handler below.
+      // The previous try/catch around the spawn was therefore dead code and
+      // its `resolve(...)` path was never taken.
+      const proc = cp.spawn(pythonPath, [scriptPath], { stdio: ['pipe', 'pipe', 'pipe'] });
 
       let stdout = '';
       let stderr = '';

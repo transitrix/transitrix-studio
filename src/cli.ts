@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { readFileSync, writeFileSync } from 'node:fs';
+import { writeFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 
 import {
@@ -74,7 +74,7 @@ async function handleCompileCommand(argv: string[]): Promise<void> {
   const noValidateWarnings = argv.includes('--no-validate');
 
   try {
-    const yaml = readFileSync(src, 'utf8');
+    const yaml = await readFile(src, 'utf8');
     const result = await compileCervinYamlWithLayout(yaml);
     writeFileSync(dst, result.xml);
 
@@ -207,8 +207,25 @@ async function handleValidateCommand(argv: string[]): Promise<void> {
     process.exit(1);
   }
 
-  // Read and parse YAML
-  const yaml = await readFile(src, 'utf8');
+  // Read and parse YAML. TX-R004 — file read was outside the try block, so a
+  // missing file surfaced as an unhandled rejection / stack trace instead of
+  // a clean exit-1.
+  let yaml: string;
+  try {
+    yaml = await readFile(src, 'utf8');
+  } catch (e) {
+    const err = e as NodeJS.ErrnoException;
+    if (useJson) {
+      console.log(JSON.stringify({ valid: false, message: err.message }, null, 2));
+    } else {
+      console.error(`✗ ${src}`);
+      console.error();
+      console.error(`Read error: ${err.message}`);
+      console.error();
+    }
+    process.exit(1);
+  }
+
   let ir: ProcessIr;
   try {
     ir = parseYamlToIr(yaml);
@@ -301,7 +318,7 @@ async function handleMetricsCommand(argv: string[]): Promise<void> {
   }
 
   try {
-    const yaml = readFileSync(src, 'utf8');
+    const yaml = await readFile(src, 'utf8');
     const result = await compileCervinYamlWithLayout(yaml);
     const metrics = computeLayoutMetrics(result.layout);
 
@@ -325,28 +342,38 @@ async function handleMetricsCommand(argv: string[]): Promise<void> {
 
 const subcommand = process.argv[2];
 
-if (subcommand === 'serve') {
-  const serveArgv = process.argv.slice(3);
-  try {
-    const { cliServeArgv } = await import('./serve-ui.js');
-    await cliServeArgv(serveArgv);
-  } catch (e) {
-    const err = e as Error;
-    console.error(err.message);
+// TX-R004: wrap the top-level dispatch in a try/catch so a logic bug inside
+// a handler doesn't surface as an unhandled rejection + stack trace. Each
+// handler already exits non-zero on its own expected errors; this is a
+// safety net for surprises.
+try {
+  if (subcommand === 'serve') {
+    const serveArgv = process.argv.slice(3);
+    try {
+      const { cliServeArgv } = await import('./serve-ui.js');
+      await cliServeArgv(serveArgv);
+    } catch (e) {
+      const err = e as Error;
+      console.error(err.message);
+      process.exit(1);
+    }
+  } else if (subcommand === 'metrics') {
+    await handleMetricsCommand(process.argv.slice(3));
+  } else if (subcommand === 'validate') {
+    await handleValidateCommand(process.argv.slice(3));
+  } else if (!subcommand || subcommand === 'compile') {
+    // Default: compile
+    const compileArgv = subcommand === 'compile'
+      ? process.argv.slice(3)
+      : process.argv.slice(2);
+    await handleCompileCommand(compileArgv);
+  } else {
+    console.error(`cervin: unknown command '${subcommand}'`);
+    printUsage();
     process.exit(1);
   }
-} else if (subcommand === 'metrics') {
-  await handleMetricsCommand(process.argv.slice(3));
-} else if (subcommand === 'validate') {
-  await handleValidateCommand(process.argv.slice(3));
-} else if (!subcommand || subcommand === 'compile') {
-  // Default: compile
-  const compileArgv = subcommand === 'compile'
-    ? process.argv.slice(3)
-    : process.argv.slice(2);
-  await handleCompileCommand(compileArgv);
-} else {
-  console.error(`cervin: unknown command '${subcommand}'`);
-  printUsage();
+} catch (e) {
+  const err = e as Error;
+  console.error(`cervin: unexpected error: ${err.message ?? String(e)}`);
   process.exit(1);
 }

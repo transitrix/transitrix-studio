@@ -76,5 +76,20 @@ export function computeCpm(activities: Activity[]): CpmResult {
     result.set(id, { es: esV, ef: efV, ls: lsV, lf: lfV, slack, isCritical: slack <= 0 });
   }
 
+  // Cycle defence: Kahn's topo-order silently omits any activity that's part
+  // of a cycle (its in-degree never reaches zero), and the forward/backward
+  // passes above skip those nodes. The validator's ACT-006 is the
+  // authoritative cycle error — but layoutActivities is reachable without
+  // validation, so fill the omitted nodes with neutral CPM values so
+  // downstream consumers don't see `undefined` entries. Cyclic activities
+  // simply render without critical-path highlighting.
+  if (topoOrder.length < activities.length) {
+    for (const a of activities) {
+      if (!result.has(a.id)) {
+        result.set(a.id, { es: 0, ef: 0, ls: 0, lf: 0, slack: 0, isCritical: false });
+      }
+    }
+  }
+
   return result;
 }

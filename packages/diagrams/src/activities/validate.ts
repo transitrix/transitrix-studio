@@ -6,6 +6,8 @@ import type {
   ActivityValidationWarning,
 } from './types.js';
 
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
 export function validateActivities(input: unknown): ActivityValidationResult {
   const errors: ActivityValidationError[] = [];
   const warnings: ActivityValidationWarning[] = [];
@@ -104,8 +106,27 @@ export function validateActivities(input: unknown): ActivityValidationResult {
       }
     }
 
-    // ACT-008: end_date >= start_date
-    if (a.start_date && a.end_date) {
+    // ACT-008: date format validation + end_date >= start_date.
+    // The orchestrator's pre-release review flagged that the raw lexicographic
+    // string compare is only correct for strict YYYY-MM-DD, with no format
+    // check applied. Now we validate the format first; the order compare runs
+    // only when both dates are valid (otherwise the comparison message would
+    // be misleading).
+    let startValid = true;
+    let endValid = true;
+    if (a.start_date !== undefined) {
+      if (typeof a.start_date !== 'string' || !DATE_RE.test(a.start_date)) {
+        errors.push({ code: 'ACT-008', message: `Activity "${a.id}" start_date "${String(a.start_date)}" must be ISO 8601 YYYY-MM-DD`, path });
+        startValid = false;
+      }
+    }
+    if (a.end_date !== undefined) {
+      if (typeof a.end_date !== 'string' || !DATE_RE.test(a.end_date)) {
+        errors.push({ code: 'ACT-008', message: `Activity "${a.id}" end_date "${String(a.end_date)}" must be ISO 8601 YYYY-MM-DD`, path });
+        endValid = false;
+      }
+    }
+    if (a.start_date && a.end_date && startValid && endValid) {
       if (a.end_date < a.start_date) {
         errors.push({ code: 'ACT-008', message: `Activity "${a.id}" end_date "${a.end_date}" is before start_date "${a.start_date}"`, path });
       }
