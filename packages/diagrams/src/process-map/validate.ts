@@ -1,12 +1,7 @@
 import type { ProcessGroupType, ProcessStatus } from './types.js';
+import type { ValidationError, ValidationWarning, ValidationResult } from '../validation-types.js';
 
-export interface ValidationError { code: string; message: string; }
-export interface ValidationWarning { code: string; message: string; }
-export interface ValidationResult {
-  valid: boolean;
-  errors: ValidationError[];
-  warnings: ValidationWarning[];
-}
+export type { ValidationError, ValidationWarning, ValidationResult };
 
 const VALID_GROUP_TYPES = new Set<ProcessGroupType>(['operating', 'supporting', 'management']);
 const VALID_STATUSES = new Set<ProcessStatus>(['Draft', 'Active', 'Deprecated']);

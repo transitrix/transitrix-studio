@@ -1,12 +1,7 @@
 import type { ApplicationsCatalogueFile, ApplicationType, ApplicationStatus, IntegrationDirection } from './types.js';
+import type { ValidationError, ValidationWarning, ValidationResult } from '../validation-types.js';
 
-export interface ValidationError { code: string; message: string; }
-export interface ValidationWarning { code: string; message: string; }
-export interface ValidationResult {
-  valid: boolean;
-  errors: ValidationError[];
-  warnings: ValidationWarning[];
-}
+export type { ValidationError, ValidationWarning, ValidationResult };
 
 const VALID_TYPES = new Set<ApplicationType>(['application', 'integration', 'platform', 'data_store']);
 const VALID_STATUSES = new Set<ApplicationStatus>(['Draft', 'Active', 'Deprecated', 'Decommissioning']);
