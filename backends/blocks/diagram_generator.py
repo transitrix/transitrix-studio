@@ -193,10 +193,16 @@ class DiagramGenerator:
             src.write_text(ascii, encoding="utf-8")
 
             try:
+                # Bounded subprocess timeout: a pathological diagram (deep
+                # recursion, malformed input) could otherwise hang svgbob_cli
+                # indefinitely. 30 seconds is generous for any legitimate
+                # block diagram — anything past that is almost certainly
+                # stuck or broken.
                 result = subprocess.run(
                     [self.svgbob_cmd, str(src), "-o", str(dst)],
                     capture_output=True,
                     text=True,
+                    timeout=30,
                 )
             except FileNotFoundError:
                 raise FileNotFoundError(
@@ -204,6 +210,11 @@ class DiagramGenerator:
                     "Install it with: cargo install svgbob_cli. "
                     "Or set transitrix.svgbobPath in VS Code settings to the full path."
                 )
+            except subprocess.TimeoutExpired as exc:
+                raise RuntimeError(
+                    f"svgbob_cli timed out after {exc.timeout} s — the diagram is too complex "
+                    "or svgbob_cli got stuck on this input."
+                ) from exc
 
             if result.returncode != 0:
                 raise subprocess.CalledProcessError(

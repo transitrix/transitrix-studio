@@ -1,0 +1,69 @@
+name: Python Backend Tests
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'backends/**'
+      - '.github/workflows/python-backend.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'backends/**'
+      - '.github/workflows/python-backend.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  blocks-backend:
+    runs-on: ubuntu-latest
+    name: Blocks backend (Python + svgbob_cli)
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      # `cargo install svgbob_cli` from scratch takes ~5 minutes on a clean
+      # runner. Cache the resulting binary + the cargo registry index so
+      # repeat runs reuse the build artefact (~5s lookup) instead.
+      - name: Cache svgbob_cli
+        id: cache-svgbob
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/svgbob_cli
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+          key: ${{ runner.os }}-cargo-svgbob-v1
+
+      - name: Install svgbob_cli (if not cached)
+        if: steps.cache-svgbob.outputs.cache-hit != 'true'
+        run: cargo install svgbob_cli
+
+      - name: Verify svgbob_cli
+        run: |
+          svgbob_cli --version
+          echo 'echo svgbob path: ' "$(command -v svgbob_cli)"
+
+      - name: Run blocks backend tests
+        working-directory: backends/blocks
+        run: python test_generator.py
+
+      - name: Run blocks stdio smoke test
+        # Quick end-to-end test of the JSON adapter Node calls into. Verifies
+        # the stdin→stdout contract that the Studio extension depends on.
+        working-directory: backends/blocks
+        run: |
+          echo '{"mode":"ascii","source":"+-----+\n| Box |\n+-----+"}' \
+            | python blocks_stdio.py \
+            | python -c 'import json, sys; r = json.load(sys.stdin); assert r["ok"] is True, r; assert r["svgs"], r; print("✓ blocks_stdio adapter contract OK")'

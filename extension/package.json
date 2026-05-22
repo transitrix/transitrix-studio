@@ -191,6 +191,27 @@
           ".process-blueprint.transitrix.yaml"
         ],
         "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "transitrix-activities",
+        "aliases": [
+          "Transitrix Activities",
+          "Activity Network"
+        ],
+        "extensions": [
+          ".activities.transitrix.yaml"
+        ],
+        "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "transitrix-blocks",
+        "aliases": [
+          "Transitrix Blocks",
+          "Nested Block Diagram"
+        ],
+        "extensions": [
+          ".blocks.transitrix.txt"
+        ]
       }
     ],
     "commands": [

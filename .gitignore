@@ -10,6 +10,12 @@ extension/media/viewer.js
 extension/media/*.map
 extension/schemas/
 extension/backends/
+# The extension sub-package's lockfile is not authoritative — the build
+# pipeline at the root (extension:prep) installs runtime deps into a clean
+# temp tree and copies them in. A committed lockfile here drifts from the
+# real surface and pollutes the VSIX. Keep `npm install` in extension/ from
+# regenerating one.
+extension/package-lock.json
 output/
 *.vsix
 # Python bytecode
