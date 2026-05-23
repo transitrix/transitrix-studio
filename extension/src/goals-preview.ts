@@ -44,7 +44,7 @@ function layoutToSvg(layout: GoalTreeLayout, treeName: string, filename?: string
   // marker-end arrow reads as perpendicular to the node's vertical edge.
   // Handle length grows with both spans so the curve stays visibly
   // horizontal long enough for the arrowhead to sit flush against the line.
-  const EDGE_MIN_HANDLE = 48;
+  const EDGE_MIN_HANDLE = 64;
   function edgePath(e: LaidOutEdge): string {
     const s = nodeMap.get(e.source);
     const t = nodeMap.get(e.target);
@@ -55,7 +55,7 @@ function layoutToSvg(layout: GoalTreeLayout, treeName: string, filename?: string
     const ty = t.y + oy + t.height / 2;
     const dx = tx - sx;
     const dy = ty - sy;
-    const handle = Math.max(EDGE_MIN_HANDLE, Math.abs(dx) * 0.5, Math.abs(dy) * 0.6);
+    const handle = Math.max(EDGE_MIN_HANDLE, Math.abs(dx) * 0.5, Math.abs(dy) * 0.8);
     return `M${sx},${sy} C${sx + handle},${sy} ${tx - handle},${ty} ${tx},${ty}`;
   }
 

@@ -299,11 +299,11 @@ function buildSvg(doc: FGCADoc, hideChanges = false, heading?: string, filename?
   // the curve stays visibly horizontal long enough at each endpoint for the
   // marker-end arrowhead to sit flush against the line and read as
   // perpendicular to the node's vertical edge.
-  const EDGE_MIN_HANDLE = 48;
+  const EDGE_MIN_HANDLE = 64;
   const edgeSvg = edges.map(e => {
     const dx = e.tx - e.sx;
     const dy = e.ty - e.sy;
-    const handle = Math.max(EDGE_MIN_HANDLE, Math.abs(dx) * 0.5, Math.abs(dy) * 0.6);
+    const handle = Math.max(EDGE_MIN_HANDLE, Math.abs(dx) * 0.5, Math.abs(dy) * 0.8);
     return `<path d="M${e.sx},${e.sy} C${e.sx + handle},${e.sy} ${e.tx - handle},${e.ty} ${e.tx},${e.ty}" class="diagram-edge" marker-end="url(#arrow)"/>`;
   }).join('\n');
 
