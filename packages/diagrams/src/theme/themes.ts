@@ -94,15 +94,19 @@ function diagramVars(variant: 'light' | 'dark' | 'hc'): string {
   ].join(';') + ';' + levelVars;
 }
 
-/** CSS for the webview shell (toolbar, canvas, caption). */
+/** CSS for the webview shell (toolbar, canvas). */
 function shellCss(): string {
   const cv = CSS_VAR;
   const t = TYPOGRAPHY;
+  // min-height:100vh stretches the body to fill the webview iframe even when
+  // the diagram is shorter than the editor pane — otherwise the body ends
+  // where its content ends and the iframe's underlying VS Code editor
+  // background shows through as a dark split below the canvas.
   return `html,body{background:var(${cv.bg});color:var(${cv.text});}
+body{min-height:100vh;}
 #toolbar{position:sticky;top:0;z-index:10;padding:6px 12px;border-bottom:1px solid var(${cv.border});font-family:${t.fontFamily};font-size:${t.sizes.secondary}px;color:var(${cv.textMuted});background:var(${cv.bg});}
 #canvas{padding:16px;overflow:auto;}
-svg{display:block;}
-.diagram-caption{margin-top:8px;font-family:${t.fontFamily};font-size:${t.sizes.caption}px;font-weight:${t.weights.caption};color:var(${cv.textMuted});text-align:center;}`;
+svg{display:block;}`;
 }
 
 /** CSS for SVG diagram classes — all consume --ts-* variables. */
