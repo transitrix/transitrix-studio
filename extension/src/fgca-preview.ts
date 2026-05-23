@@ -365,7 +365,7 @@ export class FGCAPreview {
         'fgcaPreview',
         `${this.panelTitle} — ${path.basename(doc.fileName)}`,
         { viewColumn: vscode.ViewColumn.Beside, preserveFocus: false },
-        { enableScripts: false, retainContextWhenHidden: true },
+        { enableScripts: false, retainContextWhenHidden: true, enableCommandUris: ['transitrixStudio.saveFGCAAsSvg'] },
       );
       this.panel.onDidDispose(() => { this.panel = undefined; this.trackedUri = undefined; });
     }
@@ -406,7 +406,7 @@ export class FGCAPreview {
       .getConfiguration('transitrix')
       .get<ThemeId>('theme', 'transitrix');
 
-    return buildDiagramFrame({ filename, notation: 'FGCA', svgContent, errorMsg, warnings, themeId });
+    return buildDiagramFrame({ filename, notation: 'FGCA', svgContent, errorMsg, warnings, themeId, saveSvgCommand: 'transitrixStudio.saveFGCAAsSvg' });
   }
 
   async saveAsSvg(): Promise<void> {
@@ -452,7 +452,7 @@ export class FGAPreview {
         'fgaPreview',
         `${this.panelTitle} — ${path.basename(doc.fileName)}`,
         { viewColumn: vscode.ViewColumn.Beside, preserveFocus: false },
-        { enableScripts: false, retainContextWhenHidden: true },
+        { enableScripts: false, retainContextWhenHidden: true, enableCommandUris: ['transitrixStudio.saveFGAAsSvg'] },
       );
       this.panel.onDidDispose(() => { this.panel = undefined; this.trackedUri = undefined; });
     }
@@ -494,7 +494,7 @@ export class FGAPreview {
       .getConfiguration('transitrix')
       .get<ThemeId>('theme', 'transitrix');
 
-    return buildDiagramFrame({ filename, notation: 'FGA', svgContent, errorMsg, warnings, themeId });
+    return buildDiagramFrame({ filename, notation: 'FGA', svgContent, errorMsg, warnings, themeId, saveSvgCommand: 'transitrixStudio.saveFGAAsSvg' });
   }
 
   async saveAsSvg(): Promise<void> {
