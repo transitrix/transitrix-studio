@@ -74,7 +74,7 @@ function networkSvg(doc: ActivityDoc, heading?: string, filename?: string, date?
     return [
       `<rect class="${cls}" x="${x}" y="${y}" width="${N_NODE_W}" height="${N_NODE_H}" rx="6"/>`,
       `<text class="text-id" x="${x + 8}" y="${y + 18}">${idLabel}</text>`,
-      `<text class="text-primary" x="${x + N_NODE_W / 2}" y="${y + N_NODE_H / 2 + 4}" text-anchor="middle" dominant-baseline="central">${nameLabel}</text>`,
+      `<text class="text-primary" x="${x + N_NODE_W / 2}" y="${y + N_NODE_H / 2}" text-anchor="middle" dominant-baseline="central">${nameLabel}</text>`,
       `<text class="text-secondary" x="${x + N_NODE_W - 8}" y="${y + N_NODE_H - 10}" text-anchor="end">${durLabel}</text>`,
     ].join('\n');
   }).join('\n');
