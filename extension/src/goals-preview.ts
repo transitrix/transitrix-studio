@@ -2,6 +2,7 @@ import * as path from 'node:path';
 import * as vscode from 'vscode';
 import yaml from 'js-yaml';
 import { buildDiagramFrame, prepareSvgForExport, type ThemeId } from './diagram-frame.js';
+import { TITLE_BLOCK_H, titleBlockSvg, todayIso } from './svg-title-block.js';
 
 // ── Canonical types (spec: notations/04-goals.md v0.2) ──────────────────────
 //
@@ -152,12 +153,14 @@ function escXml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-function layoutToSvg(layout: GoalTreeLayout, treeName: string): string {
+function layoutToSvg(layout: GoalTreeLayout, treeName: string, filename?: string, date?: string): string {
   const pad = 24;
+  const showTitle = filename != null && date != null;
+  const titleH = showTitle ? TITLE_BLOCK_H : 0;
   const w = layout.bounds.width + pad * 2;
-  const h = layout.bounds.height + pad * 2;
+  const h = layout.bounds.height + pad * 2 + titleH;
   const ox = -layout.bounds.x + pad;
-  const oy = -layout.bounds.y + pad;
+  const oy = -layout.bounds.y + pad + titleH;
 
   const nodeMap = new Map(layout.nodes.map(n => [n.id, n]));
 
@@ -188,12 +191,15 @@ function layoutToSvg(layout: GoalTreeLayout, treeName: string): string {
 </g>`;
   }).join('\n');
 
+  const heading = treeName ? `Goal tree — ${treeName}` : 'Goal tree';
+  const titleSvg = showTitle ? titleBlockSvg(heading, filename!, date!, pad, pad) : '';
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
 <defs>
   <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
     <path d="M0,0 L0,6 L8,3 z" class="arrow-fill"/>
   </marker>
 </defs>
+${titleSvg}
 ${edgeSvg}
 ${nodeSvg}
 </svg>`;
@@ -252,7 +258,7 @@ export class GoalsPreview {
       } else {
         const doc = parsed as GoalsTreeDoc;
         const layout = layoutGoalTree(doc);
-        svgContent = layoutToSvg(layout, doc.goals_tree.name ?? '');
+        svgContent = layoutToSvg(layout, doc.goals_tree.name ?? '', filename, todayIso());
       }
     } catch (e) {
       errorMsg = (e as Error).message ?? 'Parse error';

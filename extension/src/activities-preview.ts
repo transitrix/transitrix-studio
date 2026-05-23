@@ -2,6 +2,7 @@ import * as path from 'node:path';
 import * as vscode from 'vscode';
 import yaml from 'js-yaml';
 import { buildDiagramFrame, prepareSvgForExport, type ThemeId } from './diagram-frame.js';
+import { TITLE_BLOCK_H, titleBlockSvg, todayIso } from './svg-title-block.js';
 import {
   validateActivities,
   layoutActivities,
@@ -32,23 +33,6 @@ function truncate(s: string, maxLen: number): string {
 const N_NODE_W = 200;
 const N_NODE_H = 80;
 const N_PAD = 24;
-
-// Height reserved at the top of every diagram SVG for the 3-line title block
-// (heading, filename, date). The block is class="diagram-title-block" so the
-// Title toggle in #toolbar can hide it via the shared TITLE_TOGGLE_CSS.
-const TITLE_BLOCK_H = 60;
-
-function titleBlockSvg(heading: string, filename: string, date: string, x: number, top: number): string {
-  // Single paragraph, left-aligned: 13/700 heading then 11/400 muted file+date.
-  // Baseline offsets reflect typical ascent of the font sizes plus a small line
-  // gap so the three rows read as one block. Position uses the SVG's own
-  // padding so the text lines up with the diagram's left edge.
-  return `<g class="diagram-title-block">
-  <text class="text-header" x="${x}" y="${top + 14}">${escXml(heading)}</text>
-  <text class="text-secondary" x="${x}" y="${top + 30}">${escXml(filename)}</text>
-  <text class="text-secondary" x="${x}" y="${top + 46}">${escXml(date)}</text>
-</g>`;
-}
 
 function networkSvg(doc: ActivityDoc, heading?: string, filename?: string, date?: string): string {
   const layout: ActivitiesLayout = layoutActivities(doc);
@@ -460,10 +444,6 @@ const ACTIVITIES_STYLES = `
 
   .diagram-section { margin: 8px 0 16px; }
   .section-notice { margin: 0 16px; padding: 10px 14px; border-left: 3px solid var(--ts-text-muted, #94a3b8); background: var(--ts-bg-subtle, #f8fafc); color: var(--ts-text-muted, #64748b); font-size: 12px; }
-  /* HTML fallback for the Gantt-unavailable path — same 3-line block as the
-     SVG version. .text-header / .text-secondary come from the shared theme. */
-  .diagram-title-block-html { margin: 0 16px 12px; }
-  .diagram-title-block-html div { line-height: 16px; }
 
   .act-node { fill: var(--ts-bg-surface, #f8fafc); stroke: var(--ts-border, #94a3b8); stroke-width: 1.5; }
   .critical-node { fill: #fff7ed; stroke: var(--ts-brand-orange, #ff4d00); stroke-width: 2.5; }
@@ -524,7 +504,7 @@ export class ActivitiesPreview {
     let bodyContent = '';
     let errorMsg = '';
     let warnings: string[] = [];
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayIso();
 
     try {
       const parsed = yaml.load(yamlText) as unknown;
