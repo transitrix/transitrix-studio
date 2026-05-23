@@ -86,8 +86,8 @@ function layoutToSvg(layout: GoalTreeLayout, treeName: string, filename?: string
   </marker>
 </defs>
 ${titleSvg}
-${edgeSvg}
 ${nodeSvg}
+${edgeSvg}
 </svg>`;
 }
 
