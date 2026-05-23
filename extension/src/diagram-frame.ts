@@ -144,7 +144,6 @@ const TITLE_TOGGLE_CSS = `
 .title-toggle-cb:focus-visible ~ #toolbar .title-toggle { outline: 1px dashed var(--ts-text-muted, #64748b); outline-offset: 2px; }
 .title-toggle-cb:not(:checked) ~ #toolbar .title-toggle::before { content: "\\2610\\00a0"; }
 .title-toggle-cb:not(:checked) ~ .frame-header { display: none; }
-.title-toggle-cb:not(:checked) ~ #canvas .diagram-caption { display: none; }
 .title-toggle-cb:not(:checked) ~ #canvas .diagram-title-block { display: none; }
 
 /* HTML-rendered title block — used when a preview can't embed in SVG
@@ -229,9 +228,9 @@ export function buildDiagramFrame(opts: DiagramFrameOpts): string {
 </div>`
     : '';
 
-  const caption = canvasContent && !title
-    ? `<div class="diagram-caption">${escXml(notation)} — ${escXml(filename)}</div>`
-    : '';
+  // Bottom .diagram-caption is gone — every vector preview now embeds its own
+  // 3-line title block inside the SVG (PR #17/#18) and HTML catalogues use
+  // .frame-header. The figcaption was redundant with the title block above.
 
   // The toggle only makes sense when there's actually a title-ish element to
   // hide. Skip the widget on error-only renders so users don't see a button
@@ -274,7 +273,6 @@ ${extraStyles}
   ${headerBlock}
   <div id="canvas">
     ${canvasContent}
-    ${caption}
   </div>
 </body>
 </html>`;
