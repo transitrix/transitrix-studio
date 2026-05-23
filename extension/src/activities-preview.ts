@@ -66,7 +66,7 @@ function networkSvg(doc: ActivityDoc, heading?: string, filename?: string, date?
   // a stub→curve joint is tangent-continuous but shows a curvature jump
   // (0 → non-zero) the eye reads as a kink. Marker refX = markerWidth anchors
   // the tip at the path endpoint, on the node's edge rather than inside it.
-  const EDGE_MIN_HANDLE = 32;
+  const EDGE_MIN_HANDLE = 48;
   const edgeSvg = orderedEdges.map(e => {
     const s = nodeMap.get(e.sourceId);
     const t = nodeMap.get(e.targetId);
@@ -81,7 +81,7 @@ function networkSvg(doc: ActivityDoc, heading?: string, filename?: string, date?
     // regardless, so perpendicular entry/exit is guaranteed. When handle >
     // dx/2 the control points cross over: intentional, it produces the
     // graceful "lazy S" for vertically stacked nodes.
-    const handle = Math.max(EDGE_MIN_HANDLE, Math.abs(dx) * 0.5, Math.abs(dy) * 0.4);
+    const handle = Math.max(EDGE_MIN_HANDLE, Math.abs(dx) * 0.5, Math.abs(dy) * 0.6);
     const cls = e.isCritical ? 'diagram-edge critical-edge' : 'diagram-edge';
     const marker = `url(#${e.isCritical ? 'arrow-crit' : 'arrow'})`;
     return `<path d="M${sx},${sy} C${sx + handle},${sy} ${tx - handle},${ty} ${tx},${ty}" class="${cls}" marker-end="${marker}"/>`;
