@@ -493,7 +493,7 @@ export class ActivitiesPreview {
         'activitiesPreview',
         `${this.panelTitle} — ${path.basename(doc.fileName)}`,
         { viewColumn: vscode.ViewColumn.Beside, preserveFocus: false },
-        { enableScripts: false, retainContextWhenHidden: true },
+        { enableScripts: false, retainContextWhenHidden: true, enableCommandUris: ['transitrixStudio.saveActivitiesAsSvg'] },
       );
       this.panel.onDidDispose(() => { this.panel = undefined; this.trackedUri = undefined; });
     }
@@ -554,6 +554,7 @@ export class ActivitiesPreview {
       warnings,
       themeId,
       extraStyles: ACTIVITIES_STYLES,
+      saveSvgCommand: 'transitrixStudio.saveActivitiesAsSvg',
     });
   }
 

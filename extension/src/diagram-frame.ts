@@ -51,6 +51,14 @@ export interface DiagramFrameOpts {
   version?: string;
   /** Date string for the metadata strip (e.g. "2026-05-13"). */
   date?: string;
+  /**
+   * Command ID for the "Save as SVG" toolbar button (e.g.
+   * "transitrixStudio.saveGoalsAsSvg"). When provided, the toolbar shows a
+   * "Save .svg" pill next to the Title toggle, wired as a `command:` URI.
+   * The preview's webview must opt into command URIs via `enableCommandUris`.
+   * Omit on previews that don't render a vector diagram (HTML catalogues).
+   */
+  saveSvgCommand?: string;
 }
 
 function escXml(s: string): string {
@@ -118,7 +126,9 @@ const TITLE_TOGGLE_CSS = `
 .title-toggle-cb { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
 #toolbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .toolbar-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.title-toggle {
+.toolbar-actions { display: flex; gap: 4px; align-items: center; flex-shrink: 0; }
+.title-toggle,
+.toolbar-btn {
   cursor: pointer;
   user-select: none;
   font-size: 11px;
@@ -126,7 +136,9 @@ const TITLE_TOGGLE_CSS = `
   border-radius: 4px;
   color: var(--ts-text-muted, #64748b);
   white-space: nowrap;
+  text-decoration: none;
 }
+.toolbar-btn:hover { color: var(--ts-text, #0f172a); background: var(--ts-bg-elevated, #f1f5f9); }
 .title-toggle::before { content: "\\2611\\00a0"; font-size: 12px; }
 .title-toggle:hover { color: var(--ts-text, #0f172a); background: var(--ts-bg-elevated, #f1f5f9); }
 .title-toggle-cb:focus-visible ~ #toolbar .title-toggle { outline: 1px dashed var(--ts-text-muted, #64748b); outline-offset: 2px; }
@@ -186,6 +198,7 @@ export function buildDiagramFrame(opts: DiagramFrameOpts): string {
     errorMsg = '', warnings = [],
     themeId = 'transitrix', extraStyles = '', fixPrompt = '',
     title, subtitle, version, date,
+    saveSvgCommand,
   } = opts;
 
   const canvasContent = bodyContent ?? svgContent;
@@ -224,11 +237,21 @@ export function buildDiagramFrame(opts: DiagramFrameOpts): string {
   // hide. Skip the widget on error-only renders so users don't see a button
   // that does nothing.
   const showToggle = Boolean(title) || Boolean(canvasContent);
+  // Save .svg button — only render when both (a) a vector diagram is on screen
+  // and (b) the preview supplied a command id (HTML catalogues never do).
+  const showSaveSvg = Boolean(canvasContent) && Boolean(saveSvgCommand);
   const toggleInput = showToggle
     ? `<input type="checkbox" id="ts-title-toggle" class="title-toggle-cb" checked>`
     : '';
-  const toolbarRight = showToggle
-    ? `<label for="ts-title-toggle" class="title-toggle" title="Show or hide the diagram title">Title</label>`
+  const actionParts: string[] = [];
+  if (showToggle) {
+    actionParts.push(`<label for="ts-title-toggle" class="title-toggle" title="Show or hide the diagram title">Title</label>`);
+  }
+  if (showSaveSvg) {
+    actionParts.push(`<a href="command:${escXml(saveSvgCommand!)}" class="toolbar-btn" title="Save the current diagram as an .svg file">Save .svg</a>`);
+  }
+  const toolbarRight = actionParts.length > 0
+    ? `<div class="toolbar-actions">${actionParts.join('')}</div>`
     : '';
 
   return `<!DOCTYPE html>

@@ -87,7 +87,7 @@ export class BlocksPreview {
       'blocksPreview',
       `Blocks: ${path.basename(doc.fileName)}`,
       vscode.ViewColumn.Beside,
-      { enableScripts: false, retainContextWhenHidden: true },
+      { enableScripts: false, retainContextWhenHidden: true, enableCommandUris: ['transitrixStudio.saveBlocksAsSvg'] },
     );
     this.currentUri = doc.uri.toString();
     this.panel.onDidDispose(() => {
@@ -140,6 +140,7 @@ export class BlocksPreview {
           notation: 'blocks',
           svgContent,
           extraStyles: BLOCKS_STYLES,
+          saveSvgCommand: 'transitrixStudio.saveBlocksAsSvg',
         });
       }
     } catch (err: unknown) {
