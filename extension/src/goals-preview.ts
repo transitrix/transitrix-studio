@@ -39,10 +39,11 @@ function layoutToSvg(layout: GoalTreeLayout, treeName: string, filename?: string
 
   const nodeMap = new Map(layout.nodes.map(n => [n.id, n]));
 
-  // Horizontal stubs at both ends keep the arrow marker on a strictly
-  // horizontal segment, so it reads as perpendicular to the node's
-  // vertical edge regardless of the curve's overall shape.
-  const EDGE_STUB = 8;
+  // Pure cubic bezier. Control points at (mx, sy) and (mx, ty) keep the
+  // tangent horizontal at both endpoints, so the marker-end arrow reads as
+  // perpendicular to the node's vertical edge. Marker refX = markerWidth
+  // pins the tip at the path endpoint so the arrow stops at the node's
+  // left edge instead of poking inside.
   function edgePath(e: LaidOutEdge): string {
     const s = nodeMap.get(e.source);
     const t = nodeMap.get(e.target);
@@ -51,12 +52,6 @@ function layoutToSvg(layout: GoalTreeLayout, treeName: string, filename?: string
     const sy = s.y + oy + s.height / 2;
     const tx = t.x + ox;
     const ty = t.y + oy + t.height / 2;
-    if (tx - sx > 2 * EDGE_STUB) {
-      const exitX = sx + EDGE_STUB;
-      const enterX = tx - EDGE_STUB;
-      const mx = (exitX + enterX) / 2;
-      return `M${sx},${sy} L${exitX},${sy} C${mx},${sy} ${mx},${ty} ${enterX},${ty} L${tx},${ty}`;
-    }
     const mx = (sx + tx) / 2;
     return `M${sx},${sy} C${mx},${sy} ${mx},${ty} ${tx},${ty}`;
   }
@@ -81,7 +76,7 @@ function layoutToSvg(layout: GoalTreeLayout, treeName: string, filename?: string
   const titleSvg = showTitle ? titleBlockSvg(heading, filename!, date!, pad, pad) : '';
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
 <defs>
-  <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+  <marker id="arrow" markerWidth="8" markerHeight="8" refX="8" refY="3" orient="auto">
     <path d="M0,0 L0,6 L8,3 z" class="arrow-fill"/>
   </marker>
 </defs>
