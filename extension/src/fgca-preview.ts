@@ -288,7 +288,7 @@ function buildSvg(doc: FGCADoc, hideChanges = false): string {
     const x = PAD + ci * COL_STRIDE;
     return [
       `<rect class="diagram-node layer-${col}" x="${x}" y="${PAD}" width="${NODE_W}" height="${HEADER_H}" rx="6"/>`,
-      `<text class="text-header" x="${x + NODE_W / 2}" y="${PAD + HEADER_H / 2}" text-anchor="middle" dominant-baseline="central" font-size="12" font-family="system-ui,sans-serif">${escXml(COL_LABELS[col])}</text>`,
+      `<text class="text-header" x="${x + NODE_W / 2}" y="${PAD + HEADER_H / 2}" text-anchor="middle" dominant-baseline="central">${escXml(COL_LABELS[col])}</text>`,
     ].join('\n');
   }).join('\n');
 
@@ -316,8 +316,8 @@ function buildSvg(doc: FGCADoc, hideChanges = false): string {
     const y2 = y1 + 18;
     return [
       `<rect class="diagram-node layer-${n.col}" x="${n.x}" y="${n.y}" width="${NODE_W}" height="${NODE_H}" rx="8"/>`,
-      `<text class="text-primary" x="${n.x + NODE_W / 2}" y="${y1}" text-anchor="middle" font-size="12" font-weight="600" font-family="system-ui,sans-serif">${escXml(line1)}</text>`,
-      twoLines ? `<text class="text-primary" x="${n.x + NODE_W / 2}" y="${y2}" text-anchor="middle" font-size="12" font-family="system-ui,sans-serif">${escXml(line2)}</text>` : '',
+      `<text class="text-primary" x="${n.x + NODE_W / 2}" y="${y1}" text-anchor="middle">${escXml(line1)}</text>`,
+      twoLines ? `<text class="text-secondary" x="${n.x + NODE_W / 2}" y="${y2}" text-anchor="middle">${escXml(line2)}</text>` : '',
     ].filter(Boolean).join('\n');
   }).join('\n');
 

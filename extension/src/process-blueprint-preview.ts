@@ -36,7 +36,7 @@ function layoutToSvg(layout: ProcessBlueprintLayout): string {
       `<rect class="diagram-node level-1" x="${s.x + ox}" y="${s.y + oy}" width="${s.width}" height="${s.height}"/>`,
     );
     parts.push(
-      `<text class="text-primary" x="${s.x + ox + s.width / 2}" y="${s.y + oy + s.height / 2}" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="600" font-family="system-ui,sans-serif">${escXml(truncate(s.name, 28))}</text>`,
+      `<text class="text-header" x="${s.x + ox + s.width / 2}" y="${s.y + oy + s.height / 2}" text-anchor="middle" dominant-baseline="central">${escXml(truncate(s.name, 28))}</text>`,
     );
   }
 
@@ -45,7 +45,7 @@ function layoutToSvg(layout: ProcessBlueprintLayout): string {
       `<rect class="diagram-node level-2" x="${ox}" y="${l.y + oy}" width="${layout.legendColumnWidth}" height="${l.height}"/>`,
     );
     parts.push(
-      `<text class="text-secondary" x="${ox + 12}" y="${l.y + oy + l.height / 2}" dominant-baseline="central" font-size="12" font-weight="600" font-family="system-ui,sans-serif">${escXml(l.label)}</text>`,
+      `<text class="text-primary" x="${ox + 12}" y="${l.y + oy + l.height / 2}" dominant-baseline="central">${escXml(l.label)}</text>`,
     );
   }
 
@@ -54,7 +54,7 @@ function layoutToSvg(layout: ProcessBlueprintLayout): string {
       `<rect class="diagram-node level-3" x="${c.x + ox}" y="${c.y + oy}" width="${c.width}" height="${c.height}"/>`,
     );
     parts.push(
-      `<text class="text-primary" x="${c.x + ox + 10}" y="${c.y + oy + c.height / 2}" dominant-baseline="central" font-size="12" font-family="system-ui,sans-serif">${escXml(truncate(c.text, 32))}</text>`,
+      `<text class="text-secondary" x="${c.x + ox + 10}" y="${c.y + oy + c.height / 2}" dominant-baseline="central">${escXml(truncate(c.text, 32))}</text>`,
     );
   }
   for (const c of layout.resultCells) {
@@ -62,7 +62,7 @@ function layoutToSvg(layout: ProcessBlueprintLayout): string {
       `<rect class="diagram-node level-4" x="${c.x + ox}" y="${c.y + oy}" width="${c.width}" height="${c.height}"/>`,
     );
     parts.push(
-      `<text class="text-primary" x="${c.x + ox + 10}" y="${c.y + oy + c.height / 2}" dominant-baseline="central" font-size="12" font-family="system-ui,sans-serif">${escXml(truncate(c.text, 32))}</text>`,
+      `<text class="text-secondary" x="${c.x + ox + 10}" y="${c.y + oy + c.height / 2}" dominant-baseline="central">${escXml(truncate(c.text, 32))}</text>`,
     );
   }
 
@@ -84,7 +84,7 @@ function layoutToSvg(layout: ProcessBlueprintLayout): string {
       );
       const label = p.id ? `${p.name} · ${p.id}` : p.name;
       parts.push(
-        `<text class="text-primary" x="${p.x + ox + p.width / 2}" y="${p.y + oy + p.height / 2}" text-anchor="middle" dominant-baseline="central" font-size="11" font-weight="500" font-family="system-ui,sans-serif">${escXml(truncate(label, Math.floor(p.width / 8)))}</text>`,
+        `<text class="text-pill" x="${p.x + ox + p.width / 2}" y="${p.y + oy + p.height / 2}" text-anchor="middle" dominant-baseline="central">${escXml(truncate(label, Math.floor(p.width / 8)))}</text>`,
       );
     }
   }

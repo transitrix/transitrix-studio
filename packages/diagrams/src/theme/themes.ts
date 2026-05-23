@@ -1,7 +1,9 @@
 import {
   LAYER_COLORS,
   LEVEL_COLORS,
+  MATURITY_COLORS,
   STRUCTURAL,
+  TYPOGRAPHY,
   CSS_VAR,
   getBaseResetCss,
   type AdaptiveTokens,
@@ -72,6 +74,7 @@ function diagramVars(variant: 'light' | 'dark' | 'hc'): string {
   const lc = LAYER_COLORS;
   const sc = STRUCTURAL;
   const lv = LEVEL_COLORS[variant];
+  const mat = MATURITY_COLORS[variant];
   const levelVars = lv.map((c, i) => `--ts-level-${i}:${c}`).join(';') + ';';
   return [
     `${CSS_VAR.layerFactor}:${lc.factor[variant]}`,
@@ -83,26 +86,37 @@ function diagramVars(variant: 'light' | 'dark' | 'hc'): string {
     `${CSS_VAR.textPrimary}:${sc.textPrimary[variant]}`,
     `${CSS_VAR.textSecondary}:${sc.textSecondary[variant]}`,
     `${CSS_VAR.headerText}:${sc.headerText[variant]}`,
+    `${CSS_VAR.maturity1}:${mat[0]}`,
+    `${CSS_VAR.maturity2}:${mat[1]}`,
+    `${CSS_VAR.maturity3}:${mat[2]}`,
+    `${CSS_VAR.maturity4}:${mat[3]}`,
+    `${CSS_VAR.maturity5}:${mat[4]}`,
   ].join(';') + ';' + levelVars;
 }
 
 /** CSS for the webview shell (toolbar, canvas, caption). */
 function shellCss(): string {
   const cv = CSS_VAR;
+  const t = TYPOGRAPHY;
   return `html,body{background:var(${cv.bg});color:var(${cv.text});}
-#toolbar{position:sticky;top:0;z-index:10;padding:6px 12px;border-bottom:1px solid var(${cv.border});font-family:var(--vscode-font-family,system-ui,sans-serif);font-size:12px;color:var(${cv.textMuted});background:var(${cv.bg});}
+#toolbar{position:sticky;top:0;z-index:10;padding:6px 12px;border-bottom:1px solid var(${cv.border});font-family:${t.fontFamily};font-size:${t.sizes.secondary}px;color:var(${cv.textMuted});background:var(${cv.bg});}
 #canvas{padding:16px;overflow:auto;}
 svg{display:block;}
-.diagram-caption{margin-top:8px;font-family:var(--vscode-font-family,system-ui,sans-serif);font-size:11px;color:var(${cv.textMuted});text-align:center;}`;
+.diagram-caption{margin-top:8px;font-family:${t.fontFamily};font-size:${t.sizes.caption}px;font-weight:${t.weights.caption};color:var(${cv.textMuted});text-align:center;}`;
 }
 
 /** CSS for SVG diagram classes — all consume --ts-* variables. */
 function diagramClassCss(): string {
   const cv = CSS_VAR;
+  const t = TYPOGRAPHY;
   const levelCount = LEVEL_COLORS.light.length;
   const levelRules = Array.from({ length: levelCount }, (_, i) =>
     `.level-${i}{fill:var(--ts-level-${i});}`
   ).join('');
+  // Typography: every <text> in a preview SVG resolves font-family, size and
+  // weight from these classes instead of inline attributes. That is the
+  // contract every notation preview honours so the catalogue reads as one
+  // visual family.
   return `.diagram-node{stroke:var(${cv.nodeStroke});stroke-width:1;}
 .layer-factor{fill:var(${cv.layerFactor});}
 .layer-goal{fill:var(${cv.layerGoal});}
@@ -111,9 +125,16 @@ function diagramClassCss(): string {
 ${levelRules}
 .diagram-edge{stroke:var(${cv.edgeStroke});stroke-width:1.5;fill:none;}
 .arrow-fill{fill:var(${cv.edgeStroke});}
-.text-primary{fill:var(${cv.textPrimary});}
-.text-secondary{fill:var(${cv.textSecondary});}
-.text-header{fill:var(${cv.headerText});font-weight:700;}`;
+.text-header{fill:var(${cv.headerText});font-family:${t.fontFamily};font-size:${t.sizes.header}px;font-weight:${t.weights.header};}
+.text-primary{fill:var(${cv.textPrimary});font-family:${t.fontFamily};font-size:${t.sizes.primary}px;font-weight:${t.weights.primary};}
+.text-secondary{fill:var(${cv.textSecondary});font-family:${t.fontFamily};font-size:${t.sizes.secondary}px;font-weight:${t.weights.secondary};}
+.text-id{fill:var(${cv.textSecondary});font-family:${t.fontFamily};font-size:${t.sizes.id}px;font-weight:${t.weights.id};}
+.text-pill{fill:var(${cv.textPrimary});font-family:${t.fontFamily};font-size:${t.sizes.pill}px;font-weight:${t.weights.pill};}
+.maturity-1{fill:var(${cv.maturity1});}
+.maturity-2{fill:var(${cv.maturity2});}
+.maturity-3{fill:var(${cv.maturity3});}
+.maturity-4{fill:var(${cv.maturity4});}
+.maturity-5{fill:var(${cv.maturity5});}`;
 }
 
 /**

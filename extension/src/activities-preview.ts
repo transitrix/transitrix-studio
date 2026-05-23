@@ -36,7 +36,7 @@ const N_PAD = 24;
 function networkSvg(doc: ActivityDoc): string {
   const layout: ActivitiesLayout = layoutActivities(doc);
   if (layout.nodes.length === 0) {
-    return '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="60"><text x="10" y="40" font-family="system-ui,sans-serif" font-size="13">No activities</text></svg>';
+    return '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="60"><text class="text-primary" x="10" y="40">No activities</text></svg>';
   }
 
   const cpm = computeCpm(doc.activities ?? []);
@@ -70,9 +70,9 @@ function networkSvg(doc: ActivityDoc): string {
     const durLabel = n.data.duration !== undefined ? `${n.data.duration}d` : '—';
     return [
       `<rect class="${cls}" x="${x}" y="${y}" width="${N_NODE_W}" height="${N_NODE_H}" rx="6"/>`,
-      `<text class="text-id" x="${x + 8}" y="${y + 18}" font-size="10" font-family="system-ui,sans-serif" font-weight="600">${idLabel}</text>`,
-      `<text class="text-primary" x="${x + N_NODE_W / 2}" y="${y + N_NODE_H / 2 + 4}" text-anchor="middle" dominant-baseline="central" font-size="12" font-weight="600" font-family="system-ui,sans-serif">${nameLabel}</text>`,
-      `<text class="text-secondary" x="${x + N_NODE_W - 8}" y="${y + N_NODE_H - 10}" text-anchor="end" font-size="11" font-family="system-ui,sans-serif">${durLabel}</text>`,
+      `<text class="text-id" x="${x + 8}" y="${y + 18}">${idLabel}</text>`,
+      `<text class="text-primary" x="${x + N_NODE_W / 2}" y="${y + N_NODE_H / 2 + 4}" text-anchor="middle" dominant-baseline="central">${nameLabel}</text>`,
+      `<text class="text-secondary" x="${x + N_NODE_W - 8}" y="${y + N_NODE_H - 10}" text-anchor="end">${durLabel}</text>`,
     ].join('\n');
   }).join('\n');
 
@@ -130,7 +130,7 @@ function ganttSvg(layout: GanttLayout): string {
     `<rect class="diagram-node gantt-header" x="${ox}" y="${oy}" width="${G_LABEL_COL_W + timelineWidth}" height="${G_HEADER_H}"/>`,
   );
   headerParts.push(
-    `<text class="text-secondary" x="${ox + 12}" y="${oy + G_HEADER_H / 2}" dominant-baseline="central" font-size="11" font-weight="600" font-family="system-ui,sans-serif">Activity</text>`,
+    `<text class="text-secondary" x="${ox + 12}" y="${oy + G_HEADER_H / 2}" dominant-baseline="central">Activity</text>`,
   );
   // Month band: walk days, group by yyyy-mm.
   const months: Array<{ label: string; startCol: number; endCol: number }> = [];
@@ -146,7 +146,7 @@ function ganttSvg(layout: GanttLayout): string {
     const x = ox + G_LABEL_COL_W + m.startCol * G_DAY_W;
     const w = (m.endCol - m.startCol + 1) * G_DAY_W;
     headerParts.push(
-      `<text class="text-secondary" x="${x + w / 2}" y="${oy + 14}" text-anchor="middle" dominant-baseline="central" font-size="10" font-family="system-ui,sans-serif">${escXml(m.label)}</text>`,
+      `<text class="text-secondary" x="${x + w / 2}" y="${oy + 14}" text-anchor="middle" dominant-baseline="central">${escXml(m.label)}</text>`,
     );
   }
   // Day grid: thin vertical lines every 7 days.
@@ -173,10 +173,10 @@ function ganttSvg(layout: GanttLayout): string {
     }
     // Label column
     rowParts.push(
-      `<text class="text-id" x="${ox + 8}" y="${rowY + G_ROW_H / 2}" dominant-baseline="central" font-size="10" font-family="system-ui,sans-serif" font-weight="600">${escXml(bar.id)}</text>`,
+      `<text class="text-id" x="${ox + 8}" y="${rowY + G_ROW_H / 2}" dominant-baseline="central">${escXml(bar.id)}</text>`,
     );
     rowParts.push(
-      `<text class="text-primary" x="${ox + 56}" y="${rowY + G_ROW_H / 2}" dominant-baseline="central" font-size="11" font-family="system-ui,sans-serif">${escXml(truncate(bar.name, 22))}</text>`,
+      `<text class="text-secondary" x="${ox + 56}" y="${rowY + G_ROW_H / 2}" dominant-baseline="central">${escXml(truncate(bar.name, 22))}</text>`,
     );
 
     // Bar geometry
@@ -438,7 +438,6 @@ const ACTIVITIES_STYLES = `
   .milestone-node { fill: #ecfeff; stroke: var(--ts-text-muted, #64748b); stroke-dasharray: 4 2; }
   .critical-edge { stroke: var(--ts-brand-orange, #ff4d00); stroke-width: 2; }
   .arrow-fill-critical { fill: var(--ts-brand-orange, #ff4d00); }
-  .text-id { fill: var(--ts-text-muted, #64748b); }
 
   .gantt-header { fill: var(--ts-bg-subtle, #f1f5f9); stroke: var(--ts-border, #cbd5e1); stroke-width: 1; }
   .gantt-grid { stroke: var(--ts-border, #cbd5e1); stroke-width: 1; opacity: 0.5; }

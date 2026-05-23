@@ -1,7 +1,7 @@
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 import yaml from 'js-yaml';
-import { buildDiagramFrame, type ThemeId } from './diagram-frame.js';
+import { buildDiagramFrame, CATALOGUE_STYLES, type ThemeId } from './diagram-frame.js';
 
 // ── Inline types (mirror packages/diagrams/src/products/types.ts) ─────────────
 
@@ -264,15 +264,12 @@ export class ProductsPreview {
       subtitle,
       version,
       date,
-      extraStyles: PRODUCTS_STYLES,
+      extraStyles: CATALOGUE_STYLES + PRODUCTS_STYLES,
     });
   }
 }
 
 const PRODUCTS_STYLES = `
-  #canvas {
-    padding: 0 20px 16px;
-  }
   .products-table {
     width: 100%;
     border-collapse: collapse;
@@ -296,15 +293,9 @@ const PRODUCTS_STYLES = `
     border-bottom: 1px solid var(--ts-divider, #cbd5e1);
     vertical-align: top;
   }
-  .products-table tr:last-child td {
-    border-bottom: none;
-  }
-  .products-table tr:hover td {
-    background: var(--ts-bg-elevated, #f1f5f9);
-  }
-  .product-name {
-    font-weight: 600;
-  }
+  .products-table tr:last-child td { border-bottom: none; }
+  .products-table tr:hover td { background: var(--ts-bg-elevated, #f1f5f9); }
+  .product-name { font-weight: 600; }
   .product-id {
     font-size: 11px;
     color: var(--ts-text-muted, #64748b);
@@ -316,44 +307,6 @@ const PRODUCTS_STYLES = `
     color: var(--ts-text-muted, #64748b);
     margin-top: 4px;
   }
-  details {
-    margin-top: 6px;
-    font-size: 12px;
-  }
-  details summary {
-    cursor: pointer;
-    color: var(--ts-brand-primary, #004d67);
-    font-weight: 500;
-    user-select: none;
-  }
-  details ul {
-    margin: 4px 0 0 16px;
-    padding: 0;
-  }
-  details li {
-    margin-bottom: 2px;
-  }
-  .badge {
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 10px;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.03em;
-    white-space: nowrap;
-  }
-  .badge-active {
-    background: var(--ts-status-success-bg, #d1fae5);
-    color: var(--ts-status-success-fg, #065f46);
-  }
-  .badge-draft {
-    background: var(--ts-status-info-bg, #e0f2fe);
-    color: var(--ts-status-info-fg, #0c4a6e);
-  }
-  .badge-deprecated {
-    background: var(--ts-status-warning-bg, #fef9c3);
-    color: var(--ts-status-warning-fg, #854d0e);
-  }
   .type-tag {
     display: inline-block;
     padding: 2px 8px;
@@ -362,23 +315,6 @@ const PRODUCTS_STYLES = `
     font-size: 11px;
     color: var(--ts-text-muted, #64748b);
     white-space: nowrap;
-  }
-  .maturity-dots {
-    font-size: 14px;
-    letter-spacing: 1px;
-    color: var(--ts-brand-primary, #004d67);
-  }
-  .maturity-none {
-    color: var(--ts-text-muted, #64748b);
-  }
-  .cell-empty {
-    color: var(--ts-text-muted, #94a3b8);
-  }
-  .empty-catalogue {
-    text-align: center;
-    color: var(--ts-text-muted, #64748b);
-    padding: 32px;
-    font-style: italic;
   }
   .col-name { min-width: 200px; }
   .col-type, .col-status, .col-maturity, .col-domain, .col-owner { white-space: nowrap; }
