@@ -55,6 +55,11 @@ function networkSvg(doc: ActivityDoc, heading?: string, filename?: string, date?
   const orderedEdges = [...layout.edges].sort(
     (a, b) => Number(Boolean(a.isCritical)) - Number(Boolean(b.isCritical)),
   );
+  // Edge path = short horizontal stub out of source → smooth cubic to a stub
+  // before the target → short horizontal stub into the target. The arrow
+  // marker lands on the trailing horizontal segment, so it always reads as
+  // perpendicular to the node's vertical edge — no tilted arrowheads.
+  const EDGE_STUB = 8;
   const edgeSvg = orderedEdges.map(e => {
     const s = nodeMap.get(e.sourceId);
     const t = nodeMap.get(e.targetId);
@@ -63,9 +68,19 @@ function networkSvg(doc: ActivityDoc, heading?: string, filename?: string, date?
     const sy = s.y + oy + s.height / 2;
     const tx = t.x + ox;
     const ty = t.y + oy + t.height / 2;
-    const mx = (sx + tx) / 2;
     const cls = e.isCritical ? 'diagram-edge critical-edge' : 'diagram-edge';
-    return `<path d="M${sx},${sy} C${mx},${sy} ${mx},${ty} ${tx},${ty}" class="${cls}" marker-end="url(#${e.isCritical ? 'arrow-crit' : 'arrow'})"/>`;
+    const marker = `url(#${e.isCritical ? 'arrow-crit' : 'arrow'})`;
+    let d: string;
+    if (tx - sx > 2 * EDGE_STUB) {
+      const exitX = sx + EDGE_STUB;
+      const enterX = tx - EDGE_STUB;
+      const mx = (exitX + enterX) / 2;
+      d = `M${sx},${sy} L${exitX},${sy} C${mx},${sy} ${mx},${ty} ${enterX},${ty} L${tx},${ty}`;
+    } else {
+      const mx = (sx + tx) / 2;
+      d = `M${sx},${sy} C${mx},${sy} ${mx},${ty} ${tx},${ty}`;
+    }
+    return `<path d="${d}" class="${cls}" marker-end="${marker}"/>`;
   }).join('\n');
 
   const nodeSvg = layout.nodes.map(n => {

@@ -164,6 +164,10 @@ function layoutToSvg(layout: GoalTreeLayout, treeName: string, filename?: string
 
   const nodeMap = new Map(layout.nodes.map(n => [n.id, n]));
 
+  // Horizontal stubs at both ends keep the arrow marker on a strictly
+  // horizontal segment, so it reads as perpendicular to the node's
+  // vertical edge regardless of the curve's overall shape.
+  const EDGE_STUB = 8;
   function edgePath(e: LaidOutEdge): string {
     const s = nodeMap.get(e.source);
     const t = nodeMap.get(e.target);
@@ -172,6 +176,12 @@ function layoutToSvg(layout: GoalTreeLayout, treeName: string, filename?: string
     const sy = s.y + oy + s.height / 2;
     const tx = t.x + ox;
     const ty = t.y + oy + t.height / 2;
+    if (tx - sx > 2 * EDGE_STUB) {
+      const exitX = sx + EDGE_STUB;
+      const enterX = tx - EDGE_STUB;
+      const mx = (exitX + enterX) / 2;
+      return `M${sx},${sy} L${exitX},${sy} C${mx},${sy} ${mx},${ty} ${enterX},${ty} L${tx},${ty}`;
+    }
     const mx = (sx + tx) / 2;
     return `M${sx},${sy} C${mx},${sy} ${mx},${ty} ${tx},${ty}`;
   }
