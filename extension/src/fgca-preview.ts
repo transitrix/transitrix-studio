@@ -295,9 +295,22 @@ function buildSvg(doc: FGCADoc, hideChanges = false, heading?: string, filename?
     ].join('\n');
   }).join('\n');
 
+  // Horizontal stubs at both ends pin the arrow marker on a strictly
+  // horizontal segment so the arrowhead reads as perpendicular to the
+  // node's vertical edge, regardless of the cubic curve's slope.
+  const EDGE_STUB = 8;
   const edgeSvg = edges.map(e => {
-    const mx = (e.sx + e.tx) / 2;
-    return `<path d="M${e.sx},${e.sy} C${mx},${e.sy} ${mx},${e.ty} ${e.tx},${e.ty}" class="diagram-edge" marker-end="url(#arrow)"/>`;
+    let d: string;
+    if (e.tx - e.sx > 2 * EDGE_STUB) {
+      const exitX = e.sx + EDGE_STUB;
+      const enterX = e.tx - EDGE_STUB;
+      const mx = (exitX + enterX) / 2;
+      d = `M${e.sx},${e.sy} L${exitX},${e.sy} C${mx},${e.sy} ${mx},${e.ty} ${enterX},${e.ty} L${e.tx},${e.ty}`;
+    } else {
+      const mx = (e.sx + e.tx) / 2;
+      d = `M${e.sx},${e.sy} C${mx},${e.sy} ${mx},${e.ty} ${e.tx},${e.ty}`;
+    }
+    return `<path d="${d}" class="diagram-edge" marker-end="url(#arrow)"/>`;
   }).join('\n');
 
   const nodeSvg = nodes.map(n => {
