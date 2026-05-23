@@ -94,6 +94,42 @@ const FRAME_HEADER_CSS = `
 `;
 
 /**
+ * CSS-only title show/hide toggle (TX-R009).
+ *
+ * Static previews run with enableScripts: false, so this follows the same
+ * trick as the activities Network/Gantt switcher (PR #9):
+ *   1. A hidden checkbox sits at the top of <body> before any sibling that
+ *      should react. It's positioned off-screen rather than display:none so
+ *      keyboard focus still reaches it.
+ *   2. A <label for="…"> lives inside #toolbar styled as a button.
+ *   3. `:checked` propagates via the sibling combinator to hide either
+ *      .frame-header (catalogue previews) or .diagram-caption (SVG previews).
+ *
+ * Default is "title shown" (checkbox checked). Clicking unchecks → title
+ * hidden.
+ */
+const TITLE_TOGGLE_CSS = `
+.title-toggle-cb { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+#toolbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.toolbar-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.title-toggle {
+  cursor: pointer;
+  user-select: none;
+  font-size: 11px;
+  padding: 1px 8px;
+  border-radius: 4px;
+  color: var(--ts-text-muted, #64748b);
+  white-space: nowrap;
+}
+.title-toggle::before { content: "\\2611\\00a0"; font-size: 12px; }
+.title-toggle:hover { color: var(--ts-text, #0f172a); background: var(--ts-bg-elevated, #f1f5f9); }
+.title-toggle-cb:focus-visible ~ #toolbar .title-toggle { outline: 1px dashed var(--ts-text-muted, #64748b); outline-offset: 2px; }
+.title-toggle-cb:not(:checked) ~ #toolbar .title-toggle::before { content: "\\2610\\00a0"; }
+.title-toggle-cb:not(:checked) ~ .frame-header { display: none; }
+.title-toggle-cb:not(:checked) ~ #canvas .diagram-caption { display: none; }
+`;
+
+/**
  * Shared styling for catalogue-style HTML previews (applications, products,
  * process-map, scenarios, capability-map). Covers the bits that every
  * catalogue notation duplicates verbatim — badges, maturity dots, empty
@@ -170,6 +206,17 @@ export function buildDiagramFrame(opts: DiagramFrameOpts): string {
     ? `<div class="diagram-caption">${escXml(notation)} — ${escXml(filename)}</div>`
     : '';
 
+  // The toggle only makes sense when there's actually a title-ish element to
+  // hide. Skip the widget on error-only renders so users don't see a button
+  // that does nothing.
+  const showToggle = Boolean(title) || Boolean(canvasContent);
+  const toggleInput = showToggle
+    ? `<input type="checkbox" id="ts-title-toggle" class="title-toggle-cb" checked>`
+    : '';
+  const toolbarRight = showToggle
+    ? `<label for="ts-title-toggle" class="title-toggle" title="Show or hide the diagram title">Title</label>`
+    : '';
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -179,11 +226,13 @@ export function buildDiagramFrame(opts: DiagramFrameOpts): string {
 ${generateWebviewCss(themeId)}
 ${FIX_PROMPT_CSS}
 ${FRAME_HEADER_CSS}
+${TITLE_TOGGLE_CSS}
 ${extraStyles}
   </style>
 </head>
 <body data-theme="${escXml(themeId)}">
-  <div id="toolbar">${escXml(notation)}: ${escXml(filename)}</div>
+  ${toggleInput}
+  <div id="toolbar"><span class="toolbar-label">${escXml(notation)}: ${escXml(filename)}</span>${toolbarRight}</div>
   ${errBlock}${fixPromptBlock}${warnBlock}
   ${headerBlock}
   <div id="canvas">
