@@ -9,9 +9,6 @@ function escHtml(s: string): string {
 }
 
 const BLOCKS_STYLES = `
-html { height: 100%; }
-body { height: 100%; display: flex; flex-direction: column; }
-#canvas { flex: 1; min-height: 0; overflow: auto; }
 .blocks-svg-wrap { display: inline-flex; flex-direction: column; gap: 24px; padding: 8px 16px; min-width: 100%; }
 .blocks-svg-wrap svg { display: block; }
 `;

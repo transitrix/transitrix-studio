@@ -500,16 +500,6 @@ const ACTIVITIES_DIAGRAM_CSS = `
 
 /** Webview-only chrome (tab switcher, section notice). Not exported. */
 const ACTIVITIES_WEBVIEW_CSS = `
-  /* ── Fill the webview viewport ──────────────────────────────────────── */
-  /* The base shell leaves #canvas at content height with overflow:auto, so a
-     diagram shorter or narrower than the panel strands the canvas's own
-     scrollbar mid-panel with empty space below it. Make <body> a full-height
-     flex column and let #canvas grow into a single scroll region — the same
-     pattern the blocks preview already uses. */
-  html, body { height: 100%; }
-  body { display: flex; flex-direction: column; }
-  #canvas { flex: 1; min-height: 0; overflow: auto; }
-
   /* ── View switcher (CSS-only, no JS) ────────────────────────────────── */
   /* Move the radios fully off-screen rather than just hiding via opacity —
      keeps them keyboard-focusable while not taking layout space, and stops

@@ -98,15 +98,23 @@ function diagramVars(variant: 'light' | 'dark' | 'hc'): string {
 function shellCss(): string {
   const cv = CSS_VAR;
   const t = TYPOGRAPHY;
+  // Full-height flex chain lifted from blocks-preview / activities-preview
+  // into the shared shell (per strategy hub #35). Body is a flex column
+  // sized to the iframe; #canvas takes the remaining height with its own
+  // scroll region. Without this, #canvas was content-height and any
+  // overflow-x scrollbar landed mid-panel with empty space below it — the
+  // "two-page" split flagged on goals, activities, and others.
+  //
   // html bg + min-height are set per-theme in generateWebviewCss (literal
   // hex / VS Code var) so they don't depend on `--ts-bg` resolving on html —
   // CSS custom properties only cascade DOWN, and `--ts-bg` is defined on the
   // body[data-theme] selector, so html itself can't read it. Without that
   // explicit html bg, the iframe's underlying VS Code editor background
   // showed through any uncovered area below short diagrams.
-  return `body{background:var(${cv.bg});color:var(${cv.text});min-height:100vh;}
-#toolbar{position:sticky;top:0;z-index:10;padding:6px 12px;border-bottom:1px solid var(${cv.border});font-family:${t.fontFamily};font-size:${t.sizes.secondary}px;color:var(${cv.textMuted});background:var(${cv.bg});}
-#canvas{padding:16px;overflow:auto;}
+  return `html,body{height:100%;}
+body{background:var(${cv.bg});color:var(${cv.text});display:flex;flex-direction:column;}
+#toolbar{position:sticky;top:0;z-index:10;padding:6px 12px;border-bottom:1px solid var(${cv.border});font-family:${t.fontFamily};font-size:${t.sizes.secondary}px;color:var(${cv.textMuted});background:var(${cv.bg});flex-shrink:0;}
+#canvas{flex:1;min-height:0;padding:16px;overflow:auto;}
 svg{display:block;}`;
 }
 
