@@ -374,29 +374,43 @@ ${[...linkPartsGray, ...linkPartsCrit].join('\n')}
 
 // ── Stacked canvas content (network + gantt) ─────────────────────────────────
 
-function buildCanvasContent(doc: ActivityDoc, filename: string, date: string): string {
+interface ActivityViews {
+  /** Network (PSND) SVG. Always present when activities validated. */
+  networkSvg: string;
+  /** Body content of the Gantt section: either the Gantt SVG or the
+   *  "unavailable" notice block. Always non-empty. */
+  ganttBody: string;
+  /** Gantt SVG string when computed mode/pinned mode produced one; empty
+   *  string when Gantt is unavailable. Used by Save-as-SVG. */
+  ganttSvg: string;
+}
+
+function buildActivityViews(doc: ActivityDoc, filename: string, date: string): ActivityViews {
   const networkHeading = 'Network view — Project Schedule Network Diagram (PSND)';
-  const network = networkSvg(doc, networkHeading, filename, date);
+  const networkSvgStr = networkSvg(doc, networkHeading, filename, date);
   const gantt: GanttResult = computeGanttLayout(doc);
 
-  let ganttBody: string;
   if (isGanttUnavailable(gantt)) {
     // No SVG to embed the title into — fall back to an HTML title block plus
     // the notice so the unavailable path still shows the same paragraph.
-    ganttBody = `<div class="diagram-title-block diagram-title-block-html">
+    const ganttBody = `<div class="diagram-title-block diagram-title-block-html">
   <div class="text-header">Gantt view — unavailable</div>
   <div class="text-secondary">${escXml(filename)}</div>
   <div class="text-secondary">${escXml(date)}</div>
 </div>
 <div class="section-notice">${escXml(gantt.reason)}</div>`;
-  } else {
-    const modeLabel = gantt.mode === 'computed'
-      ? `computed mode (project ${gantt.timelineStart} → ${gantt.timelineEnd})`
-      : `pinned mode (${gantt.timelineStart} → ${gantt.timelineEnd})`;
-    const ganttHeading = `Gantt view — ${modeLabel}`;
-    ganttBody = ganttSvg(gantt, ganttHeading, filename, date);
+    return { networkSvg: networkSvgStr, ganttBody, ganttSvg: '' };
   }
 
+  const modeLabel = gantt.mode === 'computed'
+    ? `computed mode (project ${gantt.timelineStart} → ${gantt.timelineEnd})`
+    : `pinned mode (${gantt.timelineStart} → ${gantt.timelineEnd})`;
+  const ganttHeading = `Gantt view — ${modeLabel}`;
+  const ganttSvgStr = ganttSvg(gantt, ganttHeading, filename, date);
+  return { networkSvg: networkSvgStr, ganttBody: ganttSvgStr, ganttSvg: ganttSvgStr };
+}
+
+function buildCanvasContent(views: ActivityViews): string {
   // Pure-CSS tab switcher: hidden radio inputs at the top, labels styled as
   // tabs, panels shown via `:checked ~ section[data-view=…]`. Works under the
   // webview's `enableScripts: false` + script-less CSP because no JS is
@@ -408,10 +422,10 @@ function buildCanvasContent(doc: ActivityDoc, filename: string, date: string): s
   <label for="view-gantt" class="view-tab" data-tab="gantt">Gantt</label>
 </nav>
 <section class="diagram-section" data-view="network">
-  ${network}
+  ${views.networkSvg}
 </section>
 <section class="diagram-section" data-view="gantt">
-  ${ganttBody}
+  ${views.ganttBody}
 </section>`;
 }
 
@@ -490,7 +504,12 @@ export class ActivitiesPreview {
   readonly panelTitle = 'Activities Preview';
   private panel: vscode.WebviewPanel | undefined;
   private trackedUri: string | undefined;
-  private lastSvg = '';
+  // Saved separately so Save .svg can offer whichever view the user wants —
+  // the webview's CSS-only Network/Gantt switcher doesn't surface its state
+  // back to the extension, so the only way to honour "save current view" is
+  // to ask the user when both views are available.
+  private lastNetworkSvg = '';
+  private lastGanttSvg = '';
 
   isShowingDocument(uri: vscode.Uri): boolean {
     return this.panel != null && this.trackedUri === uri.toString();
@@ -536,24 +555,19 @@ export class ActivitiesPreview {
       if (!v.valid) {
         errorMsg = v.errors.map(e => `${e.code}: ${e.message}`).join('\n');
       } else {
-        bodyContent = buildCanvasContent(parsed as ActivityDoc, filename, today);
-        // Save-as-SVG exports only the network view today; the Gantt is a
-        // companion section in the webview. (Reconsider when the Gantt becomes
-        // a primary view.) The exported SVG keeps the title block — it lives
-        // in the SVG, so opening the file outside VS Code shows the same
-        // heading + filename + date the user saw in the preview.
-        this.lastSvg = networkSvg(
-          parsed as ActivityDoc,
-          'Network view — Project Schedule Network Diagram (PSND)',
-          filename,
-          today,
-        );
+        const views = buildActivityViews(parsed as ActivityDoc, filename, today);
+        bodyContent = buildCanvasContent(views);
+        this.lastNetworkSvg = views.networkSvg;
+        this.lastGanttSvg = views.ganttSvg;
       }
     } catch (e) {
       errorMsg = (e as Error).message ?? 'Parse error';
     }
 
-    if (!bodyContent) this.lastSvg = '';
+    if (!bodyContent) {
+      this.lastNetworkSvg = '';
+      this.lastGanttSvg = '';
+    }
 
     const themeId = vscode.workspace
       .getConfiguration('transitrix')
@@ -572,21 +586,44 @@ export class ActivitiesPreview {
   }
 
   async saveAsSvg(): Promise<void> {
-    if (!this.lastSvg) {
+    const hasNetwork = Boolean(this.lastNetworkSvg);
+    const hasGantt = Boolean(this.lastGanttSvg);
+    if (!hasNetwork && !hasGantt) {
       vscode.window.showWarningMessage('No diagram rendered yet. Open a *.activities.transitrix.yaml file first.');
       return;
     }
+
+    // Pick the view to save. CSS-only switcher state is invisible to the
+    // extension, so when both exist we ask explicitly. When only one is
+    // available (Gantt unavailable mode), skip the prompt.
+    let view: 'network' | 'gantt';
+    if (hasNetwork && hasGantt) {
+      const choice = await vscode.window.showQuickPick(
+        [
+          { label: 'Network view', description: 'Project Schedule Network Diagram (PSND)', view: 'network' as const },
+          { label: 'Gantt view',   description: 'Timeline',                                  view: 'gantt'   as const },
+        ],
+        { placeHolder: 'Which view do you want to save?' },
+      );
+      if (!choice) return;
+      view = choice.view;
+    } else {
+      view = hasNetwork ? 'network' : 'gantt';
+    }
+
+    const svgSource = view === 'network' ? this.lastNetworkSvg : this.lastGanttSvg;
     const sourceUri = this.trackedUri ? vscode.Uri.parse(this.trackedUri) : undefined;
     const stem = sourceUri
       ? path.basename(sourceUri.fsPath).replace(/\.activities\.transitrix\.yaml$/, '')
       : 'diagram';
+    const suffixed = `${stem}-${view}.svg`;
     const defaultUri = sourceUri
-      ? vscode.Uri.file(path.join(path.dirname(sourceUri.fsPath), `${stem}.svg`))
-      : vscode.Uri.file(`${stem}.svg`);
+      ? vscode.Uri.file(path.join(path.dirname(sourceUri.fsPath), suffixed))
+      : vscode.Uri.file(suffixed);
     const target = await vscode.window.showSaveDialog({ defaultUri, filters: { 'SVG Image': ['svg'] } });
     if (!target) return;
     const themeId = vscode.workspace.getConfiguration('transitrix').get<ThemeId>('theme', 'transitrix');
-    const svg = prepareSvgForExport(this.lastSvg, themeId, ACTIVITIES_DIAGRAM_CSS);
+    const svg = prepareSvgForExport(svgSource, themeId, ACTIVITIES_DIAGRAM_CSS);
     await vscode.workspace.fs.writeFile(target, Buffer.from(svg, 'utf-8'));
     vscode.window.showInformationMessage(`Saved: ${path.basename(target.fsPath)}`);
   }
