@@ -55,12 +55,18 @@ function networkSvg(doc: ActivityDoc, heading?: string, filename?: string, date?
   const orderedEdges = [...layout.edges].sort(
     (a, b) => Number(Boolean(a.isCritical)) - Number(Boolean(b.isCritical)),
   );
-  // Pure cubic bezier. Tangent at both endpoints is mathematically horizontal
-  // (control points at (mx, sy) and (mx, ty) — same Y as the respective
-  // endpoint), so the marker-end arrow auto-orients horizontal and reads as
-  // perpendicular to the target's vertical edge. Marker refX = markerWidth
-  // anchors the tip at the path endpoint, so the arrow lands ON the bar's
-  // left edge rather than poking inside it.
+  // Edge path = a single cubic Bézier with horizontal control handles. Each
+  // control point shares its endpoint's Y, so the tangent is horizontal at
+  // both ends — the curve meets the vertical node edge at a true right angle
+  // and the marker-end arrow (orient="auto") reads as perpendicular. The
+  // handle length grows with both the horizontal and the vertical span so the
+  // curve stays visibly horizontal long enough for the arrowhead to sit flush:
+  // short handles leave the curve horizontal only at the exact endpoint, so a
+  // rigid arrowhead visibly mismatches the curve behind it. No straight stubs —
+  // a stub→curve joint is tangent-continuous but shows a curvature jump
+  // (0 → non-zero) the eye reads as a kink. Marker refX = markerWidth anchors
+  // the tip at the path endpoint, on the node's edge rather than inside it.
+  const EDGE_MIN_HANDLE = 32;
   const edgeSvg = orderedEdges.map(e => {
     const s = nodeMap.get(e.sourceId);
     const t = nodeMap.get(e.targetId);
@@ -69,10 +75,16 @@ function networkSvg(doc: ActivityDoc, heading?: string, filename?: string, date?
     const sy = s.y + oy + s.height / 2;
     const tx = t.x + ox;
     const ty = t.y + oy + t.height / 2;
-    const mx = (sx + tx) / 2;
+    const dx = tx - sx;
+    const dy = ty - sy;
+    // Handle length is a magnitude only — the tangent stays horizontal
+    // regardless, so perpendicular entry/exit is guaranteed. When handle >
+    // dx/2 the control points cross over: intentional, it produces the
+    // graceful "lazy S" for vertically stacked nodes.
+    const handle = Math.max(EDGE_MIN_HANDLE, Math.abs(dx) * 0.5, Math.abs(dy) * 0.4);
     const cls = e.isCritical ? 'diagram-edge critical-edge' : 'diagram-edge';
     const marker = `url(#${e.isCritical ? 'arrow-crit' : 'arrow'})`;
-    return `<path d="M${sx},${sy} C${mx},${sy} ${mx},${ty} ${tx},${ty}" class="${cls}" marker-end="${marker}"/>`;
+    return `<path d="M${sx},${sy} C${sx + handle},${sy} ${tx - handle},${ty} ${tx},${ty}" class="${cls}" marker-end="${marker}"/>`;
   }).join('\n');
 
   const nodeSvg = layout.nodes.map(n => {
