@@ -33,17 +33,36 @@ const N_NODE_W = 200;
 const N_NODE_H = 80;
 const N_PAD = 24;
 
-function networkSvg(doc: ActivityDoc): string {
+// Height reserved at the top of every diagram SVG for the 3-line title block
+// (heading, filename, date). The block is class="diagram-title-block" so the
+// Title toggle in #toolbar can hide it via the shared TITLE_TOGGLE_CSS.
+const TITLE_BLOCK_H = 60;
+
+function titleBlockSvg(heading: string, filename: string, date: string, x: number, top: number): string {
+  // Single paragraph, left-aligned: 13/700 heading then 11/400 muted file+date.
+  // Baseline offsets reflect typical ascent of the font sizes plus a small line
+  // gap so the three rows read as one block. Position uses the SVG's own
+  // padding so the text lines up with the diagram's left edge.
+  return `<g class="diagram-title-block">
+  <text class="text-header" x="${x}" y="${top + 14}">${escXml(heading)}</text>
+  <text class="text-secondary" x="${x}" y="${top + 30}">${escXml(filename)}</text>
+  <text class="text-secondary" x="${x}" y="${top + 46}">${escXml(date)}</text>
+</g>`;
+}
+
+function networkSvg(doc: ActivityDoc, heading?: string, filename?: string, date?: string): string {
   const layout: ActivitiesLayout = layoutActivities(doc);
   if (layout.nodes.length === 0) {
     return '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="60"><text class="text-primary" x="10" y="40">No activities</text></svg>';
   }
 
+  const showTitle = heading != null && filename != null && date != null;
+  const titleH = showTitle ? TITLE_BLOCK_H : 0;
   const cpm = computeCpm(doc.activities ?? []);
   const W = layout.bounds.width + N_PAD * 2;
-  const H = layout.bounds.height + N_PAD * 2;
+  const H = layout.bounds.height + N_PAD * 2 + titleH;
   const ox = -layout.bounds.x + N_PAD;
-  const oy = -layout.bounds.y + N_PAD;
+  const oy = -layout.bounds.y + N_PAD + titleH;
 
   const nodeMap = new Map(layout.nodes.map(n => [n.id, n]));
   const edgeSvg = layout.edges.map(e => {
@@ -76,6 +95,7 @@ function networkSvg(doc: ActivityDoc): string {
     ].join('\n');
   }).join('\n');
 
+  const titleSvg = showTitle ? titleBlockSvg(heading!, filename!, date!, N_PAD, N_PAD) : '';
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
 <defs>
   <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
@@ -85,6 +105,7 @@ function networkSvg(doc: ActivityDoc): string {
     <path d="M0,0 L0,6 L8,3 z" class="arrow-fill-critical"/>
   </marker>
 </defs>
+${titleSvg}
 ${edgeSvg}
 ${nodeSvg}
 </svg>`;
@@ -109,20 +130,22 @@ function daysBetween(startISO: string, endISO: string): number {
   return Math.round(ms / 86_400_000);
 }
 
-function ganttSvg(layout: GanttLayout): string {
+function ganttSvg(layout: GanttLayout, heading?: string, filename?: string, date?: string): string {
   // Sort bars by start date then id for stable display order.
   const bars = [...layout.bars].sort((a, b) => {
     if (a.startDate !== b.startDate) return a.startDate < b.startDate ? -1 : 1;
     return a.id.localeCompare(b.id);
   });
 
+  const showTitle = heading != null && filename != null && date != null;
+  const titleH = showTitle ? TITLE_BLOCK_H : 0;
   const totalDays = daysBetween(layout.timelineStart, layout.timelineEnd) + 1;
   const timelineWidth = totalDays * G_DAY_W;
   const W = G_LABEL_COL_W + timelineWidth + G_PAD * 2;
-  const H = G_HEADER_H + bars.length * G_ROW_H + G_PAD * 2;
+  const H = G_HEADER_H + bars.length * G_ROW_H + G_PAD * 2 + titleH;
 
   const ox = G_PAD;
-  const oy = G_PAD;
+  const oy = G_PAD + titleH;
 
   // Date header strip: month labels above, day ticks below.
   const headerParts: string[] = [];
@@ -335,6 +358,7 @@ function ganttSvg(layout: GanttLayout): string {
     }
   }
 
+  const titleSvg = showTitle ? titleBlockSvg(heading!, filename!, date!, G_PAD, G_PAD) : '';
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
 <defs>
   <marker id="gantt-arrow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="userSpaceOnUse">
@@ -344,6 +368,7 @@ function ganttSvg(layout: GanttLayout): string {
     <path d="M0,0 L0,6 L6,3 z" class="arrow-fill-critical"/>
   </marker>
 </defs>
+${titleSvg}
 ${headerParts.join('\n')}
 ${rowParts.join('\n')}
 ${linkParts.join('\n')}
@@ -352,21 +377,27 @@ ${linkParts.join('\n')}
 
 // ── Stacked canvas content (network + gantt) ─────────────────────────────────
 
-function buildCanvasContent(doc: ActivityDoc): string {
-  const network = networkSvg(doc);
+function buildCanvasContent(doc: ActivityDoc, filename: string, date: string): string {
+  const networkHeading = 'Network view — Project Schedule Network Diagram (PSND)';
+  const network = networkSvg(doc, networkHeading, filename, date);
   const gantt: GanttResult = computeGanttLayout(doc);
 
-  let ganttHeading: string;
   let ganttBody: string;
   if (isGanttUnavailable(gantt)) {
-    ganttHeading = 'Gantt view — unavailable';
-    ganttBody = `<div class="section-notice">${escXml(gantt.reason)}</div>`;
+    // No SVG to embed the title into — fall back to an HTML title block plus
+    // the notice so the unavailable path still shows the same paragraph.
+    ganttBody = `<div class="diagram-title-block diagram-title-block-html">
+  <div class="text-header">Gantt view — unavailable</div>
+  <div class="text-secondary">${escXml(filename)}</div>
+  <div class="text-secondary">${escXml(date)}</div>
+</div>
+<div class="section-notice">${escXml(gantt.reason)}</div>`;
   } else {
     const modeLabel = gantt.mode === 'computed'
       ? `computed mode (project ${gantt.timelineStart} → ${gantt.timelineEnd})`
       : `pinned mode (${gantt.timelineStart} → ${gantt.timelineEnd})`;
-    ganttHeading = `Gantt view — ${modeLabel}`;
-    ganttBody = ganttSvg(gantt);
+    const ganttHeading = `Gantt view — ${modeLabel}`;
+    ganttBody = ganttSvg(gantt, ganttHeading, filename, date);
   }
 
   // Pure-CSS tab switcher: hidden radio inputs at the top, labels styled as
@@ -380,11 +411,9 @@ function buildCanvasContent(doc: ActivityDoc): string {
   <label for="view-gantt" class="view-tab" data-tab="gantt">Gantt</label>
 </nav>
 <section class="diagram-section" data-view="network">
-  <h3 class="section-heading">Network view — Project Schedule Network Diagram (PSND)</h3>
   ${network}
 </section>
 <section class="diagram-section" data-view="gantt">
-  <h3 class="section-heading">${escXml(ganttHeading)}</h3>
   ${ganttBody}
 </section>`;
 }
@@ -430,8 +459,11 @@ const ACTIVITIES_STYLES = `
   .view-radio#view-gantt:checked ~ section[data-view="gantt"] { display: block; }
 
   .diagram-section { margin: 8px 0 16px; }
-  .section-heading { font-size: 13px; font-weight: 600; color: var(--ts-text-muted, #64748b); margin: 0 16px 8px; letter-spacing: 0.02em; }
   .section-notice { margin: 0 16px; padding: 10px 14px; border-left: 3px solid var(--ts-text-muted, #94a3b8); background: var(--ts-bg-subtle, #f8fafc); color: var(--ts-text-muted, #64748b); font-size: 12px; }
+  /* HTML fallback for the Gantt-unavailable path — same 3-line block as the
+     SVG version. .text-header / .text-secondary come from the shared theme. */
+  .diagram-title-block-html { margin: 0 16px 12px; }
+  .diagram-title-block-html div { line-height: 16px; }
 
   .act-node { fill: var(--ts-bg-surface, #f8fafc); stroke: var(--ts-border, #94a3b8); stroke-width: 1.5; }
   .critical-node { fill: #fff7ed; stroke: var(--ts-brand-orange, #ff4d00); stroke-width: 2.5; }
@@ -492,6 +524,7 @@ export class ActivitiesPreview {
     let bodyContent = '';
     let errorMsg = '';
     let warnings: string[] = [];
+    const today = new Date().toISOString().slice(0, 10);
 
     try {
       const parsed = yaml.load(yamlText) as unknown;
@@ -500,11 +533,18 @@ export class ActivitiesPreview {
       if (!v.valid) {
         errorMsg = v.errors.map(e => `${e.code}: ${e.message}`).join('\n');
       } else {
-        bodyContent = buildCanvasContent(parsed as ActivityDoc);
+        bodyContent = buildCanvasContent(parsed as ActivityDoc, filename, today);
         // Save-as-SVG exports only the network view today; the Gantt is a
         // companion section in the webview. (Reconsider when the Gantt becomes
-        // a primary view.)
-        this.lastSvg = networkSvg(parsed as ActivityDoc);
+        // a primary view.) The exported SVG keeps the title block — it lives
+        // in the SVG, so opening the file outside VS Code shows the same
+        // heading + filename + date the user saw in the preview.
+        this.lastSvg = networkSvg(
+          parsed as ActivityDoc,
+          'Network view — Project Schedule Network Diagram (PSND)',
+          filename,
+          today,
+        );
       }
     } catch (e) {
       errorMsg = (e as Error).message ?? 'Parse error';
