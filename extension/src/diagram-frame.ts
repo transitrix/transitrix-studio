@@ -6,10 +6,16 @@ export type { ThemeId };
 /**
  * Injects a <style> block with all --ts-* CSS variable definitions into an SVG string,
  * making it self-contained for file export (no external stylesheet required).
+ *
+ * Pass `notationCss` for the per-notation class rules (e.g. activities-preview's
+ * `.act-node`, `.critical-edge`, `.gantt-bar`) that live in the preview's
+ * webview `extraStyles` but are not part of the shared theme. Without them the
+ * exported SVG falls through to browser defaults — typically black fills on
+ * dark stroke — and looks nothing like the in-VS-Code preview.
  */
-export function prepareSvgForExport(svg: string, themeId: ThemeId = 'transitrix'): string {
+export function prepareSvgForExport(svg: string, themeId: ThemeId = 'transitrix', notationCss = ''): string {
   const css = generateSvgEmbedCss(themeId);
-  return svg.replace(/(<svg\b[^>]*>)/, `$1<style>${css}</style>`);
+  return svg.replace(/(<svg\b[^>]*>)/, `$1<style>${css}${notationCss}</style>`);
 }
 
 export interface DiagramFrameOpts {
