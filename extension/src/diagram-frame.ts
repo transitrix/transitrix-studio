@@ -155,6 +155,56 @@ const TITLE_TOGGLE_CSS = `
 `;
 
 /**
+ * CSS-only discrete zoom control (orchestrator decision on issue #30):
+ * 50 / 75 / 100 (default) / 150 / 200 % through hidden radios + labels.
+ * Same pattern as TX-R009 title toggle and Network/Gantt switcher — no
+ * script enablement, the security backstop on previews stays intact.
+ *
+ * `zoom` (rather than transform: scale) is used because it grows the layout
+ * box too, so `#canvas`'s scrollbars reflect the scaled diagram size and
+ * the user can pan a zoomed-in view. `zoom` is non-standard but native in
+ * Chromium-based webviews (where Studio runs) and on the CSS Sizing L4
+ * standardisation path.
+ */
+const ZOOM_CONTROL_CSS = `
+.zoom-radio { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+.zoom-control { display: inline-flex; gap: 0; border: 1px solid var(--ts-border, #cbd5e1); border-radius: 4px; overflow: hidden; }
+.zoom-label {
+  cursor: pointer;
+  user-select: none;
+  font-size: 11px;
+  padding: 1px 6px;
+  color: var(--ts-text-muted, #64748b);
+  background: transparent;
+  white-space: nowrap;
+  border-right: 1px solid var(--ts-border, #cbd5e1);
+}
+.zoom-control .zoom-label:last-child { border-right: none; }
+.zoom-label:hover { color: var(--ts-text, #0f172a); background: var(--ts-bg-elevated, #f1f5f9); }
+.zoom-radio#z-50:checked  ~ #toolbar .zoom-label[for="z-50"],
+.zoom-radio#z-75:checked  ~ #toolbar .zoom-label[for="z-75"],
+.zoom-radio#z-100:checked ~ #toolbar .zoom-label[for="z-100"],
+.zoom-radio#z-150:checked ~ #toolbar .zoom-label[for="z-150"],
+.zoom-radio#z-200:checked ~ #toolbar .zoom-label[for="z-200"] {
+  background: var(--ts-bg-elevated, #f1f5f9);
+  color: var(--ts-text, #0f172a);
+  font-weight: 600;
+}
+/* Apply zoom to every SVG and the blocks multi-SVG wrapper. We use the
+   non-standard but Chromium-native 'zoom' property rather than transform:
+   scale so the layout box grows and #canvas scrollbars span the scaled
+   diagram. */
+.zoom-radio#z-50:checked  ~ #canvas svg,
+.zoom-radio#z-50:checked  ~ #canvas .blocks-svg-wrap { zoom: 0.5; }
+.zoom-radio#z-75:checked  ~ #canvas svg,
+.zoom-radio#z-75:checked  ~ #canvas .blocks-svg-wrap { zoom: 0.75; }
+.zoom-radio#z-150:checked ~ #canvas svg,
+.zoom-radio#z-150:checked ~ #canvas .blocks-svg-wrap { zoom: 1.5; }
+.zoom-radio#z-200:checked ~ #canvas svg,
+.zoom-radio#z-200:checked ~ #canvas .blocks-svg-wrap { zoom: 2; }
+`;
+
+/**
  * Shared styling for catalogue-style HTML previews (applications, products,
  * process-map, scenarios, capability-map). Covers the bits that every
  * catalogue notation duplicates verbatim — badges, maturity dots, empty
@@ -239,12 +289,26 @@ export function buildDiagramFrame(opts: DiagramFrameOpts): string {
   // Save .svg button — only render when both (a) a vector diagram is on screen
   // and (b) the preview supplied a command id (HTML catalogues never do).
   const showSaveSvg = Boolean(canvasContent) && Boolean(saveSvgCommand);
+  // Zoom control gates on the same signal as Save .svg — the six vector
+  // previews opt in by passing a saveSvgCommand. HTML catalogues are out of
+  // scope per the orchestrator's call on issue #30.
+  const showZoom = Boolean(canvasContent) && Boolean(saveSvgCommand);
   const toggleInput = showToggle
     ? `<input type="checkbox" id="ts-title-toggle" class="title-toggle-cb" checked>`
+    : '';
+  const zoomInputs = showZoom
+    ? `<input type="radio" name="ts-zoom" id="z-50"  class="zoom-radio">
+  <input type="radio" name="ts-zoom" id="z-75"  class="zoom-radio">
+  <input type="radio" name="ts-zoom" id="z-100" class="zoom-radio" checked>
+  <input type="radio" name="ts-zoom" id="z-150" class="zoom-radio">
+  <input type="radio" name="ts-zoom" id="z-200" class="zoom-radio">`
     : '';
   const actionParts: string[] = [];
   if (showToggle) {
     actionParts.push(`<label for="ts-title-toggle" class="title-toggle" title="Show or hide the diagram title">Title</label>`);
+  }
+  if (showZoom) {
+    actionParts.push(`<div class="zoom-control" title="Zoom level"><label for="z-50" class="zoom-label">50%</label><label for="z-75" class="zoom-label">75%</label><label for="z-100" class="zoom-label">100%</label><label for="z-150" class="zoom-label">150%</label><label for="z-200" class="zoom-label">200%</label></div>`);
   }
   if (showSaveSvg) {
     actionParts.push(`<a href="command:${escXml(saveSvgCommand!)}" class="toolbar-btn" title="Save the current diagram as an .svg file">Save .svg</a>`);
@@ -263,11 +327,13 @@ ${generateWebviewCss(themeId)}
 ${FIX_PROMPT_CSS}
 ${FRAME_HEADER_CSS}
 ${TITLE_TOGGLE_CSS}
+${ZOOM_CONTROL_CSS}
 ${extraStyles}
   </style>
 </head>
 <body data-theme="${escXml(themeId)}">
   ${toggleInput}
+  ${zoomInputs}
   <div id="toolbar"><span class="toolbar-label">${escXml(notation)}: ${escXml(filename)}</span>${toolbarRight}</div>
   ${errBlock}${fixPromptBlock}${warnBlock}
   ${headerBlock}
