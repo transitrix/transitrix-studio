@@ -111,8 +111,8 @@ function networkSvg(doc: ActivityDoc, heading?: string, filename?: string, date?
   </marker>
 </defs>
 ${titleSvg}
-${edgeSvg}
 ${nodeSvg}
+${edgeSvg}
 </svg>`;
 }
 
