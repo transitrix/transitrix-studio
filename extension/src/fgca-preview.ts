@@ -279,7 +279,7 @@ function escXml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-function buildSvg(doc: FGCADoc, hideChanges = false, heading?: string, filename?: string, date?: string): string {
+function buildSvg(doc: FGCADoc, hideChanges = false, heading?: string, filename?: string, date?: string, version?: string): string {
   const { nodes, edges, width, height } = layoutFGCA(doc, hideChanges);
   const showTitle = heading != null && filename != null && date != null;
   const titleH = showTitle ? TITLE_BLOCK_H : 0;
@@ -332,7 +332,7 @@ function buildSvg(doc: FGCADoc, hideChanges = false, heading?: string, filename?
   }).join('\n');
 
   const totalH = height + titleH;
-  const titleSvg = showTitle ? titleBlockSvg(heading!, filename!, date!, PAD, PAD) : '';
+  const titleSvg = showTitle ? titleBlockSvg(heading!, filename!, date!, PAD, PAD, version) : '';
   // The layoutFGCA coordinates are absolute; wrap the diagram in a translate
   // group so the title block can sit above without rewriting every node/edge.
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${totalH}" viewBox="0 0 ${width} ${totalH}">
@@ -396,12 +396,15 @@ export class FGCAPreview {
 
     try {
       const parsed = yaml.load(yamlText) as unknown;
+      const meta = (parsed && typeof parsed === 'object' ? parsed : {}) as { version?: unknown; date?: unknown };
+      const docVersion = typeof meta.version === 'string' ? meta.version : undefined;
+      const docDate = typeof meta.date === 'string' ? meta.date : todayIso();
       const v = validateFGCA(parsed);
       warnings = v.warnings.map(w => `${w.code}: ${w.message}`);
       if (!v.valid) {
         errorMsg = v.errors.map(e => `${e.code}: ${e.message}`).join('\n');
       } else {
-        svgContent = buildSvg(parsed as FGCADoc, false, 'FGCA — Factor → Goal → Change → Activity', filename, todayIso());
+        svgContent = buildSvg(parsed as FGCADoc, false, 'FGCA — Factor → Goal → Change → Activity', filename, docDate, docVersion);
       }
     } catch (e) {
       errorMsg = (e as Error).message ?? 'Parse error';
@@ -483,13 +486,16 @@ export class FGAPreview {
 
     try {
       const parsed = yaml.load(yamlText) as unknown;
+      const meta = (parsed && typeof parsed === 'object' ? parsed : {}) as { version?: unknown; date?: unknown };
+      const docVersion = typeof meta.version === 'string' ? meta.version : undefined;
+      const docDate = typeof meta.date === 'string' ? meta.date : todayIso();
       const v = validateFGA(parsed);
       warnings = v.warnings.map(w => `${w.code}: ${w.message}`);
       if (!v.valid) {
         errorMsg = v.errors.map(e => `${e.code}: ${e.message}`).join('\n');
       } else {
         const flat = fgaToFlat(parsed as FGADoc);
-        svgContent = buildSvg(flat, true, 'FGA — Factor → Goal → Activity', filename, todayIso());
+        svgContent = buildSvg(flat, true, 'FGA — Factor → Goal → Activity', filename, docDate, docVersion);
       }
     } catch (e) {
       errorMsg = (e as Error).message ?? 'Parse error';

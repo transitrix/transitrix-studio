@@ -19,7 +19,7 @@ function truncate(text: string, maxChars: number): string {
   return text.slice(0, Math.max(0, maxChars - 1)) + '…';
 }
 
-function layoutToSvg(layout: ProcessBlueprintLayout, filename?: string, date?: string): string {
+function layoutToSvg(layout: ProcessBlueprintLayout, filename?: string, date?: string, version?: string): string {
   const pad = 24;
   const showTitle = filename != null && date != null;
   const titleH = showTitle ? TITLE_BLOCK_H : 0;
@@ -92,7 +92,7 @@ function layoutToSvg(layout: ProcessBlueprintLayout, filename?: string, date?: s
     }
   }
 
-  const titleSvg = showTitle ? titleBlockSvg('Process Blueprint', filename!, date!, pad, pad) : '';
+  const titleSvg = showTitle ? titleBlockSvg('Process Blueprint', filename!, date!, pad, pad, version) : '';
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
 ${titleSvg}
 ${parts.join('\n')}
@@ -149,8 +149,13 @@ export class ProcessBlueprintPreview {
         errorMsg = v.errors.map(e => `${e.code}: ${e.message}`).join('\n');
       } else {
         const file = parsed as ProcessBlueprintFile;
+        // Process Blueprint nests version/date under process_blueprint:, not
+        // top-level. Per orchestrator instruction, read the nested path.
+        const pb = (file as unknown as { process_blueprint?: { version?: unknown; date?: unknown } }).process_blueprint ?? {};
+        const docVersion = typeof pb.version === 'string' ? pb.version : undefined;
+        const docDate = typeof pb.date === 'string' ? pb.date : todayIso();
         const layout = layoutProcessBlueprint(file);
-        svgContent = layoutToSvg(layout, filename, todayIso());
+        svgContent = layoutToSvg(layout, filename, docDate, docVersion);
       }
     } catch (e) {
       errorMsg = (e as Error).message ?? 'Parse error';
