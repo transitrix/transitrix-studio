@@ -28,7 +28,7 @@ function escXml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-function layoutToSvg(layout: GoalTreeLayout, treeName: string, filename?: string, date?: string): string {
+function layoutToSvg(layout: GoalTreeLayout, treeName: string, filename?: string, date?: string, version?: string): string {
   const pad = 24;
   const showTitle = filename != null && date != null;
   const titleH = showTitle ? TITLE_BLOCK_H : 0;
@@ -76,7 +76,7 @@ function layoutToSvg(layout: GoalTreeLayout, treeName: string, filename?: string
   }).join('\n');
 
   const heading = treeName ? `Goal tree — ${treeName}` : 'Goal tree';
-  const titleSvg = showTitle ? titleBlockSvg(heading, filename!, date!, pad, pad) : '';
+  const titleSvg = showTitle ? titleBlockSvg(heading, filename!, date!, pad, pad, version) : '';
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
 <defs>
   <marker id="arrow" markerWidth="8" markerHeight="8" refX="8" refY="3" orient="auto">
@@ -141,14 +141,17 @@ export class GoalsPreview {
         errorMsg = v.errors.map(e => `${e.code}: ${e.message}`).join('\n');
       } else {
         const tree = parsed as GoalTree;
-        const treeName = (parsed as { title?: unknown }).title;
+        const meta = parsed as { title?: unknown; version?: unknown; date?: unknown };
+        const treeName = typeof meta.title === 'string' ? meta.title : '';
+        const docVersion = typeof meta.version === 'string' ? meta.version : undefined;
+        const docDate = typeof meta.date === 'string' ? meta.date : todayIso();
         const layout = layoutGoalTree(tree, {
           nodeWidth: NODE_W,
           nodeHeight: NODE_H,
           rankSep: RANK_SEP,
           nodeSep: NODE_SEP,
         });
-        svgContent = layoutToSvg(layout, typeof treeName === 'string' ? treeName : '', filename, todayIso());
+        svgContent = layoutToSvg(layout, treeName, filename, docDate, docVersion);
       }
     } catch (e) {
       errorMsg = (e as Error).message ?? 'Parse error';

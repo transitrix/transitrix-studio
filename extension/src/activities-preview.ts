@@ -34,7 +34,7 @@ const N_NODE_W = 200;
 const N_NODE_H = 80;
 const N_PAD = 24;
 
-function networkSvg(doc: ActivityDoc, heading?: string, filename?: string, date?: string): string {
+function networkSvg(doc: ActivityDoc, heading?: string, filename?: string, date?: string, version?: string): string {
   const layout: ActivitiesLayout = layoutActivities(doc);
   if (layout.nodes.length === 0) {
     return '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="60"><text class="text-primary" x="10" y="40">No activities</text></svg>';
@@ -104,7 +104,7 @@ function networkSvg(doc: ActivityDoc, heading?: string, filename?: string, date?
     ].join('\n');
   }).join('\n');
 
-  const titleSvg = showTitle ? titleBlockSvg(heading!, filename!, date!, N_PAD, N_PAD) : '';
+  const titleSvg = showTitle ? titleBlockSvg(heading!, filename!, date!, N_PAD, N_PAD, version) : '';
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
 <defs>
   <marker id="arrow" markerWidth="8" markerHeight="8" refX="8" refY="3" orient="auto">
@@ -139,7 +139,7 @@ function daysBetween(startISO: string, endISO: string): number {
   return Math.round(ms / 86_400_000);
 }
 
-function ganttSvg(layout: GanttLayout, heading?: string, filename?: string, date?: string): string {
+function ganttSvg(layout: GanttLayout, heading?: string, filename?: string, date?: string, version?: string): string {
   // Sort bars by start date then id for stable display order.
   const bars = [...layout.bars].sort((a, b) => {
     if (a.startDate !== b.startDate) return a.startDate < b.startDate ? -1 : 1;
@@ -396,7 +396,7 @@ function ganttSvg(layout: GanttLayout, heading?: string, filename?: string, date
     }
   }
 
-  const titleSvg = showTitle ? titleBlockSvg(heading!, filename!, date!, G_PAD, G_PAD) : '';
+  const titleSvg = showTitle ? titleBlockSvg(heading!, filename!, date!, G_PAD, G_PAD, version) : '';
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
 <defs>
   <marker id="gantt-arrow" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto" markerUnits="userSpaceOnUse">
@@ -426,10 +426,14 @@ interface ActivityViews {
   ganttSvg: string;
 }
 
-function buildActivityViews(doc: ActivityDoc, filename: string, date: string): ActivityViews {
+function buildActivityViews(doc: ActivityDoc, filename: string, date: string, version?: string): ActivityViews {
   const networkHeading = 'Network view — Project Schedule Network Diagram (PSND)';
-  const networkSvgStr = networkSvg(doc, networkHeading, filename, date);
+  const networkSvgStr = networkSvg(doc, networkHeading, filename, date, version);
   const gantt: GanttResult = computeGanttLayout(doc);
+
+  // Mirror titleBlockSvg's date line: `v{version} · {date}` when version is set.
+  const trimmedVersion = version?.trim();
+  const dateLine = trimmedVersion ? `v${trimmedVersion} · ${date}` : date;
 
   if (isGanttUnavailable(gantt)) {
     // No SVG to embed the title into — fall back to an HTML title block plus
@@ -437,7 +441,7 @@ function buildActivityViews(doc: ActivityDoc, filename: string, date: string): A
     const ganttBody = `<div class="diagram-title-block diagram-title-block-html">
   <div class="text-header">Gantt view — unavailable</div>
   <div class="text-secondary">${escXml(filename)}</div>
-  <div class="text-secondary">${escXml(date)}</div>
+  <div class="text-secondary">${escXml(dateLine)}</div>
 </div>
 <div class="section-notice">${escXml(gantt.reason)}</div>`;
     return { networkSvg: networkSvgStr, ganttBody, ganttSvg: '' };
@@ -447,7 +451,7 @@ function buildActivityViews(doc: ActivityDoc, filename: string, date: string): A
     ? `computed mode (project ${gantt.timelineStart} → ${gantt.timelineEnd})`
     : `pinned mode (${gantt.timelineStart} → ${gantt.timelineEnd})`;
   const ganttHeading = `Gantt view — ${modeLabel}`;
-  const ganttSvgStr = ganttSvg(gantt, ganttHeading, filename, date);
+  const ganttSvgStr = ganttSvg(gantt, ganttHeading, filename, date, version);
   return { networkSvg: networkSvgStr, ganttBody: ganttSvgStr, ganttSvg: ganttSvgStr };
 }
 
@@ -597,16 +601,22 @@ export class ActivitiesPreview {
     let bodyContent = '';
     let errorMsg = '';
     let warnings: string[] = [];
-    const today = todayIso();
 
     try {
       const parsed = yaml.load(yamlText) as unknown;
+      // Document version/date for the title block. `version` is optional;
+      // `date` falls back to today when the document has no date field —
+      // a frozen version paired with a floating render date would be
+      // incoherent, so the doc's own date wins when present.
+      const raw = (parsed && typeof parsed === 'object' ? parsed : {}) as Record<string, unknown>;
+      const docVersion = typeof raw['version'] === 'string' ? raw['version'] : undefined;
+      const docDate = typeof raw['date'] === 'string' ? raw['date'] : todayIso();
       const v = validateActivities(parsed);
       warnings = v.warnings.map(w => `${w.code}: ${w.message}`);
       if (!v.valid) {
         errorMsg = v.errors.map(e => `${e.code}: ${e.message}`).join('\n');
       } else {
-        const views = buildActivityViews(parsed as ActivityDoc, filename, today);
+        const views = buildActivityViews(parsed as ActivityDoc, filename, docDate, docVersion);
         bodyContent = buildCanvasContent(views);
         this.lastNetworkSvg = views.networkSvg;
         this.lastGanttSvg = views.ganttSvg;
