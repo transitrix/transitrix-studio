@@ -119,7 +119,7 @@ export class ProcessBlueprintPreview {
         'processBlueprintPreview',
         `${this.panelTitle} — ${path.basename(doc.fileName)}`,
         { viewColumn: vscode.ViewColumn.Beside, preserveFocus: false },
-        { enableScripts: false, retainContextWhenHidden: true },
+        { enableScripts: false, retainContextWhenHidden: true, enableCommandUris: ['transitrixStudio.saveProcessBlueprintAsSvg'] },
       );
       this.panel.onDidDispose(() => { this.panel = undefined; this.trackedUri = undefined; });
     }
@@ -162,7 +162,7 @@ export class ProcessBlueprintPreview {
       .getConfiguration('transitrix')
       .get<ThemeId>('theme', 'transitrix');
 
-    return buildDiagramFrame({ filename, notation: 'Process Blueprint', svgContent, errorMsg, warnings, themeId });
+    return buildDiagramFrame({ filename, notation: 'Process Blueprint', svgContent, errorMsg, warnings, themeId, saveSvgCommand: 'transitrixStudio.saveProcessBlueprintAsSvg' });
   }
 
   async saveAsSvg(): Promise<void> {
