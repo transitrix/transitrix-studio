@@ -3,151 +3,26 @@ import * as vscode from 'vscode';
 import yaml from 'js-yaml';
 import { buildDiagramFrame, prepareSvgForExport, type ThemeId } from './diagram-frame.js';
 import { TITLE_BLOCK_H, titleBlockSvg, todayIso } from './svg-title-block.js';
+import {
+  validateGoalTree,
+  layoutGoalTree,
+  type GoalTree,
+  type GoalTreeLayout,
+  type LaidOutEdge,
+} from '../../packages/diagrams/src/goals/index.js';
 
-// ── Canonical types (spec: notations/04-goals.md v0.2) ──────────────────────
+// ── SVG renderer ─────────────────────────────────────────────────────────────
 //
-// goals_tree:
-//   id: "GT-..."
-//   name: "..."
-//   description?: "..."
-//   root:
-//     goal_id: "GOAL-..."
-//     children?:
-//       - goal_id: "GOAL-..."
-//         children?: [...]
-
-interface TreeNode { goal_id: string; children?: TreeNode[]; }
-interface GoalsTreeRoot { id: string; name: string; description?: string; root: TreeNode; }
-interface GoalsTreeDoc { goals_tree: GoalsTreeRoot; }
-
-// Internal flat representation used by the layout engine
-interface FlatGoal { id: string; label: string; depth: number; parentId: string | null; }
-
-interface LaidOutNode { id: string; x: number; y: number; width: number; height: number; depth: number; label: string; }
-interface LaidOutEdge { source: string; target: string; }
-interface GoalTreeLayout {
-  nodes: LaidOutNode[];
-  edges: LaidOutEdge[];
-  bounds: { x: number; y: number; width: number; height: number };
-}
-
-interface ValidationError { code: string; message: string; }
-interface ValidationResult { valid: boolean; errors: ValidationError[]; warnings: Array<{ code: string; message: string }> }
-
-// ── Validation ───────────────────────────────────────────────────────────────
-
-function validateGoalTree(input: unknown): ValidationResult {
-  const errors: ValidationError[] = [];
-  const warnings: Array<{ code: string; message: string }> = [];
-
-  if (!input || typeof input !== 'object') {
-    return { valid: false, errors: [{ code: 'SCHEMA_INVALID', message: 'Input must be an object' }], warnings };
-  }
-
-  const raw = input as Record<string, unknown>;
-
-  if (!raw.goals_tree || typeof raw.goals_tree !== 'object') {
-    errors.push({ code: 'MISSING_ROOT', message: 'goals_tree root key is required' });
-    return { valid: false, errors, warnings };
-  }
-
-  const tree = raw.goals_tree as Record<string, unknown>;
-
-  if (!tree.root || typeof tree.root !== 'object') {
-    errors.push({ code: 'MISSING_ROOT', message: 'goals_tree.root is required' });
-    return { valid: false, errors, warnings };
-  }
-
-  const root = tree.root as Record<string, unknown>;
-  if (!root.goal_id || typeof root.goal_id !== 'string') {
-    errors.push({ code: 'MISSING_GOAL_ID', message: 'goals_tree.root.goal_id must be a non-empty string' });
-  }
-
-  // Check for cycles via DFS
-  function checkCycles(node: TreeNode, seen: Set<string>): boolean {
-    if (seen.has(node.goal_id)) {
-      warnings.push({ code: 'CYCLE_DETECTED', message: `goal_id "${node.goal_id}" appears more than once in the tree` });
-      return false;
-    }
-    seen.add(node.goal_id);
-    for (const child of (node.children ?? [])) checkCycles(child, new Set(seen));
-    return true;
-  }
-
-  if (errors.length === 0) {
-    checkCycles(tree.root as unknown as TreeNode, new Set());
-  }
-
-  return { valid: errors.length === 0, errors, warnings };
-}
-
-// ── Flatten nested tree → internal flat list ─────────────────────────────────
-
-function flattenTree(node: TreeNode, depth: number, parentId: string | null, out: FlatGoal[]): void {
-  out.push({ id: node.goal_id, label: node.goal_id, depth, parentId });
-  for (const child of (node.children ?? [])) {
-    flattenTree(child, depth + 1, node.goal_id, out);
-  }
-}
-
-// ── Layout ───────────────────────────────────────────────────────────────────
+// Validation, layout, and the canonical FLAT shape (`goal_types[]` +
+// `goals[]` with numeric `parent_id`) all come from @transitrix/diagrams.
+// This file only owns the SVG presentation of the layout the package
+// produces — never re-defines the schema, since the example file and the
+// shared package were drifting apart.
 
 const NODE_W = 250;
 const NODE_H = 60;
 const RANK_SEP = 100;
 const NODE_SEP = 24;
-
-function layoutGoalTree(doc: GoalsTreeDoc): GoalTreeLayout {
-  const flat: FlatGoal[] = [];
-  flattenTree(doc.goals_tree.root, 0, null, flat);
-
-  const byId = new Map(flat.map(g => [g.id, g]));
-  const childrenOf = new Map<string | null, string[]>();
-  for (const g of flat) {
-    const key = g.parentId;
-    if (!childrenOf.has(key)) childrenOf.set(key, []);
-    childrenOf.get(key)!.push(g.id);
-  }
-
-  const nodes: LaidOutNode[] = [];
-  const edges: LaidOutEdge[] = [];
-  const colNextY = new Map<number, number>();
-
-  function placeNode(id: string): { top: number; bottom: number } {
-    const goal = byId.get(id);
-    if (!goal) return { top: 0, bottom: 0 };
-    const col = goal.depth;
-    const kids = childrenOf.get(id) ?? [];
-
-    if (kids.length === 0) {
-      const y = colNextY.get(col) ?? 0;
-      colNextY.set(col, y + NODE_H + NODE_SEP);
-      nodes.push({ id, x: col * (NODE_W + RANK_SEP), y, width: NODE_W, height: NODE_H, depth: col, label: goal.label });
-      return { top: y, bottom: y + NODE_H };
-    }
-
-    const spans = kids.map(c => placeNode(c));
-    for (const c of kids) edges.push({ source: id, target: c });
-    const spanTop = Math.min(...spans.map(s => s.top));
-    const spanBot = Math.max(...spans.map(s => s.bottom));
-    const idealY = spanTop + (spanBot - spanTop) / 2 - NODE_H / 2;
-    const finalY = Math.max(idealY, colNextY.get(col) ?? 0);
-    colNextY.set(col, finalY + NODE_H + NODE_SEP);
-    nodes.push({ id, x: col * (NODE_W + RANK_SEP), y: finalY, width: NODE_W, height: NODE_H, depth: col, label: goal.label });
-    return { top: Math.min(finalY, spanTop), bottom: Math.max(finalY + NODE_H, spanBot) };
-  }
-
-  placeNode(doc.goals_tree.root.goal_id);
-
-  if (nodes.length === 0) return { nodes: [], edges: [], bounds: { x: 0, y: 0, width: 0, height: 0 } };
-  const minX = Math.min(...nodes.map(n => n.x));
-  const minY = Math.min(...nodes.map(n => n.y));
-  const maxX = Math.max(...nodes.map(n => n.x + n.width));
-  const maxY = Math.max(...nodes.map(n => n.y + n.height));
-  return { nodes, edges, bounds: { x: minX, y: minY, width: maxX - minX, height: maxY - minY } };
-}
-
-// ── SVG renderer ─────────────────────────────────────────────────────────────
 
 function escXml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -193,8 +68,9 @@ function layoutToSvg(layout: GoalTreeLayout, treeName: string, filename?: string
   const nodeSvg = layout.nodes.map(n => {
     const x = n.x + ox;
     const y = n.y + oy;
-    const level = n.depth % 8;
-    const label = n.label.length > 36 ? n.label.slice(0, 34) + '…' : n.label;
+    const level = n.data.level % 8;
+    const labelText = n.data.name ?? String(n.id);
+    const label = labelText.length > 36 ? labelText.slice(0, 34) + '…' : labelText;
     return `<g>
   <rect class="diagram-node level-${level}" x="${x}" y="${y}" width="${n.width}" height="${n.height}" rx="8"/>
   <text class="text-primary" x="${x + n.width / 2}" y="${y + n.height / 2}" text-anchor="middle" dominant-baseline="central">${escXml(label)}</text>
@@ -266,9 +142,15 @@ export class GoalsPreview {
       if (!v.valid) {
         errorMsg = v.errors.map(e => `${e.code}: ${e.message}`).join('\n');
       } else {
-        const doc = parsed as GoalsTreeDoc;
-        const layout = layoutGoalTree(doc);
-        svgContent = layoutToSvg(layout, doc.goals_tree.name ?? '', filename, todayIso());
+        const tree = parsed as GoalTree;
+        const treeName = (parsed as { title?: unknown }).title;
+        const layout = layoutGoalTree(tree, {
+          nodeWidth: NODE_W,
+          nodeHeight: NODE_H,
+          rankSep: RANK_SEP,
+          nodeSep: NODE_SEP,
+        });
+        svgContent = layoutToSvg(layout, typeof treeName === 'string' ? treeName : '', filename, todayIso());
       }
     } catch (e) {
       errorMsg = (e as Error).message ?? 'Parse error';
