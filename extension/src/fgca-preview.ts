@@ -350,8 +350,8 @@ function buildSvg(doc: FGCADoc, hideChanges = false, heading?: string, filename?
 ${titleSvg}
 <g transform="translate(0, ${titleH})">
 ${headerSvg}
-${edgeSvg}
 ${nodeSvg}
+${edgeSvg}
 </g>
 </svg>`;
 }
