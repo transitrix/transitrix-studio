@@ -227,7 +227,7 @@ export class GoalsPreview {
         'goalsPreview',
         `${this.panelTitle} — ${path.basename(doc.fileName)}`,
         { viewColumn: vscode.ViewColumn.Beside, preserveFocus: false },
-        { enableScripts: false, retainContextWhenHidden: true },
+        { enableScripts: false, retainContextWhenHidden: true, enableCommandUris: ['transitrixStudio.saveGoalsAsSvg'] },
       );
       this.panel.onDidDispose(() => { this.panel = undefined; this.trackedUri = undefined; });
     }
@@ -270,7 +270,7 @@ export class GoalsPreview {
       .getConfiguration('transitrix')
       .get<ThemeId>('theme', 'transitrix');
 
-    return buildDiagramFrame({ filename, notation: 'Goal tree', svgContent, errorMsg, warnings, themeId });
+    return buildDiagramFrame({ filename, notation: 'Goal tree', svgContent, errorMsg, warnings, themeId, saveSvgCommand: 'transitrixStudio.saveGoalsAsSvg' });
   }
 
   async saveAsSvg(): Promise<void> {
