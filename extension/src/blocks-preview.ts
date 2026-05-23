@@ -2,6 +2,11 @@ import * as cp from 'node:child_process';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 import { buildDiagramFrame } from './diagram-frame.js';
+import { todayIso } from './svg-title-block.js';
+
+function escHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
 
 const BLOCKS_STYLES = `
 html { height: 100%; }
@@ -118,7 +123,18 @@ export class BlocksPreview {
       } else {
         const svgs = result.svgs ?? [];
         this.lastSvgs = svgs;
-        const svgContent = `<div class="blocks-svg-wrap">${svgs.join('\n')}</div>`;
+        const today = todayIso();
+        // The blocks backend emits one SVG per top-level block, joined in
+        // `.blocks-svg-wrap`. Embedding the title into each SVG would multiply
+        // captions, so it lives in an HTML header above the wrapper — the same
+        // class as the SVG variant, the Title toggle picks both up via
+        // TITLE_TOGGLE_CSS in diagram-frame.ts.
+        const titleHtml = `<div class="diagram-title-block diagram-title-block-html">
+  <div class="text-header">Block diagram</div>
+  <div class="text-secondary">${escHtml(filename)}</div>
+  <div class="text-secondary">${escHtml(today)}</div>
+</div>`;
+        const svgContent = `${titleHtml}<div class="blocks-svg-wrap">${svgs.join('\n')}</div>`;
         html = buildDiagramFrame({
           filename,
           notation: 'blocks',
