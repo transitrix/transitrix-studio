@@ -295,22 +295,13 @@ function buildSvg(doc: FGCADoc, hideChanges = false, heading?: string, filename?
     ].join('\n');
   }).join('\n');
 
-  // Horizontal stubs at both ends pin the arrow marker on a strictly
-  // horizontal segment so the arrowhead reads as perpendicular to the
-  // node's vertical edge, regardless of the cubic curve's slope.
-  const EDGE_STUB = 8;
+  // Pure cubic bezier. Tangent stays horizontal at both endpoints via the
+  // (mx, sy)/(mx, ty) control points, so the marker-end arrow reads as
+  // perpendicular to the node's vertical edge. Marker refX = markerWidth
+  // pins the tip at the path endpoint.
   const edgeSvg = edges.map(e => {
-    let d: string;
-    if (e.tx - e.sx > 2 * EDGE_STUB) {
-      const exitX = e.sx + EDGE_STUB;
-      const enterX = e.tx - EDGE_STUB;
-      const mx = (exitX + enterX) / 2;
-      d = `M${e.sx},${e.sy} L${exitX},${e.sy} C${mx},${e.sy} ${mx},${e.ty} ${enterX},${e.ty} L${e.tx},${e.ty}`;
-    } else {
-      const mx = (e.sx + e.tx) / 2;
-      d = `M${e.sx},${e.sy} C${mx},${e.sy} ${mx},${e.ty} ${e.tx},${e.ty}`;
-    }
-    return `<path d="${d}" class="diagram-edge" marker-end="url(#arrow)"/>`;
+    const mx = (e.sx + e.tx) / 2;
+    return `<path d="M${e.sx},${e.sy} C${mx},${e.sy} ${mx},${e.ty} ${e.tx},${e.ty}" class="diagram-edge" marker-end="url(#arrow)"/>`;
   }).join('\n');
 
   const nodeSvg = nodes.map(n => {
@@ -343,7 +334,7 @@ function buildSvg(doc: FGCADoc, hideChanges = false, heading?: string, filename?
   // group so the title block can sit above without rewriting every node/edge.
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${totalH}" viewBox="0 0 ${width} ${totalH}">
 <defs>
-  <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+  <marker id="arrow" markerWidth="8" markerHeight="8" refX="8" refY="3" orient="auto">
     <path d="M0,0 L0,6 L8,3 z" class="arrow-fill"/>
   </marker>
 </defs>

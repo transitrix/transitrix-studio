@@ -55,11 +55,12 @@ function networkSvg(doc: ActivityDoc, heading?: string, filename?: string, date?
   const orderedEdges = [...layout.edges].sort(
     (a, b) => Number(Boolean(a.isCritical)) - Number(Boolean(b.isCritical)),
   );
-  // Edge path = short horizontal stub out of source → smooth cubic to a stub
-  // before the target → short horizontal stub into the target. The arrow
-  // marker lands on the trailing horizontal segment, so it always reads as
-  // perpendicular to the node's vertical edge — no tilted arrowheads.
-  const EDGE_STUB = 8;
+  // Pure cubic bezier. Tangent at both endpoints is mathematically horizontal
+  // (control points at (mx, sy) and (mx, ty) — same Y as the respective
+  // endpoint), so the marker-end arrow auto-orients horizontal and reads as
+  // perpendicular to the target's vertical edge. Marker refX = markerWidth
+  // anchors the tip at the path endpoint, so the arrow lands ON the bar's
+  // left edge rather than poking inside it.
   const edgeSvg = orderedEdges.map(e => {
     const s = nodeMap.get(e.sourceId);
     const t = nodeMap.get(e.targetId);
@@ -68,19 +69,10 @@ function networkSvg(doc: ActivityDoc, heading?: string, filename?: string, date?
     const sy = s.y + oy + s.height / 2;
     const tx = t.x + ox;
     const ty = t.y + oy + t.height / 2;
+    const mx = (sx + tx) / 2;
     const cls = e.isCritical ? 'diagram-edge critical-edge' : 'diagram-edge';
     const marker = `url(#${e.isCritical ? 'arrow-crit' : 'arrow'})`;
-    let d: string;
-    if (tx - sx > 2 * EDGE_STUB) {
-      const exitX = sx + EDGE_STUB;
-      const enterX = tx - EDGE_STUB;
-      const mx = (exitX + enterX) / 2;
-      d = `M${sx},${sy} L${exitX},${sy} C${mx},${sy} ${mx},${ty} ${enterX},${ty} L${tx},${ty}`;
-    } else {
-      const mx = (sx + tx) / 2;
-      d = `M${sx},${sy} C${mx},${sy} ${mx},${ty} ${tx},${ty}`;
-    }
-    return `<path d="${d}" class="${cls}" marker-end="${marker}"/>`;
+    return `<path d="M${sx},${sy} C${mx},${sy} ${mx},${ty} ${tx},${ty}" class="${cls}" marker-end="${marker}"/>`;
   }).join('\n');
 
   const nodeSvg = layout.nodes.map(n => {
@@ -103,10 +95,10 @@ function networkSvg(doc: ActivityDoc, heading?: string, filename?: string, date?
   const titleSvg = showTitle ? titleBlockSvg(heading!, filename!, date!, N_PAD, N_PAD) : '';
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
 <defs>
-  <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+  <marker id="arrow" markerWidth="8" markerHeight="8" refX="8" refY="3" orient="auto">
     <path d="M0,0 L0,6 L8,3 z" class="arrow-fill"/>
   </marker>
-  <marker id="arrow-crit" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+  <marker id="arrow-crit" markerWidth="8" markerHeight="8" refX="8" refY="3" orient="auto">
     <path d="M0,0 L0,6 L8,3 z" class="arrow-fill-critical"/>
   </marker>
 </defs>
@@ -281,7 +273,7 @@ function ganttSvg(layout: GanttLayout, heading?: string, filename?: string, date
   const LINK_MIN_STUB = 6;
   const STUB_OUT = 8;       // right-stub past source before turning down
   const BACK_OFFSET = 8;    // back-step distance to the LEFT of sx for the long vertical
-  const ENTER_DEPTH = 4;    // how far inside target the arrow path lands (marker tip ~1px further)
+  const ENTER_DEPTH = 0;    // path ends exactly at target.left so marker tip lands on the bar's edge, not inside it
 
   // Group links by source so all outgoing links share one trunk.
   const linksBySource = new Map<string, typeof layout.links>();
@@ -395,10 +387,10 @@ function ganttSvg(layout: GanttLayout, heading?: string, filename?: string, date
   const titleSvg = showTitle ? titleBlockSvg(heading!, filename!, date!, G_PAD, G_PAD) : '';
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
 <defs>
-  <marker id="gantt-arrow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="userSpaceOnUse">
+  <marker id="gantt-arrow" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto" markerUnits="userSpaceOnUse">
     <path d="M0,0 L0,6 L6,3 z" class="arrow-fill"/>
   </marker>
-  <marker id="gantt-arrow-crit" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="userSpaceOnUse">
+  <marker id="gantt-arrow-crit" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto" markerUnits="userSpaceOnUse">
     <path d="M0,0 L0,6 L6,3 z" class="arrow-fill-critical"/>
   </marker>
 </defs>
@@ -492,6 +484,16 @@ const ACTIVITIES_DIAGRAM_CSS = `
 
 /** Webview-only chrome (tab switcher, section notice). Not exported. */
 const ACTIVITIES_WEBVIEW_CSS = `
+  /* ── Fill the webview viewport ──────────────────────────────────────── */
+  /* The base shell leaves #canvas at content height with overflow:auto, so a
+     diagram shorter or narrower than the panel strands the canvas's own
+     scrollbar mid-panel with empty space below it. Make <body> a full-height
+     flex column and let #canvas grow into a single scroll region — the same
+     pattern the blocks preview already uses. */
+  html, body { height: 100%; }
+  body { display: flex; flex-direction: column; }
+  #canvas { flex: 1; min-height: 0; overflow: auto; }
+
   /* ── View switcher (CSS-only, no JS) ────────────────────────────────── */
   /* Move the radios fully off-screen rather than just hiding via opacity —
      keeps them keyboard-focusable while not taking layout space, and stops
