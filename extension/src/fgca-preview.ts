@@ -2,6 +2,7 @@ import * as path from 'node:path';
 import * as vscode from 'vscode';
 import yaml from 'js-yaml';
 import { buildDiagramFrame, prepareSvgForExport, type ThemeId } from './diagram-frame.js';
+import { TITLE_BLOCK_H, titleBlockSvg, todayIso } from './svg-title-block.js';
 
 // ── Inline types ──────────────────────────────────────────────────────────────
 //
@@ -278,8 +279,10 @@ function escXml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-function buildSvg(doc: FGCADoc, hideChanges = false): string {
+function buildSvg(doc: FGCADoc, hideChanges = false, heading?: string, filename?: string, date?: string): string {
   const { nodes, edges, width, height } = layoutFGCA(doc, hideChanges);
+  const showTitle = heading != null && filename != null && date != null;
+  const titleH = showTitle ? TITLE_BLOCK_H : 0;
   const cols = hideChanges
     ? (['factor', 'goal', 'activity'] as const)
     : (['factor', 'goal', 'change', 'activity'] as const);
@@ -321,15 +324,22 @@ function buildSvg(doc: FGCADoc, hideChanges = false): string {
     ].filter(Boolean).join('\n');
   }).join('\n');
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+  const totalH = height + titleH;
+  const titleSvg = showTitle ? titleBlockSvg(heading!, filename!, date!, PAD, PAD) : '';
+  // The layoutFGCA coordinates are absolute; wrap the diagram in a translate
+  // group so the title block can sit above without rewriting every node/edge.
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${totalH}" viewBox="0 0 ${width} ${totalH}">
 <defs>
   <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
     <path d="M0,0 L0,6 L8,3 z" class="arrow-fill"/>
   </marker>
 </defs>
+${titleSvg}
+<g transform="translate(0, ${titleH})">
 ${headerSvg}
 ${edgeSvg}
 ${nodeSvg}
+</g>
 </svg>`;
 }
 
@@ -384,7 +394,7 @@ export class FGCAPreview {
       if (!v.valid) {
         errorMsg = v.errors.map(e => `${e.code}: ${e.message}`).join('\n');
       } else {
-        svgContent = buildSvg(parsed as FGCADoc);
+        svgContent = buildSvg(parsed as FGCADoc, false, 'FGCA — Factor → Goal → Change → Activity', filename, todayIso());
       }
     } catch (e) {
       errorMsg = (e as Error).message ?? 'Parse error';
@@ -472,7 +482,7 @@ export class FGAPreview {
         errorMsg = v.errors.map(e => `${e.code}: ${e.message}`).join('\n');
       } else {
         const flat = fgaToFlat(parsed as FGADoc);
-        svgContent = buildSvg(flat, true);
+        svgContent = buildSvg(flat, true, 'FGA — Factor → Goal → Activity', filename, todayIso());
       }
     } catch (e) {
       errorMsg = (e as Error).message ?? 'Parse error';

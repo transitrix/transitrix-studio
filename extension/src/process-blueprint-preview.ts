@@ -2,6 +2,7 @@ import * as path from 'node:path';
 import * as vscode from 'vscode';
 import yaml from 'js-yaml';
 import { buildDiagramFrame, prepareSvgForExport, type ThemeId } from './diagram-frame.js';
+import { TITLE_BLOCK_H, titleBlockSvg, todayIso } from './svg-title-block.js';
 import {
   validateProcessBlueprint,
   layoutProcessBlueprint,
@@ -18,12 +19,14 @@ function truncate(text: string, maxChars: number): string {
   return text.slice(0, Math.max(0, maxChars - 1)) + '…';
 }
 
-function layoutToSvg(layout: ProcessBlueprintLayout): string {
+function layoutToSvg(layout: ProcessBlueprintLayout, filename?: string, date?: string): string {
   const pad = 24;
+  const showTitle = filename != null && date != null;
+  const titleH = showTitle ? TITLE_BLOCK_H : 0;
   const w = layout.bounds.width + pad * 2;
-  const h = layout.bounds.height + pad * 2;
+  const h = layout.bounds.height + pad * 2 + titleH;
   const ox = pad;
-  const oy = pad;
+  const oy = pad + titleH;
 
   const parts: string[] = [];
 
@@ -89,7 +92,9 @@ function layoutToSvg(layout: ProcessBlueprintLayout): string {
     }
   }
 
+  const titleSvg = showTitle ? titleBlockSvg('Process Blueprint', filename!, date!, pad, pad) : '';
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+${titleSvg}
 ${parts.join('\n')}
 </svg>`;
 }
@@ -145,7 +150,7 @@ export class ProcessBlueprintPreview {
       } else {
         const file = parsed as ProcessBlueprintFile;
         const layout = layoutProcessBlueprint(file);
-        svgContent = layoutToSvg(layout);
+        svgContent = layoutToSvg(layout, filename, todayIso());
       }
     } catch (e) {
       errorMsg = (e as Error).message ?? 'Parse error';

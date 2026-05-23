@@ -128,6 +128,13 @@ const TITLE_TOGGLE_CSS = `
 .title-toggle-cb:not(:checked) ~ .frame-header { display: none; }
 .title-toggle-cb:not(:checked) ~ #canvas .diagram-caption { display: none; }
 .title-toggle-cb:not(:checked) ~ #canvas .diagram-title-block { display: none; }
+
+/* HTML-rendered title block — used when a preview can't embed in SVG
+   (Gantt-unavailable notice, blocks preview's multi-SVG wrapper). Same class
+   as the SVG variant so the toggle catches both. Reuses .text-header /
+   .text-secondary from the shared theme so the typography matches. */
+.diagram-title-block-html { margin: 0 16px 12px; }
+.diagram-title-block-html div { line-height: 16px; }
 `;
 
 /**
