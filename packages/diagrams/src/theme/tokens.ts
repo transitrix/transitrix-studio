@@ -37,6 +37,43 @@ export const STRUCTURAL = {
   headerText:    { light: '#374151', dark: '#e5e7eb', hc: '#ffffff' },
 } as const;
 
+/**
+ * Maturity scale fill colors — Likert 1..5, danger→success.
+ * Used by Capability Map and any future maturity-based notation.
+ */
+export const MATURITY_COLORS = {
+  light: ['#b91c1c', '#d97706', '#ca8a04', '#65a30d', '#15803d'],
+  dark:  ['#7f1d1d', '#92400e', '#854d0e', '#3f6212', '#14532d'],
+  hc:    ['#f87171', '#fb923c', '#facc15', '#a3e635', '#4ade80'],
+} as const;
+
+/**
+ * Typography hierarchy. All previews resolve text styling from these roles
+ * — never from inline font-* attributes on individual <text> elements.
+ *
+ * fontFamily threads through the VS Code font setting so the preview reads
+ * as part of the editor; size + weight encode the visual hierarchy.
+ */
+export const TYPOGRAPHY = {
+  fontFamily: 'var(--vscode-font-family, system-ui, -apple-system, sans-serif)',
+  sizes: {
+    header:    13,  // stage/column headers, diagram captions
+    primary:   12,  // primary node/cell labels
+    secondary: 11,  // annotations, secondary lines, meta
+    id:        10,  // compact id/code chips
+    pill:      11,  // pill labels (process-blueprint aspects, badges)
+    caption:   11,  // figcaption under the canvas
+  },
+  weights: {
+    header:    700,
+    primary:   600,
+    secondary: 400,
+    id:        600,
+    pill:      500,
+    caption:   400,
+  },
+} as const;
+
 /** Adaptive shell tokens (background, text, border, status). */
 export interface AdaptiveTokens {
   bg:               string;
@@ -84,6 +121,11 @@ export const CSS_VAR = {
   textPrimary:      '--ts-text-primary',
   textSecondary:    '--ts-text-secondary',
   headerText:       '--ts-header-text',
+  maturity1:        '--ts-maturity-1',
+  maturity2:        '--ts-maturity-2',
+  maturity3:        '--ts-maturity-3',
+  maturity4:        '--ts-maturity-4',
+  maturity5:        '--ts-maturity-5',
 } as const;
 
 export function getBaseResetCss(): string {
