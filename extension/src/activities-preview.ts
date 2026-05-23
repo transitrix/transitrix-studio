@@ -49,7 +49,13 @@ function networkSvg(doc: ActivityDoc, heading?: string, filename?: string, date?
   const oy = -layout.bounds.y + N_PAD + titleH;
 
   const nodeMap = new Map(layout.nodes.map(n => [n.id, n]));
-  const edgeSvg = layout.edges.map(e => {
+  // SVG paints later siblings over earlier ones. Sort non-critical first so
+  // the bright orange critical-path edges land on top — a gray edge crossing
+  // an orange one shouldn't bury the critical signal.
+  const orderedEdges = [...layout.edges].sort(
+    (a, b) => Number(Boolean(a.isCritical)) - Number(Boolean(b.isCritical)),
+  );
+  const edgeSvg = orderedEdges.map(e => {
     const s = nodeMap.get(e.sourceId);
     const t = nodeMap.get(e.targetId);
     if (!s || !t) return '';
@@ -248,7 +254,14 @@ function ganttSvg(layout: GanttLayout, heading?: string, filename?: string, date
   // Backward links (tx < sx — pinned-mode overlap where target.start_date
   // precedes source.end_date, or targets sorted above source in the row
   // order) use the existing detour-below routing.
-  const linkParts: string[] = [];
+  // Two buckets so critical paths render on top of gray ones — SVG paints
+  // later siblings over earlier ones, and a gray edge crossing an orange one
+  // shouldn't bury the critical signal.
+  const linkPartsGray: string[] = [];
+  const linkPartsCrit: string[] = [];
+  function pushLinkPath(html: string, isCritical: boolean): void {
+    (isCritical ? linkPartsCrit : linkPartsGray).push(html);
+  }
   const LINK_GAP = 4;
   const LINK_MIN_STUB = 6;
   const STUB_OUT = 8;       // right-stub past source before turning down
@@ -301,7 +314,7 @@ function ganttSvg(layout: GanttLayout, heading?: string, filename?: string, date
       const anyCritical = forward.some(t => t.link.isCritical);
       const topCls = anyCritical ? 'diagram-edge critical-edge' : 'diagram-edge';
       const topD = `M${sx},${sy} L${stubX},${sy} L${stubX},${midY} L${backX},${midY}`;
-      linkParts.push(`<path d="${topD}" class="${topCls}" fill="none"/>`);
+      pushLinkPath(`<path d="${topD}" class="${topCls}" fill="none"/>`, anyCritical);
 
       // Long vertical at x = backX, split at each target's row. Each segment
       // is coloured by whether any route still served by it (= targets at or
@@ -315,7 +328,7 @@ function ganttSvg(layout: GanttLayout, heading?: string, filename?: string, date
         const segCritical = sortedForward.slice(i).some(t => t.link.isCritical);
         const segCls = segCritical ? 'diagram-edge critical-edge' : 'diagram-edge';
         const segD = `M${backX},${segTop} L${backX},${segBottom}`;
-        linkParts.push(`<path d="${segD}" class="${segCls}" fill="none"/>`);
+        pushLinkPath(`<path d="${segD}" class="${segCls}" fill="none"/>`, segCritical);
         segTop = segBottom;
       }
 
@@ -327,7 +340,7 @@ function ganttSvg(layout: GanttLayout, heading?: string, filename?: string, date
         const marker = t.link.isCritical ? 'gantt-arrow-crit' : 'gantt-arrow';
         const enterX = t.tx + ENTER_DEPTH;
         const branchD = `M${backX},${t.ty} L${enterX},${t.ty}`;
-        linkParts.push(`<path d="${branchD}" class="${cls}" fill="none" marker-end="url(#${marker})"/>`);
+        pushLinkPath(`<path d="${branchD}" class="${cls}" fill="none" marker-end="url(#${marker})"/>`, t.link.isCritical);
       }
     }
 
@@ -338,7 +351,7 @@ function ganttSvg(layout: GanttLayout, heading?: string, filename?: string, date
       const sxOut = sx + LINK_GAP;
       const txIn = t.tx + LINK_MIN_STUB;
       const d = `M${sxOut},${sy} L${sxOut},${hookY} L${txIn},${hookY} L${txIn},${t.ty}`;
-      linkParts.push(`<path d="${d}" class="${cls}" fill="none" marker-end="url(#${marker})"/>`);
+      pushLinkPath(`<path d="${d}" class="${cls}" fill="none" marker-end="url(#${marker})"/>`, t.link.isCritical);
     }
   }
 
@@ -355,7 +368,7 @@ function ganttSvg(layout: GanttLayout, heading?: string, filename?: string, date
 ${titleSvg}
 ${headerParts.join('\n')}
 ${rowParts.join('\n')}
-${linkParts.join('\n')}
+${[...linkPartsGray, ...linkPartsCrit].join('\n')}
 </svg>`;
 }
 
