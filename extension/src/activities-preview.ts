@@ -403,8 +403,31 @@ function buildCanvasContent(doc: ActivityDoc, filename: string, date: string): s
 }
 
 // ── Extra CSS injected into the diagram frame ───────────────────────────────
+//
+// Split into two pieces so the exported .svg file carries only the rules that
+// shape the diagram itself. Webview-shell rules (view switcher, section
+// notice) are useless — and confusing — when the SVG is opened in Chrome.
 
-const ACTIVITIES_STYLES = `
+/** Diagram-class CSS used both in the webview and in saved .svg exports. */
+const ACTIVITIES_DIAGRAM_CSS = `
+  .act-node { fill: var(--ts-bg-surface, #f8fafc); stroke: var(--ts-border, #94a3b8); stroke-width: 1.5; }
+  .critical-node { fill: #fff7ed; stroke: var(--ts-brand-orange, #ff4d00); stroke-width: 2.5; }
+  .milestone-node { fill: #ecfeff; stroke: var(--ts-text-muted, #64748b); stroke-dasharray: 4 2; }
+  .critical-edge { stroke: var(--ts-brand-orange, #ff4d00); stroke-width: 2; }
+  .arrow-fill-critical { fill: var(--ts-brand-orange, #ff4d00); }
+
+  .gantt-header { fill: var(--ts-bg-subtle, #f1f5f9); stroke: var(--ts-border, #cbd5e1); stroke-width: 1; }
+  .gantt-grid { stroke: var(--ts-border, #cbd5e1); stroke-width: 1; opacity: 0.5; }
+  .gantt-row-alt { fill: var(--ts-bg-subtle, #f8fafc); opacity: 0.5; }
+  .gantt-bar { fill: var(--ts-bg-surface, #dbeafe); stroke: var(--ts-border, #60a5fa); stroke-width: 1; }
+  .gantt-bar.critical-bar { fill: #fff7ed; stroke: var(--ts-brand-orange, #ff4d00); stroke-width: 1.5; }
+  .gantt-phase { fill: var(--ts-text-muted, #475569); opacity: 0.85; }
+  .gantt-milestone { fill: var(--ts-text, #0f172a); }
+  .gantt-milestone.critical-bar { fill: var(--ts-brand-orange, #ff4d00); }
+`;
+
+/** Webview-only chrome (tab switcher, section notice). Not exported. */
+const ACTIVITIES_WEBVIEW_CSS = `
   /* ── View switcher (CSS-only, no JS) ────────────────────────────────── */
   /* Move the radios fully off-screen rather than just hiding via opacity —
      keeps them keyboard-focusable while not taking layout space, and stops
@@ -444,22 +467,9 @@ const ACTIVITIES_STYLES = `
 
   .diagram-section { margin: 8px 0 16px; }
   .section-notice { margin: 0 16px; padding: 10px 14px; border-left: 3px solid var(--ts-text-muted, #94a3b8); background: var(--ts-bg-subtle, #f8fafc); color: var(--ts-text-muted, #64748b); font-size: 12px; }
-
-  .act-node { fill: var(--ts-bg-surface, #f8fafc); stroke: var(--ts-border, #94a3b8); stroke-width: 1.5; }
-  .critical-node { fill: #fff7ed; stroke: var(--ts-brand-orange, #ff4d00); stroke-width: 2.5; }
-  .milestone-node { fill: #ecfeff; stroke: var(--ts-text-muted, #64748b); stroke-dasharray: 4 2; }
-  .critical-edge { stroke: var(--ts-brand-orange, #ff4d00); stroke-width: 2; }
-  .arrow-fill-critical { fill: var(--ts-brand-orange, #ff4d00); }
-
-  .gantt-header { fill: var(--ts-bg-subtle, #f1f5f9); stroke: var(--ts-border, #cbd5e1); stroke-width: 1; }
-  .gantt-grid { stroke: var(--ts-border, #cbd5e1); stroke-width: 1; opacity: 0.5; }
-  .gantt-row-alt { fill: var(--ts-bg-subtle, #f8fafc); opacity: 0.5; }
-  .gantt-bar { fill: var(--ts-bg-surface, #dbeafe); stroke: var(--ts-border, #60a5fa); stroke-width: 1; }
-  .gantt-bar.critical-bar { fill: #fff7ed; stroke: var(--ts-brand-orange, #ff4d00); stroke-width: 1.5; }
-  .gantt-phase { fill: var(--ts-text-muted, #475569); opacity: 0.85; }
-  .gantt-milestone { fill: var(--ts-text, #0f172a); }
-  .gantt-milestone.critical-bar { fill: var(--ts-brand-orange, #ff4d00); }
 `;
+
+const ACTIVITIES_STYLES = ACTIVITIES_WEBVIEW_CSS + ACTIVITIES_DIAGRAM_CSS;
 
 // ── ActivitiesPreview webview class ───────────────────────────────────────────
 
@@ -562,7 +572,7 @@ export class ActivitiesPreview {
     const target = await vscode.window.showSaveDialog({ defaultUri, filters: { 'SVG Image': ['svg'] } });
     if (!target) return;
     const themeId = vscode.workspace.getConfiguration('transitrix').get<ThemeId>('theme', 'transitrix');
-    const svg = prepareSvgForExport(this.lastSvg, themeId);
+    const svg = prepareSvgForExport(this.lastSvg, themeId, ACTIVITIES_DIAGRAM_CSS);
     await vscode.workspace.fs.writeFile(target, Buffer.from(svg, 'utf-8'));
     vscode.window.showInformationMessage(`Saved: ${path.basename(target.fsPath)}`);
   }
