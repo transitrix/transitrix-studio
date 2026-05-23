@@ -302,7 +302,29 @@ function ganttSvg(layout: GanttLayout, heading?: string, filename?: string, date
       else backward.push({ link, tx, ty });
     }
 
-    if (forward.length > 0) {
+    // Forward routes: when *every* outgoing target has enough horizontal room
+    // for its own elbow, skip the trunk and emit per-target right-down-right
+    // L-elbows. The trunk+branches design exists to gather multiple outgoing
+    // routes safely and to keep the back-step vertical clear of intermediate
+    // bars — both concerns vanish when each target sits far enough past the
+    // source's end column to host its own vertical with STUB_OUT clearance
+    // from both edges. Hand-test feedback: the back-step LEFT of source read
+    // as a pointless kink even when the source had multiple outgoing links,
+    // as long as all of them had room.
+    if (forward.length > 0 && forward.every(t => (t.tx - sx) >= 2 * STUB_OUT)) {
+      for (const t of forward) {
+        const cls = t.link.isCritical ? 'diagram-edge critical-edge' : 'diagram-edge';
+        const marker = t.link.isCritical ? 'gantt-arrow-crit' : 'gantt-arrow';
+        const enterX = t.tx + ENTER_DEPTH;
+        // Vertical at the midpoint between source.end and target.start, clamped
+        // to STUB_OUT away from either bar edge (the all-have-room check above
+        // already guarantees the clamp window is non-empty).
+        const midX = (sx + t.tx) / 2;
+        const vx = Math.max(sx + STUB_OUT, Math.min(t.tx - STUB_OUT, midX));
+        const d = `M${sx},${sy} L${vx},${sy} L${vx},${t.ty} L${enterX},${t.ty}`;
+        pushLinkPath(`<path d="${d}" class="${cls}" fill="none" marker-end="url(#${marker})"/>`, t.link.isCritical);
+      }
+    } else if (forward.length > 0) {
       const midY = sy + G_ROW_H / 2;
       const stubX = sx + STUB_OUT;
       const backX = sx - BACK_OFFSET;
