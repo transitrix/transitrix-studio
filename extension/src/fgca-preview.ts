@@ -97,6 +97,12 @@ function validateFGCA(input: unknown): ValidationResult {
  * methodology spec and broke `examples/fga/strategy-2026.fga.transitrix.yaml`
  * on open with "fga root key is required". Validation now mirrors validateFGCA
  * exactly, just with `changes` optional/empty.
+ *
+ * NOTE: this is a **provisional 1.0.0 shape**, not the canonical decision.
+ * The family-wide flat-vs-nested-root choice for FGCA / FGA / Goals /
+ * Activities is filed for methodology-level resolution in strategy hub
+ * issue #37 — post-1.0.0. If that lands on nested-root, all four notations
+ * migrate together; FGA is not specially burdened.
  */
 function validateFGA(input: unknown): ValidationResult {
   const errors: ValidationError[] = [];
