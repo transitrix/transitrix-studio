@@ -1,7 +1,7 @@
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 import yaml from 'js-yaml';
-import { buildDiagramFrame, type ThemeId } from './diagram-frame.js';
+import { buildDiagramFrame, CATALOGUE_STYLES, type ThemeId } from './diagram-frame.js';
 
 // ── Inline types (mirror packages/diagrams/src/capability-map/types.ts) ───────
 
@@ -289,15 +289,12 @@ export class CapabilityMapPreview {
       subtitle,
       version,
       date,
-      extraStyles: CAPABILITY_MAP_STYLES,
+      extraStyles: CATALOGUE_STYLES + CAPABILITY_MAP_STYLES,
     });
   }
 }
 
 const CAPABILITY_MAP_STYLES = `
-  #canvas {
-    padding: 0 20px 16px;
-  }
   .cap-axis {
     margin-bottom: 24px;
   }
@@ -360,11 +357,11 @@ const CAPABILITY_MAP_STYLES = `
     letter-spacing: 0.04em;
     color: #fff;
   }
-  .maturity-1 { background: #b91c1c; }
-  .maturity-2 { background: #d97706; }
-  .maturity-3 { background: #ca8a04; }
-  .maturity-4 { background: #65a30d; }
-  .maturity-5 { background: #15803d; }
+  .maturity-pill.maturity-1 { background: var(--ts-maturity-1, #b91c1c); }
+  .maturity-pill.maturity-2 { background: var(--ts-maturity-2, #d97706); }
+  .maturity-pill.maturity-3 { background: var(--ts-maturity-3, #ca8a04); }
+  .maturity-pill.maturity-4 { background: var(--ts-maturity-4, #65a30d); }
+  .maturity-pill.maturity-5 { background: var(--ts-maturity-5, #15803d); }
   .maturity-arrow {
     color: var(--ts-text-muted, #64748b);
     font-size: 13px;

@@ -1,7 +1,7 @@
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 import yaml from 'js-yaml';
-import { buildDiagramFrame, type ThemeId } from './diagram-frame.js';
+import { buildDiagramFrame, CATALOGUE_STYLES, type ThemeId } from './diagram-frame.js';
 
 // ── Inline types (mirror packages/diagrams/src/process-map/types.ts) ──────────
 
@@ -303,15 +303,12 @@ export class ProcessMapPreview {
       subtitle,
       version,
       date,
-      extraStyles: PROCESS_MAP_STYLES,
+      extraStyles: CATALOGUE_STYLES + PROCESS_MAP_STYLES,
     });
   }
 }
 
 const PROCESS_MAP_STYLES = `
-  #canvas {
-    padding: 0 20px 16px;
-  }
   .group-section {
     margin-bottom: 24px;
     border: 1px solid var(--ts-divider, #cbd5e1);
@@ -404,23 +401,6 @@ const PROCESS_MAP_STYLES = `
     color: var(--ts-text-muted, #64748b);
     margin-top: 4px;
   }
-  .badge {
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 10px;
-    font-size: 11px;
-    font-weight: 600;
-    white-space: nowrap;
-  }
-  .badge-active     { background: var(--ts-status-success-bg, #d1fae5); color: var(--ts-status-success-fg, #065f46); }
-  .badge-draft      { background: var(--ts-status-info-bg, #e0f2fe);   color: var(--ts-status-info-fg, #0c4a6e); }
-  .badge-deprecated { background: var(--ts-status-warning-bg, #fef9c3); color: var(--ts-status-warning-fg, #854d0e); }
-  .maturity-dots {
-    font-size: 14px;
-    letter-spacing: 1px;
-    color: var(--ts-brand-primary, #004d67);
-  }
-  .maturity-none { color: var(--ts-text-muted, #64748b); }
   .cap-tag {
     display: inline-block;
     padding: 2px 6px;
@@ -434,19 +414,13 @@ const PROCESS_MAP_STYLES = `
     font-size: 12px;
     color: var(--ts-brand-primary, #004d67);
   }
-  .cell-empty { color: var(--ts-text-muted, #94a3b8); }
   .col-name      { min-width: 220px; }
   .col-status, .col-maturity, .col-owner, .col-capability, .col-bpmn { white-space: nowrap; }
-  .empty-group {
+  .empty-group, .empty-map {
     text-align: center;
     color: var(--ts-text-muted, #64748b);
-    padding: 18px;
     font-style: italic;
   }
-  .empty-map {
-    text-align: center;
-    color: var(--ts-text-muted, #64748b);
-    padding: 48px;
-    font-style: italic;
-  }
+  .empty-group { padding: 18px; }
+  .empty-map   { padding: 48px; }
 `;

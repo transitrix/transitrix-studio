@@ -1,7 +1,7 @@
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 import yaml from 'js-yaml';
-import { buildDiagramFrame, type ThemeId } from './diagram-frame.js';
+import { buildDiagramFrame, CATALOGUE_STYLES, type ThemeId } from './diagram-frame.js';
 
 // ── Inline types (mirror packages/diagrams/src/scenarios/types.ts) ────────────
 
@@ -299,15 +299,12 @@ export class ScenariosPreview {
       subtitle,
       version,
       date,
-      extraStyles: SCENARIOS_STYLES,
+      extraStyles: CATALOGUE_STYLES + SCENARIOS_STYLES,
     });
   }
 }
 
 const SCENARIOS_STYLES = `
-  #canvas {
-    padding: 0 20px 16px;
-  }
   .scn-header-section {
     margin-bottom: 16px;
   }
@@ -408,21 +405,12 @@ const SCENARIOS_STYLES = `
     font-size: 12px;
     border: 1px solid var(--ts-divider, #cbd5e1);
   }
-  .badge {
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 10px;
-    font-size: 11px;
-    font-weight: 600;
-    white-space: nowrap;
-  }
-  .badge-active   { background: var(--ts-status-success-bg, #d1fae5); color: var(--ts-status-success-fg, #065f46); }
-  .badge-draft    { background: var(--ts-status-info-bg, #e0f2fe);    color: var(--ts-status-info-fg, #0c4a6e); }
-  .badge-archived { background: var(--ts-bg-elevated, #f1f5f9);       color: var(--ts-text-muted, #64748b); }
+  /* Scenarios uses "archived" as muted (dormant), not warning — overrides catalogue default. */
+  .badge-archived { background: var(--ts-bg-elevated, #f1f5f9); color: var(--ts-text-muted, #64748b); }
+  /* Relevance ladder — scenarios-specific. */
   .badge-high   { background: var(--ts-status-warning-bg, #fef9c3); color: var(--ts-status-warning-fg, #854d0e); }
   .badge-medium { background: var(--ts-status-info-bg, #e0f2fe);    color: var(--ts-status-info-fg, #0c4a6e); }
   .badge-low    { background: var(--ts-bg-elevated, #f1f5f9);       color: var(--ts-text-muted, #64748b); }
-  .cell-empty { color: var(--ts-text-muted, #94a3b8); }
   .empty-scenario {
     text-align: center;
     color: var(--ts-text-muted, #64748b);

@@ -93,6 +93,42 @@ const FRAME_HEADER_CSS = `
 .frame-meta{font-size:11px;color:var(--ts-text-muted,#64748b);letter-spacing:0.04em;}
 `;
 
+/**
+ * Shared styling for catalogue-style HTML previews (applications, products,
+ * process-map, scenarios, capability-map). Covers the bits that every
+ * catalogue notation duplicates verbatim — badges, maturity dots, empty
+ * states, details/summary, table reset. Notation-specific table class names
+ * and entity-row classes stay local to each preview.
+ *
+ * Inject by prepending to the preview's own extraStyles:
+ *   extraStyles: CATALOGUE_STYLES + LOCAL_STYLES
+ */
+export const CATALOGUE_STYLES = `
+#canvas { padding: 0 20px 16px; }
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+.badge-active        { background: var(--ts-status-success-bg, #d1fae5); color: var(--ts-status-success-fg, #065f46); }
+.badge-draft         { background: var(--ts-status-info-bg, #e0f2fe);    color: var(--ts-status-info-fg, #0c4a6e); }
+.badge-deprecated    { background: var(--ts-status-warning-bg, #fef9c3); color: var(--ts-status-warning-fg, #854d0e); }
+.badge-decommissioning { background: var(--ts-status-error-bg, #fee2e2); color: var(--ts-status-error-fg, #991b1b); }
+.badge-archived      { background: var(--ts-status-warning-bg, #fef9c3); color: var(--ts-status-warning-fg, #854d0e); }
+.maturity-dots { font-size: 14px; letter-spacing: 1px; color: var(--ts-brand-primary, #004d67); }
+.maturity-none { color: var(--ts-text-muted, #64748b); }
+.cell-empty { color: var(--ts-text-muted, #94a3b8); }
+.empty-catalogue { text-align: center; color: var(--ts-text-muted, #64748b); padding: 32px; font-style: italic; }
+details { margin-top: 6px; font-size: 12px; }
+details summary { cursor: pointer; color: var(--ts-brand-primary, #004d67); font-weight: 500; user-select: none; }
+details ul { margin: 4px 0 0 16px; padding: 0; }
+details li { margin-bottom: 3px; }
+`;
+
 export function buildDiagramFrame(opts: DiagramFrameOpts): string {
   const {
     filename, notation,

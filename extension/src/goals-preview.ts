@@ -184,7 +184,7 @@ function layoutToSvg(layout: GoalTreeLayout, treeName: string): string {
     const label = n.label.length > 36 ? n.label.slice(0, 34) + '…' : n.label;
     return `<g>
   <rect class="diagram-node level-${level}" x="${x}" y="${y}" width="${n.width}" height="${n.height}" rx="8"/>
-  <text class="text-primary" x="${x + n.width / 2}" y="${y + n.height / 2}" text-anchor="middle" dominant-baseline="central" font-size="12" font-weight="600" font-family="system-ui,sans-serif">${escXml(label)}</text>
+  <text class="text-primary" x="${x + n.width / 2}" y="${y + n.height / 2}" text-anchor="middle" dominant-baseline="central">${escXml(label)}</text>
 </g>`;
   }).join('\n');
 
