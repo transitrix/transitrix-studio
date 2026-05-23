@@ -101,7 +101,7 @@ const FIX_PROMPT_CSS = `
 `;
 
 const FRAME_HEADER_CSS = `
-.frame-header{padding:16px 20px 0;}
+.frame-header{padding:16px 20px 20px;}
 .frame-title{font-size:18px;font-weight:700;color:var(--ts-text,#0f172a);margin-bottom:4px;}
 .frame-subtitle{font-size:13px;color:var(--ts-text-muted,#64748b);margin-bottom:4px;}
 .frame-meta{font-size:11px;color:var(--ts-text-muted,#64748b);letter-spacing:0.04em;}
