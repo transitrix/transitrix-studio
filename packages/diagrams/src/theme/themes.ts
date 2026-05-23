@@ -98,12 +98,13 @@ function diagramVars(variant: 'light' | 'dark' | 'hc'): string {
 function shellCss(): string {
   const cv = CSS_VAR;
   const t = TYPOGRAPHY;
-  // min-height:100vh stretches the body to fill the webview iframe even when
-  // the diagram is shorter than the editor pane — otherwise the body ends
-  // where its content ends and the iframe's underlying VS Code editor
-  // background shows through as a dark split below the canvas.
-  return `html,body{background:var(${cv.bg});color:var(${cv.text});}
-body{min-height:100vh;}
+  // html bg + min-height are set per-theme in generateWebviewCss (literal
+  // hex / VS Code var) so they don't depend on `--ts-bg` resolving on html —
+  // CSS custom properties only cascade DOWN, and `--ts-bg` is defined on the
+  // body[data-theme] selector, so html itself can't read it. Without that
+  // explicit html bg, the iframe's underlying VS Code editor background
+  // showed through any uncovered area below short diagrams.
+  return `body{background:var(${cv.bg});color:var(${cv.text});min-height:100vh;}
 #toolbar{position:sticky;top:0;z-index:10;padding:6px 12px;border-bottom:1px solid var(${cv.border});font-family:${t.fontFamily};font-size:${t.sizes.secondary}px;color:var(${cv.textMuted});background:var(${cv.bg});}
 #canvas{padding:16px;overflow:auto;}
 svg{display:block;}`;
@@ -167,6 +168,7 @@ export function generateWebviewCss(themeId: ThemeId): string {
 
   if (themeId === 'transitrix') {
     return `${base}
+html{background:${TRANSITRIX_LIGHT.bg};min-height:100vh;}
 body[data-theme="transitrix"]{${adaptiveVars(TRANSITRIX_LIGHT)}${diagramVars('light')}}
 ${shell}
 ${classes}`;
@@ -174,6 +176,7 @@ ${classes}`;
 
   if (themeId === 'transitrix-dark') {
     return `${base}
+html{background:${TRANSITRIX_DARK.bg};min-height:100vh;}
 body[data-theme="transitrix-dark"]{${adaptiveVars(TRANSITRIX_DARK)}${diagramVars('dark')}}
 ${shell}
 ${classes}`;
@@ -183,6 +186,7 @@ ${classes}`;
   // layer/level/structural colors follow the VS Code theme body class.
   const cv = CSS_VAR;
   return `${base}
+html{background:var(--vscode-editor-background,${TRANSITRIX_LIGHT.bg});min-height:100vh;}
 body[data-theme="vscode-adaptive"]{
   ${cv.bg}:var(--vscode-editor-background);
   ${cv.bgSurface}:var(--vscode-sideBar-background,var(--vscode-editor-background));
