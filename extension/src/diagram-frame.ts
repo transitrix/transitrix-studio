@@ -127,6 +127,7 @@ const TITLE_TOGGLE_CSS = `
 .title-toggle-cb:not(:checked) ~ #toolbar .title-toggle::before { content: "\\2610\\00a0"; }
 .title-toggle-cb:not(:checked) ~ .frame-header { display: none; }
 .title-toggle-cb:not(:checked) ~ #canvas .diagram-caption { display: none; }
+.title-toggle-cb:not(:checked) ~ #canvas .diagram-title-block { display: none; }
 `;
 
 /**
