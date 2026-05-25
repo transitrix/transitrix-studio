@@ -3,6 +3,7 @@ export * from "./applications/index";
 export * from "./capability-map/index";
 export * from "./fgca/index";
 export * from "./goals/index";
+export * from "./issues/index";
 export * from "./process-blueprint/index";
 export * from "./process-map/index";
 export * from "./products/index";
