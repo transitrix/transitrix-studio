@@ -94,7 +94,7 @@
           ],
           "default": "transitrix",
           "description": "Color theme for Transitrix diagram previews (Goals, FGCA, and other static notation previews)."
-        },
+        }
       }
     },
     "languages": [
