@@ -72,7 +72,7 @@ flows:
 
 **Version:** 0.4  
 **Updated:** 2026-05-12  
-**Count:** 6 diagrams
+**Count:** 5 diagrams
 
 This table lists all diagrams in `examples/bpmn/corpus/` with their structural properties and coverage matrix cell.
 
@@ -81,7 +81,6 @@ This table lists all diagrams in `examples/bpmn/corpus/` with their structural p
 | `simple-linear.cervin.yaml` | 6 | 5 | 0% | No | 0 | 1 | S-Lo-A-Lo-1 | Minimal baseline; pure same-lane, no gates |
 | `simple-approval.cervin.yaml` | 8 | 7 | 29% | No | 1 (XOR) | 2 | S-Mi-A-Lo-2 | Basic cross-lane routing; horizontal port rule |
 | `small-dense-approval.cervin.yaml` | 9 | 11 | 75% | No | 4 (2 AND, 1 XOR) | 2 | S-Hi-A-Hi-2 | Dense gates, high cross-lane; parallel paths |
-| `order-processing.cervin.yaml` | 14 | 13 | 46% | Yes | 4 (1 XOR, 2 AND) | 3 | M-Mi-C-Hi-3 | Multi-lane; gateway distribution; backward edge |
 | `large-cyclic-workflow.cervin.yaml` | 22 | 25 | 76% | Yes (rework loop) | 10 (4 AND, 6 XOR) | 4 | L-Hi-C-Hi-4 | Dense gates, cyclic; backward routing test |
 | `xlarge-stress-test.cervin.yaml` | 52 | 54 | 82% | No | 20 (8 AND, 12 XOR) | 5 | XL-Hi-A-Hi-4+ | Stress test: 50+ elements, extreme complexity |
 
