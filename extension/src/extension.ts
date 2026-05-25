@@ -38,7 +38,7 @@ function isActivitiesFile(doc: vscode.TextDocument): boolean {
 }
 
 function isBlocksFile(doc: vscode.TextDocument): boolean {
-  return doc.fileName.endsWith('.blocks.transitrix.txt');
+  return doc.fileName.endsWith('.blocks.transitrix.yaml');
 }
 
 function isApplicationsFile(doc: vscode.TextDocument): boolean {
@@ -124,7 +124,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const fgcaPreview = new FGCAPreview();
   const fgaPreview = new FGAPreview();
   const activitiesPreview = new ActivitiesPreview();
-  const blocksPreview = new BlocksPreview(context.extensionPath);
+  const blocksPreview = new BlocksPreview();
   const applicationsPreview = new ApplicationsPreview();
   const productsPreview = new ProductsPreview();
   const processMapPreview = new ProcessMapPreview();
@@ -182,7 +182,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand('transitrixStudio.previewBlocks', async () => {
       const doc = vscode.window.activeTextEditor?.document;
       if (!doc || !isBlocksFile(doc)) {
-        vscode.window.showWarningMessage('Open a *.blocks.transitrix.txt file first.');
+        vscode.window.showWarningMessage('Open a *.blocks.transitrix.yaml file first.');
         return;
       }
       await blocksPreview.showOrReveal(doc);

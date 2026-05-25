@@ -3,7 +3,7 @@
   "displayName": "Transitrix Studio",
   "publisher": "transitrix",
   "version": "1.0.0",
-  "description": "Preview Transitrix enterprise-architecture diagrams in VS Code — BPMN, Goals, FGCA, FGA, Activity Network (PSND + Gantt), Process Map, Process Blueprint, Capability Map, Scenarios, Applications, Products, Nested Blocks.",
+  "description": "Preview Transitrix enterprise-architecture diagrams in VS Code — BPMN, Goals, FGCA, FGA, Activity Network (PSND + Gantt), Process Map, Process Blueprint, Capability Map, Scenarios, Applications, Products, Nested Blocks. Native TypeScript rendering — no external binaries required.",
   "license": "MIT",
   "icon": "icon.png",
   "homepage": "https://github.com/transitrix/transitrix-studio#readme",
@@ -52,7 +52,7 @@
     "workspaceContains:**/*.fgca.transitrix.yaml",
     "workspaceContains:**/*.fga.transitrix.yaml",
     "workspaceContains:**/*.activities.transitrix.yaml",
-    "workspaceContains:**/*.blocks.transitrix.txt",
+    "workspaceContains:**/*.blocks.transitrix.yaml",
     "workspaceContains:**/*.applications.transitrix.yaml",
     "workspaceContains:**/*.products.transitrix.yaml",
     "workspaceContains:**/*.process-map.transitrix.yaml",
@@ -95,16 +95,6 @@
           "default": "transitrix",
           "description": "Color theme for Transitrix diagram previews (Goals, FGCA, and other static notation previews)."
         },
-        "transitrix.pythonPath": {
-          "type": "string",
-          "default": "",
-          "description": "Path to the Python 3 executable used for nested block diagram previews. Leave empty to auto-detect: 'py' on Windows (Python Launcher), 'python3' on macOS/Linux. Example: /usr/local/bin/python3 or C:\\Python311\\python.exe"
-        },
-        "transitrix.svgbobPath": {
-          "type": "string",
-          "default": "",
-          "description": "Path to the svgbob_cli executable used for nested block diagram previews. Leave empty to use 'svgbob_cli' from PATH. Install with: cargo install svgbob_cli"
-        }
       }
     },
     "languages": [
@@ -226,8 +216,9 @@
           "Nested Block Diagram"
         ],
         "extensions": [
-          ".blocks.transitrix.txt"
-        ]
+          ".blocks.transitrix.yaml"
+        ],
+        "configuration": "./language-configuration.json"
       }
     ],
     "commands": [
@@ -386,12 +377,12 @@
           "group": "navigation@-10"
         },
         {
-          "when": "resourceFilename =~ /\\.blocks\\.transitrix\\.txt$/",
+          "when": "resourceFilename =~ /\\.blocks\\.transitrix\\.yaml$/",
           "command": "transitrixStudio.previewBlocks",
           "group": "navigation@-10"
         },
         {
-          "when": "resourceFilename =~ /\\.blocks\\.transitrix\\.txt$/",
+          "when": "resourceFilename =~ /\\.blocks\\.transitrix\\.yaml$/",
           "command": "transitrixStudio.saveBlocksAsSvg",
           "group": "navigation@-9"
         },
