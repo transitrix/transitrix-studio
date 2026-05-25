@@ -14,6 +14,7 @@ import { ProcessMapPreview } from './process-map-preview.js';
 import { ScenariosPreview } from './scenarios-preview.js';
 import { CapabilityMapPreview } from './capability-map-preview.js';
 import { ProcessBlueprintPreview } from './process-blueprint-preview.js';
+import { IssuesPreview } from './issues-preview.js';
 import type { LayoutMetrics, ValidationReport } from './types.js';
 import {
   documentMatchesCervinSource,
@@ -63,6 +64,10 @@ function isCapabilityMapFile(doc: vscode.TextDocument): boolean {
 
 function isProcessBlueprintFile(doc: vscode.TextDocument): boolean {
   return doc.fileName.endsWith('.process-blueprint.transitrix.yaml');
+}
+
+function isIssuesFile(doc: vscode.TextDocument): boolean {
+  return doc.fileName.endsWith('.issues.transitrix.yaml');
 }
 
 async function loadCompiler(ext: vscode.ExtensionContext): Promise<CompileFn> {
@@ -131,6 +136,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const scenariosPreview = new ScenariosPreview();
   const capabilityMapPreview = new CapabilityMapPreview();
   const processBlueprintPreview = new ProcessBlueprintPreview();
+  const issuesPreview = new IssuesPreview();
 
   context.subscriptions.push(
     vscode.commands.registerCommand('cervin.openPreview', async () => {
@@ -253,6 +259,17 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand('transitrixStudio.saveProcessBlueprintAsSvg', async () => {
       await processBlueprintPreview.saveAsSvg();
     }),
+    vscode.commands.registerCommand('transitrixStudio.previewIssues', async () => {
+      const doc = vscode.window.activeTextEditor?.document;
+      if (!doc || !isIssuesFile(doc)) {
+        vscode.window.showWarningMessage('Open a *.issues.transitrix.yaml file first.');
+        return;
+      }
+      await issuesPreview.showOrReveal(doc);
+    }),
+    vscode.commands.registerCommand('transitrixStudio.saveIssuesAsSvg', async () => {
+      await issuesPreview.saveAsSvg();
+    }),
     vscode.workspace.onDidSaveTextDocument((doc) => {
       if (isGoalsFile(doc)) { void goalsPreview.refreshSaved(doc); return; }
       if (isFGCAFile(doc)) { void fgcaPreview.refreshSaved(doc); return; }
@@ -265,6 +282,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       if (isScenariosFile(doc)) { void scenariosPreview.refreshSaved(doc); return; }
       if (isCapabilityMapFile(doc)) { void capabilityMapPreview.refreshSaved(doc); return; }
       if (isProcessBlueprintFile(doc)) { void processBlueprintPreview.refreshSaved(doc); return; }
+      if (isIssuesFile(doc)) { void issuesPreview.refreshSaved(doc); return; }
       if (!documentMatchesCervinSource(doc)) return;
       void preview.refreshSaved(doc);
     }),
@@ -279,7 +297,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       if (isProcessMapFile(doc)) { await processMapPreview.showOrReveal(doc); return; }
       if (isScenariosFile(doc)) { await scenariosPreview.showOrReveal(doc); return; }
       if (isCapabilityMapFile(doc)) { await capabilityMapPreview.showOrReveal(doc); return; }
-      if (isProcessBlueprintFile(doc)) { await processBlueprintPreview.showOrReveal(doc); }
+      if (isProcessBlueprintFile(doc)) { await processBlueprintPreview.showOrReveal(doc); return; }
+      if (isIssuesFile(doc)) { await issuesPreview.showOrReveal(doc); }
     }),
   );
 }

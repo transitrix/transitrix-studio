@@ -58,7 +58,8 @@
     "workspaceContains:**/*.process-map.transitrix.yaml",
     "workspaceContains:**/*.scenarios.transitrix.yaml",
     "workspaceContains:**/*.capability-map.transitrix.yaml",
-    "workspaceContains:**/*.process-blueprint.transitrix.yaml"
+    "workspaceContains:**/*.process-blueprint.transitrix.yaml",
+    "workspaceContains:**/*.issues.transitrix.yaml"
   ],
   "contributes": {
     "configuration": {
@@ -205,6 +206,17 @@
         ],
         "extensions": [
           ".process-blueprint.transitrix.yaml"
+        ],
+        "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "transitrix-issues",
+        "aliases": [
+          "Transitrix Issues",
+          "Issues Register"
+        ],
+        "extensions": [
+          ".issues.transitrix.yaml"
         ],
         "configuration": "./language-configuration.json"
       },
@@ -356,6 +368,18 @@
         "title": "Transitrix: Save process blueprint as SVG",
         "category": "Transitrix",
         "icon": "$(save)"
+      },
+      {
+        "command": "transitrixStudio.previewIssues",
+        "title": "Transitrix: Preview issues register",
+        "category": "Transitrix",
+        "icon": "$(list-tree)"
+      },
+      {
+        "command": "transitrixStudio.saveIssuesAsSvg",
+        "title": "Transitrix: Save issues register as SVG",
+        "category": "Transitrix",
+        "icon": "$(save)"
       }
     ],
     "menus": {
@@ -478,6 +502,21 @@
         {
           "when": "activeWebviewPanelId == processBlueprintPreview",
           "command": "transitrixStudio.saveProcessBlueprintAsSvg",
+          "group": "navigation@-9"
+        },
+        {
+          "when": "resourceFilename =~ /\\.issues\\.transitrix\\.yaml$/",
+          "command": "transitrixStudio.previewIssues",
+          "group": "navigation@-10"
+        },
+        {
+          "when": "resourceFilename =~ /\\.issues\\.transitrix\\.yaml$/",
+          "command": "transitrixStudio.saveIssuesAsSvg",
+          "group": "navigation@-9"
+        },
+        {
+          "when": "activeWebviewPanelId == issuesPreview",
+          "command": "transitrixStudio.saveIssuesAsSvg",
           "group": "navigation@-9"
         }
       ]
