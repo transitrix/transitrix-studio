@@ -43,7 +43,8 @@
     "ui:build": "vite build --config ui/vite.config.ts",
     "ui:preview": "npm run build && npm run ui:build && vite preview --config ui/vite.config.ts",
     "bump-extension-version": "node scripts/bump-extension-version.mjs",
-    "package-extension": "npm run extension:prep && npm run bump-extension-version && cd extension && vsce package"
+    "package-extension": "npm run extension:prep && npm run bump-extension-version && cd extension && vsce package",
+    "sync-examples": "node scripts/sync-examples-from-methodology.mjs"
   },
   "bin": {
     "cervin": "./dist/cli.js"
