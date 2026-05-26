@@ -3,6 +3,7 @@ import * as vscode from 'vscode';
 import yaml from 'js-yaml';
 import { buildDiagramFrame, prepareSvgForExport, type ThemeId } from './diagram-frame.js';
 import { TITLE_BLOCK_H, titleBlockSvg, todayIso } from './svg-title-block.js';
+import { parseCanonicalFGCA } from '../../packages/diagrams/src/fgca/parse-canonical.js';
 
 // ── Inline types ──────────────────────────────────────────────────────────────
 //
@@ -104,6 +105,75 @@ function validateFGCA(input: unknown): ValidationResult {
  * issue #37 — post-1.0.0. If that lands on nested-root, all four notations
  * migrate together; FGA is not specially burdened.
  */
+/**
+ * Canonical-form FGA parser + validator. Same shape as canonical FGCA
+ * minus the `changes[]` array. Wraps parseCanonicalFGCA by injecting
+ * an empty `changes` and remapping the validation codes (FGCA-xxx →
+ * FGA-yyy).
+ */
+function parseCanonicalFGA(input: unknown): { valid: boolean; errors: ValidationError[]; warnings: Array<{ code: string; message: string }>; parsed?: FGCADoc } {
+  if (!input || typeof input !== 'object') {
+    return { valid: false, errors: [{ code: 'FGA-001', message: 'document root is not an object' }], warnings: [] };
+  }
+  const raw = input as Record<string, unknown>;
+  if ('notation' in raw && raw['notation'] !== 'fga') {
+    return {
+      valid: false,
+      errors: [{ code: 'FGA-001', message: `notation must be "fga", got "${String(raw['notation'])}"` }],
+      warnings: [],
+    };
+  }
+  // Doc id grammar — `FGA-[<middle>-]<INTEGER>`.
+  const fgaDocIdRe = /^FGA(-[A-Z0-9][A-Z0-9_]*)*-\d+$/;
+  if (raw['id'] === undefined) {
+    return {
+      valid: false,
+      errors: [{ code: 'FGA-002', message: 'document id is required' }],
+      warnings: [],
+    };
+  }
+  if (typeof raw['id'] !== 'string' || !fgaDocIdRe.test(raw['id'])) {
+    return {
+      valid: false,
+      errors: [{
+        code: 'FGA-002',
+        message: `id "${String(raw['id'])}" must match FGA-[<middle>-]<INTEGER>`,
+      }],
+      warnings: [],
+    };
+  }
+
+  // Forward to parseCanonicalFGCA with synthetic FGCA notation + doc id +
+  // empty changes array. Per-layer / per-ref checks all reuse the FGCA
+  // implementation; codes get remapped on the way out.
+  const synth = { ...raw, notation: 'fgca', id: 'FGCA-FROM-FGA-1', changes: [] };
+  const r = parseCanonicalFGCA(synth);
+  // FGCA → FGA code remap. Items not in the map keep their FGCA-prefix —
+  // those would be FGCA-only codes (changes-related), which can't fire
+  // with our synthetic `changes: []`. FGCA-009 / FGCA-010 / FGCA-014 are
+  // therefore unreachable here.
+  const remap: Record<string, string> = {
+    'FGCA-001': 'FGA-001',
+    'FGCA-002': 'FGA-002',
+    'FGCA-003': 'FGA-003',
+    'FGCA-004': 'FGA-004',
+    'FGCA-005': 'FGA-005',
+    'FGCA-006': 'FGA-006',
+    'FGCA-007': 'FGA-007',
+    'FGCA-008': 'FGA-008',
+    'FGCA-011': 'FGA-009',
+    'FGCA-012': 'FGA-010',
+    'FGCA-015': 'FGA-007',
+  };
+  const remapCode = (c: string): string => remap[c] ?? c;
+  return {
+    valid: r.valid,
+    errors: r.errors.map((e) => ({ ...e, code: remapCode(e.code) })),
+    warnings: r.warnings.map((w) => ({ ...w, code: remapCode(w.code) })),
+    parsed: r.parsed,
+  };
+}
+
 function validateFGA(input: unknown): ValidationResult {
   const errors: ValidationError[] = [];
   const warnings: Array<{ code: string; message: string }> = [];
@@ -363,12 +433,16 @@ export class FGCAPreview {
       const meta = (parsed && typeof parsed === 'object' ? parsed : {}) as { version?: unknown; date?: unknown };
       const docVersion = typeof meta.version === 'string' ? meta.version : undefined;
       const docDate = typeof meta.date === 'string' ? meta.date : todayIso();
-      const v = validateFGCA(parsed);
+      const v = parseCanonicalFGCA(parsed);
       warnings = v.warnings.map(w => `${w.code}: ${w.message}`);
-      if (!v.valid) {
+      if (!v.valid || !v.parsed) {
         errorMsg = v.errors.map(e => `${e.code}: ${e.message}`).join('\n');
       } else {
-        svgContent = buildSvg(parsed as FGCADoc, false, 'FGCA — Factor → Goal → Change → Activity', filename, docDate, docVersion);
+        // parseCanonicalFGCA returns the strict internal form with numeric
+        // IDs and singular `change.goal_id` / `change.activity_ids`. The
+        // inline FGCADoc / buildSvg here accept both forms (number | string
+        // unions) — pass through.
+        svgContent = buildSvg(v.parsed as unknown as FGCADoc, false, 'FGCA — Factor → Goal → Change → Activity', filename, docDate, docVersion);
       }
     } catch (e) {
       errorMsg = (e as Error).message ?? 'Parse error';
@@ -453,13 +527,13 @@ export class FGAPreview {
       const meta = (parsed && typeof parsed === 'object' ? parsed : {}) as { version?: unknown; date?: unknown };
       const docVersion = typeof meta.version === 'string' ? meta.version : undefined;
       const docDate = typeof meta.date === 'string' ? meta.date : todayIso();
-      const v = validateFGA(parsed);
+      const v = parseCanonicalFGA(parsed);
       warnings = v.warnings.map(w => `${w.code}: ${w.message}`);
-      if (!v.valid) {
+      if (!v.valid || !v.parsed) {
         errorMsg = v.errors.map(e => `${e.code}: ${e.message}`).join('\n');
       } else {
         // FGA shares FGCA's FLAT shape; just hide the (absent) Changes column.
-        svgContent = buildSvg(parsed as FGCADoc, true, 'FGA — Factor → Goal → Activity', filename, docDate, docVersion);
+        svgContent = buildSvg(v.parsed as unknown as FGCADoc, true, 'FGA — Factor → Goal → Activity', filename, docDate, docVersion);
       }
     } catch (e) {
       errorMsg = (e as Error).message ?? 'Parse error';

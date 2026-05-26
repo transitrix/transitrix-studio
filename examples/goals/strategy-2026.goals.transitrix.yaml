@@ -1,50 +1,52 @@
 notation: goals
 spec_version: "0.1"
-title: Strategy 2026 — goals tree
-description: Goal tree across Strategy → Business Goal → Project levels for the 2026 plan.
+
+id: GOALS-STRATEGY-2026
+name: "Strategy 2026 — goals tree"
+description: "Goal tree across Strategy → Strategic Goal → Project Goal levels for the 2026 plan."
+period: "2026"
 version: "0.1"
-date: "2026-05-11"
+date: "2026-05-26"
 author: Transitrix
 
 goal_types:
-  - { name: "Strategy",      level: 0 }
-  - { name: "Business Goal", level: 1 }
-  - { name: "Project",       level: 2 }
+  - { name: "Strategy",       level: 0 }
+  - { name: "Strategic Goal", level: 1 }
+  - { name: "Project",        level: 2 }
 
 goals:
-  - id: 1
+  - id: GOAL-REVENUE-1
     name: "Triple revenue in 3 years"
     type: "Strategy"
     level: 0
-    parent_id: 0
     tag: "north-star"
 
-  - id: 2
+  - id: GOAL-EU-1
     name: "Launch in 3 EU markets"
-    type: "Business Goal"
+    type: "Strategic Goal"
     level: 1
-    parent_id: 1
+    parent: GOAL-REVENUE-1
 
-  - id: 3
+  - id: GOAL-MENA-1
     name: "Launch in MENA"
-    type: "Business Goal"
+    type: "Strategic Goal"
     level: 1
-    parent_id: 1
+    parent: GOAL-REVENUE-1
 
-  - id: 4
+  - id: GOAL-BERLIN-1
     name: "Open Berlin office"
     type: "Project"
     level: 2
-    parent_id: 2
+    parent: GOAL-EU-1
 
-  - id: 5
+  - id: GOAL-EU-REG-1
     name: "Obtain EU regulatory approval"
     type: "Project"
     level: 2
-    parent_id: 2
+    parent: GOAL-EU-1
 
-  - id: 6
+  - id: GOAL-DUBAI-1
     name: "Partner with Dubai distributor"
     type: "Project"
     level: 2
-    parent_id: 3
+    parent: GOAL-MENA-1

@@ -1,45 +1,52 @@
 notation: fga
-title: Strategy 2026
-description: Factor–Goal–Activity view (Changes column hidden)
+spec_version: "0.1"
+
+id: FGA-STRATEGY-2026
+name: "Strategy 2026"
+description: "Factor–Goal–Activity view for the 2026 strategic plan. Changes layer omitted — activities map directly to goals."
+period: "2026"
 version: "0.1"
-date: "2026-05-11"
+date: "2026-05-26"
 author: Transitrix
 
 factors:
-  - id: 1
-    name: Market growth
-  - id: 2
-    name: Regulatory pressure
-  - id: 3
-    name: Technology shift
+  - id: FACTOR-MARKET-1
+    name: "Market growth"
+    type: external
+  - id: FACTOR-REG-1
+    name: "Regulatory pressure"
+    type: external
+  - id: FACTOR-TECH-1
+    name: "Technology shift"
+    type: internal
 
 goals:
-  - id: 1
-    name: Expand market share
-    factor: [{ id: 1 }]
-  - id: 2
-    name: Achieve compliance
-    factor: [{ id: 2 }]
-  - id: 3
-    name: Modernise platform
-    factor: [{ id: 3 }, { id: 1 }]
+  - id: GOAL-MARKET-1
+    name: "Expand market share"
+    factors: [FACTOR-MARKET-1]
+  - id: GOAL-COMPLIANCE-1
+    name: "Achieve compliance"
+    factors: [FACTOR-REG-1]
+  - id: GOAL-PLATFORM-1
+    name: "Modernise platform"
+    factors: [FACTOR-TECH-1, FACTOR-MARKET-1]
 
 activities:
-  - id: 1
-    name: Launch in two new regions
-    goal_id: 1
-  - id: 2
-    name: Partner channel programme
-    goal_id: 1
-  - id: 3
-    name: GDPR gap assessment
-    goal_id: 2
-  - id: 4
-    name: Policy and training rollout
-    goal_id: 2
-  - id: 5
-    name: Migrate to cloud-native stack
-    goal_id: 3
-  - id: 6
-    name: API gateway rollout
-    goal_id: 3
+  - id: ACTIVITY-MARKET-1
+    name: "Launch in two new regions"
+    goals: [GOAL-MARKET-1]
+  - id: ACTIVITY-MARKET-2
+    name: "Partner channel programme"
+    goals: [GOAL-MARKET-1]
+  - id: ACTIVITY-COMPLIANCE-1
+    name: "GDPR gap assessment"
+    goals: [GOAL-COMPLIANCE-1]
+  - id: ACTIVITY-COMPLIANCE-2
+    name: "Policy and training rollout"
+    goals: [GOAL-COMPLIANCE-1]
+  - id: ACTIVITY-PLATFORM-1
+    name: "Migrate to cloud-native stack"
+    goals: [GOAL-PLATFORM-1]
+  - id: ACTIVITY-PLATFORM-2
+    name: "API gateway rollout"
+    goals: [GOAL-PLATFORM-1]
