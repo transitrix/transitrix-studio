@@ -1,5 +1,35 @@
 # Transitrix Studio — changelog
 
+## 1.1.0 — 2026-05-26
+
+Closes the 1.0.0 "Nested blocks needs Python + svgbob" known limitation with a native TS renderer, and adds the **Issues register** notation. The blocks notation moves to a structured-YAML schema with a new file extension — breaking for the small `.blocks.transitrix.txt` corpus that existed before 1.1.0.
+
+### Breaking
+
+- **`.blocks.transitrix.txt` is no longer recognised.** Nested blocks moved to `.blocks.transitrix.yaml` with a structured YAML schema (`nested_blocks:` root, recursive `block` tree carrying `id`, `name`, optional `children`).
+  - **Migration:** rewrite the diagram in the new form. The spec is canonical at [transitrix/methodology — `08-blocks.md`](https://github.com/transitrix/methodology/blob/main/notations/08-blocks.md); the worked example ships at [`examples/blocks/architecture.blocks.transitrix.yaml`](./examples/blocks/architecture.blocks.transitrix.yaml).
+- **Settings removed:** `transitrix.pythonPath` and `transitrix.svgbobPath`. They configured the now-deleted Python + svgbob backend and are no longer read.
+- **`cervin serve` API:** the `/api/blocks/compile` endpoint is gone — the dev UI's "Nested blocks (Svgbob)" tab and its server route both depended on the Python backend.
+
+### Added
+
+- **Issues register** — `.issues.transitrix.yaml` — new vector notation: nested issue tree (parent → child via the `parent:` field) with colour-coded status badges (`open` / `in_progress` / `blocked` / `resolved` / `closed`). Validation codes `ISS-001 … 006`. Save-as-SVG works like every other vector preview.
+- `npm run sync-examples` — developer tooling that mirrors `notations/examples/` from a local `transitrix/methodology` checkout into Studio's `examples/`. Dry-run by default; `--apply` copies added / changed files, `--apply --delete-stale` is strict mirror.
+
+### Changed
+
+- **Nested blocks** — structured YAML schema replaces the ASCII art form. Renders natively in TypeScript via `@transitrix/diagrams/blocks` — no external binaries. Validation codes `BL-001 … 009`.
+- `extension/README.md` and root `README.md` refreshed for the post-1.0 notation set: Issues bullet added, Nested blocks bullet rewritten without svgbob, repo-layout diagram drops the deleted Python-backend folder, CLI port corrected from `3000` to `8765`, install command bumped to 1.1.0.
+- Removed the duplicate `examples/bpmn/order-processing.bpmn.yaml` (byte-identical to `order-fulfillment.bpmn.yaml`; the methodology repo's `NOTATIONS_VALIDATION.md` §2.4 had flagged it).
+
+### Removed
+
+- `backends/blocks/` — Python + svgbob backend (`blocks_stdio.py`, `diagram_generator.py`, README, Makefile, tests, requirements.txt).
+- `src/blocks-backend.ts` — Node-side wrapper around the Python backend.
+- `tests/blocks-backend.test.ts` and the corresponding `handleBlocksCompile` test block in `tests/serve-ui.test.ts`.
+- `.github/workflows/python-backend.yml` — the only Python CI job; nothing Python-dependent remains in the codebase.
+- Pre-release review items closed by removal: TX-R001 `svgbobCommand` external-process surface; the `should-fix` missing-timeout on the `svgbob` subprocess; the dead `try/catch` nit in the old `blocks-preview.ts`; the CI-gap should-fix where the Python backend was untested.
+
 ## 1.0.0 — 2026-05-24
 
 First marketplace release. The full Transitrix notation set previews in VS Code with a unified visual contract, in-SVG title blocks, a per-preview toolbar, and `.svg` export.
