@@ -16,17 +16,17 @@ goal_types:
   - { name: "Project",       level: 2 }
 
 goals:
-  - id: 1
+  - id: GOAL-1
     name: "Top-level goal"
     type: "Strategy"
     level: 0
-    parent_id: 0        # 0 = root (no parent)
+    # No `parent` — this is a root goal.
 
-  - id: 2
+  - id: GOAL-2
     name: "Sub-goal"
     type: "Business Goal"
     level: 1
-    parent_id: 1
+    parent: GOAL-1
 ```
 
 ## Optional header fields
@@ -41,10 +41,10 @@ author: "Your Name"
 
 ## Rules
 
-- `parent_id: 0` marks a root node.
+- Omit `parent` on root goals (any goal whose level matches a `goal_types[].level` of `0`).
 - `level` in each goal must match the `level` defined in `goal_types`.
-- Goal IDs must be unique integers within the file.
-- Each goal has exactly one parent (`parent_id`).
+- Goal IDs follow the canonical grammar `GOAL-[<middle>-]<INTEGER>` (e.g. `GOAL-REVENUE-1`) and are unique within the file.
+- Each goal has exactly one `parent`.
 - Any number of levels is supported; add entries to `goal_types` and goals accordingly.
 
 ## Examples in this folder

@@ -11,18 +11,18 @@ Use this format when you want a direct mapping from goals to activities without 
 notation: fga
 
 factors:
-  - id: 1
+  - id: FACTOR-1
     name: "Market growth"
 
 goals:
-  - id: 1
+  - id: GOAL-1
     name: "Expand market share"
-    factor: [{ id: 1 }]      # one or more factor IDs
+    factors: [FACTOR-1]      # one or more factor IDs
 
 activities:
-  - id: 1
+  - id: ACTIVITY-1
     name: "Launch in two new regions"
-    goal_id: 1               # which goal this activity delivers
+    goals: [GOAL-1]          # which goal(s) this activity delivers
 ```
 
 ## Optional header fields
@@ -37,14 +37,14 @@ author: "Your Name"
 
 ## Difference from FGCA
 
-FGA omits the `changes` section entirely. Activities link directly to goals via `goal_id`.
+FGA omits the `changes` section entirely. Activities link directly to goals via `goals[]`.
 Use FGCA (`.fgca.transitrix.yaml`) when you need to track discrete change packages between goals and activities.
 
 ## Rules
 
-- All IDs must be unique integers within their section.
-- A goal can reference multiple factors: `factor: [{ id: 1 }, { id: 2 }]`.
-- Each activity belongs to exactly one goal.
+- IDs follow the canonical grammar `<TYPE>-[<middle>-]<INTEGER>` (`FACTOR-…`, `GOAL-…`, `ACTIVITY-…`) and are unique within their section.
+- A goal can reference multiple factors via `factors: [FACTOR-…, …]`.
+- An activity can target multiple goals via `goals: [GOAL-…, …]`.
 
 ## Examples in this folder
 
