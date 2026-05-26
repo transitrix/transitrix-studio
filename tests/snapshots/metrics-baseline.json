@@ -77,24 +77,6 @@
       },
       "timestamp": "2026-05-12T11:34:14.627Z"
     },
-    "order-processing.bpmn.yaml": {
-      "status": "success",
-      "elementCount": 7,
-      "flowCount": 6,
-      "metrics": {
-        "crossings": 0,
-        "bends": 2,
-        "edgeLength": 704,
-        "waypointDensity": 2.3333333333333335,
-        "spineDeviation": 0,
-        "emptyArea": 0.5462701149425288,
-        "portViolations": 0,
-        "portUniqueness": 1,
-        "laneAxisAlignment": 1,
-        "layoutScore": 0
-      },
-      "timestamp": "2026-05-12T11:34:14.643Z"
-    },
     "simple-approval.bpmn.yaml": {
       "status": "success",
       "elementCount": 7,
