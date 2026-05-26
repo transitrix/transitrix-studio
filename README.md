@@ -8,15 +8,9 @@ Text-first BPMN authoring: write your process as structured YAML, compile to val
 
 Transitrix Studio brings **text-first diagram authoring** to VS Code. Instead of dragging shapes in a GUI editor, you write YAML — structured, diffable, reviewable in pull requests. The compiler produces BPMN 2.0 XML with computed layout coordinates using the ELK (Eclipse Layout Kernel) engine.
 
-Formats supported today:
+Studio previews the full Transitrix notation kit shipping in 1.0.0 — thirteen notations spanning the process (BPMN, Process Map, Process Blueprint), strategy (FGCA, FGA, Goals), capability, scenario, catalogue (Applications, Products), block, activity, and issues families. See [`extension/README.md`](extension/README.md) for the per-format list shipping in the VSIX, and the methodology repo for the notation specs themselves: [github.com/transitrix/methodology](https://github.com/transitrix/methodology).
 
-| Format | File suffix | Status |
-|---|---|---|
-| BPMN 2.0 | `.cervin.yaml`, `.bpmn.yaml` | Stable |
-| Goals tree | `.goals.transitrix.yaml` | Stable |
-| FGCA, capability map, and more | — | In development |
-
-> **Note (v0.4.0):** Legacy identifiers (`.cervin.yaml` extension, `cervin` CLI binary, `.cervinrc` config) are kept in v0.4.0 and will be renamed in v0.5.
+> **Legacy identifiers.** The `.cervin.yaml` file extension and the `cervin` CLI binary name predate the `transitrix` rename and are kept accepted for backward compatibility; new files should use `.bpmn.yaml` and the corresponding canonical `*.<short-name>.transitrix.yaml` per the methodology.
 
 ## Install
 
@@ -33,7 +27,7 @@ code --install-extension transitrix.transitrix-studio
 Download the `.vsix` file from [GitHub Releases](https://github.com/transitrix/transitrix-studio/releases) and install:
 
 ```bash
-code --install-extension transitrix-studio-0.4.0.vsix
+code --install-extension transitrix-studio-1.0.0.vsix
 ```
 
 ## Quick start — BPMN
@@ -65,7 +59,7 @@ Open it in VS Code — the preview panel opens automatically and refreshes on ev
 
 ```bash
 cervin compile input.bpmn.yaml output.bpmn
-cervin serve                         # local web UI at http://localhost:3000
+cervin serve                         # local web UI at http://localhost:8765
 ```
 
 ## Repository layout
@@ -76,10 +70,9 @@ transitrix-studio/
   extension/        — VS Code extension
   packages/diagrams/ — shared renderers and validators (@transitrix/diagrams)
   ui/               — Vite browser UI (cervin serve)
-  backends/blocks/  — Python nested-block backend
   tests/            — Vitest suite
   schemas/          — JSON Schema sources
-  examples/bpmn/    — YAML demos and corpus
+  examples/         — YAML demos per notation
   docs/             — Project documentation
 ```
 
