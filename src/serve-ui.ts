@@ -14,10 +14,6 @@ import {
   parseLayoutDiagramOptionsFromJson,
   type LayoutDiagramOptions,
 } from './layout-options.js'
-import {
-  invokeBlocksDiagram,
-  parseBlocksCompileJson,
-} from './blocks-backend.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -147,69 +143,6 @@ export async function handleCompile(req: IncomingMessage, res: ServerResponse): 
   }
 }
 
-export async function handleBlocksCompile(
-  req: IncomingMessage,
-  res: ServerResponse,
-): Promise<void> {
-  if (req.method !== 'POST') {
-    res.writeHead(405, { 'Content-Type': 'text/plain; charset=utf-8' })
-    res.end('405 Method Not Allowed')
-    return
-  }
-  try {
-    const raw = await readHttpBodyLimited(req)
-    const ctype = (req.headers['content-type'] ?? '').toLowerCase()
-
-    if (!ctype.includes('application/json')) {
-      res.writeHead(415, { 'Content-Type': 'application/json; charset=utf-8' })
-      res.end(
-        JSON.stringify({
-          message: 'Nested blocks API expects Content-Type application/json.',
-          details: [],
-        }),
-      )
-      return
-    }
-
-    let body: unknown
-    try {
-      body = JSON.parse(raw.toString('utf8'))
-    } catch {
-      res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' })
-      res.end(JSON.stringify({ message: 'Invalid JSON request body', details: [] }))
-      return
-    }
-
-    let requestPayload: ReturnType<typeof parseBlocksCompileJson>
-    try {
-      requestPayload = parseBlocksCompileJson(body)
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e)
-      res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' })
-      res.end(JSON.stringify({ message: msg, details: [] }))
-      return
-    }
-
-    const result = await invokeBlocksDiagram(requestPayload)
-    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' })
-    res.end(JSON.stringify({ svgs: result.svgs }, null, 2))
-  } catch (e) {
-    if (e instanceof PayloadTooLargeError) {
-      res.writeHead(413, { 'Content-Type': 'application/json; charset=utf-8' })
-      res.end(JSON.stringify({ message: e.message, details: [] }))
-      return
-    }
-    const err = e as Error & { errors?: string[] }
-    res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' })
-    res.end(
-      JSON.stringify({
-        message: err.message ?? 'Nested blocks compilation failed',
-        details: err.errors ?? [],
-      }),
-    )
-  }
-}
-
 export interface ServeUiOptions {
   port: number
   host?: string
@@ -231,11 +164,6 @@ export async function runUiServer(opts: ServeUiOptions): Promise<void> {
 
       if (pathOnly === '/api/compile') {
         await handleCompile(req, res)
-        return
-      }
-
-      if (pathOnly === '/api/blocks/compile') {
-        await handleBlocksCompile(req, res)
         return
       }
 
@@ -326,13 +254,11 @@ export async function cliServeArgv(argv: string[]): Promise<void> {
       // eslint-disable-next-line no-console
       console.error(`usage: cervin serve [--port 8765] [--host 127.0.0.1]
 
-Local web UI: YAML on the left, BPMN preview on the right; optional nested-blocks (Svgbob) tab.
+Local web UI: YAML on the left, BPMN preview on the right.
 Compiles through the server (same pipeline as the CLI / VS Code extension for BPMN).
 
 Before first run:
   npm run build && npm run ui:build
-
-Nested blocks preview requires Python 3 and Svgbob (cargo install svgbob_cli).
 `)
       process.exitCode = 0
       process.exit(0)

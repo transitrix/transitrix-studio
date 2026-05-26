@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
 import { MAX_COMPILE_BODY_BYTES } from '../src/http-body-limit.js';
-import { handleBlocksCompile, handleCompile, isInsideRoot } from '../src/serve-ui.js';
+import { handleCompile, isInsideRoot } from '../src/serve-ui.js';
 
 // Minimal YAML that compiles successfully (two elements + one flow).
 const VALID_YAML = `
@@ -118,49 +118,6 @@ describe('handleCompile', () => {
     expect(res.captured.statusCode).toBe(413);
     const parsed = JSON.parse(res.captured.body) as { message: string };
     expect(parsed.message).toMatch(/exceed/i);
-  });
-});
-
-describe('handleBlocksCompile', () => {
-  it('returns 405 for non-POST requests', async () => {
-    const req = mockReq('GET', []);
-    const res = mockRes();
-    await handleBlocksCompile(req, res);
-    expect(res.captured.statusCode).toBe(405);
-  });
-
-  it('returns 415 when Content-Type is not JSON', async () => {
-    const req = mockReq('POST', [Buffer.from('{}', 'utf8')], 'text/plain');
-    const res = mockRes();
-    await handleBlocksCompile(req, res);
-    expect(res.captured.statusCode).toBe(415);
-    const parsed = JSON.parse(res.captured.body) as { message: string };
-    expect(parsed.message).toMatch(/json/i);
-  });
-
-  it('returns 400 for malformed JSON body', async () => {
-    const req = mockReq('POST', [Buffer.from('{oops', 'utf8')], 'application/json');
-    const res = mockRes();
-    await handleBlocksCompile(req, res);
-    expect(res.captured.statusCode).toBe(400);
-  });
-
-  it('returns 400 when JSON body omits mode or source', async () => {
-    const body = JSON.stringify({ mode: 'ascii' });
-    const req = mockReq('POST', [Buffer.from(body, 'utf8')], 'application/json');
-    const res = mockRes();
-    await handleBlocksCompile(req, res);
-    expect(res.captured.statusCode).toBe(400);
-    const parsed = JSON.parse(res.captured.body) as { message: string };
-    expect(parsed.message.toLowerCase()).toMatch(/source/);
-  });
-
-  it('returns 413 when body exceeds the size limit', async () => {
-    const oversized = Buffer.alloc(MAX_COMPILE_BODY_BYTES + 1, 0x61);
-    const req = mockReq('POST', [oversized], 'application/json');
-    const res = mockRes();
-    await handleBlocksCompile(req, res);
-    expect(res.captured.statusCode).toBe(413);
   });
 });
 
