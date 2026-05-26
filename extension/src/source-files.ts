@@ -4,7 +4,7 @@ import * as vscode from 'vscode';
 // duplicated in src/cli-parse.ts (as DEFAULT_CERVIN_FILE_EXTENSIONS / normalizeExt).
 // The extension bundles its own compiler copy and cannot share imports with the CLI
 // package. Keep both lists in sync when adding/removing extensions.
-export const DEFAULT_CERVIN_EXTENSIONS = ['.cervin.yaml', '.bpmn.yaml'];
+export const DEFAULT_CERVIN_EXTENSIONS = ['.cervin.yaml', '.bpmn.transitrix.yaml'];
 
 export function normalizeExtension(s: string): string {
   const t = s.trim();

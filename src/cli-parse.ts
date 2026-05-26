@@ -4,7 +4,7 @@
 // duplicated in extension/src/source-files.ts (as DEFAULT_CERVIN_EXTENSIONS /
 // normalizeExtension). The extension bundles its own compiler copy and cannot share
 // imports with the CLI package. Keep both lists in sync when adding/removing extensions.
-export const DEFAULT_CERVIN_FILE_EXTENSIONS = ['.cervin.yaml', '.bpmn.yaml'];
+export const DEFAULT_CERVIN_FILE_EXTENSIONS = ['.cervin.yaml', '.bpmn.transitrix.yaml'];
 
 export function normalizeExt(s: string): string {
   const t = s.trim();

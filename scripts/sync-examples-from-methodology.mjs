@@ -11,13 +11,11 @@
  * also remove files in <studio>/examples/ that have no counterpart in
  * methodology — a strict mirror.
  *
- * Stale detection scans both `.transitrix.yaml` files and the legacy
- * `.bpmn.yaml` files Studio still ships, so the BPMN extension drift
- * surfaces explicitly in the plan instead of hiding behind a filename
- * filter. Whether to remove those files is a separate policy call
- * (still waiting on the BPMN extension decision documented in the
- * methodology repo's NOTATIONS_VALIDATION.md §1.1) — the script reports,
- * the human decides.
+ * Stale detection scans `.transitrix.yaml` files. The BPMN extension
+ * decision (#14 reconfirmed 2026-05-26) made `.bpmn.transitrix.yaml`
+ * the sole canonical form; the short `.bpmn.yaml` legacy was retired
+ * from Studio in the paired migration PR. No legacy form is scanned
+ * here any more.
  *
  * Usage:
  *   node scripts/sync-examples-from-methodology.mjs
@@ -113,12 +111,10 @@ async function main() {
 
   // Source scope: every *.transitrix.yaml under <methodology>/notations/examples/
   const srcFiles = await walk(srcRoot, (p) => p.endsWith('.transitrix.yaml'));
-  // Destination scope: every *.transitrix.yaml AND every *.bpmn.yaml (legacy)
-  // under <studio>/examples/ — so stale detection covers both forms.
-  const dstFiles = await walk(
-    dstRoot,
-    (p) => p.endsWith('.transitrix.yaml') || p.endsWith('.bpmn.yaml'),
-  );
+  // Destination scope: every *.transitrix.yaml under <studio>/examples/.
+  // (The short `.bpmn.yaml` legacy was retired from Studio in the BPMN
+  // extension migration; no legacy form is scanned here.)
+  const dstFiles = await walk(dstRoot, (p) => p.endsWith('.transitrix.yaml'));
 
   const srcRel = new Set(srcFiles.map((p) => relForward(srcRoot, p)));
   const dstRel = new Set(dstFiles.map((p) => relForward(dstRoot, p)));

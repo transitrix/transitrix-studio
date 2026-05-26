@@ -18,11 +18,11 @@ function printUsage(): void {
   console.error(`Transitrix Studio CLI — usage:
        cervin serve [--port 8765] [--host 127.0.0.1]
        cervin <input.yaml> <output.bpmn> [--no-metrics] [--no-validate]
-       cervin [--ext=.cervin.yaml,.bpmn.yaml] <input.yaml> <output.bpmn> [--no-metrics] [--no-validate]
+       cervin [--ext=.cervin.yaml,.bpmn.transitrix.yaml] <input.yaml> <output.bpmn> [--no-metrics] [--no-validate]
        cervin metrics <input.yaml> [--json]
-       cervin metrics [--ext=.cervin.yaml,.bpmn.yaml] <input.yaml> [--json]
+       cervin metrics [--ext=.cervin.yaml,.bpmn.transitrix.yaml] <input.yaml> [--json]
        cervin validate <input.yaml> [--json]
-       cervin validate [--ext=.cervin.yaml,.bpmn.yaml] <input.yaml> [--json]
+       cervin validate [--ext=.cervin.yaml,.bpmn.transitrix.yaml] <input.yaml> [--json]
 
   serve     — local web UI (run npm run ui:build once beforehand).
   <compile> — YAML → BPMN 2.0 XML with layout metrics.

@@ -7,7 +7,7 @@ Domain terms used across the Transitrix Studio codebase and documentation. Roadm
 | Automatic layout | Position computation done by the ELK (Eclipse Layout Kernel) engine — no manual coordinate editing required. |
 | BPMN | Business Process Model and Notation — the OMG standard (formal/2013-12-09) for process modelling. |
 | BPMN DI | BPMN Diagram Interchange — the `bpmndi:` XML blocks that store element geometry (bounds, waypoints). |
-| BPMN YAML DSL | Text-based DSL for authoring BPMN processes as YAML files (`.bpmn.yaml`). |
+| BPMN YAML DSL | Text-based DSL for authoring BPMN processes as YAML files (`.bpmn.transitrix.yaml`). |
 | Compilation (compile) | The pipeline step that transforms YAML source → BPMN 2.0 XML with computed layout. |
 | CLI (command-line interface) | The `cervin` binary (`dist/cli.js`) that runs compile and serve commands. |
 | ELK | Eclipse Layout Kernel — the graph layout engine used for X/Y position computation. |

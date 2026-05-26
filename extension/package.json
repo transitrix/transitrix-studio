@@ -47,7 +47,7 @@
   "type": "module",
   "activationEvents": [
     "workspaceContains:**/*.cervin.yaml",
-    "workspaceContains:**/*.bpmn.yaml",
+    "workspaceContains:**/*.bpmn.transitrix.yaml",
     "workspaceContains:**/*.goals.transitrix.yaml",
     "workspaceContains:**/*.fgca.transitrix.yaml",
     "workspaceContains:**/*.fga.transitrix.yaml",
@@ -72,7 +72,7 @@
           },
           "default": [
             ".cervin.yaml",
-            ".bpmn.yaml"
+            ".bpmn.transitrix.yaml"
           ],
           "description": "File suffixes recognized as Transitrix BPMN source files (must include the leading dot)."
         },
@@ -107,7 +107,7 @@
         ],
         "extensions": [
           ".cervin.yaml",
-          ".bpmn.yaml"
+          ".bpmn.transitrix.yaml"
         ],
         "configuration": "./language-configuration.json"
       },
