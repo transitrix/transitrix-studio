@@ -20,42 +20,42 @@ author: "Valerii Korobeinikov"
 # discovery stage. The Gantt view will not render; the network view does.
 
 activities:
-  - id: D-001
+  - id: ACTIVITY-D-1
     name: Stakeholder interviews
     duration: 8
     sort: 10
     tags: [discovery, research]
 
-  - id: D-002
+  - id: ACTIVITY-D-2
     name: Competitive landscape scan
     duration: 5
     sort: 20
     tags: [discovery, research]
 
-  - id: D-003
+  - id: ACTIVITY-D-3
     name: Synthesise findings
     duration: 4
     sort: 30
-    predecessors: [D-001, D-002]
+    predecessors: [ACTIVITY-D-1, ACTIVITY-D-2]
     tags: [discovery, synthesis]
 
-  - id: D-004
+  - id: ACTIVITY-D-4
     name: Concept options workshop
     duration: 3
     sort: 40
-    predecessors: [D-003]
+    predecessors: [ACTIVITY-D-3]
     tags: [discovery, workshop]
 
-  - id: D-005
+  - id: ACTIVITY-D-5
     name: Feasibility assessment
     duration: 6
     sort: 50
-    predecessors: [D-004]
+    predecessors: [ACTIVITY-D-4]
     tags: [discovery, feasibility]
 
-  - id: M-DECISION
+  - id: ACTIVITY-M-DECISION-1
     name: Go / no-go decision
     duration: 0                # milestone — zero-duration leaf
     sort: 60
-    predecessors: [D-005]
+    predecessors: [ACTIVITY-D-5]
     tags: [milestone, gate]

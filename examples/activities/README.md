@@ -14,19 +14,19 @@ notation: activities
 spec_version: "0.1"
 
 activities:
-  - id: A-001
+  - id: ACTIVITY-A-1
     name: "Requirements analysis"
     duration: 5                # duration in any consistent unit (days, weeks, sprints)
 
-  - id: A-002
+  - id: ACTIVITY-A-2
     name: "Architecture design"
     duration: 8
-    predecessors: [A-001]      # IDs of activities that must finish before this one starts
+    predecessors: [ACTIVITY-A-1]   # IDs of activities that must finish before this one starts
 
-  - id: A-003
+  - id: ACTIVITY-A-3
     name: "Implementation"
     duration: 15
-    predecessors: [A-002]
+    predecessors: [ACTIVITY-A-2]
 ```
 
 ## Optional header fields
@@ -77,7 +77,7 @@ A document can alternatively pin per-activity dates (`start_date` + `end_date` o
 
 ## Rules
 
-- Activity IDs must be unique strings within the file (e.g. `A-001`, `TASK-5`).
+- Activity IDs must be unique strings within the file. The canonical grammar is `ACTIVITY-[<middle>-]<INTEGER>` (e.g. `ACTIVITY-A-1`, `ACTIVITY-M-DECISION-1`); other shapes parse but are non-canonical.
 - Activities without `predecessors` are treated as start nodes.
 - Multiple predecessors create a merge point (all must finish before the activity starts).
 - The critical path is computed automatically using the PMBoK forward/backward pass (ES, EF, LS, LF, float).
