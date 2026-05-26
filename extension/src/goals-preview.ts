@@ -4,12 +4,11 @@ import yaml from 'js-yaml';
 import { buildDiagramFrame, prepareSvgForExport, type ThemeId } from './diagram-frame.js';
 import { TITLE_BLOCK_H, titleBlockSvg, todayIso } from './svg-title-block.js';
 import {
-  validateGoalTree,
   layoutGoalTree,
-  type GoalTree,
   type GoalTreeLayout,
   type LaidOutEdge,
 } from '../../packages/diagrams/src/goals/index.js';
+import { parseCanonicalGoals } from '../../packages/diagrams/src/goals/parse-canonical.js';
 
 // ── SVG renderer ─────────────────────────────────────────────────────────────
 //
@@ -134,18 +133,17 @@ export class GoalsPreview {
     let warnings: string[] = [];
 
     try {
-      const parsed = yaml.load(yamlText) as unknown;
-      const v = validateGoalTree(parsed);
+      const parsedYaml = yaml.load(yamlText) as unknown;
+      const v = parseCanonicalGoals(parsedYaml);
       warnings = v.warnings.map(w => `${w.code}: ${w.message}`);
-      if (!v.valid) {
+      if (!v.valid || !v.parsed) {
         errorMsg = v.errors.map(e => `${e.code}: ${e.message}`).join('\n');
       } else {
-        const tree = parsed as GoalTree;
-        const meta = parsed as { title?: unknown; version?: unknown; date?: unknown };
-        const treeName = typeof meta.title === 'string' ? meta.title : '';
+        const meta = parsedYaml as { name?: unknown; version?: unknown; date?: unknown };
+        const treeName = typeof meta.name === 'string' ? meta.name : '';
         const docVersion = typeof meta.version === 'string' ? meta.version : undefined;
         const docDate = typeof meta.date === 'string' ? meta.date : todayIso();
-        const layout = layoutGoalTree(tree, {
+        const layout = layoutGoalTree(v.parsed, {
           nodeWidth: NODE_W,
           nodeHeight: NODE_H,
           rankSep: RANK_SEP,
