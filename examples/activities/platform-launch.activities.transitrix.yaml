@@ -10,18 +10,6 @@ version: "0.1"
 date: "2026-05-12"
 author: "Valerii Korobeinikov"
 
-# Project anchor for Gantt rendering — see spec §5.8.
-# Days are the default duration unit; the calendar restricts work to Mon–Fri
-# with the listed holidays excluded. Without this block the document still
-# renders as a network view; with it, the Gantt view also renders (computed
-# mode — CPM offsets projected onto the working calendar).
-project:
-  start_date: "2026-06-01"
-  calendar:
-    working_days: [mon, tue, wed, thu, fri]
-    holidays:
-      - "2026-07-04"
-
 activities:
   - id: A-001
     name: Requirements analysis

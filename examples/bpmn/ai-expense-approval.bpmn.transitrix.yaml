@@ -1,3 +1,4 @@
+notation: bpmn
 process:
   id: ai-expense-approval
   name: AI-Assisted Expense Approval

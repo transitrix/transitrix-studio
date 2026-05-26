@@ -1,3 +1,4 @@
+notation: bpmn
 process:
   id: order-fulfillment
   name: Order Fulfillment
