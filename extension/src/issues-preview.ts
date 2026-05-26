@@ -10,6 +10,7 @@ import {
   type IssuesLayout,
   type IssueStatus,
 } from '../../packages/diagrams/src/issues/index.js';
+import { coerceDatesToIsoStrings } from '../../packages/diagrams/src/yaml-normalize.js';
 
 function escXml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -166,7 +167,7 @@ export class IssuesPreview {
     let warnings: string[] = [];
 
     try {
-      const parsed = yaml.load(yamlText) as unknown;
+      const parsed = coerceDatesToIsoStrings(yaml.load(yamlText) as unknown);
       const v = validateIssues(parsed);
       warnings = v.warnings.map((w) => `${w.code}: ${w.message}`);
       if (!v.valid) {

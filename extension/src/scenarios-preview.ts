@@ -2,6 +2,7 @@ import * as path from 'node:path';
 import * as vscode from 'vscode';
 import yaml from 'js-yaml';
 import { buildDiagramFrame, CATALOGUE_STYLES, type ThemeId } from './diagram-frame.js';
+import { coerceDatesToIsoStrings } from '../../packages/diagrams/src/yaml-normalize.js';
 
 // ── Inline types (mirror packages/diagrams/src/scenarios/types.ts) ────────────
 
@@ -261,7 +262,7 @@ export class ScenariosPreview {
     let date: string | undefined;
 
     try {
-      const parsed = yaml.load(yamlText) as unknown;
+      const parsed = coerceDatesToIsoStrings(yaml.load(yamlText) as unknown);
       if (parsed && typeof parsed === 'object') {
         const raw = parsed as Record<string, unknown>;
         if (typeof raw['title'] === 'string') title = raw['title'];

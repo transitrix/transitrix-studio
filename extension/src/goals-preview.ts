@@ -9,6 +9,7 @@ import {
   type LaidOutEdge,
 } from '../../packages/diagrams/src/goals/index.js';
 import { parseCanonicalGoals } from '../../packages/diagrams/src/goals/parse-canonical.js';
+import { coerceDatesToIsoStrings } from '../../packages/diagrams/src/yaml-normalize.js';
 
 // ── SVG renderer ─────────────────────────────────────────────────────────────
 //
@@ -133,7 +134,7 @@ export class GoalsPreview {
     let warnings: string[] = [];
 
     try {
-      const parsedYaml = yaml.load(yamlText) as unknown;
+      const parsedYaml = coerceDatesToIsoStrings(yaml.load(yamlText) as unknown);
       const v = parseCanonicalGoals(parsedYaml);
       warnings = v.warnings.map(w => `${w.code}: ${w.message}`);
       if (!v.valid || !v.parsed) {

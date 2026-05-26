@@ -11,6 +11,7 @@ import {
   type BlocksLayout,
   type LaidOutBlock,
 } from '../../packages/diagrams/src/blocks/index.js';
+import { coerceDatesToIsoStrings } from '../../packages/diagrams/src/yaml-normalize.js';
 
 function escXml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -127,7 +128,7 @@ export class BlocksPreview {
     let warnings: string[] = [];
 
     try {
-      const parsed = yaml.load(yamlText) as unknown;
+      const parsed = coerceDatesToIsoStrings(yaml.load(yamlText) as unknown);
       const v = validateNestedBlocks(parsed);
       warnings = v.warnings.map((w) => `${w.code}: ${w.message}`);
       if (!v.valid) {
