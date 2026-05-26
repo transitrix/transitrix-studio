@@ -11,3 +11,4 @@ export * from "./products/index";
 export * from "./scenarios/index";
 export * from "./theme/index";
 export * from "./validation-types";
+export { coerceDatesToIsoStrings } from "./yaml-normalize";
