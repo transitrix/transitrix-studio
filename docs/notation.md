@@ -19,12 +19,12 @@ The compiled output is consumable by any BPMN 2.0–conformant tool (Camunda Mod
 
 ## 2. File extension and recognition
 
-The file extension is **`.bpmn.yaml`**. (The legacy extension `.cervin.yaml` was used during early development and is being phased out.)
+The file extension is **`.bpmn.transitrix.yaml`**. (The legacy extension `.cervin.yaml` was used during early development and is kept accepted for backward compatibility; new files should use the canonical long form.)
 
 Recognition is configurable:
 
 - **VS Code extension:** `cervin.fileExtensions` setting in `.vscode/settings.json` (array of strings, each starting with a dot).
-- **CLI:** `--ext=.bpmn.yaml` flag overrides the default list.
+- **CLI:** `--ext=.bpmn.transitrix.yaml` flag overrides the default list.
 
 A file outside the recognised extensions is rejected by the CLI with an explicit error.
 
@@ -479,18 +479,18 @@ This example illustrates: cross-lane sequence flows (Development → QA → DevO
 
 ## 14. Compilation
 
-A `.bpmn.yaml` file is compiled to BPMN 2.0 XML by:
+A `.bpmn.transitrix.yaml` file is compiled to BPMN 2.0 XML by:
 
 ```bash
-cervin <input.bpmn.yaml> <output.bpmn>
+cervin <input.bpmn.transitrix.yaml> <output.bpmn>
 ```
 
 Or, for the full pipeline with metrics and validation reports:
 
 ```bash
-cervin compile <input.bpmn.yaml> <output.bpmn>      # default: validate + emit + metrics
-cervin validate <input.bpmn.yaml>                   # validation only, no emit
-cervin metrics <input.bpmn.yaml>                    # metrics only, no emit
+cervin compile <input.bpmn.transitrix.yaml> <output.bpmn>      # default: validate + emit + metrics
+cervin validate <input.bpmn.transitrix.yaml>                   # validation only, no emit
+cervin metrics <input.bpmn.transitrix.yaml>                    # metrics only, no emit
 ```
 
 The compiler runs in this order: **parse → validate → layout → emit → BPMN-moddle round-trip**. Errors at any stage block the emit. Warnings (anti-patterns) are reported but do not block.

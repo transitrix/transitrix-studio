@@ -2,7 +2,7 @@
 
 Business Process Model and Notation diagrams defined in a compact YAML DSL.
 
-**File extensions:** `*.bpmn.yaml`
+**File extension:** `*.bpmn.transitrix.yaml`
 
 ## Minimal structure
 
@@ -78,11 +78,11 @@ This table lists all diagrams in `examples/bpmn/corpus/` with their structural p
 
 | Filename | Elements | Flows | Cross-lane % | Cycles | Gateways | Lanes | Cell | Purpose |
 |----------|----------|-------|--------------|--------|----------|-------|------|---------|
-| `simple-linear.cervin.yaml` | 6 | 5 | 0% | No | 0 | 1 | S-Lo-A-Lo-1 | Minimal baseline; pure same-lane, no gates |
-| `simple-approval.cervin.yaml` | 8 | 7 | 29% | No | 1 (XOR) | 2 | S-Mi-A-Lo-2 | Basic cross-lane routing; horizontal port rule |
-| `small-dense-approval.cervin.yaml` | 9 | 11 | 75% | No | 4 (2 AND, 1 XOR) | 2 | S-Hi-A-Hi-2 | Dense gates, high cross-lane; parallel paths |
-| `large-cyclic-workflow.cervin.yaml` | 22 | 25 | 76% | Yes (rework loop) | 10 (4 AND, 6 XOR) | 4 | L-Hi-C-Hi-4 | Dense gates, cyclic; backward routing test |
-| `xlarge-stress-test.cervin.yaml` | 52 | 54 | 82% | No | 20 (8 AND, 12 XOR) | 5 | XL-Hi-A-Hi-4+ | Stress test: 50+ elements, extreme complexity |
+| `simple-linear.bpmn.transitrix.yaml` | 6 | 5 | 0% | No | 0 | 1 | S-Lo-A-Lo-1 | Minimal baseline; pure same-lane, no gates |
+| `simple-approval.bpmn.transitrix.yaml` | 8 | 7 | 29% | No | 1 (XOR) | 2 | S-Mi-A-Lo-2 | Basic cross-lane routing; horizontal port rule |
+| `small-dense-approval.bpmn.transitrix.yaml` | 9 | 11 | 75% | No | 4 (2 AND, 1 XOR) | 2 | S-Hi-A-Hi-2 | Dense gates, high cross-lane; parallel paths |
+| `large-cyclic-workflow.bpmn.transitrix.yaml` | 22 | 25 | 76% | Yes (rework loop) | 10 (4 AND, 6 XOR) | 4 | L-Hi-C-Hi-4 | Dense gates, cyclic; backward routing test |
+| `xlarge-stress-test.bpmn.transitrix.yaml` | 52 | 54 | 82% | No | 20 (8 AND, 12 XOR) | 5 | XL-Hi-A-Hi-4+ | Stress test: 50+ elements, extreme complexity |
 
 ## Notes
 

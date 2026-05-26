@@ -10,7 +10,7 @@ Transitrix Studio brings **text-first diagram authoring** to VS Code. Instead of
 
 Studio previews the full Transitrix notation kit shipping in 1.0.0 — thirteen notations spanning the process (BPMN, Process Map, Process Blueprint), strategy (FGCA, FGA, Goals), capability, scenario, catalogue (Applications, Products), block, activity, and issues families. See [`extension/README.md`](extension/README.md) for the per-format list shipping in the VSIX, and the methodology repo for the notation specs themselves: [github.com/transitrix/methodology](https://github.com/transitrix/methodology).
 
-> **Legacy identifiers.** The `.cervin.yaml` file extension and the `cervin` CLI binary name predate the `transitrix` rename and are kept accepted for backward compatibility; new files should use `.bpmn.yaml` and the corresponding canonical `*.<short-name>.transitrix.yaml` per the methodology.
+> **Legacy identifiers.** The `.cervin.yaml` file extension and the `cervin` CLI binary name predate the `transitrix` rename and are kept accepted for backward compatibility; new files should use the canonical `*.<short-name>.transitrix.yaml` form per the methodology (e.g. `*.bpmn.transitrix.yaml` for BPMN).
 
 ## Install
 
@@ -32,7 +32,7 @@ code --install-extension transitrix-studio-1.0.0.vsix
 
 ## Quick start — BPMN
 
-Create a file `example.bpmn.yaml`:
+Create a file `example.bpmn.transitrix.yaml`:
 
 ```yaml
 process:
@@ -58,7 +58,7 @@ Open it in VS Code — the preview panel opens automatically and refreshes on ev
 ## CLI
 
 ```bash
-cervin compile input.bpmn.yaml output.bpmn
+cervin compile input.bpmn.transitrix.yaml output.bpmn
 cervin serve                         # local web UI at http://localhost:8765
 ```
 

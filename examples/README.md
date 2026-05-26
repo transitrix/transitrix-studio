@@ -4,12 +4,12 @@ One subfolder per diagram format. Open any example file in VS Code with the Tran
 
 | Folder | File extension | Format | Description |
 |---|---|---|---|
-| [`bpmn/`](bpmn/) | `*.bpmn.yaml` | BPMN | Business process diagrams with lanes, gateways, and flows |
+| [`bpmn/`](bpmn/) | `*.bpmn.transitrix.yaml` | BPMN | Business process diagrams with lanes, gateways, and flows |
 | [`goals/`](goals/) | `*.goals.transitrix.yaml` | Goals tree | Hierarchical goal decomposition (Strategy → Business Goal → Project) |
 | [`fgca/`](fgca/) | `*.fgca.transitrix.yaml` | FGCA | Factor → Goal → Change → Activity chain |
 | [`fga/`](fga/) | `*.fga.transitrix.yaml` | FGA | Factor → Goal → Activity (FGCA without Changes) |
 | [`activities/`](activities/) | `*.activities.transitrix.yaml` | Activity network | AoN / PSND precedence diagram with critical path |
-| [`blocks/`](blocks/) | `*.blocks.transitrix.txt` | Nested block diagrams | ASCII art architecture maps rendered via svgbob |
+| [`blocks/`](blocks/) | `*.blocks.transitrix.yaml` | Nested block diagrams | Recursive `block` tree rendered as nested containers |
 | [`products/`](products/) | `*.products.transitrix.yaml` | Products catalogue | Portfolio of digital products, services, platforms, and bundles |
 | [`applications/`](applications/) | `*.applications.transitrix.yaml` | Applications catalogue | Inventory of applications, integrations, platforms, and data stores |
 
@@ -20,10 +20,5 @@ Each folder contains a `README.md` with format documentation and the list of exa
 1. Install the **Transitrix Studio** extension in VS Code.
 2. Open any example file — the preview panel opens automatically beside the editor.
 3. Edit and save the file to refresh the preview.
-
-## Notes on nested-blocks/
-
-The `nested-blocks/` folder is a legacy location kept for reference.
-New blocks examples belong in `blocks/`.
 
 For how `examples/` fits into the broader repo layout, see [`docs/repo-layout.md`](../docs/repo-layout.md).
