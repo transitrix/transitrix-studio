@@ -16,14 +16,14 @@ applications_catalogue:
       type: application
       status: Active
       domain: Operations
-      owner_role: Head of Engineering
+      owner_role: ROLE-ENG-001
       vendor: Internal
       maturity: 4
       description: Core system for end-to-end order lifecycle management.
       capabilities:
-        - Order processing
-        - Inventory tracking
-        - Fulfilment orchestration
+        - V1.2      # Order Fulfilment — order processing
+        - V2.2      # Inventory Management — inventory tracking
+        - V1.2.1    # Pick & Pack — fulfilment orchestration
       products:
         - prod-mobile-app
         - prod-partner-bundle
@@ -42,21 +42,20 @@ applications_catalogue:
       type: application
       status: Active
       domain: Sales
-      owner_role: Sales Director
+      owner_role: ROLE-SALES-001
       vendor: Salesforce
       maturity: 3
       description: Customer relationship and sales pipeline management.
       capabilities:
-        - Lead management
-        - Opportunity tracking
-        - Customer 360 view
+        - V2.1    # Customer Acquisition — lead management, opportunity tracking
+        - V2      # CRM — customer 360 view
 
     - app_id: APP-EBS-001
       name: Enterprise Event Bus
       type: platform
       status: Active
       domain: Engineering
-      owner_role: Platform Lead
+      owner_role: ROLE-PLATFORM-001
       vendor: Internal
       maturity: 5
       description: Centralised Kafka-based event streaming platform for domain event distribution.
@@ -71,14 +70,14 @@ applications_catalogue:
       type: data_store
       status: Active
       domain: Data & Analytics
-      owner_role: Head of Data
+      owner_role: ROLE-DATA-001
       vendor: Snowflake
       maturity: 4
       description: Central analytical data store for BI and reporting.
       capabilities:
-        - Real-time reporting
-        - Historical analysis
-        - Data cataloguing
+        - V4.1    # Analytics — real-time reporting
+        - V4.2    # Analytics — historical analysis
+        - H1      # Master Data Management — data cataloguing
 
     - app_id: APP-LEGACY-PORTAL-001
       name: Legacy Customer Portal
@@ -94,7 +93,7 @@ applications_catalogue:
       type: application
       status: Decommissioning
       domain: Finance
-      owner_role: CFO
+      owner_role: ROLE-FIN-001
       vendor: SAP
       maturity: 1
       description: On-premise ERP module being decommissioned in Q3 2026. Migration to cloud ERP in progress.
@@ -104,7 +103,7 @@ applications_catalogue:
       type: integration
       status: Draft
       domain: Operations
-      owner_role: Integration Architect
+      owner_role: ROLE-INTARCH-001
       description: Event-driven integration forwarding order state changes from OMS to CRM.
       source: APP-OMS-001
       target: APP-CRM-001

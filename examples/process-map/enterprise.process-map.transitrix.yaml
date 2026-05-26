@@ -20,7 +20,7 @@ process_map:
       processes:
         - process_id: PROC-ORD-FULFILL-001
           name: Order Fulfilment
-          owner_role: Head of Operations
+          owner_role: ROLE-OPS-001
           capability: V1
           maturity: 3
           status: Active
@@ -28,13 +28,13 @@ process_map:
           description: End-to-end fulfilment from order placement to delivery.
         - process_id: PROC-CUST-ONBOARD-001
           name: Customer Onboarding
-          owner_role: Head of Sales
+          owner_role: ROLE-SALES-001
           capability: V2
           maturity: 2
           status: Active
         - process_id: PROC-DELIV-001
           name: Last-mile Delivery
-          owner_role: Logistics Lead
+          owner_role: ROLE-LOG-001
           capability: V1
           maturity: 1
           status: Draft
@@ -46,17 +46,17 @@ process_map:
       processes:
         - process_id: PROC-HR-RECRUIT-001
           name: Recruitment
-          owner_role: HR Director
+          owner_role: ROLE-HR-001
           status: Active
           maturity: 3
         - process_id: PROC-FIN-CLOSE-001
           name: Monthly Financial Close
-          owner_role: CFO
+          owner_role: ROLE-FIN-001
           status: Active
           maturity: 4
         - process_id: PROC-IT-INCIDENT-001
           name: IT Incident Response
-          owner_role: Head of IT
+          owner_role: ROLE-IT-001
           status: Active
           maturity: 2
 
@@ -67,15 +67,15 @@ process_map:
       processes:
         - process_id: PROC-STRAT-PLAN-001
           name: Annual Strategy Planning
-          owner_role: CEO
+          owner_role: ROLE-CEO-001
           status: Active
           maturity: 3
         - process_id: PROC-RISK-MGT-001
           name: Risk Management Review
-          owner_role: Chief Risk Officer
+          owner_role: ROLE-RISK-001
           status: Active
           maturity: 2
         - process_id: PROC-COMPLIANCE-001
           name: Compliance Audit
-          owner_role: General Counsel
+          owner_role: ROLE-LEGAL-001
           status: Deprecated

@@ -18,7 +18,7 @@ capability_map:
       current_maturity: 2
       target_maturity: 3
       target_date: "2026-12-31"
-      owner_role: Head of Operations
+      owner_role: ROLE-OPS-001
       business_process: PROC-ORD-FULFILL-001
       applications:
         - APP-OMS-001
@@ -26,20 +26,24 @@ capability_map:
       children:
         - id: V1.1
           name: Order Intake
+          type: domain
           current_maturity: 3
           target_maturity: 3
         - id: V1.2
           name: Order Fulfilment
+          type: domain
           current_maturity: 2
           target_maturity: 3
           target_date: "2026-09-30"
           children:
             - id: V1.2.1
               name: Pick & Pack
+              type: domain
               current_maturity: 2
               target_maturity: 3
             - id: V1.2.2
               name: Last-mile Delivery
+              type: domain
               current_maturity: 1
               target_maturity: 3
 
@@ -49,16 +53,18 @@ capability_map:
       current_maturity: 3
       target_maturity: 4
       target_date: "2027-06-30"
-      owner_role: Head of Sales
+      owner_role: ROLE-SALES-001
       applications:
         - APP-CRM-001
       children:
         - id: V2.1
           name: Customer Acquisition
+          type: domain
           current_maturity: 2
           target_maturity: 4
         - id: V2.2
           name: Customer Service
+          type: domain
           current_maturity: 3
           target_maturity: 4
 
@@ -67,7 +73,7 @@ capability_map:
       type: domain
       current_maturity: 4
       target_maturity: 5
-      owner_role: CFO
+      owner_role: ROLE-FIN-001
 
     - id: H1
       name: Master Data Management

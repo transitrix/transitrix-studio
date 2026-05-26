@@ -6,6 +6,15 @@
   "additionalProperties": false,
   "required": ["process"],
   "properties": {
+    "notation": {
+      "type": "string",
+      "const": "bpmn",
+      "description": "Canonical notation header per notations/CONTRACT.md. Required by the methodology; optional in this schema for backward compatibility with files predating the canonical header."
+    },
+    "spec_version": {
+      "type": "string",
+      "description": "Notation spec version this document conforms to. Reserved per CONTRACT.md; accepted but not enforced."
+    },
     "process": {
       "type": "object",
       "additionalProperties": false,
