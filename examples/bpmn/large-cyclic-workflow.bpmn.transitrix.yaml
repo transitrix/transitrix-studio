@@ -1,3 +1,4 @@
+notation: bpmn
 # CORPUS CELL: L-Hi-C-Hi-4
 # Element count: 22 (10 tasks, 2 events, 10 gateways)
 # Cross-lane flows: 16/21 (76%)
@@ -174,11 +175,11 @@ process:
     - id: flow-21
       from: gw-approve
       to: approve-work
-      condition: yes
+      condition: "yes"
     - id: flow-22
       from: gw-approve
       to: reject-work
-      condition: no
+      condition: "no"
     - id: flow-23
       from: approve-work
       to: receive-result
