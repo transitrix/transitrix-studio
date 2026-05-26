@@ -4,6 +4,7 @@ import yaml from 'js-yaml';
 import { buildDiagramFrame, prepareSvgForExport, type ThemeId } from './diagram-frame.js';
 import { TITLE_BLOCK_H, titleBlockSvg, todayIso } from './svg-title-block.js';
 import { parseCanonicalFGCA } from '../../packages/diagrams/src/fgca/parse-canonical.js';
+import { coerceDatesToIsoStrings } from '../../packages/diagrams/src/yaml-normalize.js';
 
 // ── Inline types ──────────────────────────────────────────────────────────────
 //
@@ -429,7 +430,7 @@ export class FGCAPreview {
     let warnings: string[] = [];
 
     try {
-      const parsed = yaml.load(yamlText) as unknown;
+      const parsed = coerceDatesToIsoStrings(yaml.load(yamlText) as unknown);
       const meta = (parsed && typeof parsed === 'object' ? parsed : {}) as { version?: unknown; date?: unknown };
       const docVersion = typeof meta.version === 'string' ? meta.version : undefined;
       const docDate = typeof meta.date === 'string' ? meta.date : todayIso();
@@ -523,7 +524,7 @@ export class FGAPreview {
     let warnings: string[] = [];
 
     try {
-      const parsed = yaml.load(yamlText) as unknown;
+      const parsed = coerceDatesToIsoStrings(yaml.load(yamlText) as unknown);
       const meta = (parsed && typeof parsed === 'object' ? parsed : {}) as { version?: unknown; date?: unknown };
       const docVersion = typeof meta.version === 'string' ? meta.version : undefined;
       const docDate = typeof meta.date === 'string' ? meta.date : todayIso();

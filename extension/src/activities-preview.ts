@@ -14,6 +14,7 @@ import {
   type GanttLayout,
   type GanttResult,
 } from '../../packages/diagrams/src/activities/index.js';
+import { coerceDatesToIsoStrings } from '../../packages/diagrams/src/yaml-normalize.js';
 
 // ── Shared helpers ───────────────────────────────────────────────────────────
 
@@ -593,7 +594,7 @@ export class ActivitiesPreview {
     let warnings: string[] = [];
 
     try {
-      const parsed = yaml.load(yamlText) as unknown;
+      const parsed = coerceDatesToIsoStrings(yaml.load(yamlText) as unknown);
       // Document version/date for the title block. `version` is optional;
       // `date` falls back to today when the document has no date field —
       // a frozen version paired with a floating render date would be
