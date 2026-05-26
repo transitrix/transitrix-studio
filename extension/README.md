@@ -13,7 +13,8 @@ Live **preview** for Transitrix diagram formats inside VS Code:
 - **Scenarios** — `.scenarios.transitrix.yaml` (scenario planning: factors, references across the model)
 - **Applications catalogue** — `.applications.transitrix.yaml` (applications, integrations, platforms, data stores)
 - **Products catalogue** — `.products.transitrix.yaml` (digital products, services, platforms, bundles)
-- **Nested blocks** — `.blocks.transitrix.txt` (ASCII block diagrams via Svgbob; requires Python 3 + `svgbob_cli`)
+- **Nested blocks** — `.blocks.transitrix.yaml` (recursive `block` tree rendered as nested containers; native TypeScript renderer — no external binaries)
+- **Issues register** — `.issues.transitrix.yaml` (nested issue tree with colour-coded status badges: open / in_progress / blocked / resolved / closed)
 
 Every vector preview toolbar provides:
 - **Title** — toggle the diagram caption on/off
