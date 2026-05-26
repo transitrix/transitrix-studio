@@ -1,5 +1,6 @@
 export * from "./activities/index";
 export * from "./applications/index";
+export * from "./blocks/index";
 export * from "./capability-map/index";
 export * from "./fgca/index";
 export * from "./goals/index";

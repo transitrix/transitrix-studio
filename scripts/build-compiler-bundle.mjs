@@ -19,13 +19,7 @@ import { fileURLToPath } from 'node:url';
 const root = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const compilerOut = resolve(root, 'extension', 'compiler');
 const schemaOut = resolve(root, 'extension', 'schemas');
-const backendsOut = resolve(root, 'extension', 'backends', 'blocks');
 const extensionRoot = resolve(root, 'extension');
-
-// Runtime Python scripts copied from backends/blocks/ into extension/backends/blocks/.
-// The root backends/ tree is the canonical source (also used by the CLI through
-// src/blocks-backend.ts); extension/backends/ is regenerated on every prep.
-const BACKEND_RUNTIME_FILES = ['blocks_stdio.py', 'diagram_generator.py'];
 
 // Rebuild compiler output directory
 await fs.rm(compilerOut, { recursive: true, force: true });
@@ -82,12 +76,11 @@ for (const name of await fs.readdir(resolve(root, 'schemas'))) {
   await fs.copyFile(resolve(root, 'schemas', name), resolve(schemaOut, name));
 }
 
-// Sync Python backend runtime (nested-blocks generator).
+// Drop any previously copied Python backend runtime — the blocks notation
+// now renders natively in TypeScript and the svgbob/Python pipeline has been
+// removed. Older clones may still carry extension/backends/ from a previous
+// prep run; clear it so the VSIX does not ship dead files.
 await fs.rm(resolve(root, 'extension', 'backends'), { recursive: true, force: true });
-await fs.mkdir(backendsOut, { recursive: true });
-for (const name of BACKEND_RUNTIME_FILES) {
-  await fs.copyFile(resolve(root, 'backends', 'blocks', name), resolve(backendsOut, name));
-}
 
 // Install runtime deps into extension/node_modules/ — clean install, ignoring
 // the workspace at root so the result is a standalone tree (no symlinks to

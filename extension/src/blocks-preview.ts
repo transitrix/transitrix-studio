@@ -1,62 +1,181 @@
-import * as cp from 'node:child_process';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
-import { buildDiagramFrame } from './diagram-frame.js';
-import { todayIso } from './svg-title-block.js';
+import yaml from 'js-yaml';
+import { buildDiagramFrame, prepareSvgForExport, type ThemeId } from './diagram-frame.js';
+import { TITLE_BLOCK_H, titleBlockSvg, todayIso } from './svg-title-block.js';
+import {
+  validateNestedBlocks,
+  layoutNestedBlocks,
+  iterateBlocks,
+  type BlocksFile,
+  type BlocksLayout,
+  type LaidOutBlock,
+} from '../../packages/diagrams/src/blocks/index.js';
 
-function escHtml(s: string): string {
+function escXml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-const BLOCKS_STYLES = `
-.blocks-svg-wrap { display: inline-flex; flex-direction: column; gap: 24px; padding: 8px 16px; min-width: 100%; }
-.blocks-svg-wrap svg { display: block; }
-`;
+function truncate(text: string, maxChars: number): string {
+  if (text.length <= maxChars) return text;
+  return text.slice(0, Math.max(0, maxChars - 1)) + '…';
+}
 
-const BACKEND_TIMEOUT_MS = 30_000;
+/**
+ * Pick the diagram-frame level class for a block at the given depth.
+ *
+ * `level-0` is the lightest fill in the brand colour ramp; deeper levels are
+ * progressively darker. The methodology spec mandates "outermost lightest"
+ * (08-blocks.md §7), so depth 1 (top-level) maps to `level-0`.
+ *
+ * The frame defines `level-0` … `level-6`; deeper blocks reuse `level-6` so
+ * extreme nesting still renders without crashing (BL-008 already warns at
+ * depth 6+).
+ */
+function levelClassForDepth(depth: number): string {
+  const idx = Math.min(Math.max(depth - 1, 0), 6);
+  return `level-${idx}`;
+}
 
-const PYTHON_FIX_PROMPT = `Transitrix Studio needs Python 3 to render block diagrams, but it was not found on this system.
+function emitBlockSvg(b: LaidOutBlock, ox: number, oy: number, parts: string[]): void {
+  const cls = levelClassForDepth(b.depth);
+  parts.push(
+    `<rect class="diagram-node ${cls}" x="${b.x + ox}" y="${b.y + oy}" width="${b.width}" height="${b.height}" rx="6"/>`,
+  );
 
-Please install it:
+  // Header label, centred horizontally within the block's header strip.
+  const headerY = b.y + oy + b.headerHeight / 2;
+  const maxChars = Math.max(4, Math.floor(b.width / 8));
+  parts.push(
+    `<text class="text-header" x="${b.x + ox + b.width / 2}" y="${headerY}" text-anchor="middle" dominant-baseline="central">${escXml(truncate(b.name, maxChars))}</text>`,
+  );
 
-• macOS:   brew install python3
-           or download from https://python.org/downloads
-• Windows: https://python.org/downloads
-           ✓ Check "Add Python to PATH" during installation
-           The extension uses the Python Launcher (py.exe) by default on Windows —
-           it is installed automatically with Python and is the most reliable option.
-• Linux:   sudo apt install python3
-           (or: sudo dnf install python3 / sudo pacman -S python)
+  for (const c of b.children) emitBlockSvg(c, ox, oy, parts);
+}
 
-After installing, either restart VS Code so the new PATH is picked up,
-or open VS Code Settings, search for "transitrix.pythonPath",
-and set it to the full path to the Python executable.
-Examples: /usr/bin/python3
-          C:\\Python311\\python.exe`;
+function layoutToSvg(
+  layout: BlocksLayout,
+  filename?: string,
+  date?: string,
+  version?: string,
+): string {
+  const pad = 24;
+  const showTitle = filename != null && date != null;
+  const titleH = showTitle ? TITLE_BLOCK_H : 0;
+  const w = layout.bounds.width + pad * 2;
+  const h = layout.bounds.height + pad * 2 + titleH;
+  const ox = pad;
+  const oy = pad + titleH;
 
-interface BackendResult {
-  ok: boolean;
-  svgs?: string[];
-  message?: string;
-  details?: string[];
-  fixPrompt?: string;
+  const parts: string[] = [];
+  for (const top of layout.blocks) emitBlockSvg(top, ox, oy, parts);
+
+  const titleSvg = showTitle ? titleBlockSvg('Nested Blocks', filename!, date!, pad, pad, version) : '';
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+${titleSvg}
+${parts.join('\n')}
+</svg>`;
 }
 
 export class BlocksPreview {
+  readonly panelTitle = 'Blocks Preview';
   private panel: vscode.WebviewPanel | undefined;
-  private currentUri: string | undefined;
-  private lastSvgs: string[] = [];
+  private trackedUri: string | undefined;
+  private lastSvg = '';
 
-  constructor(private readonly extensionPath: string) {}
+  isShowingDocument(uri: vscode.Uri): boolean {
+    return this.panel != null && this.trackedUri === uri.toString();
+  }
+
+  async showOrReveal(doc: vscode.TextDocument): Promise<void> {
+    this.trackedUri = doc.uri.toString();
+    if (this.panel) {
+      this.panel.title = `${this.panelTitle} — ${path.basename(doc.fileName)}`;
+      this.panel.reveal(vscode.ViewColumn.Beside, true);
+    } else {
+      this.panel = vscode.window.createWebviewPanel(
+        'blocksPreview',
+        `${this.panelTitle} — ${path.basename(doc.fileName)}`,
+        { viewColumn: vscode.ViewColumn.Beside, preserveFocus: false },
+        {
+          enableScripts: false,
+          retainContextWhenHidden: true,
+          enableCommandUris: ['transitrixStudio.saveBlocksAsSvg'],
+        },
+      );
+      this.panel.onDidDispose(() => {
+        this.panel = undefined;
+        this.trackedUri = undefined;
+      });
+    }
+    await this.pushDocument(doc);
+  }
+
+  async refreshSaved(doc: vscode.TextDocument): Promise<void> {
+    if (!this.isShowingDocument(doc.uri)) return;
+    await this.pushDocument(doc);
+  }
+
+  private async pushDocument(doc: vscode.TextDocument): Promise<void> {
+    if (!this.panel) return;
+    this.panel.webview.html = this.buildHtml(doc.getText(), path.basename(doc.fileName));
+  }
+
+  private buildHtml(yamlText: string, filename: string): string {
+    let svgContent = '';
+    let errorMsg = '';
+    let warnings: string[] = [];
+
+    try {
+      const parsed = yaml.load(yamlText) as unknown;
+      const v = validateNestedBlocks(parsed);
+      warnings = v.warnings.map((w) => `${w.code}: ${w.message}`);
+      if (!v.valid) {
+        errorMsg = v.errors.map((e) => `${e.code}: ${e.message}`).join('\n');
+      } else {
+        const file = parsed as BlocksFile;
+        const nb =
+          (file as unknown as { nested_blocks?: { version?: unknown; date?: unknown } })
+            .nested_blocks ?? {};
+        const docVersion = typeof nb.version === 'string' ? nb.version : undefined;
+        const docDate = typeof nb.date === 'string' ? nb.date : todayIso();
+        const layout = layoutNestedBlocks(file);
+        svgContent = layoutToSvg(layout, filename, docDate, docVersion);
+
+        // BL-008 / BL-009 may still be present even when the document is
+        // valid; surface them through the diagram-frame warnings channel.
+      }
+    } catch (e) {
+      errorMsg = (e as Error).message ?? 'Parse error';
+    }
+
+    this.lastSvg = svgContent;
+
+    const themeId = vscode.workspace
+      .getConfiguration('transitrix')
+      .get<ThemeId>('theme', 'transitrix');
+
+    return buildDiagramFrame({
+      filename,
+      notation: 'Nested Blocks',
+      svgContent,
+      errorMsg,
+      warnings,
+      themeId,
+      saveSvgCommand: 'transitrixStudio.saveBlocksAsSvg',
+    });
+  }
 
   async saveAsSvg(): Promise<void> {
-    if (!this.lastSvgs.length) {
-      vscode.window.showWarningMessage('No diagram rendered yet. Open a *.blocks.transitrix.txt file first.');
+    if (!this.lastSvg) {
+      vscode.window.showWarningMessage(
+        'No diagram rendered yet. Open a *.blocks.transitrix.yaml file first.',
+      );
       return;
     }
-    const sourceUri = this.currentUri ? vscode.Uri.parse(this.currentUri) : undefined;
+    const sourceUri = this.trackedUri ? vscode.Uri.parse(this.trackedUri) : undefined;
     const stem = sourceUri
-      ? path.basename(sourceUri.fsPath).replace(/\.blocks\.transitrix\.txt$/, '')
+      ? path.basename(sourceUri.fsPath).replace(/\.blocks\.transitrix\.yaml$/, '')
       : 'diagram';
     const defaultUri = sourceUri
       ? vscode.Uri.file(path.join(path.dirname(sourceUri.fsPath), `${stem}.svg`))
@@ -66,148 +185,16 @@ export class BlocksPreview {
       filters: { 'SVG Image': ['svg'] },
     });
     if (!target) return;
-    // ascii mode always produces one SVG; join with gap if multiple
-    const content = Buffer.from(this.lastSvgs.join('\n\n'), 'utf-8');
-    await vscode.workspace.fs.writeFile(target, content);
+    const themeId = vscode.workspace
+      .getConfiguration('transitrix')
+      .get<ThemeId>('theme', 'transitrix');
+    const svg = prepareSvgForExport(this.lastSvg, themeId);
+    await vscode.workspace.fs.writeFile(target, Buffer.from(svg, 'utf-8'));
     vscode.window.showInformationMessage(`Saved: ${path.basename(target.fsPath)}`);
   }
-
-  async showOrReveal(doc: vscode.TextDocument): Promise<void> {
-    if (this.panel && this.currentUri === doc.uri.toString()) {
-      this.panel.reveal();
-      return;
-    }
-    if (this.panel) {
-      this.panel.dispose();
-    }
-    this.panel = vscode.window.createWebviewPanel(
-      'blocksPreview',
-      `Blocks: ${path.basename(doc.fileName)}`,
-      vscode.ViewColumn.Beside,
-      { enableScripts: false, retainContextWhenHidden: true, enableCommandUris: ['transitrixStudio.saveBlocksAsSvg'] },
-    );
-    this.currentUri = doc.uri.toString();
-    this.panel.onDidDispose(() => {
-      this.panel = undefined;
-      this.currentUri = undefined;
-    });
-    await this.render(doc);
-  }
-
-  async refreshSaved(doc: vscode.TextDocument): Promise<void> {
-    if (!this.panel || this.currentUri !== doc.uri.toString()) return;
-    await this.render(doc);
-  }
-
-  private async render(doc: vscode.TextDocument): Promise<void> {
-    if (!this.panel) return;
-    const filename = path.basename(doc.fileName);
-    const source = doc.getText();
-
-    let html: string;
-    try {
-      const result = await this.runBackend(source);
-      if (!result.ok) {
-        this.lastSvgs = [];
-        const detail = result.details?.join('\n') ?? '';
-        html = buildDiagramFrame({
-          filename,
-          notation: 'blocks',
-          errorMsg: result.message ?? 'Blocks backend error',
-          warnings: detail ? [detail] : [],
-          fixPrompt: result.fixPrompt,
-        });
-      } else {
-        const svgs = result.svgs ?? [];
-        this.lastSvgs = svgs;
-        const today = todayIso();
-        // The blocks backend emits one SVG per top-level block, joined in
-        // `.blocks-svg-wrap`. Embedding the title into each SVG would multiply
-        // captions, so it lives in an HTML header above the wrapper — the same
-        // class as the SVG variant, the Title toggle picks both up via
-        // TITLE_TOGGLE_CSS in diagram-frame.ts.
-        const titleHtml = `<div class="diagram-title-block diagram-title-block-html">
-  <div class="text-header">Block diagram</div>
-  <div class="text-secondary">${escHtml(filename)}</div>
-  <div class="text-secondary">${escHtml(today)}</div>
-</div>`;
-        const svgContent = `${titleHtml}<div class="blocks-svg-wrap">${svgs.join('\n')}</div>`;
-        html = buildDiagramFrame({
-          filename,
-          notation: 'blocks',
-          svgContent,
-          extraStyles: BLOCKS_STYLES,
-          saveSvgCommand: 'transitrixStudio.saveBlocksAsSvg',
-        });
-      }
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      html = buildDiagramFrame({ filename, notation: 'blocks', errorMsg: msg });
-    }
-    this.panel.webview.html = html;
-  }
-
-  private runBackend(source: string): Promise<BackendResult> {
-    return new Promise((resolve) => {
-      const scriptPath = path.join(this.extensionPath, 'backends', 'blocks', 'blocks_stdio.py');
-      const cfg = vscode.workspace.getConfiguration('transitrix');
-      const defaultPython = process.platform === 'win32' ? 'py' : 'python3';
-      const pythonPath = cfg.get<string>('pythonPath') || defaultPython;
-      const svgbobPath = cfg.get<string>('svgbobPath') || 'svgbob_cli';
-      const payload = JSON.stringify({ mode: 'ascii', source, svgbobCommand: svgbobPath });
-
-      // `cp.spawn` does not throw synchronously when the executable is
-      // missing — ENOENT surfaces via the `'error'` event handler below.
-      // The previous try/catch around the spawn was therefore dead code and
-      // its `resolve(...)` path was never taken.
-      const proc = cp.spawn(pythonPath, [scriptPath], { stdio: ['pipe', 'pipe', 'pipe'] });
-
-      let stdout = '';
-      let stderr = '';
-      const timer = setTimeout(() => {
-        proc.kill();
-        resolve({ ok: false, message: 'Blocks backend timed out after 30 s.' });
-      }, BACKEND_TIMEOUT_MS);
-
-      proc.stdout?.on('data', (chunk: Buffer) => { stdout += chunk.toString(); });
-      proc.stderr?.on('data', (chunk: Buffer) => { stderr += chunk.toString(); });
-
-      proc.on('error', (err: NodeJS.ErrnoException) => {
-        clearTimeout(timer);
-        if (err.code === 'ENOENT') {
-          resolve({
-            ok: false,
-            message: `Python not found at "${pythonPath}". See the prompt below to install it.`,
-            fixPrompt: PYTHON_FIX_PROMPT,
-          });
-        } else {
-          resolve({ ok: false, message: `Backend process error: ${err.message}` });
-        }
-      });
-
-      proc.on('close', () => {
-        clearTimeout(timer);
-        if (!stdout) {
-          resolve({
-            ok: false,
-            message: 'Backend produced no output.',
-            details: stderr ? [stderr.slice(0, 400)] : [],
-          });
-          return;
-        }
-        try {
-          resolve(JSON.parse(stdout) as BackendResult);
-        } catch {
-          resolve({
-            ok: false,
-            message: `Backend output is not valid JSON: ${stdout.slice(0, 200)}`,
-            details: stderr ? [stderr.slice(0, 200)] : [],
-          });
-        }
-      });
-
-      proc.stdin?.write(payload);
-      proc.stdin?.end();
-    });
-  }
 }
+
+// `iterateBlocks` is re-exported by the diagrams package and used internally
+// by the SVG emitter via tree walks; keep it imported here so the test that
+// asserts pre-order iteration can run against the same source-of-truth.
+void iterateBlocks;
