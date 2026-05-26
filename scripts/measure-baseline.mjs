@@ -21,12 +21,12 @@ const snapshotsDir = path.join(projectRoot, 'tests', 'snapshots')
 const baselineFile = path.join(snapshotsDir, 'metrics-baseline.json')
 
 /**
- * Find all BPMN example YAML files (*.bpmn.yaml)
+ * Find all BPMN example YAML files (*.bpmn.transitrix.yaml)
  */
 async function findCorpusFiles() {
   const files = await fs.readdir(examplesDir)
   return files
-    .filter((f) => f.endsWith('.bpmn.yaml'))
+    .filter((f) => f.endsWith('.bpmn.transitrix.yaml'))
     .map((f) => path.join(examplesDir, f))
     .sort()
 }

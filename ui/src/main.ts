@@ -143,7 +143,7 @@ function renderShell(root: HTMLElement): void {
 <div class="shell-header">
   <h1>Transitrix Studio <span class="sub">text-first BPMN</span></h1>
   <div class="actions">
-    <input id="pick-file" class="a11y-file" type="file" accept=".yaml,.yml,.cervin.yaml,.bpmn.yaml,.txt,.md,.markdown,text/yaml,text/x-yaml,text/plain" aria-label="Open source file from disk" />
+    <input id="pick-file" class="a11y-file" type="file" accept=".yaml,.yml,.cervin.yaml,.bpmn.transitrix.yaml,.txt,.md,.markdown,text/yaml,text/x-yaml,text/plain" aria-label="Open source file from disk" />
     <button type="button" id="btn-open">Open…</button>
     <button type="button" id="btn-compile">Rebuild</button>
     <button type="button" id="btn-reset">Sample</button>

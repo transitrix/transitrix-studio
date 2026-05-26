@@ -112,7 +112,7 @@ describe('Layout Metrics Regression Tests', () => {
 
 describe('Metrics - RD-054 Acceptance Criteria', () => {
   const testCases = [
-    { filename: 'simple-approval.bpmn.yaml', name: 'Simple Approval (S-Mi-A-Lo-2)' },
+    { filename: 'simple-approval.bpmn.transitrix.yaml', name: 'Simple Approval (S-Mi-A-Lo-2)' },
   ]
 
   for (const { filename, name } of testCases) {
