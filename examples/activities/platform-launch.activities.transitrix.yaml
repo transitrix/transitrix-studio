@@ -11,7 +11,7 @@ date: "2026-05-12"
 author: "Valerii Korobeinikov"
 
 activities:
-  - id: A-001
+  - id: ACTIVITY-A-1
     name: Requirements analysis
     duration: 5
     sort: 10
@@ -22,85 +22,85 @@ activities:
       Gather and document all requirements for the customer platform.
       Include both functional and non-functional requirements.
 
-  - id: A-002
+  - id: ACTIVITY-A-2
     name: Architecture design
     duration: 8
     sort: 20
-    predecessors: [A-001]
+    predecessors: [ACTIVITY-A-1]
     goals: [GOAL-CUST-001, GOAL-PLATFORM-002]
     tags: [q3-priority]
     unit: UNIT-ENGINEERING
 
-  - id: A-003
+  - id: ACTIVITY-A-3
     name: Backend implementation
     duration: 15
     sort: 30
-    predecessors: [A-002]
+    predecessors: [ACTIVITY-A-2]
     goals: [GOAL-PLATFORM-002]
     tags: [q3-priority]
     unit: UNIT-ENGINEERING
     delivers_changes: [CHG-PLATFORM-001]
 
-  - id: A-004
+  - id: ACTIVITY-A-4
     name: Frontend implementation
     duration: 12
     sort: 40
-    predecessors: [A-002]
+    predecessors: [ACTIVITY-A-2]
     goals: [GOAL-CUST-001]
     tags: [q3-priority]
     unit: UNIT-ENGINEERING
     delivers_changes: [CHG-UX-001]
 
-  - id: A-005
+  - id: ACTIVITY-A-5
     name: Infrastructure setup
     duration: 4
     sort: 50
-    predecessors: [A-002]
+    predecessors: [ACTIVITY-A-2]
     goals: [GOAL-PLATFORM-002]
     tags: [devops]
     unit: UNIT-INFRA
 
-  - id: A-006
+  - id: ACTIVITY-A-6
     name: Integration testing
     duration: 7
     sort: 60
-    predecessors: [A-003, A-004, A-005]
+    predecessors: [ACTIVITY-A-3, ACTIVITY-A-4, ACTIVITY-A-5]
     goals: [GOAL-CUST-001, GOAL-PLATFORM-002]
     tags: [q3-priority, qa]
     unit: UNIT-QA
 
-  - id: A-007
+  - id: ACTIVITY-A-7
     name: Performance testing
     duration: 3
     sort: 70
-    predecessors: [A-006]
+    predecessors: [ACTIVITY-A-6]
     goals: [GOAL-PLATFORM-002]
     tags: [qa]
     unit: UNIT-QA
 
-  - id: A-008
+  - id: ACTIVITY-A-8
     name: Security review
     duration: 4
     sort: 80
-    predecessors: [A-006]
+    predecessors: [ACTIVITY-A-6]
     goals: [GOAL-COMPLIANCE-001]
     tags: [security]
     unit: UNIT-SECURITY
 
-  - id: A-009
+  - id: ACTIVITY-A-9
     name: Stakeholder sign-off
     duration: 2
     sort: 90
-    predecessors: [A-007, A-008]
+    predecessors: [ACTIVITY-A-7, ACTIVITY-A-8]
     goals: [GOAL-CUST-001]
     tags: [q3-priority]
     unit: UNIT-PRODUCT
 
-  - id: A-010
+  - id: ACTIVITY-A-10
     name: Production deployment
     duration: 1
     sort: 100
-    predecessors: [A-009]
+    predecessors: [ACTIVITY-A-9]
     goals: [GOAL-CUST-001, GOAL-PLATFORM-002]
     tags: [q3-priority, devops]
     unit: UNIT-INFRA
