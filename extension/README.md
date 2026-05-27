@@ -2,7 +2,7 @@
 
 Live **preview** for Transitrix diagram formats inside VS Code:
 
-- **BPMN** — `.bpmn.transitrix.yaml` (YAML DSL → BPMN 2.0); legacy `.cervin.yaml` also supported
+- **BPMN** — `.bpmn.transitrix.yaml` (YAML DSL → BPMN 2.0)
 - **Goals tree** — `.goals.transitrix.yaml` (hierarchical goal decomposition)
 - **FGCA** — `.fgca.transitrix.yaml` (factors, goals, changes, activities map)
 - **FGA** — `.fga.transitrix.yaml` (factors, goals, activities — change-free view)
