@@ -2,6 +2,7 @@ import * as path from 'node:path';
 import * as vscode from 'vscode';
 import yaml from 'js-yaml';
 import { buildDiagramFrame, prepareSvgForExport, type ThemeId } from './diagram-frame.js';
+import { savePngFromSvg, copyPngFromSvg } from './png-export.js';
 import { TITLE_BLOCK_H, titleBlockSvg, todayIso } from './svg-title-block.js';
 import {
   layoutGoalTree,
@@ -111,7 +112,7 @@ export class GoalsPreview {
         'goalsPreview',
         `${this.panelTitle} — ${path.basename(doc.fileName)}`,
         { viewColumn: vscode.ViewColumn.Beside, preserveFocus: false },
-        { enableScripts: false, retainContextWhenHidden: true, enableCommandUris: ['transitrixStudio.saveGoalsAsSvg'] },
+        { enableScripts: false, retainContextWhenHidden: true, enableCommandUris: ['transitrixStudio.saveGoalsAsSvg', 'transitrixStudio.saveGoalsAsPng', 'transitrixStudio.copyGoalsAsPng'] },
       );
       this.panel.onDidDispose(() => { this.panel = undefined; this.trackedUri = undefined; });
     }
@@ -162,7 +163,32 @@ export class GoalsPreview {
       .getConfiguration('transitrix')
       .get<ThemeId>('theme', 'transitrix');
 
-    return buildDiagramFrame({ filename, notation: 'Goal tree', svgContent, errorMsg, warnings, themeId, saveSvgCommand: 'transitrixStudio.saveGoalsAsSvg' });
+    return buildDiagramFrame({
+      filename, notation: 'Goal tree', svgContent, errorMsg, warnings, themeId,
+      saveSvgCommand: 'transitrixStudio.saveGoalsAsSvg',
+      savePngCommand: 'transitrixStudio.saveGoalsAsPng',
+      copyPngCommand: 'transitrixStudio.copyGoalsAsPng',
+    });
+  }
+
+  private pngTarget(): { rawSvg: string | undefined; themeId: ThemeId; emptyMessage: string } {
+    return {
+      rawSvg: this.lastSvg || undefined,
+      themeId: vscode.workspace.getConfiguration('transitrix').get<ThemeId>('theme', 'transitrix'),
+      emptyMessage: 'No diagram rendered yet. Open a *.goals.transitrix.yaml file first.',
+    };
+  }
+
+  private sourceUri(): vscode.Uri | undefined {
+    return this.trackedUri ? vscode.Uri.parse(this.trackedUri) : undefined;
+  }
+
+  saveAsPng(): Promise<void> {
+    return savePngFromSvg({ ...this.pngTarget(), sourceUri: this.sourceUri(), stripExt: /\.goals\.transitrix\.yaml$/ });
+  }
+
+  copyAsPng(): Promise<void> {
+    return copyPngFromSvg(this.pngTarget());
   }
 
   async saveAsSvg(): Promise<void> {

@@ -15,6 +15,7 @@ import {
   type GanttResult,
 } from '../../packages/diagrams/src/activities/index.js';
 import { coerceDatesToIsoStrings } from '../../packages/diagrams/src/yaml-normalize.js';
+import { savePngFromSvg, copyPngFromSvg } from './png-export.js';
 
 // ── Shared helpers ───────────────────────────────────────────────────────────
 
@@ -571,7 +572,7 @@ export class ActivitiesPreview {
         'activitiesPreview',
         `${this.panelTitle} — ${path.basename(doc.fileName)}`,
         { viewColumn: vscode.ViewColumn.Beside, preserveFocus: false },
-        { enableScripts: false, retainContextWhenHidden: true, enableCommandUris: ['transitrixStudio.saveActivitiesAsSvg'] },
+        { enableScripts: false, retainContextWhenHidden: true, enableCommandUris: ['transitrixStudio.saveActivitiesAsSvg', 'transitrixStudio.saveActivitiesAsPng', 'transitrixStudio.copyActivitiesAsPng'] },
       );
       this.panel.onDidDispose(() => { this.panel = undefined; this.trackedUri = undefined; });
     }
@@ -634,6 +635,64 @@ export class ActivitiesPreview {
       themeId,
       extraStyles: ACTIVITIES_STYLES,
       saveSvgCommand: 'transitrixStudio.saveActivitiesAsSvg',
+      savePngCommand: 'transitrixStudio.saveActivitiesAsPng',
+      copyPngCommand: 'transitrixStudio.copyActivitiesAsPng',
+    });
+  }
+
+  /**
+   * Resolve which of the two views (network / Gantt) to export. The CSS-only
+   * switcher state is invisible to the extension, so when both are present we
+   * ask; when only one rendered (Gantt-unavailable mode) we skip the prompt.
+   * Returns undefined when nothing is rendered or the user cancels.
+   */
+  private async pickExportView(): Promise<'network' | 'gantt' | undefined> {
+    const hasNetwork = Boolean(this.lastNetworkSvg);
+    const hasGantt = Boolean(this.lastGanttSvg);
+    if (!hasNetwork && !hasGantt) {
+      vscode.window.showWarningMessage('No diagram rendered yet. Open a *.activities.transitrix.yaml file first.');
+      return undefined;
+    }
+    if (hasNetwork && hasGantt) {
+      const choice = await vscode.window.showQuickPick(
+        [
+          { label: 'Network view', description: 'Project Schedule Network Diagram (PSND)', view: 'network' as const },
+          { label: 'Gantt view',   description: 'Timeline',                                  view: 'gantt'   as const },
+        ],
+        { placeHolder: 'Which view do you want to export?' },
+      );
+      return choice?.view;
+    }
+    return hasNetwork ? 'network' : 'gantt';
+  }
+
+  async saveAsPng(): Promise<void> {
+    const view = await this.pickExportView();
+    if (!view) return;
+    const rawSvg = view === 'network' ? this.lastNetworkSvg : this.lastGanttSvg;
+    const themeId = vscode.workspace.getConfiguration('transitrix').get<ThemeId>('theme', 'transitrix');
+    const sourceUri = this.trackedUri ? vscode.Uri.parse(this.trackedUri) : undefined;
+    await savePngFromSvg({
+      rawSvg: rawSvg || undefined,
+      themeId,
+      notationCss: ACTIVITIES_DIAGRAM_CSS,
+      sourceUri,
+      stripExt: /\.activities\.transitrix\.yaml$/,
+      viewSuffix: `-${view}`,
+      emptyMessage: 'No diagram rendered yet. Open a *.activities.transitrix.yaml file first.',
+    });
+  }
+
+  async copyAsPng(): Promise<void> {
+    const view = await this.pickExportView();
+    if (!view) return;
+    const rawSvg = view === 'network' ? this.lastNetworkSvg : this.lastGanttSvg;
+    const themeId = vscode.workspace.getConfiguration('transitrix').get<ThemeId>('theme', 'transitrix');
+    await copyPngFromSvg({
+      rawSvg: rawSvg || undefined,
+      themeId,
+      notationCss: ACTIVITIES_DIAGRAM_CSS,
+      emptyMessage: 'No diagram rendered yet. Open a *.activities.transitrix.yaml file first.',
     });
   }
 

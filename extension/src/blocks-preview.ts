@@ -2,6 +2,7 @@ import * as path from 'node:path';
 import * as vscode from 'vscode';
 import yaml from 'js-yaml';
 import { buildDiagramFrame, prepareSvgForExport, type ThemeId } from './diagram-frame.js';
+import { savePngFromSvg, copyPngFromSvg } from './png-export.js';
 import { TITLE_BLOCK_H, titleBlockSvg, todayIso } from './svg-title-block.js';
 import {
   validateNestedBlocks,
@@ -101,7 +102,7 @@ export class BlocksPreview {
         {
           enableScripts: false,
           retainContextWhenHidden: true,
-          enableCommandUris: ['transitrixStudio.saveBlocksAsSvg'],
+          enableCommandUris: ['transitrixStudio.saveBlocksAsSvg', 'transitrixStudio.saveBlocksAsPng', 'transitrixStudio.copyBlocksAsPng'],
         },
       );
       this.panel.onDidDispose(() => {
@@ -164,7 +165,26 @@ export class BlocksPreview {
       warnings,
       themeId,
       saveSvgCommand: 'transitrixStudio.saveBlocksAsSvg',
+      savePngCommand: 'transitrixStudio.saveBlocksAsPng',
+      copyPngCommand: 'transitrixStudio.copyBlocksAsPng',
     });
+  }
+
+  private pngTarget() {
+    return {
+      rawSvg: this.lastSvg || undefined,
+      themeId: vscode.workspace.getConfiguration('transitrix').get<ThemeId>('theme', 'transitrix'),
+      emptyMessage: 'No diagram rendered yet. Open a *.blocks.transitrix.yaml file first.',
+    };
+  }
+
+  saveAsPng(): Promise<void> {
+    const sourceUri = this.trackedUri ? vscode.Uri.parse(this.trackedUri) : undefined;
+    return savePngFromSvg({ ...this.pngTarget(), sourceUri, stripExt: /\.blocks\.transitrix\.yaml$/ });
+  }
+
+  copyAsPng(): Promise<void> {
+    return copyPngFromSvg(this.pngTarget());
   }
 
   async saveAsSvg(): Promise<void> {

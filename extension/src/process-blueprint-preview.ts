@@ -10,6 +10,7 @@ import {
   type ProcessBlueprintLayout,
 } from '../../packages/diagrams/src/process-blueprint/index.js';
 import { coerceDatesToIsoStrings } from '../../packages/diagrams/src/yaml-normalize.js';
+import { savePngFromSvg, copyPngFromSvg } from './png-export.js';
 
 function escXml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -120,7 +121,7 @@ export class ProcessBlueprintPreview {
         'processBlueprintPreview',
         `${this.panelTitle} — ${path.basename(doc.fileName)}`,
         { viewColumn: vscode.ViewColumn.Beside, preserveFocus: false },
-        { enableScripts: false, retainContextWhenHidden: true, enableCommandUris: ['transitrixStudio.saveProcessBlueprintAsSvg'] },
+        { enableScripts: false, retainContextWhenHidden: true, enableCommandUris: ['transitrixStudio.saveProcessBlueprintAsSvg', 'transitrixStudio.saveProcessBlueprintAsPng', 'transitrixStudio.copyProcessBlueprintAsPng'] },
       );
       this.panel.onDidDispose(() => { this.panel = undefined; this.trackedUri = undefined; });
     }
@@ -168,7 +169,29 @@ export class ProcessBlueprintPreview {
       .getConfiguration('transitrix')
       .get<ThemeId>('theme', 'transitrix');
 
-    return buildDiagramFrame({ filename, notation: 'Process Blueprint', svgContent, errorMsg, warnings, themeId, saveSvgCommand: 'transitrixStudio.saveProcessBlueprintAsSvg' });
+    return buildDiagramFrame({
+      filename, notation: 'Process Blueprint', svgContent, errorMsg, warnings, themeId,
+      saveSvgCommand: 'transitrixStudio.saveProcessBlueprintAsSvg',
+      savePngCommand: 'transitrixStudio.saveProcessBlueprintAsPng',
+      copyPngCommand: 'transitrixStudio.copyProcessBlueprintAsPng',
+    });
+  }
+
+  private pngTarget() {
+    return {
+      rawSvg: this.lastSvg || undefined,
+      themeId: vscode.workspace.getConfiguration('transitrix').get<ThemeId>('theme', 'transitrix'),
+      emptyMessage: 'No diagram rendered yet. Open a *.process-blueprint.transitrix.yaml file first.',
+    };
+  }
+
+  saveAsPng(): Promise<void> {
+    const sourceUri = this.trackedUri ? vscode.Uri.parse(this.trackedUri) : undefined;
+    return savePngFromSvg({ ...this.pngTarget(), sourceUri, stripExt: /\.process-blueprint\.transitrix\.yaml$/ });
+  }
+
+  copyAsPng(): Promise<void> {
+    return copyPngFromSvg(this.pngTarget());
   }
 
   async saveAsSvg(): Promise<void> {

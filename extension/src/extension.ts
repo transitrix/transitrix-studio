@@ -208,6 +208,18 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand('transitrixStudio.saveActivitiesAsSvg', () =>
       activitiesPreview.saveAsSvg(),
     ),
+    // PNG export — save-to-file + copy-to-clipboard per vector notation
+    // (vkgeorgia/strategy#32). Rasterized in the Node host via resvg.
+    vscode.commands.registerCommand('transitrixStudio.saveBlocksAsPng', () => blocksPreview.saveAsPng()),
+    vscode.commands.registerCommand('transitrixStudio.copyBlocksAsPng', () => blocksPreview.copyAsPng()),
+    vscode.commands.registerCommand('transitrixStudio.saveGoalsAsPng', () => goalsPreview.saveAsPng()),
+    vscode.commands.registerCommand('transitrixStudio.copyGoalsAsPng', () => goalsPreview.copyAsPng()),
+    vscode.commands.registerCommand('transitrixStudio.saveFGCAAsPng', () => fgcaPreview.saveAsPng()),
+    vscode.commands.registerCommand('transitrixStudio.copyFGCAAsPng', () => fgcaPreview.copyAsPng()),
+    vscode.commands.registerCommand('transitrixStudio.saveFGAAsPng', () => fgaPreview.saveAsPng()),
+    vscode.commands.registerCommand('transitrixStudio.copyFGAAsPng', () => fgaPreview.copyAsPng()),
+    vscode.commands.registerCommand('transitrixStudio.saveActivitiesAsPng', () => activitiesPreview.saveAsPng()),
+    vscode.commands.registerCommand('transitrixStudio.copyActivitiesAsPng', () => activitiesPreview.copyAsPng()),
     vscode.commands.registerCommand('transitrixStudio.previewApplications', async () => {
       const doc = vscode.window.activeTextEditor?.document;
       if (!doc || !isApplicationsFile(doc)) {
@@ -259,6 +271,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand('transitrixStudio.saveProcessBlueprintAsSvg', async () => {
       await processBlueprintPreview.saveAsSvg();
     }),
+    vscode.commands.registerCommand('transitrixStudio.saveProcessBlueprintAsPng', () => processBlueprintPreview.saveAsPng()),
+    vscode.commands.registerCommand('transitrixStudio.copyProcessBlueprintAsPng', () => processBlueprintPreview.copyAsPng()),
     vscode.commands.registerCommand('transitrixStudio.previewIssues', async () => {
       const doc = vscode.window.activeTextEditor?.document;
       if (!doc || !isIssuesFile(doc)) {
@@ -270,6 +284,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand('transitrixStudio.saveIssuesAsSvg', async () => {
       await issuesPreview.saveAsSvg();
     }),
+    vscode.commands.registerCommand('transitrixStudio.saveIssuesAsPng', () => issuesPreview.saveAsPng()),
+    vscode.commands.registerCommand('transitrixStudio.copyIssuesAsPng', () => issuesPreview.copyAsPng()),
     vscode.workspace.onDidSaveTextDocument((doc) => {
       if (isGoalsFile(doc)) { void goalsPreview.refreshSaved(doc); return; }
       if (isFGCAFile(doc)) { void fgcaPreview.refreshSaved(doc); return; }
