@@ -12,27 +12,26 @@ notation: fgca
 spec_version: "0.1"
 
 factors:
-  - id: 1
+  - id: FACTOR-1
     name: "External factor driving change"
 
 goals:
-  - id: 1
+  - id: GOAL-1
     name: "Strategic goal"
-    factor: [{ id: 1 }]      # one or more factor IDs
+    factors: [FACTOR-1]      # one or more factor IDs
 
 changes:
-  - id: 1
+  - id: CHANGE-1
     name: "Transformation programme"
-    goal_id: 1               # which goal this change addresses
-    activity_ids: [1, 2]     # activities that deliver this change
+    goals: [GOAL-1]          # which goal(s) this change addresses
 
 activities:
-  - id: 1
+  - id: ACTIVITY-1
     name: "Research phase"
-    goal_id: 1
-  - id: 2
+    changes: [CHANGE-1]      # which change(s) this activity delivers
+  - id: ACTIVITY-2
     name: "Rollout phase"
-    goal_id: 1
+    changes: [CHANGE-1]
 ```
 
 ## Optional header fields
@@ -47,10 +46,11 @@ author: "Your Name"
 
 ## Rules
 
-- All IDs (`factors`, `goals`, `changes`, `activities`) must be unique integers within their section.
-- A goal can reference multiple factors: `factor: [{ id: 1 }, { id: 2 }]`.
-- A change belongs to exactly one goal (`goal_id`) but can list multiple delivering activities.
-- An activity belongs to exactly one goal (`goal_id`).
+- IDs (`factors`, `goals`, `changes`, `activities`) follow the canonical grammar `<TYPE>-[<middle>-]<INTEGER>` (`FACTOR-…`, `GOAL-…`, `CHANGE-…`, `ACTIVITY-…`) and are unique within their section.
+- Cross-layer references are **upstream** plurals on each layer: `goal.factors[]`, `change.goals[]`, `activity.changes[]`.
+- A goal can reference multiple factors via `factors: [FACTOR-…, …]`.
+- A change can address multiple goals via `goals: [GOAL-…, …]`.
+- An activity can deliver multiple changes via `changes: [CHANGE-…, …]`.
 
 ## Examples in this folder
 
