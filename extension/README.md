@@ -20,6 +20,8 @@ Every vector preview toolbar provides:
 - **Title** — toggle the diagram caption on/off
 - **Zoom** — discrete 50 / 75 / 100 / 150 / 200 % steps
 - **Save .svg** — export the rendered diagram to a self-contained `.svg` file
+- **Save .png** — export the diagram as a rasterized PNG (2× for crisp output)
+- **Copy PNG** — copy the diagram to the clipboard as a PNG image (Windows; macOS/Linux planned)
 
 The preview panel opens automatically when you open a recognised file, and refreshes on every save.
 
