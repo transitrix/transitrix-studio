@@ -3,24 +3,19 @@ import * as vscode from 'vscode';
 import yaml from 'js-yaml';
 import { buildDiagramFrame, prepareSvgForExport, type ThemeId } from './diagram-frame.js';
 import { TITLE_BLOCK_H, titleBlockSvg, todayIso } from './svg-title-block.js';
-import { parseCanonicalFGCA } from '../../packages/diagrams/src/fgca/parse-canonical.js';
+import { parseCanonicalFGCA, parseCanonicalFGA } from '../../packages/diagrams/src/fgca/parse-canonical.js';
 import { coerceDatesToIsoStrings } from '../../packages/diagrams/src/yaml-normalize.js';
 import { savePngFromSvg, copyPngFromSvg } from './png-export.js';
 
-// ── Inline types ──────────────────────────────────────────────────────────────
+// ── Inline render types ─────────────────────────────────────────────────────
 //
-// FGCA (spec: notations/02-fgca.md) — flat arrays at top level; spec and
-// example are consistent.
-//
-// FGA (spec: notations/03-fga.md v0.1) — nested root key `fga:`:
-//   fga:
-//     id: "FGA-..."
-//     factors:
-//       - id: "FACTOR-..." name: "..." type: external|internal
-//         goals:
-//           - id: "GOAL-..." name: "..."
-//             activities:
-//               - id: "ACT-..." name: "..."
+// FGCA (notations/02-fgca.md) and FGA (notations/03-fga.md) are both the
+// canonical FLAT shape — top-level `factors[]` / `goals[]` / `changes[]`
+// (FGCA only) / `activities[]`, no `fgca:` / `fga:` wrapper. Parsing +
+// validation live in `@transitrix/diagrams` (parseCanonicalFGCA /
+// parseCanonicalFGA), which return this internal `FGCADoc` (numeric IDs,
+// singular `goal_id`, `activity_ids`). This file only renders that doc —
+// FGA reuses the FGCA renderer with the Changes column hidden.
 
 interface FactorItem { id: number | string; name: string; }
 interface GoalItem { id: number | string; name: string; level?: number; factor?: Array<{ id: number | string }>; }
@@ -33,190 +28,6 @@ interface FGCADoc {
   goals: GoalItem[];
   changes?: ChangeItem[];
   activities: ActivityItem[];
-}
-
-interface ValidationError { code: string; message: string; }
-interface ValidationResult { valid: boolean; errors: ValidationError[]; warnings: Array<{ code: string; message: string }>; }
-
-// ── Inline validation ─────────────────────────────────────────────────────────
-
-function validateFGCA(input: unknown): ValidationResult {
-  const errors: ValidationError[] = [];
-  const warnings: Array<{ code: string; message: string }> = [];
-
-  if (!input || typeof input !== 'object') {
-    return { valid: false, errors: [{ code: 'SCHEMA_INVALID', message: 'Input must be an object' }], warnings };
-  }
-
-  const raw = input as Record<string, unknown>;
-
-  if (raw.notation === undefined) {
-    errors.push({ code: 'MISSING_NOTATION', message: 'notation field is required' });
-    return { valid: false, errors, warnings };
-  }
-  if (raw.notation !== 'fgca') {
-    errors.push({ code: 'WRONG_NOTATION', message: `notation must be "fgca", got "${String(raw.notation)}"` });
-    return { valid: false, errors, warnings };
-  }
-
-  if (!Array.isArray(raw.factors)) errors.push({ code: 'SCHEMA_INVALID', message: 'factors must be an array' });
-  if (!Array.isArray(raw.goals)) errors.push({ code: 'SCHEMA_INVALID', message: 'goals must be an array' });
-  if (!Array.isArray(raw.changes)) errors.push({ code: 'SCHEMA_INVALID', message: 'changes must be an array' });
-  if (!Array.isArray(raw.activities)) errors.push({ code: 'SCHEMA_INVALID', message: 'activities must be an array' });
-  if (errors.length > 0) return { valid: false, errors, warnings };
-
-  const doc = raw as unknown as FGCADoc;
-  const factorIds = new Set(doc.factors.map(f => f.id));
-  const goalIds = new Set(doc.goals.map(g => g.id));
-  const activityIds = new Set(doc.activities.map(a => a.id));
-
-  for (const g of doc.goals) {
-    for (const f of (g.factor ?? [])) {
-      if (!factorIds.has(f.id)) {
-        warnings.push({ code: 'BROKEN_REF', message: `Goal ${g.id} references missing factor ${f.id}` });
-      }
-    }
-  }
-  for (const c of (doc.changes ?? [])) {
-    if (!goalIds.has(c.goal_id)) {
-      warnings.push({ code: 'BROKEN_REF', message: `Change ${c.id} references missing goal ${c.goal_id}` });
-    }
-    for (const aid of (c.activity_ids ?? [])) {
-      if (!activityIds.has(aid)) {
-        warnings.push({ code: 'BROKEN_REF', message: `Change ${c.id} references missing activity ${aid}` });
-      }
-    }
-  }
-
-  return { valid: errors.length === 0, errors, warnings };
-}
-
-/**
- * FGA shares the FLAT shape of FGCA — top-level `factors[]` + `goals[]` +
- * `activities[]` with `goal_id` references — minus the `changes[]` column.
- * The example file's own description puts it plainly: "Factor–Goal–Activity
- * view (Changes column hidden)". A previously-shipped NESTED variant
- * (`fga.factors[].goals[].activities[]`) didn't match any example or
- * methodology spec and broke `examples/fga/strategy-2026.fga.transitrix.yaml`
- * on open with "fga root key is required". Validation now mirrors validateFGCA
- * exactly, just with `changes` optional/empty.
- *
- * NOTE: this is a **provisional 1.0.0 shape**, not the canonical decision.
- * The family-wide flat-vs-nested-root choice for FGCA / FGA / Goals /
- * Activities is filed for methodology-level resolution in strategy hub
- * issue #37 — post-1.0.0. If that lands on nested-root, all four notations
- * migrate together; FGA is not specially burdened.
- */
-/**
- * Canonical-form FGA parser + validator. Same shape as canonical FGCA
- * minus the `changes[]` array. Wraps parseCanonicalFGCA by injecting
- * an empty `changes` and remapping the validation codes (FGCA-xxx →
- * FGA-yyy).
- */
-function parseCanonicalFGA(input: unknown): { valid: boolean; errors: ValidationError[]; warnings: Array<{ code: string; message: string }>; parsed?: FGCADoc } {
-  if (!input || typeof input !== 'object') {
-    return { valid: false, errors: [{ code: 'FGA-001', message: 'document root is not an object' }], warnings: [] };
-  }
-  const raw = input as Record<string, unknown>;
-  if ('notation' in raw && raw['notation'] !== 'fga') {
-    return {
-      valid: false,
-      errors: [{ code: 'FGA-001', message: `notation must be "fga", got "${String(raw['notation'])}"` }],
-      warnings: [],
-    };
-  }
-  // Doc id grammar — `FGA-[<middle>-]<INTEGER>`.
-  const fgaDocIdRe = /^FGA(-[A-Z0-9][A-Z0-9_]*)*-\d+$/;
-  if (raw['id'] === undefined) {
-    return {
-      valid: false,
-      errors: [{ code: 'FGA-002', message: 'document id is required' }],
-      warnings: [],
-    };
-  }
-  if (typeof raw['id'] !== 'string' || !fgaDocIdRe.test(raw['id'])) {
-    return {
-      valid: false,
-      errors: [{
-        code: 'FGA-002',
-        message: `id "${String(raw['id'])}" must match FGA-[<middle>-]<INTEGER>`,
-      }],
-      warnings: [],
-    };
-  }
-
-  // Forward to parseCanonicalFGCA with synthetic FGCA notation + doc id +
-  // empty changes array. Per-layer / per-ref checks all reuse the FGCA
-  // implementation; codes get remapped on the way out.
-  const synth = { ...raw, notation: 'fgca', id: 'FGCA-FROM-FGA-1', changes: [] };
-  const r = parseCanonicalFGCA(synth);
-  // FGCA → FGA code remap. Items not in the map keep their FGCA-prefix —
-  // those would be FGCA-only codes (changes-related), which can't fire
-  // with our synthetic `changes: []`. FGCA-009 / FGCA-010 / FGCA-014 are
-  // therefore unreachable here.
-  const remap: Record<string, string> = {
-    'FGCA-001': 'FGA-001',
-    'FGCA-002': 'FGA-002',
-    'FGCA-003': 'FGA-003',
-    'FGCA-004': 'FGA-004',
-    'FGCA-005': 'FGA-005',
-    'FGCA-006': 'FGA-006',
-    'FGCA-007': 'FGA-007',
-    'FGCA-008': 'FGA-008',
-    'FGCA-011': 'FGA-009',
-    'FGCA-012': 'FGA-010',
-    'FGCA-015': 'FGA-007',
-  };
-  const remapCode = (c: string): string => remap[c] ?? c;
-  return {
-    valid: r.valid,
-    errors: r.errors.map((e) => ({ ...e, code: remapCode(e.code) })),
-    warnings: r.warnings.map((w) => ({ ...w, code: remapCode(w.code) })),
-    parsed: r.parsed,
-  };
-}
-
-function validateFGA(input: unknown): ValidationResult {
-  const errors: ValidationError[] = [];
-  const warnings: Array<{ code: string; message: string }> = [];
-
-  if (!input || typeof input !== 'object') {
-    return { valid: false, errors: [{ code: 'SCHEMA_INVALID', message: 'Input must be an object' }], warnings };
-  }
-
-  const raw = input as Record<string, unknown>;
-
-  if (raw.notation === undefined) {
-    errors.push({ code: 'MISSING_NOTATION', message: 'notation field is required' });
-    return { valid: false, errors, warnings };
-  }
-  if (raw.notation !== 'fga') {
-    errors.push({ code: 'WRONG_NOTATION', message: `notation must be "fga", got "${String(raw.notation)}"` });
-    return { valid: false, errors, warnings };
-  }
-
-  if (!Array.isArray(raw.factors)) errors.push({ code: 'SCHEMA_INVALID', message: 'factors must be an array' });
-  if (!Array.isArray(raw.goals)) errors.push({ code: 'SCHEMA_INVALID', message: 'goals must be an array' });
-  if (!Array.isArray(raw.activities)) errors.push({ code: 'SCHEMA_INVALID', message: 'activities must be an array' });
-  if (errors.length > 0) return { valid: false, errors, warnings };
-
-  const factorIds = new Set((raw.factors as Array<{ id: number | string }>).map(f => f.id));
-  const goalIds = new Set((raw.goals as Array<{ id: number | string }>).map(g => g.id));
-
-  for (const g of raw.goals as Array<{ id: number | string; factor?: Array<{ id: number | string }> }>) {
-    for (const f of (g.factor ?? [])) {
-      if (!factorIds.has(f.id)) {
-        warnings.push({ code: 'BROKEN_REF', message: `Goal ${g.id} references missing factor ${f.id}` });
-      }
-    }
-  }
-  for (const a of raw.activities as Array<{ id: number | string; goal_id?: number | string | null }>) {
-    if (a.goal_id != null && !goalIds.has(a.goal_id)) {
-      warnings.push({ code: 'BROKEN_REF', message: `Activity ${a.id} references missing goal ${a.goal_id}` });
-    }
-  }
-
-  return { valid: errors.length === 0, errors, warnings };
 }
 
 // ── Inline layout ─────────────────────────────────────────────────────────────
