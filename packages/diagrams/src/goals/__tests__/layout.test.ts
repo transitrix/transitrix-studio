@@ -76,6 +76,33 @@ describe('layoutGoalTree', () => {
     expect(layout.nodes.every(n => n.data.level <= 1)).toBe(true);
   });
 
+  it('compresses non-contiguous levels into adjacent columns (no phantom empty columns)', () => {
+    // Legacy / non-canonical input: goal_types skip levels 1 and 3, so
+    // goals sit at levels 0, 2, 4. Column x must advance by exactly one
+    // step per used level, not per absolute level value — otherwise the
+    // skipped levels open empty columns and double the horizontal spacing.
+    const gapped: GoalTree = {
+      goal_types: [
+        { name: 'Strategy', level: 0 },
+        { name: 'Strategic Goal', level: 2 },
+        { name: 'Project Goal', level: 4 },
+      ],
+      goals: [
+        { id: 1, name: 'Root', type: 'Strategy', level: 0, parent_id: 0 },
+        { id: 2, name: 'Mid', type: 'Strategic Goal', level: 2, parent_id: 1 },
+        { id: 3, name: 'Leaf', type: 'Project Goal', level: 4, parent_id: 2 },
+      ],
+    };
+    const layout = layoutGoalTree(gapped);
+    const byId = new Map(layout.nodes.map(n => [n.id, n]));
+    const step = byId.get(2)!.x - byId.get(1)!.x;
+    // Root→Mid and Mid→Leaf must use the same single-column step despite
+    // the level numbers jumping by 2 each time.
+    expect(byId.get(3)!.x - byId.get(2)!.x).toBe(step);
+    // And that step is one node width + one rank separator (250 + 80).
+    expect(step).toBe(250 + 80);
+  });
+
   // Pre-release blocker regression (orchestrator review 2026-05-21).
   it('[blocker] does not stack-overflow on a self-parent cycle', () => {
     const cyclic: GoalTree = {
