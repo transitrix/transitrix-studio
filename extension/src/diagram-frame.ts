@@ -135,9 +135,13 @@ const FRAME_HEADER_CSS = `
  */
 const TITLE_TOGGLE_CSS = `
 .title-toggle-cb { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
-#toolbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.toolbar-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.toolbar-actions { display: flex; gap: 4px; align-items: center; flex-shrink: 0; }
+/* The toolbar wraps: with Title + Zoom + Save .svg / .png + Copy PNG the
+   action row can exceed a narrow side-by-side preview pane. Without wrapping
+   the rightmost button (Copy PNG) overflowed off-screen. flex-wrap lets the
+   actions drop to a second line instead of vanishing. */
+#toolbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.toolbar-label { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.toolbar-actions { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
 .title-toggle,
 .toolbar-btn {
   cursor: pointer;
