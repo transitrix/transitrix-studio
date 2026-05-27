@@ -5,6 +5,7 @@ import { buildDiagramFrame, prepareSvgForExport, type ThemeId } from './diagram-
 import { TITLE_BLOCK_H, titleBlockSvg, todayIso } from './svg-title-block.js';
 import { parseCanonicalFGCA } from '../../packages/diagrams/src/fgca/parse-canonical.js';
 import { coerceDatesToIsoStrings } from '../../packages/diagrams/src/yaml-normalize.js';
+import { savePngFromSvg, copyPngFromSvg } from './png-export.js';
 
 // ── Inline types ──────────────────────────────────────────────────────────────
 //
@@ -407,7 +408,7 @@ export class FGCAPreview {
         'fgcaPreview',
         `${this.panelTitle} — ${path.basename(doc.fileName)}`,
         { viewColumn: vscode.ViewColumn.Beside, preserveFocus: false },
-        { enableScripts: false, retainContextWhenHidden: true, enableCommandUris: ['transitrixStudio.saveFGCAAsSvg'] },
+        { enableScripts: false, retainContextWhenHidden: true, enableCommandUris: ['transitrixStudio.saveFGCAAsSvg', 'transitrixStudio.saveFGCAAsPng', 'transitrixStudio.copyFGCAAsPng'] },
       );
       this.panel.onDidDispose(() => { this.panel = undefined; this.trackedUri = undefined; });
     }
@@ -455,7 +456,29 @@ export class FGCAPreview {
       .getConfiguration('transitrix')
       .get<ThemeId>('theme', 'transitrix');
 
-    return buildDiagramFrame({ filename, notation: 'FGCA', svgContent, errorMsg, warnings, themeId, saveSvgCommand: 'transitrixStudio.saveFGCAAsSvg' });
+    return buildDiagramFrame({
+      filename, notation: 'FGCA', svgContent, errorMsg, warnings, themeId,
+      saveSvgCommand: 'transitrixStudio.saveFGCAAsSvg',
+      savePngCommand: 'transitrixStudio.saveFGCAAsPng',
+      copyPngCommand: 'transitrixStudio.copyFGCAAsPng',
+    });
+  }
+
+  private pngTarget() {
+    return {
+      rawSvg: this.lastSvg || undefined,
+      themeId: vscode.workspace.getConfiguration('transitrix').get<ThemeId>('theme', 'transitrix'),
+      emptyMessage: 'No diagram rendered yet. Open a *.fgca.transitrix.yaml file first.',
+    };
+  }
+
+  saveAsPng(): Promise<void> {
+    const sourceUri = this.trackedUri ? vscode.Uri.parse(this.trackedUri) : undefined;
+    return savePngFromSvg({ ...this.pngTarget(), sourceUri, stripExt: /\.fgca\.transitrix\.yaml$/ });
+  }
+
+  copyAsPng(): Promise<void> {
+    return copyPngFromSvg(this.pngTarget());
   }
 
   async saveAsSvg(): Promise<void> {
@@ -501,7 +524,7 @@ export class FGAPreview {
         'fgaPreview',
         `${this.panelTitle} — ${path.basename(doc.fileName)}`,
         { viewColumn: vscode.ViewColumn.Beside, preserveFocus: false },
-        { enableScripts: false, retainContextWhenHidden: true, enableCommandUris: ['transitrixStudio.saveFGAAsSvg'] },
+        { enableScripts: false, retainContextWhenHidden: true, enableCommandUris: ['transitrixStudio.saveFGAAsSvg', 'transitrixStudio.saveFGAAsPng', 'transitrixStudio.copyFGAAsPng'] },
       );
       this.panel.onDidDispose(() => { this.panel = undefined; this.trackedUri = undefined; });
     }
@@ -546,7 +569,29 @@ export class FGAPreview {
       .getConfiguration('transitrix')
       .get<ThemeId>('theme', 'transitrix');
 
-    return buildDiagramFrame({ filename, notation: 'FGA', svgContent, errorMsg, warnings, themeId, saveSvgCommand: 'transitrixStudio.saveFGAAsSvg' });
+    return buildDiagramFrame({
+      filename, notation: 'FGA', svgContent, errorMsg, warnings, themeId,
+      saveSvgCommand: 'transitrixStudio.saveFGAAsSvg',
+      savePngCommand: 'transitrixStudio.saveFGAAsPng',
+      copyPngCommand: 'transitrixStudio.copyFGAAsPng',
+    });
+  }
+
+  private pngTarget() {
+    return {
+      rawSvg: this.lastSvg || undefined,
+      themeId: vscode.workspace.getConfiguration('transitrix').get<ThemeId>('theme', 'transitrix'),
+      emptyMessage: 'No diagram rendered yet. Open a *.fga.transitrix.yaml file first.',
+    };
+  }
+
+  saveAsPng(): Promise<void> {
+    const sourceUri = this.trackedUri ? vscode.Uri.parse(this.trackedUri) : undefined;
+    return savePngFromSvg({ ...this.pngTarget(), sourceUri, stripExt: /\.fga\.transitrix\.yaml$/ });
+  }
+
+  copyAsPng(): Promise<void> {
+    return copyPngFromSvg(this.pngTarget());
   }
 
   async saveAsSvg(): Promise<void> {

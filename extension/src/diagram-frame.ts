@@ -59,6 +59,17 @@ export interface DiagramFrameOpts {
    * Omit on previews that don't render a vector diagram (HTML catalogues).
    */
   saveSvgCommand?: string;
+  /**
+   * Command ID for the "Save .png" toolbar button. Rendered next to
+   * "Save .svg" when provided and a vector diagram is on screen. PNG is
+   * rasterized in the Node host (resvg) — see `raster.ts`.
+   */
+  savePngCommand?: string;
+  /**
+   * Command ID for the "Copy PNG" toolbar button (clipboard). Rendered next
+   * to "Save .png" when provided and a vector diagram is on screen.
+   */
+  copyPngCommand?: string;
 }
 
 function escXml(s: string): string {
@@ -124,9 +135,13 @@ const FRAME_HEADER_CSS = `
  */
 const TITLE_TOGGLE_CSS = `
 .title-toggle-cb { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
-#toolbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.toolbar-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.toolbar-actions { display: flex; gap: 4px; align-items: center; flex-shrink: 0; }
+/* The toolbar wraps: with Title + Zoom + Save .svg / .png + Copy PNG the
+   action row can exceed a narrow side-by-side preview pane. Without wrapping
+   the rightmost button (Copy PNG) overflowed off-screen. flex-wrap lets the
+   actions drop to a second line instead of vanishing. */
+#toolbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.toolbar-label { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.toolbar-actions { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
 .title-toggle,
 .toolbar-btn {
   cursor: pointer;
@@ -247,7 +262,7 @@ export function buildDiagramFrame(opts: DiagramFrameOpts): string {
     errorMsg = '', warnings = [],
     themeId = 'transitrix', extraStyles = '', fixPrompt = '',
     title, subtitle, version, date,
-    saveSvgCommand,
+    saveSvgCommand, savePngCommand, copyPngCommand,
   } = opts;
 
   const canvasContent = bodyContent ?? svgContent;
@@ -289,6 +304,8 @@ export function buildDiagramFrame(opts: DiagramFrameOpts): string {
   // Save .svg button — only render when both (a) a vector diagram is on screen
   // and (b) the preview supplied a command id (HTML catalogues never do).
   const showSaveSvg = Boolean(canvasContent) && Boolean(saveSvgCommand);
+  const showSavePng = Boolean(canvasContent) && Boolean(savePngCommand);
+  const showCopyPng = Boolean(canvasContent) && Boolean(copyPngCommand);
   // Zoom control gates on the same signal as Save .svg — the six vector
   // previews opt in by passing a saveSvgCommand. HTML catalogues are out of
   // scope per the orchestrator's call on issue #30.
@@ -312,6 +329,12 @@ export function buildDiagramFrame(opts: DiagramFrameOpts): string {
   }
   if (showSaveSvg) {
     actionParts.push(`<a href="command:${escXml(saveSvgCommand!)}" class="toolbar-btn" title="Save the current diagram as an .svg file">Save .svg</a>`);
+  }
+  if (showSavePng) {
+    actionParts.push(`<a href="command:${escXml(savePngCommand!)}" class="toolbar-btn" title="Save the current diagram as a .png file">Save .png</a>`);
+  }
+  if (showCopyPng) {
+    actionParts.push(`<a href="command:${escXml(copyPngCommand!)}" class="toolbar-btn" title="Copy the current diagram to the clipboard as a PNG image">Copy PNG</a>`);
   }
   const toolbarRight = actionParts.length > 0
     ? `<div class="toolbar-actions">${actionParts.join('')}</div>`

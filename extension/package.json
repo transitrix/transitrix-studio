@@ -371,6 +371,76 @@
         "title": "Transitrix: Save issues register as SVG",
         "category": "Transitrix",
         "icon": "$(save)"
+      },
+      {
+        "command": "transitrixStudio.saveBlocksAsPng",
+        "title": "Transitrix: Save block diagram as PNG",
+        "category": "Transitrix"
+      },
+      {
+        "command": "transitrixStudio.copyBlocksAsPng",
+        "title": "Transitrix: Copy block diagram as PNG",
+        "category": "Transitrix"
+      },
+      {
+        "command": "transitrixStudio.saveGoalsAsPng",
+        "title": "Transitrix: Save goal tree as PNG",
+        "category": "Transitrix"
+      },
+      {
+        "command": "transitrixStudio.copyGoalsAsPng",
+        "title": "Transitrix: Copy goal tree as PNG",
+        "category": "Transitrix"
+      },
+      {
+        "command": "transitrixStudio.saveFGCAAsPng",
+        "title": "Transitrix: Save FGCA diagram as PNG",
+        "category": "Transitrix"
+      },
+      {
+        "command": "transitrixStudio.copyFGCAAsPng",
+        "title": "Transitrix: Copy FGCA diagram as PNG",
+        "category": "Transitrix"
+      },
+      {
+        "command": "transitrixStudio.saveFGAAsPng",
+        "title": "Transitrix: Save FGA diagram as PNG",
+        "category": "Transitrix"
+      },
+      {
+        "command": "transitrixStudio.copyFGAAsPng",
+        "title": "Transitrix: Copy FGA diagram as PNG",
+        "category": "Transitrix"
+      },
+      {
+        "command": "transitrixStudio.saveActivitiesAsPng",
+        "title": "Transitrix: Save activity network as PNG",
+        "category": "Transitrix"
+      },
+      {
+        "command": "transitrixStudio.copyActivitiesAsPng",
+        "title": "Transitrix: Copy activity network as PNG",
+        "category": "Transitrix"
+      },
+      {
+        "command": "transitrixStudio.saveProcessBlueprintAsPng",
+        "title": "Transitrix: Save process blueprint as PNG",
+        "category": "Transitrix"
+      },
+      {
+        "command": "transitrixStudio.copyProcessBlueprintAsPng",
+        "title": "Transitrix: Copy process blueprint as PNG",
+        "category": "Transitrix"
+      },
+      {
+        "command": "transitrixStudio.saveIssuesAsPng",
+        "title": "Transitrix: Save issues register as PNG",
+        "category": "Transitrix"
+      },
+      {
+        "command": "transitrixStudio.copyIssuesAsPng",
+        "title": "Transitrix: Copy issues register as PNG",
+        "category": "Transitrix"
       }
     ],
     "menus": {
@@ -517,6 +587,7 @@
     "vscode:prepublish": "cd .. && npm run extension:prep"
   },
   "dependencies": {
+    "@resvg/resvg-js": "^2.6.2",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
     "bpmn-moddle": "^10.0.0",

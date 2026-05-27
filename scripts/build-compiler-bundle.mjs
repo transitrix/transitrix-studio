@@ -128,4 +128,30 @@ for (const dep of RUNTIME_DEPS_EXTERNAL) {
   }
 }
 
+// @resvg/resvg-js (PNG export, vkgeorgia/strategy#32) is a NATIVE module: its
+// platform `.node` binary ships as a per-OS optional dependency, so `npm
+// install` lays down only the binary matching the build machine. That is
+// exactly right for per-platform VSIX packaging (`vsce package --target`),
+// but it means a build on one OS cannot produce a working VSIX for another —
+// build each target on its own OS (or CI runner). Fail loudly if neither the
+// package nor any platform binary landed, so a broken PNG build is caught at
+// prep time rather than by the user.
+try {
+  await fs.access(resolve(extNodeModules, '@resvg', 'resvg-js', 'package.json'));
+} catch {
+  throw new Error(
+    'extension/node_modules/@resvg/resvg-js not found after install. ' +
+    'Check extension/package.json declares "@resvg/resvg-js" in dependencies.',
+  );
+}
+const resvgScoped = await fs.readdir(resolve(extNodeModules, '@resvg')).catch(() => []);
+const hasResvgBinary = resvgScoped.some((d) => d.startsWith('resvg-js-'));
+if (!hasResvgBinary) {
+  throw new Error(
+    'No @resvg/resvg-js platform binary (@resvg/resvg-js-<platform>) installed. ' +
+    'PNG export would fail at runtime. Build the VSIX on the target platform, ' +
+    'or install the matching optional dependency before packaging.',
+  );
+}
+
 console.log('Compiler bundle → extension/compiler/  |  schemas → extension/schemas/  |  backends → extension/backends/  |  runtime deps → extension/node_modules/');
