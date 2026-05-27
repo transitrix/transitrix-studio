@@ -25,7 +25,7 @@ notation: scenarios
 
 | Field | Description |
 |---|---|
-| `scenario.id` | Unique scenario ID |
+| `scenario.id` | Unique scenario ID — canonical form `SCENARIO-[<middle>-]<INTEGER>` (e.g. `SCENARIO-OPT-1`) |
 | `scenario.name` | Human-readable name |
 | `scenario.status` | One of: `Draft`, `Active`, `Archived` |
 
@@ -37,7 +37,7 @@ notation: scenarios
 | `scenario.created_at` | Date in `YYYY-MM-DD` format |
 | `scenario.vision` | Narrative description of the future under this scenario |
 | `scenario.factors_view` | Per-scenario relevance and impact for factors from the shared catalogue |
-| `scenario.goals` / `capabilities` / `activities` / `products` / `processes` / `applications` | Reference lists with `{goal_id, capability_id, ...}` entries |
+| `scenario.goals` / `capabilities` / `activities` / `products` / `processes` / `applications` | Reference lists with `{goal_id, capability_id, ...}` entries. Each entry references its owning notation's canonical ID — e.g. `GOAL-…-1`, `CAPABILITY-V1.2.2`, `ACTIVITY-…-1`, `PROCESS-…-1`, `APPLICATION-…-1` |
 
 Factor relevance, if specified, must be one of `High`, `Medium`, `Low`.
 
