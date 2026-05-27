@@ -6,8 +6,13 @@ node_modules/
 dist/
 extension/out/
 extension/compiler/
-extension/media/viewer.js
-extension/media/*.map
+# The entire media/ tree is build output: build-webview.mjs wipes and
+# regenerates it on every extension:prep (bundled viewer.js + the vendored
+# bpmn-js / diagram-js CSS and font assets copied from node_modules). It was
+# previously tracked, which caused a perpetual CRLF "modified" churn on
+# Windows checkouts. Treated like out/ and compiler/ — regenerated, not
+# committed (vscode:prepublish and the F5 task both run extension:prep).
+extension/media/
 extension/schemas/
 extension/backends/
 # The extension sub-package's lockfile is not authoritative — the build
