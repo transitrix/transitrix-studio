@@ -1,5 +1,25 @@
 # Transitrix Studio — changelog
 
+## 1.2.0 — 2026-05-27
+
+Adds PNG export across every vector preview and brings the FGCA / FGA / Goals notations onto the canonical flat shape from `transitrix/methodology`, fixing the blank-FGCA / edgeless-FGA rendering on canonical examples.
+
+### Added
+
+- **PNG export** — every vector preview toolbar now has **Save .png** (rasterized, 2× for crisp output) and **Copy PNG** (clipboard) alongside **Save .svg**. Rendering uses a native rasterizer (`@resvg/resvg-js`); Copy-as-PNG ships on Windows (macOS/Linux save-to-file works, clipboard is a planned follow-up). The extension is now published per-platform.
+- **Canonical flat-form input** for FGCA / FGA / Goals — typed string IDs (`FACTOR-1`, `GOAL-RET-1`, …), plural cross-references (`goal.factors[]`, `change.goals[]`, `activity.changes[]` / `activity.goals[]`), and per-notation validation codes (FGCA-001…015, FGA-001…011, GOALS-001…011).
+- Bare (unquoted) `YYYY-MM-DD` dates are accepted everywhere — they are coerced to ISO strings at the YAML parse boundary, so a date written without quotes no longer trips validation.
+
+### Changed
+
+- BPMN sources are recognised under `.bpmn.transitrix.yaml` (the legacy `.cervin.yaml` suffix still works).
+- Bundled demo examples migrated to the canonical ID grammar from `IDS_AND_REFERENCES.md` and synced from the methodology canon.
+
+### Fixed
+
+- **FGCA preview no longer renders blank and FGA edges now draw** on the canonical flat-form examples — the flat cross-references are mapped to the internal edge fields the renderer consumes.
+- Goal trees with non-contiguous `goal_types` levels (e.g. 0, 2, 4) render with even column spacing instead of wide gaps from phantom empty columns.
+
 ## 1.1.0 — 2026-05-26
 
 Closes the 1.0.0 "Nested blocks needs Python + svgbob" known limitation with a native TS renderer, and adds the **Issues register** notation. The blocks notation moves to a structured-YAML schema with a new file extension — breaking for the small `.blocks.transitrix.txt` corpus that existed before 1.1.0.
