@@ -6,12 +6,12 @@ version: "1.0"
 date: "2026-05-14"
 
 applications_catalogue:
-  id: APP-CAT-ENTERPRISE-001
+  id: APPLICATIONS_CAT-ENTERPRISE-1
   name: Enterprise Applications Portfolio 2026
   updated_at: "2026-05-14"
 
   applications:
-    - app_id: APP-OMS-001
+    - app_id: APPLICATION-OMS-1
       name: Order Management System
       type: application
       status: Active
@@ -28,16 +28,16 @@ applications_catalogue:
         - prod-mobile-app
         - prod-partner-bundle
       integrations:
-        - target: APP-CRM-001
+        - target: APPLICATION-CRM-1
           direction: outbound
           protocol: REST
           description: Sends order events to CRM on state change
-        - target: APP-EBS-001
+        - target: APPLICATION-EBS-1
           direction: outbound
           protocol: Kafka
           description: Publishes order domain events to event bus
 
-    - app_id: APP-CRM-001
+    - app_id: APPLICATION-CRM-1
       name: CRM System
       type: application
       status: Active
@@ -50,7 +50,7 @@ applications_catalogue:
         - V2.1    # Customer Acquisition — lead management, opportunity tracking
         - V2      # CRM — customer 360 view
 
-    - app_id: APP-EBS-001
+    - app_id: APPLICATION-EBS-1
       name: Enterprise Event Bus
       type: platform
       status: Active
@@ -60,12 +60,12 @@ applications_catalogue:
       maturity: 5
       description: Centralised Kafka-based event streaming platform for domain event distribution.
       integrations:
-        - target: APP-DWH-001
+        - target: APPLICATION-DWH-1
           direction: outbound
           protocol: Kafka
           description: Streams events to data warehouse for analytics
 
-    - app_id: APP-DWH-001
+    - app_id: APPLICATION-DWH-1
       name: Data Warehouse
       type: data_store
       status: Active
@@ -79,7 +79,7 @@ applications_catalogue:
         - V4.2    # Analytics — historical analysis
         - H1      # Master Data Management — data cataloguing
 
-    - app_id: APP-LEGACY-PORTAL-001
+    - app_id: APPLICATION-LEGACY-PORTAL-1
       name: Legacy Customer Portal
       type: application
       status: Deprecated
@@ -88,7 +88,7 @@ applications_catalogue:
       maturity: 2
       description: Original web portal for customer self-service. Being replaced by the mobile app.
 
-    - app_id: APP-ERP-LEGACY-001
+    - app_id: APPLICATION-ERP-LEGACY-1
       name: Legacy ERP Module
       type: application
       status: Decommissioning
@@ -98,13 +98,13 @@ applications_catalogue:
       maturity: 1
       description: On-premise ERP module being decommissioned in Q3 2026. Migration to cloud ERP in progress.
 
-    - app_id: INT-OMS-CRM-001
+    - app_id: INTEGRATION-OMS-CRM-1
       name: OMS → CRM Order Events Integration
       type: integration
       status: Draft
       domain: Operations
       owner_role: ROLE-INTARCH-001
       description: Event-driven integration forwarding order state changes from OMS to CRM.
-      source: APP-OMS-001
-      target: APP-CRM-001
+      source: APPLICATION-OMS-1
+      target: APPLICATION-CRM-1
       protocol: Kafka
