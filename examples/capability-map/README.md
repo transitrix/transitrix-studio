@@ -4,7 +4,7 @@ File extension: **`.capability-map.transitrix.yaml`**
 
 ## Format overview
 
-A capability map is a hierarchical view of what an organisation can do (its capabilities) and how mature each capability is on the CMMI V2.0 1–5 scale. Vertical capabilities (`V1`, `V1.1`, …) are core business domains; horizontal capabilities (`H1`, `H1.2`, …) cut across domains (master data management, compliance, ESG).
+A capability map is a hierarchical view of what an organisation can do (its capabilities) and how mature each capability is on the CMMI V2.0 1–5 scale. Vertical capabilities (`CAPABILITY-V1`, `CAPABILITY-V1.1`, …) are core business domains; horizontal capabilities (`CAPABILITY-H1`, `CAPABILITY-H1.2`, …) cut across domains (master data management, compliance, ESG).
 
 ## Files in this folder
 
@@ -25,10 +25,10 @@ notation: capability-map
 
 | Field | Description |
 |---|---|
-| `capability_map.id` | Unique identifier for this map |
+| `capability_map.id` | Unique identifier for this map — canonical form `CAPABILITY_MAP-[<middle>-]<INTEGER>` (e.g. `CAPABILITY_MAP-BUSINESS-1`) |
 | `capability_map.name` | Display name |
 | `capability_map.assessment_date` | Date in `YYYY-MM-DD` format |
-| `capabilities[].id` | Pattern `V[n]` or `H[n]` with optional `.n` segments — unique across the tree |
+| `capabilities[].id` | Canonical form `CAPABILITY-V[n](.n)*` (verticals) or `CAPABILITY-H[n](.n)*` (horizontals) — unique across the tree |
 | `capabilities[].name` | Capability name |
 | `capabilities[].current_maturity` | Integer 1–5 (CMMI level) |
 
