@@ -3,7 +3,7 @@
   "displayName": "Transitrix Studio",
   "publisher": "transitrix",
   "version": "1.2.0",
-  "description": "Preview Transitrix enterprise-architecture diagrams in VS Code — BPMN, Goals, FGCA, FGA, Activity Network (PSND + Gantt), Process Map, Process Blueprint, Capability Map, Scenarios, Applications, Products, Nested Blocks. Native TypeScript rendering — no external binaries required.",
+  "description": "Preview Transitrix enterprise-architecture diagrams in VS Code — BPMN, Goals, FGCA, FGA, Activity Network (PSND + Gantt), Process Map, Process Blueprint, Capability Map, Scenarios, Applications, Products, Nested Blocks. Native rendering — no external tools to install.",
   "license": "MIT",
   "icon": "icon.png",
   "homepage": "https://github.com/transitrix/transitrix-studio#readme",
