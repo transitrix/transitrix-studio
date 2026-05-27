@@ -27,6 +27,16 @@ export function layoutGoalTree(tree: GoalTree, options: LayoutOptions = {}): Goa
     children.get(g.parent_id)!.push(g.id);
   }
 
+  // Compress the levels actually used into contiguous column ranks. The
+  // canonical N+1 rule (GOALS-013) keeps `level` contiguous from 0, so for
+  // conforming input this is the identity map. It only rescues legacy /
+  // non-canonical documents whose `goal_types` skip levels (e.g. 0, 2, 4):
+  // without it those gaps open phantom empty columns and double the
+  // horizontal spacing between rendered tiers.
+  const usedLevels = Array.from(new Set(goals.map(g => g.level))).sort((a, b) => a - b);
+  const levelToCol = new Map<number, number>();
+  usedLevels.forEach((lvl, i) => levelToCol.set(lvl, i));
+
   // Find effective roots: level 0 or parent_id === 0 or broken ref
   const allIds = new Set(goals.map(g => g.id));
   const roots = goals.filter(g => g.parent_id === 0 || !allIds.has(g.parent_id));
@@ -70,7 +80,7 @@ export function layoutGoalTree(tree: GoalTree, options: LayoutOptions = {}): Goa
     if (placed.has(id)) return { top: 0, bottom: 0 };
     placed.add(id);
 
-    const col = goal.level;
+    const col = levelToCol.get(goal.level) ?? 0;
     const childIds = (children.get(id) ?? []).filter(c => !hiddenSubtrees.has(c) && !placed.has(c));
     const isCollapsedRoot = hiddenSet.has(id) && childIds.length > 0;
     const hasHiddenChildren = childIds.length < (children.get(id) ?? []).length;
