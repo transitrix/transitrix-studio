@@ -174,6 +174,17 @@ describe('validateCapabilityMap', () => {
     }
   });
 
+  it('CMAP-009: accepts the canonical CAPABILITY- prefix', () => {
+    for (const id of ['CAPABILITY-V1', 'CAPABILITY-V1.2', 'CAPABILITY-V1.2.3', 'CAPABILITY-H1', 'CAPABILITY-H1.2']) {
+      const map = {
+        ...VALID_MAP.capability_map,
+        capabilities: [{ id, name: 'A', current_maturity: 2 }],
+      };
+      const r = validateCapabilityMap({ ...VALID_MAP, capability_map: map });
+      expect(r.errors.some(e => e.code === 'CMAP-009')).toBe(false);
+    }
+  });
+
   it('validates children recursively', () => {
     const map = {
       ...VALID_MAP.capability_map,
