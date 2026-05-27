@@ -25,13 +25,13 @@ notation: process-map
 
 | Field | Description |
 |---|---|
-| `process_map.id` | Unique identifier for the map |
+| `process_map.id` | Unique identifier for the map — canonical form `PROCESS_MAP-[<middle>-]<INTEGER>` (e.g. `PROCESS_MAP-ENT-1`) |
 | `process_map.name` | Display name |
 | `process_map.updated_at` | Date in `YYYY-MM-DD` format |
-| `groups[].id` | Group identifier |
+| `groups[].id` | Canonical `PROCESS_GROUP-[<middle>-]<INTEGER>` (e.g. `PROCESS_GROUP-OPERATING-1`) |
 | `groups[].name` | Group display name |
 | `groups[].type` | One of: `operating`, `supporting`, `management` |
-| `processes[].process_id` | Unique within the map |
+| `processes[].process_id` | Canonical `PROCESS-[<middle>-]<INTEGER>` (e.g. `PROCESS-ORD-FULFILL-1`); unique within the map |
 | `processes[].name` | Process name |
 | `processes[].status` | One of: `Draft`, `Active`, `Deprecated` |
 
@@ -40,7 +40,7 @@ notation: process-map
 | Field | Description |
 |---|---|
 | `owner_role` | Responsible role |
-| `capability` | Capability ID this process realises (e.g. `V1`, `H1`) |
+| `capability` | Capability ID this process realises (e.g. `CAPABILITY-V1`, `CAPABILITY-H1`); the bare legacy form (`V1`, `H1`) is also accepted |
 | `maturity` | Integer 1–5 |
 | `bpmn_file` | Path to the detailed BPMN diagram |
 | `description` | Short description |

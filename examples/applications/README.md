@@ -24,10 +24,10 @@ notation: applications
 
 | Field | Description |
 |---|---|
-| `applications_catalogue.id` | Unique identifier for the catalogue |
+| `applications_catalogue.id` | Unique identifier for the catalogue — canonical form `APPLICATIONS_CAT-[<middle>-]<INTEGER>` (e.g. `APPLICATIONS_CAT-ENTERPRISE-1`) |
 | `applications_catalogue.name` | Display name |
 | `applications_catalogue.updated_at` | Date in `YYYY-MM-DD` format |
-| `applications[].app_id` | Unique identifier within the catalogue |
+| `applications[].app_id` | Canonical `APPLICATION-[<middle>-]<INTEGER>` (e.g. `APPLICATION-CRM-1`) for applications/platforms/data stores; `INTEGRATION-[<middle>-]<INTEGER>` for entries with `type: integration` |
 | `applications[].name` | Application name |
 | `applications[].type` | One of: `application`, `integration`, `platform`, `data_store` |
 | `applications[].status` | One of: `Draft`, `Active`, `Deprecated`, `Decommissioning` |
