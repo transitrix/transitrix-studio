@@ -323,3 +323,78 @@ export function parseCanonicalFGCA(input: unknown): CanonicalFGCAResult {
 
   return { valid: true, errors, warnings, parsed };
 }
+
+const FGA_DOC_ID_RE = /^FGA(-[A-Z0-9][A-Z0-9_]*)*-\d+$/;
+
+/** On success, the internal-form FGCADoc derived from canonical FGA input. */
+export interface CanonicalFGAResult extends ValidationResult {
+  parsed?: FGCADoc;
+}
+
+/**
+ * Canonical-form FGA parser + validator.
+ *
+ * FGA is the canonical FGCA chain minus the `changes[]` layer — flat
+ * top-level `factors[]` + `goals[]` + `activities[]`, with `activity.goals[]`
+ * linking activities straight to goals (no intermediate change). It reuses
+ * `parseCanonicalFGCA` by injecting an empty `changes` array and remapping
+ * the FGCA-NNN codes to the FGA-NNN registry (`notations/03-fga.md`,
+ * FGA-001..011). The resulting internal `FGCADoc` carries `activity.goal_id`,
+ * which is exactly what the renderer needs to draw goal → activity edges —
+ * the field whose absence produced the "FGA nodes render, no edges" bug
+ * (transitrix/methodology#65 / vkgeorgia/strategy#65).
+ *
+ * Lives beside `parseCanonicalFGCA` (rather than inline in the extension) so
+ * the canonical FGA path is unit-testable and the library owns the single
+ * canon shape — flat form only, no `fga:` wrapper.
+ */
+export function parseCanonicalFGA(input: unknown): CanonicalFGAResult {
+  if (!input || typeof input !== 'object') {
+    return { valid: false, errors: [{ code: 'FGA-001', message: 'document root is not an object' }], warnings: [] };
+  }
+  const raw = input as Record<string, unknown>;
+  if ('notation' in raw && raw['notation'] !== 'fga') {
+    return {
+      valid: false,
+      errors: [{ code: 'FGA-001', message: `notation must be "fga", got "${String(raw['notation'])}"` }],
+      warnings: [],
+    };
+  }
+  if (raw['id'] === undefined) {
+    return { valid: false, errors: [{ code: 'FGA-002', message: 'document id is required' }], warnings: [] };
+  }
+  if (typeof raw['id'] !== 'string' || !FGA_DOC_ID_RE.test(raw['id'])) {
+    return {
+      valid: false,
+      errors: [{ code: 'FGA-002', message: `id "${String(raw['id'])}" must match FGA-[<middle>-]<INTEGER>` }],
+      warnings: [],
+    };
+  }
+
+  // Forward to the FGCA parser with synthetic FGCA notation + doc id + empty
+  // changes. Per-layer / per-ref checks all reuse the FGCA implementation;
+  // codes are remapped on the way out. FGCA-009 / 010 / 014 (changes-related)
+  // are unreachable here because `changes` is empty.
+  const synth = { ...raw, notation: 'fgca', id: 'FGCA-FROM-FGA-1', changes: [] };
+  const r = parseCanonicalFGCA(synth);
+  const remap: Record<string, string> = {
+    'FGCA-001': 'FGA-001',
+    'FGCA-002': 'FGA-002',
+    'FGCA-003': 'FGA-003',
+    'FGCA-004': 'FGA-004',
+    'FGCA-005': 'FGA-005',
+    'FGCA-006': 'FGA-006',
+    'FGCA-007': 'FGA-007',
+    'FGCA-008': 'FGA-008',
+    'FGCA-011': 'FGA-009',
+    'FGCA-012': 'FGA-010',
+    'FGCA-015': 'FGA-007',
+  };
+  const remapCode = (c: string): string => remap[c] ?? c;
+  return {
+    valid: r.valid,
+    errors: r.errors.map((e) => ({ ...e, code: remapCode(e.code) })),
+    warnings: r.warnings.map((w) => ({ ...w, code: remapCode(w.code) })),
+    parsed: r.parsed,
+  };
+}
