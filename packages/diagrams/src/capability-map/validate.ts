@@ -5,7 +5,12 @@ export type { ValidationError, ValidationWarning, ValidationResult };
 
 const VALID_TYPES = new Set<CapabilityType>(['domain', 'supporting']);
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-const CAP_ID_RE = /^(V|H)\d+(\.\d+)*$/;
+// Canonical form per `IDS_AND_REFERENCES.md` §2: `CAPABILITY-V…` /
+// `CAPABILITY-H…` with the dotted address (`V1`, `V1.2.1`, `H1`). The bare
+// legacy form (`V1`, `H1`) is still accepted so existing maps without the
+// canonical prefix do not break — migration is tracked under
+// vkgeorgia/strategy#36.
+const CAP_ID_RE = /^(CAPABILITY-)?(V|H)\d+(\.\d+)*$/;
 
 export function validateCapabilityMap(input: unknown): ValidationResult {
   const errors: ValidationError[] = [];
@@ -79,7 +84,7 @@ function validateCapabilityTree(
       }
       seenIds.add(id);
       if (!CAP_ID_RE.test(id)) {
-        errors.push({ code: 'CMAP-009', message: `${nodePath}: id "${id}" must match pattern V[n] or H[n] with optional .n segments (e.g. V1, V1.2, H1.3)` });
+        errors.push({ code: 'CMAP-009', message: `${nodePath}: id "${id}" must match the canonical pattern CAPABILITY-V[n] or CAPABILITY-H[n] with optional .n segments (e.g. CAPABILITY-V1, CAPABILITY-V1.2, CAPABILITY-H1.3); the bare V[n] / H[n] form is also accepted for legacy compatibility` });
       }
     }
 
