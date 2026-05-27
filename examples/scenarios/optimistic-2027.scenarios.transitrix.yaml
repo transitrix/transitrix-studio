@@ -6,7 +6,7 @@ version: "1.0"
 date: "2026-01-01"
 
 scenario:
-  id: SCN-001
+  id: SCENARIO-OPT-1
   name: Optimistic Growth 2027
   description: Aggressive expansion scenario assuming 30% market growth.
   status: Active
@@ -18,40 +18,40 @@ scenario:
     across all core capabilities.
 
   factors_view:
-    - factor_id: FAC-MARKET-001
+    - factor_id: FACTOR-MARKET-1
       relevance: High
       impact: Revenue growth opportunity in CEE region
-    - factor_id: FAC-TECH-001
+    - factor_id: FACTOR-TECH-1
       relevance: Medium
       impact: AI adoption accelerates product differentiation
-    - factor_id: FAC-REG-001
+    - factor_id: FACTOR-REG-1
       relevance: Low
       impact: Minor compliance friction, manageable in current quarter
 
   goals:
-    - goal_id: GOAL-REV-001
-    - goal_id: GOAL-MARKET-001
-    - goal_id: GOAL-CUST-001
+    - goal_id: GOAL-REV-1
+    - goal_id: GOAL-MARKET-1
+    - goal_id: GOAL-CUST-1
 
   capabilities:
-    - capability_id: CAP-ECOMM-001
-    - capability_id: CAP-DATA-001
-    - capability_id: CAP-MARKETING-001
+    - capability_id: CAPABILITY-V1.2.2     # E-commerce
+    - capability_id: CAPABILITY-H1         # Master Data Management
+    - capability_id: CAPABILITY-V1.1.1     # Campaign Management
 
   activities:
-    - activity_id: ACT-EXPAND-CEE-001
-    - activity_id: ACT-DIGITAL-PLATFORM-001
-    - activity_id: ACT-AI-PILOT-001
+    - activity_id: ACTIVITY-EXPAND-CEE-1
+    - activity_id: ACTIVITY-DIGITAL-PLATFORM-1
+    - activity_id: ACTIVITY-AI-PILOT-1
 
   products:
-    - product_id: PROD-PLATFORM-001
-    - product_id: PROD-MOBILE-001
+    - product_id: prod-platform
+    - product_id: prod-mobile
 
   processes:
-    - process_id: PROC-DELIVERY-001
-    - process_id: PROC-CUST-ONBOARD-001
+    - process_id: PROCESS-DELIVERY-1
+    - process_id: PROCESS-CUST-ONBOARD-1
 
   applications:
-    - app_id: APP-CRM-001
-    - app_id: APP-OMS-001
-    - app_id: APP-DATA-WAREHOUSE-001
+    - app_id: APPLICATION-CRM-1
+    - app_id: APPLICATION-OMS-1
+    - app_id: APPLICATION-DATA-WAREHOUSE-1
