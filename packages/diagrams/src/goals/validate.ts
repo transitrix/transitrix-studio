@@ -19,9 +19,31 @@ export function validateGoalTree(input: unknown): ValidationResult {
   if (errors.length > 0) return { valid: false, errors, warnings };
 
   const tree = raw as unknown as GoalTree;
+
+  // GOALS-013 — goal_types[].level values must be contiguous starting from 0.
+  // Per the N+1 rule (decision in vkgeorgia/strategy#66), the level set must
+  // be exactly {0, 1, …, N}; a gap breaks the parent→child level invariant
+  // and means GOALS-012 cannot be enforced consistently.
+  const levels = tree.goal_types
+    .map(gt => gt.level)
+    .filter(l => typeof l === 'number' && Number.isFinite(l));
+  if (levels.length > 0) {
+    const unique = Array.from(new Set(levels)).sort((a, b) => a - b);
+    const expected = Array.from({ length: unique.length }, (_, i) => i);
+    const contiguous = unique.length === expected.length && unique.every((v, i) => v === expected[i]);
+    if (!contiguous) {
+      errors.push({
+        code: 'GOALS-013',
+        message: `goal_types[].level values must be contiguous starting from 0; got [${unique.join(', ')}]`,
+        path: 'goal_types',
+      });
+    }
+  }
+
   const maxLevel = Math.max(...tree.goal_types.map(gt => gt.level), 0);
   const typeMap = new Map(tree.goal_types.map(gt => [gt.name, gt.level]));
   const idSet = new Set<number>();
+  const levelById = new Map<number, number>();
 
   for (let i = 0; i < tree.goals.length; i++) {
     const g = tree.goals[i] as unknown;
@@ -54,6 +76,7 @@ export function validateGoalTree(input: unknown): ValidationResult {
     if (goal.level > maxLevel) {
       errors.push({ code: 'MAX_LEVEL_EXCEEDED', message: `Goal ${goal.id} level ${goal.level} exceeds max ${maxLevel}`, path });
     }
+    levelById.set(goal.id, goal.level);
 
     const expectedLevel = typeof goal.type === 'string' ? typeMap.get(goal.type) : undefined;
     if (expectedLevel !== undefined && expectedLevel !== goal.level) {
@@ -70,6 +93,20 @@ export function validateGoalTree(input: unknown): ValidationResult {
     if (!g || typeof g !== 'object') continue;
     if (g.parent_id !== 0 && !idSet.has(g.parent_id)) {
       warnings.push({ code: 'BROKEN_PARENT_REF', message: `Goal ${g.id} references missing parent ${g.parent_id} — moved to backlog`, path });
+      continue;
+    }
+    // GOALS-012 — parent must be exactly one level above the child (N+1
+    // hierarchy, decision in vkgeorgia/strategy#66). Only enforced when the
+    // parent is resolvable; a missing parent is covered by BROKEN_PARENT_REF.
+    if (g.parent_id !== 0) {
+      const parentLevel = levelById.get(g.parent_id);
+      if (parentLevel !== undefined && g.level !== parentLevel + 1) {
+        errors.push({
+          code: 'GOALS-012',
+          message: `Goal ${g.id} (level ${g.level}) must have a parent at level ${g.level - 1}; parent ${g.parent_id} is at level ${parentLevel}`,
+          path,
+        });
+      }
     }
   }
 
