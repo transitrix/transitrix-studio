@@ -1,5 +1,17 @@
 # Transitrix Studio — changelog
 
+## 1.2.1 — 2026-05-28
+
+Patch release. Refreshes the Marketplace description that was bundled into 1.2.0 stale (the rewrite landed after publish), and adds the N+1 hierarchy validator for Goals trees.
+
+### Added
+
+- **GOALS-012 / GOALS-013** validation in the internal Goals validator — keyed on the document's declared `goal_types[]`, mirrors the methodology canon (`notations/04-goals.md` §6). `GOALS-013` rejects gaps in `goal_types[].level` (must be contiguous from 0); `GOALS-012` rejects a parent–child level gap > 1 (the parent must be exactly one level above the child).
+
+### Changed
+
+- Marketplace description refreshed to a value-first pitch + preview image. Notation list cleaned up — the "legacy `.cervin.yaml` also supported" mention dropped from the BPMN line (the legacy suffix is still accepted internally, just no longer surfaced in the user-facing list).
+
 ## 1.2.0 — 2026-05-27
 
 Adds PNG export across every vector preview and brings the FGCA / FGA / Goals notations onto the canonical flat shape from `transitrix/methodology`, fixing the blank-FGCA / edgeless-FGA rendering on canonical examples.
