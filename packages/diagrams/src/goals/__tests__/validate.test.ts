@@ -126,4 +126,77 @@ describe('validateGoalTree', () => {
     expect(r.valid).toBe(false);
     expect(r.errors.some(e => e.code === 'SCHEMA_INVALID' && /level/.test(e.message))).toBe(true);
   });
+
+  // GOALS-012 / GOALS-013 — N+1 parent/child hierarchy keyed on goal_types[]
+  // (decision in vkgeorgia/strategy#66; spec in transitrix/methodology
+  // notations/04-goals.md §6).
+  it('GOALS-012/013: accepts a contiguous goal_types + N+1 parent/child tree', () => {
+    const r = validateGoalTree(VALID_TREE);
+    expect(r.valid).toBe(true);
+    expect(r.errors.some(e => e.code === 'GOALS-012')).toBe(false);
+    expect(r.errors.some(e => e.code === 'GOALS-013')).toBe(false);
+  });
+
+  it('GOALS-013: rejects a gap in goal_types[].level', () => {
+    const tree = {
+      goal_types: [
+        { name: 'Strategy', level: 0 },
+        { name: 'Strategic Goal', level: 2 },
+        { name: 'Project Goal', level: 4 },
+      ],
+      goals: [
+        { id: 1, name: 'Root', type: 'Strategy', level: 0, parent_id: 0 },
+      ],
+    };
+    const r = validateGoalTree(tree);
+    expect(r.valid).toBe(false);
+    expect(r.errors.some(e => e.code === 'GOALS-013')).toBe(true);
+  });
+
+  it('GOALS-013: rejects goal_types[].level that does not start at 0', () => {
+    const tree = {
+      goal_types: [
+        { name: 'Mid', level: 1 },
+        { name: 'Deep', level: 2 },
+      ],
+      goals: [
+        { id: 1, name: 'A', type: 'Mid', level: 1, parent_id: 0 },
+      ],
+    };
+    const r = validateGoalTree(tree);
+    expect(r.valid).toBe(false);
+    expect(r.errors.some(e => e.code === 'GOALS-013')).toBe(true);
+  });
+
+  it('GOALS-012: rejects a parent–child level gap > 1', () => {
+    const tree = {
+      goal_types: [
+        { name: 'Strategy', level: 0 },
+        { name: 'Business Goal', level: 1 },
+        { name: 'Project', level: 2 },
+      ],
+      goals: [
+        { id: 1, name: 'Root', type: 'Strategy', level: 0, parent_id: 0 },
+        // Skips level 1: a Project (level 2) attached directly to a Strategy
+        // (level 0) violates N+1.
+        { id: 2, name: 'Sub', type: 'Project', level: 2, parent_id: 1 },
+      ],
+    };
+    const r = validateGoalTree(tree);
+    expect(r.valid).toBe(false);
+    expect(r.errors.some(e => e.code === 'GOALS-012')).toBe(true);
+  });
+
+  it('GOALS-012: does not fire when the parent reference is broken (BROKEN_PARENT_REF covers it)', () => {
+    const tree = {
+      ...VALID_TREE,
+      goals: [
+        { id: 1, name: 'Root', type: 'Strategy', level: 0, parent_id: 0 },
+        { id: 2, name: 'Orphan', type: 'Project', level: 2, parent_id: 99 },
+      ],
+    };
+    const r = validateGoalTree(tree);
+    expect(r.errors.some(e => e.code === 'GOALS-012')).toBe(false);
+    expect(r.warnings.some(w => w.code === 'BROKEN_PARENT_REF')).toBe(true);
+  });
 });
