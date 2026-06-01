@@ -11,6 +11,7 @@ import {
 } from '../../packages/diagrams/src/goals/index.js';
 import { parseCanonicalGoals } from '../../packages/diagrams/src/goals/parse-canonical.js';
 import { coerceDatesToIsoStrings } from '../../packages/diagrams/src/yaml-normalize.js';
+import { readSpacing, OPEN_SPACING_SETTINGS_COMMAND } from './spacing-config.js';
 
 // ── SVG renderer ─────────────────────────────────────────────────────────────
 //
@@ -112,7 +113,7 @@ export class GoalsPreview {
         'goalsPreview',
         `${this.panelTitle} — ${path.basename(doc.fileName)}`,
         { viewColumn: vscode.ViewColumn.Beside, preserveFocus: false },
-        { enableScripts: false, retainContextWhenHidden: true, enableCommandUris: ['transitrixStudio.saveGoalsAsSvg', 'transitrixStudio.saveGoalsAsPng', 'transitrixStudio.copyGoalsAsPng'] },
+        { enableScripts: false, retainContextWhenHidden: true, enableCommandUris: ['transitrixStudio.saveGoalsAsSvg', 'transitrixStudio.saveGoalsAsPng', 'transitrixStudio.copyGoalsAsPng', OPEN_SPACING_SETTINGS_COMMAND] },
       );
       this.panel.onDidDispose(() => { this.panel = undefined; this.trackedUri = undefined; });
     }
@@ -121,6 +122,13 @@ export class GoalsPreview {
 
   async refreshSaved(doc: vscode.TextDocument): Promise<void> {
     if (!this.isShowingDocument(doc.uri)) return;
+    await this.pushDocument(doc);
+  }
+
+  /** Re-render the tracked document — used when a spacing/theme setting changes. */
+  async refreshConfig(): Promise<void> {
+    if (!this.panel || !this.trackedUri) return;
+    const doc = await vscode.workspace.openTextDocument(vscode.Uri.parse(this.trackedUri));
     await this.pushDocument(doc);
   }
 
@@ -145,11 +153,12 @@ export class GoalsPreview {
         const treeName = typeof meta.name === 'string' ? meta.name : '';
         const docVersion = typeof meta.version === 'string' ? meta.version : undefined;
         const docDate = typeof meta.date === 'string' ? meta.date : todayIso();
+        const gaps = readSpacing('goals', { horizontalGap: RANK_SEP, verticalGap: NODE_SEP });
         const layout = layoutGoalTree(v.parsed, {
           nodeWidth: NODE_W,
           nodeHeight: NODE_H,
-          rankSep: RANK_SEP,
-          nodeSep: NODE_SEP,
+          rankSep: gaps.horizontalGap,
+          nodeSep: gaps.verticalGap,
         });
         svgContent = layoutToSvg(layout, treeName, filename, docDate, docVersion);
       }
@@ -168,6 +177,7 @@ export class GoalsPreview {
       saveSvgCommand: 'transitrixStudio.saveGoalsAsSvg',
       savePngCommand: 'transitrixStudio.saveGoalsAsPng',
       copyPngCommand: 'transitrixStudio.copyGoalsAsPng',
+      spacingCommand: OPEN_SPACING_SETTINGS_COMMAND,
     });
   }
 

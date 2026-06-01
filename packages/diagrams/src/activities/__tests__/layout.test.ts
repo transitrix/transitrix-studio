@@ -85,4 +85,28 @@ describe('layoutActivities', () => {
     expect(layout.bounds.width).toBeGreaterThan(0);
     expect(layout.bounds.height).toBeGreaterThan(0);
   });
+
+  // vkgeorgia/strategy#75 — configurable spacing.
+  it('empty options reproduce the default no-arg layout', () => {
+    const a = layoutActivities(diamondDoc);
+    const b = layoutActivities(diamondDoc, {});
+    expect(b.nodes.map(n => `${n.id}:${n.x},${n.y}`)).toEqual(a.nodes.map(n => `${n.id}:${n.x},${n.y}`));
+  });
+
+  it('larger horizontalGap pushes downstream columns further right', () => {
+    const xOfD = (h: number) =>
+      layoutActivities(diamondDoc, { horizontalGap: h }).nodes.find(n => n.id === 'D')!.x;
+    expect(xOfD(200)).toBeGreaterThan(xOfD(80));
+  });
+
+  it('larger verticalGap increases the gap between stacked column nodes', () => {
+    const gapOf = (v: number) => {
+      const ys = layoutActivities(diamondDoc, { verticalGap: v })
+        .nodes.filter(n => n.id === 'B' || n.id === 'C')
+        .map(n => n.y)
+        .sort((a, b) => a - b);
+      return ys[1] - ys[0];
+    };
+    expect(gapOf(100)).toBeGreaterThan(gapOf(24));
+  });
 });

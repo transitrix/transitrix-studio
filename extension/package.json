@@ -98,6 +98,62 @@
           ],
           "default": "transitrix",
           "description": "Color theme for Transitrix diagram previews (Goals, FGCA, and other static notation previews)."
+        },
+        "transitrix.spacing.goals.horizontalGap": {
+          "type": "number",
+          "minimum": 20,
+          "maximum": 300,
+          "default": 100,
+          "description": "Goals preview: horizontal gap (px) between hierarchy columns."
+        },
+        "transitrix.spacing.goals.verticalGap": {
+          "type": "number",
+          "minimum": 20,
+          "maximum": 300,
+          "default": 24,
+          "description": "Goals preview: vertical gap (px) between stacked goal nodes."
+        },
+        "transitrix.spacing.fgca.horizontalGap": {
+          "type": "number",
+          "minimum": 20,
+          "maximum": 300,
+          "default": 160,
+          "description": "FGCA preview: horizontal gap (px) between the Factor/Goal/Change/Activity columns."
+        },
+        "transitrix.spacing.fgca.verticalGap": {
+          "type": "number",
+          "minimum": 20,
+          "maximum": 300,
+          "default": 20,
+          "description": "FGCA preview: vertical gap (px) between stacked nodes within a column."
+        },
+        "transitrix.spacing.fga.horizontalGap": {
+          "type": "number",
+          "minimum": 20,
+          "maximum": 300,
+          "default": 160,
+          "description": "FGA preview: horizontal gap (px) between the Factor/Goal/Activity columns."
+        },
+        "transitrix.spacing.fga.verticalGap": {
+          "type": "number",
+          "minimum": 20,
+          "maximum": 300,
+          "default": 20,
+          "description": "FGA preview: vertical gap (px) between stacked nodes within a column."
+        },
+        "transitrix.spacing.activities.horizontalGap": {
+          "type": "number",
+          "minimum": 20,
+          "maximum": 300,
+          "default": 80,
+          "description": "Activities preview: horizontal gap (px) between CPM columns."
+        },
+        "transitrix.spacing.activities.verticalGap": {
+          "type": "number",
+          "minimum": 20,
+          "maximum": 300,
+          "default": 24,
+          "description": "Activities preview: vertical gap (px) between stacked activity nodes."
         }
       }
     },
@@ -444,6 +500,12 @@
         "command": "transitrixStudio.copyIssuesAsPng",
         "title": "Transitrix: Copy issues register as PNG",
         "category": "Transitrix"
+      },
+      {
+        "command": "transitrixStudio.openSpacingSettings",
+        "title": "Transitrix: Open diagram spacing settings",
+        "category": "Transitrix",
+        "icon": "$(settings-gear)"
       }
     ],
     "menus": {
