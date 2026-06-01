@@ -21,7 +21,12 @@ import {
   formatExtensionHint,
   getConfiguredExtensions,
 } from './source-files.js';
-import { OPEN_SPACING_SETTINGS_COMMAND, SPACING_CONFIG_SECTION } from './spacing-config.js';
+import {
+  OPEN_SPACING_SETTINGS_COMMAND,
+  SPACING_CONFIG_SECTION,
+  OPEN_CURVATURE_SETTINGS_COMMAND,
+  CURVATURE_CONFIG_SECTION,
+} from './spacing-config.js';
 
 function isGoalsFile(doc: vscode.TextDocument): boolean {
   return doc.fileName.endsWith('.goals.transitrix.yaml');
@@ -290,12 +295,16 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand(OPEN_SPACING_SETTINGS_COMMAND, () =>
       vscode.commands.executeCommand('workbench.action.openSettings', SPACING_CONFIG_SECTION),
     ),
-    // Re-render the spacing-aware previews when a gap setting changes — the
-    // PR1 persistence mechanism (vkgeorgia/strategy#75). Previews keep
-    // `enableScripts: false`; the change is applied host-side by rebuilding
-    // the webview HTML from the tracked document.
+    vscode.commands.registerCommand(OPEN_CURVATURE_SETTINGS_COMMAND, () =>
+      vscode.commands.executeCommand('workbench.action.openSettings', CURVATURE_CONFIG_SECTION),
+    ),
+    // Re-render the spacing/curvature-aware previews when a gap or curvature
+    // setting changes — the settings-driven persistence mechanism
+    // (vkgeorgia/strategy#75, #76). Previews keep `enableScripts: false`; the
+    // change is applied host-side by rebuilding the webview HTML from the
+    // tracked document.
     vscode.workspace.onDidChangeConfiguration((e) => {
-      if (!e.affectsConfiguration(SPACING_CONFIG_SECTION)) return;
+      if (!e.affectsConfiguration(SPACING_CONFIG_SECTION) && !e.affectsConfiguration(CURVATURE_CONFIG_SECTION)) return;
       void goalsPreview.refreshConfig();
       void fgcaPreview.refreshConfig();
       void fgaPreview.refreshConfig();

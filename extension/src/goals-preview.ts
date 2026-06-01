@@ -11,7 +11,8 @@ import {
 } from '../../packages/diagrams/src/goals/index.js';
 import { parseCanonicalGoals } from '../../packages/diagrams/src/goals/parse-canonical.js';
 import { coerceDatesToIsoStrings } from '../../packages/diagrams/src/yaml-normalize.js';
-import { readSpacing, OPEN_SPACING_SETTINGS_COMMAND } from './spacing-config.js';
+import { horizontalCubicEdgePath, DEFAULT_EDGE_CURVATURE } from '../../packages/diagrams/src/edge-path.js';
+import { readSpacing, readCurvature, OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND } from './spacing-config.js';
 
 // ── SVG renderer ─────────────────────────────────────────────────────────────
 //
@@ -30,7 +31,7 @@ function escXml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-function layoutToSvg(layout: GoalTreeLayout, treeName: string, filename?: string, date?: string, version?: string): string {
+function layoutToSvg(layout: GoalTreeLayout, treeName: string, filename?: string, date?: string, version?: string, curvature: number = DEFAULT_EDGE_CURVATURE): string {
   const pad = 24;
   const showTitle = filename != null && date != null;
   const titleH = showTitle ? TITLE_BLOCK_H : 0;
@@ -41,12 +42,9 @@ function layoutToSvg(layout: GoalTreeLayout, treeName: string, filename?: string
 
   const nodeMap = new Map(layout.nodes.map(n => [n.id, n]));
 
-  // Cubic bezier with horizontal control handles. Each control point shares
-  // its endpoint's Y, so the tangent is horizontal at both ends and the
-  // marker-end arrow reads as perpendicular to the node's vertical edge.
-  // Handle length grows with both spans so the curve stays visibly
-  // horizontal long enough for the arrowhead to sit flush against the line.
-  const EDGE_MIN_HANDLE = 64;
+  // Cubic bezier with horizontal control handles (shared geometry in
+  // @transitrix/diagrams). `curvature` scales the handle length: 1 = default,
+  // 0 = straight, higher = stronger arc (vkgeorgia/strategy#76).
   function edgePath(e: LaidOutEdge): string {
     const s = nodeMap.get(e.source);
     const t = nodeMap.get(e.target);
@@ -55,10 +53,7 @@ function layoutToSvg(layout: GoalTreeLayout, treeName: string, filename?: string
     const sy = s.y + oy + s.height / 2;
     const tx = t.x + ox;
     const ty = t.y + oy + t.height / 2;
-    const dx = tx - sx;
-    const dy = ty - sy;
-    const handle = Math.max(EDGE_MIN_HANDLE, Math.abs(dx) * 0.5, Math.abs(dy) * 0.8);
-    return `M${sx},${sy} C${sx + handle},${sy} ${tx - handle},${ty} ${tx},${ty}`;
+    return horizontalCubicEdgePath(sx, sy, tx, ty, curvature);
   }
 
   const edgeSvg = layout.edges.map(e =>
@@ -113,7 +108,7 @@ export class GoalsPreview {
         'goalsPreview',
         `${this.panelTitle} — ${path.basename(doc.fileName)}`,
         { viewColumn: vscode.ViewColumn.Beside, preserveFocus: false },
-        { enableScripts: false, retainContextWhenHidden: true, enableCommandUris: ['transitrixStudio.saveGoalsAsSvg', 'transitrixStudio.saveGoalsAsPng', 'transitrixStudio.copyGoalsAsPng', OPEN_SPACING_SETTINGS_COMMAND] },
+        { enableScripts: false, retainContextWhenHidden: true, enableCommandUris: ['transitrixStudio.saveGoalsAsSvg', 'transitrixStudio.saveGoalsAsPng', 'transitrixStudio.copyGoalsAsPng', OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND] },
       );
       this.panel.onDidDispose(() => { this.panel = undefined; this.trackedUri = undefined; });
     }
@@ -160,7 +155,7 @@ export class GoalsPreview {
           rankSep: gaps.horizontalGap,
           nodeSep: gaps.verticalGap,
         });
-        svgContent = layoutToSvg(layout, treeName, filename, docDate, docVersion);
+        svgContent = layoutToSvg(layout, treeName, filename, docDate, docVersion, readCurvature('goals'));
       }
     } catch (e) {
       errorMsg = (e as Error).message ?? 'Parse error';
@@ -178,6 +173,7 @@ export class GoalsPreview {
       savePngCommand: 'transitrixStudio.saveGoalsAsPng',
       copyPngCommand: 'transitrixStudio.copyGoalsAsPng',
       spacingCommand: OPEN_SPACING_SETTINGS_COMMAND,
+      curvatureCommand: OPEN_CURVATURE_SETTINGS_COMMAND,
     });
   }
 
