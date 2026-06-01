@@ -94,6 +94,13 @@ export interface ActivitiesLayout {
   bounds: { x: number; y: number; width: number; height: number };
 }
 
+export interface ActivitiesLayoutOptions {
+  /** Horizontal gap (px) between CPM columns. Default matches the historical hardcoded value. */
+  horizontalGap?: number;
+  /** Vertical gap (px) between stacked activity nodes. Default matches the historical hardcoded value. */
+  verticalGap?: number;
+}
+
 // ── Gantt view (spec §9) ─────────────────────────────────────────────────────
 
 export type GanttMode = 'computed' | 'pinned';

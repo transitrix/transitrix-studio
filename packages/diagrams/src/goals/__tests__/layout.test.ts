@@ -64,6 +64,27 @@ describe('layoutGoalTree', () => {
     expect(layout.nodes[0].height).toBe(60);
   });
 
+  // vkgeorgia/strategy#75 — configurable spacing. The preview maps
+  // horizontalGap → rankSep and verticalGap → nodeSep.
+  it('larger rankSep widens the column step', () => {
+    const tight = layoutGoalTree(TREE, { rankSep: 80 });
+    const wide = layoutGoalTree(TREE, { rankSep: 200 });
+    const stepOf = (l: ReturnType<typeof layoutGoalTree>) => {
+      const byId = new Map(l.nodes.map(n => [n.id, n]));
+      return byId.get(2)!.x - byId.get(1)!.x;
+    };
+    expect(stepOf(wide)).toBeGreaterThan(stepOf(tight));
+  });
+
+  it('larger nodeSep increases the gap between stacked siblings', () => {
+    const gapOf = (sep: number) => {
+      const l = layoutGoalTree(TREE, { nodeSep: sep });
+      const byId = new Map(l.nodes.map(n => [n.id, n]));
+      return Math.abs(byId.get(4)!.y - byId.get(3)!.y);
+    };
+    expect(gapOf(120)).toBeGreaterThan(gapOf(24));
+  });
+
   it('each node carries original goal data', () => {
     const layout = layoutGoalTree(TREE);
     const node1 = layout.nodes.find(n => n.id === 1)!;

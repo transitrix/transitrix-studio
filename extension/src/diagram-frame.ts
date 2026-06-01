@@ -70,6 +70,14 @@ export interface DiagramFrameOpts {
    * to "Save .png" when provided and a vector diagram is on screen.
    */
   copyPngCommand?: string;
+  /**
+   * Command ID for the "Spacing…" toolbar link (opens Settings filtered to the
+   * per-notation gap controls — vkgeorgia/strategy#75). Rendered for previews
+   * that honour `transitrix.spacing.*`. Shown even on error renders so the user
+   * can widen/tighten and re-render. The preview's webview must opt into command
+   * URIs via `enableCommandUris`.
+   */
+  spacingCommand?: string;
 }
 
 function escXml(s: string): string {
@@ -262,7 +270,7 @@ export function buildDiagramFrame(opts: DiagramFrameOpts): string {
     errorMsg = '', warnings = [],
     themeId = 'transitrix', extraStyles = '', fixPrompt = '',
     title, subtitle, version, date,
-    saveSvgCommand, savePngCommand, copyPngCommand,
+    saveSvgCommand, savePngCommand, copyPngCommand, spacingCommand,
   } = opts;
 
   const canvasContent = bodyContent ?? svgContent;
@@ -306,6 +314,9 @@ export function buildDiagramFrame(opts: DiagramFrameOpts): string {
   const showSaveSvg = Boolean(canvasContent) && Boolean(saveSvgCommand);
   const showSavePng = Boolean(canvasContent) && Boolean(savePngCommand);
   const showCopyPng = Boolean(canvasContent) && Boolean(copyPngCommand);
+  // Spacing link shows whenever the preview opts in — including error renders,
+  // so the user can adjust the gap settings and trigger a re-render.
+  const showSpacing = Boolean(spacingCommand);
   // Zoom control gates on the same signal as Save .svg — the six vector
   // previews opt in by passing a saveSvgCommand. HTML catalogues are out of
   // scope per the orchestrator's call on issue #30.
@@ -335,6 +346,9 @@ export function buildDiagramFrame(opts: DiagramFrameOpts): string {
   }
   if (showCopyPng) {
     actionParts.push(`<a href="command:${escXml(copyPngCommand!)}" class="toolbar-btn" title="Copy the current diagram to the clipboard as a PNG image">Copy PNG</a>`);
+  }
+  if (showSpacing) {
+    actionParts.push(`<a href="command:${escXml(spacingCommand!)}" class="toolbar-btn" title="Adjust the horizontal/vertical spacing for this notation in Settings">Spacing…</a>`);
   }
   const toolbarRight = actionParts.length > 0
     ? `<div class="toolbar-actions">${actionParts.join('')}</div>`
