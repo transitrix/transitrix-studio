@@ -1,5 +1,23 @@
 export { buildFGCALayout, NODE_WIDTH, NODE_HEIGHT, COLUMN_GAP, ROW_GAP, COLUMN_BG } from "./layout";
 export type { FGCALayoutInput } from "./layout";
+export {
+  layoutFGCAPreview,
+  FGCA_NODE_W,
+  FGCA_NODE_H,
+  FGCA_HEADER_H,
+  FGCA_PAD,
+  FGCA_DEFAULT_COL_GAP,
+  FGCA_DEFAULT_ROW_GAP,
+} from "./preview-layout";
+export type {
+  FGCAPreviewColumn,
+  FGCAPreviewDoc,
+  FGCAPreviewLayout,
+  FGCAPreviewLayoutOptions,
+  FGCAPreviewNode,
+  FGCAPreviewEdge,
+  FGCAPreviewColumnPos,
+} from "./preview-layout";
 export { validateFGCADoc } from "./validate";
 export type { FGCADoc, FGCAValidationResult, FGCAValidationError, FGCAValidationWarning } from "./validate";
 export {

@@ -4,8 +4,18 @@ import yaml from 'js-yaml';
 import { buildDiagramFrame, prepareSvgForExport, type ThemeId } from './diagram-frame.js';
 import { TITLE_BLOCK_H, titleBlockSvg, todayIso } from './svg-title-block.js';
 import { parseCanonicalFGCA, parseCanonicalFGA } from '../../packages/diagrams/src/fgca/parse-canonical.js';
+import {
+  layoutFGCAPreview,
+  FGCA_NODE_W as NODE_W,
+  FGCA_NODE_H as NODE_H,
+  FGCA_HEADER_H as HEADER_H,
+  FGCA_PAD as PAD,
+  FGCA_DEFAULT_COL_GAP,
+  FGCA_DEFAULT_ROW_GAP,
+} from '../../packages/diagrams/src/fgca/preview-layout.js';
 import { coerceDatesToIsoStrings } from '../../packages/diagrams/src/yaml-normalize.js';
 import { savePngFromSvg, copyPngFromSvg } from './png-export.js';
+import { readSpacing, OPEN_SPACING_SETTINGS_COMMAND } from './spacing-config.js';
 
 // ── Inline render types ─────────────────────────────────────────────────────
 //
@@ -30,15 +40,12 @@ interface FGCADoc {
   activities: ActivityItem[];
 }
 
-// ── Inline layout ─────────────────────────────────────────────────────────────
-
-const NODE_W = 220;
-const NODE_H = 72;
-const COL_GAP = 160;
-const ROW_GAP = 20;
-const HEADER_H = 32;
-const PAD = 20;
-const COL_STRIDE = NODE_W + COL_GAP;
+// ── Column layout ─────────────────────────────────────────────────────────────
+//
+// Geometry + edge routing now live in @transitrix/diagrams
+// (`layoutFGCAPreview`) so the configurable-gap behaviour (vkgeorgia/strategy#75)
+// is unit-tested. This file owns only the SVG presentation of that layout and
+// the column header labels.
 
 const COL_LABELS: Record<string, string> = {
   factor: 'Factors (F)',
@@ -47,95 +54,30 @@ const COL_LABELS: Record<string, string> = {
   activity: 'Activities (A)',
 };
 
-interface LayoutNode { id: string; x: number; y: number; label: string; col: string; }
-interface LayoutEdge { sx: number; sy: number; tx: number; ty: number; }
-
-function layoutFGCA(doc: FGCADoc, hideChanges = false): { nodes: LayoutNode[]; edges: LayoutEdge[]; width: number; height: number } {
-  const cols = hideChanges
-    ? (['factor', 'goal', 'activity'] as const)
-    : (['factor', 'goal', 'change', 'activity'] as const);
-  const changes = doc.changes ?? [];
-  const colItems: Record<string, Array<{ id: string; label: string }>> = {
-    factor:   doc.factors.map(f => ({ id: `factor_${f.id}`,   label: f.name })),
-    goal:     doc.goals.map(g   => ({ id: `goal_${g.id}`,     label: g.name })),
-    change:   changes.map(c => ({ id: `change_${c.id}`,   label: c.name })),
-    activity: doc.activities.map(a => ({ id: `activity_${a.id}`, label: a.name })),
-  };
-
-  const nodeMap = new Map<string, LayoutNode>();
-  const nodes: LayoutNode[] = [];
-
-  for (let ci = 0; ci < cols.length; ci++) {
-    const col = cols[ci];
-    const x = PAD + ci * COL_STRIDE;
-    let y = PAD + HEADER_H + ROW_GAP;
-    for (const item of colItems[col]) {
-      const node: LayoutNode = { id: item.id, x, y, label: item.label, col };
-      nodes.push(node);
-      nodeMap.set(item.id, node);
-      y += NODE_H + ROW_GAP;
-    }
-  }
-
-  const edges: LayoutEdge[] = [];
-
-  function addEdge(sourceId: string, targetId: string): void {
-    const s = nodeMap.get(sourceId);
-    const t = nodeMap.get(targetId);
-    if (!s || !t) return;
-    edges.push({ sx: s.x + NODE_W, sy: s.y + NODE_H / 2, tx: t.x, ty: t.y + NODE_H / 2 });
-  }
-
-  for (const g of doc.goals) {
-    for (const f of (g.factor ?? [])) addEdge(`factor_${f.id}`, `goal_${g.id}`);
-  }
-  if (hideChanges) {
-    const connectedViaChange = new Set<number | string>();
-    for (const c of changes) {
-      for (const aid of c.activity_ids) {
-        addEdge(`goal_${c.goal_id}`, `activity_${aid}`);
-        connectedViaChange.add(aid);
-      }
-    }
-    for (const a of doc.activities) {
-      if (a.goal_id != null && !connectedViaChange.has(a.id)) {
-        addEdge(`goal_${a.goal_id}`, `activity_${a.id}`);
-      }
-    }
-  } else {
-    for (const c of changes) addEdge(`goal_${c.goal_id}`, `change_${c.id}`);
-    for (const c of changes) for (const aid of c.activity_ids) addEdge(`change_${c.id}`, `activity_${aid}`);
-    const coveredActivities = new Set(changes.flatMap(c => c.activity_ids));
-    for (const a of doc.activities) {
-      if (a.goal_id != null && !coveredActivities.has(a.id)) {
-        addEdge(`goal_${a.goal_id}`, `activity_${a.id}`);
-      }
-    }
-  }
-
-  const maxNodeBottom = nodes.reduce((m, n) => Math.max(m, n.y + NODE_H), PAD + HEADER_H + ROW_GAP + NODE_H);
-  const width = PAD * 2 + cols.length * COL_STRIDE - COL_GAP;
-  const height = maxNodeBottom + PAD;
-
-  return { nodes, edges, width, height };
-}
-
 // ── SVG renderer ──────────────────────────────────────────────────────────────
 
 function escXml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-function buildSvg(doc: FGCADoc, hideChanges = false, heading?: string, filename?: string, date?: string, version?: string): string {
-  const { nodes, edges, width, height } = layoutFGCA(doc, hideChanges);
+function buildSvg(
+  doc: FGCADoc,
+  hideChanges = false,
+  gaps: { colGap?: number; rowGap?: number } = {},
+  heading?: string,
+  filename?: string,
+  date?: string,
+  version?: string,
+): string {
+  const { nodes, edges, columns, width, height } = layoutFGCAPreview(doc, {
+    hideChanges,
+    colGap: gaps.colGap,
+    rowGap: gaps.rowGap,
+  });
   const showTitle = heading != null && filename != null && date != null;
   const titleH = showTitle ? TITLE_BLOCK_H : 0;
-  const cols = hideChanges
-    ? (['factor', 'goal', 'activity'] as const)
-    : (['factor', 'goal', 'change', 'activity'] as const);
 
-  const headerSvg = cols.map((col, ci) => {
-    const x = PAD + ci * COL_STRIDE;
+  const headerSvg = columns.map(({ col, x }) => {
     return [
       `<rect class="diagram-node layer-${col}" x="${x}" y="${PAD}" width="${NODE_W}" height="${HEADER_H}" rx="6"/>`,
       `<text class="text-header" x="${x + NODE_W / 2}" y="${PAD + HEADER_H / 2}" text-anchor="middle" dominant-baseline="central">${escXml(COL_LABELS[col])}</text>`,
@@ -219,7 +161,7 @@ export class FGCAPreview {
         'fgcaPreview',
         `${this.panelTitle} — ${path.basename(doc.fileName)}`,
         { viewColumn: vscode.ViewColumn.Beside, preserveFocus: false },
-        { enableScripts: false, retainContextWhenHidden: true, enableCommandUris: ['transitrixStudio.saveFGCAAsSvg', 'transitrixStudio.saveFGCAAsPng', 'transitrixStudio.copyFGCAAsPng'] },
+        { enableScripts: false, retainContextWhenHidden: true, enableCommandUris: ['transitrixStudio.saveFGCAAsSvg', 'transitrixStudio.saveFGCAAsPng', 'transitrixStudio.copyFGCAAsPng', OPEN_SPACING_SETTINGS_COMMAND] },
       );
       this.panel.onDidDispose(() => { this.panel = undefined; this.trackedUri = undefined; });
     }
@@ -228,6 +170,13 @@ export class FGCAPreview {
 
   async refreshSaved(doc: vscode.TextDocument): Promise<void> {
     if (!this.isShowingDocument(doc.uri)) return;
+    await this.pushDocument(doc);
+  }
+
+  /** Re-render the tracked document — used when a spacing/theme setting changes. */
+  async refreshConfig(): Promise<void> {
+    if (!this.panel || !this.trackedUri) return;
+    const doc = await vscode.workspace.openTextDocument(vscode.Uri.parse(this.trackedUri));
     await this.pushDocument(doc);
   }
 
@@ -255,7 +204,8 @@ export class FGCAPreview {
         // IDs and singular `change.goal_id` / `change.activity_ids`. The
         // inline FGCADoc / buildSvg here accept both forms (number | string
         // unions) — pass through.
-        svgContent = buildSvg(v.parsed as unknown as FGCADoc, false, 'FGCA — Factor → Goal → Change → Activity', filename, docDate, docVersion);
+        const gaps = readSpacing('fgca', { horizontalGap: FGCA_DEFAULT_COL_GAP, verticalGap: FGCA_DEFAULT_ROW_GAP });
+        svgContent = buildSvg(v.parsed as unknown as FGCADoc, false, { colGap: gaps.horizontalGap, rowGap: gaps.verticalGap }, 'FGCA — Factor → Goal → Change → Activity', filename, docDate, docVersion);
       }
     } catch (e) {
       errorMsg = (e as Error).message ?? 'Parse error';
@@ -272,6 +222,7 @@ export class FGCAPreview {
       saveSvgCommand: 'transitrixStudio.saveFGCAAsSvg',
       savePngCommand: 'transitrixStudio.saveFGCAAsPng',
       copyPngCommand: 'transitrixStudio.copyFGCAAsPng',
+      spacingCommand: OPEN_SPACING_SETTINGS_COMMAND,
     });
   }
 
@@ -335,7 +286,7 @@ export class FGAPreview {
         'fgaPreview',
         `${this.panelTitle} — ${path.basename(doc.fileName)}`,
         { viewColumn: vscode.ViewColumn.Beside, preserveFocus: false },
-        { enableScripts: false, retainContextWhenHidden: true, enableCommandUris: ['transitrixStudio.saveFGAAsSvg', 'transitrixStudio.saveFGAAsPng', 'transitrixStudio.copyFGAAsPng'] },
+        { enableScripts: false, retainContextWhenHidden: true, enableCommandUris: ['transitrixStudio.saveFGAAsSvg', 'transitrixStudio.saveFGAAsPng', 'transitrixStudio.copyFGAAsPng', OPEN_SPACING_SETTINGS_COMMAND] },
       );
       this.panel.onDidDispose(() => { this.panel = undefined; this.trackedUri = undefined; });
     }
@@ -344,6 +295,13 @@ export class FGAPreview {
 
   async refreshSaved(doc: vscode.TextDocument): Promise<void> {
     if (!this.isShowingDocument(doc.uri)) return;
+    await this.pushDocument(doc);
+  }
+
+  /** Re-render the tracked document — used when a spacing/theme setting changes. */
+  async refreshConfig(): Promise<void> {
+    if (!this.panel || !this.trackedUri) return;
+    const doc = await vscode.workspace.openTextDocument(vscode.Uri.parse(this.trackedUri));
     await this.pushDocument(doc);
   }
 
@@ -368,7 +326,8 @@ export class FGAPreview {
         errorMsg = v.errors.map(e => `${e.code}: ${e.message}`).join('\n');
       } else {
         // FGA shares FGCA's FLAT shape; just hide the (absent) Changes column.
-        svgContent = buildSvg(v.parsed as unknown as FGCADoc, true, 'FGA — Factor → Goal → Activity', filename, docDate, docVersion);
+        const gaps = readSpacing('fga', { horizontalGap: FGCA_DEFAULT_COL_GAP, verticalGap: FGCA_DEFAULT_ROW_GAP });
+        svgContent = buildSvg(v.parsed as unknown as FGCADoc, true, { colGap: gaps.horizontalGap, rowGap: gaps.verticalGap }, 'FGA — Factor → Goal → Activity', filename, docDate, docVersion);
       }
     } catch (e) {
       errorMsg = (e as Error).message ?? 'Parse error';
@@ -385,6 +344,7 @@ export class FGAPreview {
       saveSvgCommand: 'transitrixStudio.saveFGAAsSvg',
       savePngCommand: 'transitrixStudio.saveFGAAsPng',
       copyPngCommand: 'transitrixStudio.copyFGAAsPng',
+      spacingCommand: OPEN_SPACING_SETTINGS_COMMAND,
     });
   }
 

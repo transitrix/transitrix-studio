@@ -1,4 +1,4 @@
-import type { ActivityDoc, Activity, ActivitiesLayout, LayoutNode, LayoutEdge } from './types.js';
+import type { ActivityDoc, Activity, ActivitiesLayout, ActivitiesLayoutOptions, LayoutNode, LayoutEdge } from './types.js';
 import { computeCpm } from './cpm.js';
 
 const NODE_W = 200;
@@ -6,7 +6,8 @@ const NODE_H = 80;
 const H_GAP = 80;
 const V_GAP = 24;
 
-export function layoutActivities(doc: ActivityDoc): ActivitiesLayout {
+export function layoutActivities(doc: ActivityDoc, options: ActivitiesLayoutOptions = {}): ActivitiesLayout {
+  const { horizontalGap = H_GAP, verticalGap = V_GAP } = options;
   const activities = doc.activities;
   if (activities.length === 0) {
     return { nodes: [], edges: [], bounds: { x: 0, y: 0, width: 0, height: 0 } };
@@ -69,7 +70,7 @@ export function layoutActivities(doc: ActivityDoc): ActivitiesLayout {
 
   for (let c = 0; c < colCount; c++) {
     const list = cols.get(c) ?? [];
-    const x = c * (NODE_W + H_GAP);
+    const x = c * (NODE_W + horizontalGap);
     let y = 0;
     for (const a of list) {
       const node: LayoutNode = {
@@ -83,7 +84,7 @@ export function layoutActivities(doc: ActivityDoc): ActivitiesLayout {
       };
       nodes.push(node);
       nodeMap.set(a.id, node);
-      y += NODE_H + V_GAP;
+      y += NODE_H + verticalGap;
     }
   }
 
