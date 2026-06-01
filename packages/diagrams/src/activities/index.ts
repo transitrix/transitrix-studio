@@ -9,6 +9,7 @@ export type {
   LayoutNode,
   LayoutEdge,
   ActivitiesLayout,
+  ActivitiesLayoutOptions,
   Weekday,
   ProjectCalendar,
   ProjectBlock,

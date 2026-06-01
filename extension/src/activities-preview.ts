@@ -11,11 +11,18 @@ import {
   isGanttUnavailable,
   type ActivityDoc,
   type ActivitiesLayout,
+  type ActivitiesLayoutOptions,
   type GanttLayout,
   type GanttResult,
 } from '../../packages/diagrams/src/activities/index.js';
 import { coerceDatesToIsoStrings } from '../../packages/diagrams/src/yaml-normalize.js';
 import { savePngFromSvg, copyPngFromSvg } from './png-export.js';
+import { readSpacing, OPEN_SPACING_SETTINGS_COMMAND } from './spacing-config.js';
+
+// Default network (PSND) gaps — must match the layoutActivities defaults
+// (H_GAP / V_GAP) so an unconfigured preview is visually unchanged.
+const ACTIVITIES_DEFAULT_H_GAP = 80;
+const ACTIVITIES_DEFAULT_V_GAP = 24;
 
 // ── Shared helpers ───────────────────────────────────────────────────────────
 
@@ -36,8 +43,8 @@ const N_NODE_W = 200;
 const N_NODE_H = 80;
 const N_PAD = 24;
 
-function networkSvg(doc: ActivityDoc, heading?: string, filename?: string, date?: string, version?: string): string {
-  const layout: ActivitiesLayout = layoutActivities(doc);
+function networkSvg(doc: ActivityDoc, gaps: ActivitiesLayoutOptions = {}, heading?: string, filename?: string, date?: string, version?: string): string {
+  const layout: ActivitiesLayout = layoutActivities(doc, gaps);
   if (layout.nodes.length === 0) {
     return '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="60"><text class="text-primary" x="10" y="40">No activities</text></svg>';
   }
@@ -428,9 +435,9 @@ interface ActivityViews {
   ganttSvg: string;
 }
 
-function buildActivityViews(doc: ActivityDoc, filename: string, date: string, version?: string): ActivityViews {
+function buildActivityViews(doc: ActivityDoc, gaps: ActivitiesLayoutOptions, filename: string, date: string, version?: string): ActivityViews {
   const networkHeading = 'Network view — Project Schedule Network Diagram (PSND)';
-  const networkSvgStr = networkSvg(doc, networkHeading, filename, date, version);
+  const networkSvgStr = networkSvg(doc, gaps, networkHeading, filename, date, version);
   const gantt: GanttResult = computeGanttLayout(doc);
 
   // Mirror titleBlockSvg's date line: `v{version} · {date}` when version is set.
@@ -572,7 +579,7 @@ export class ActivitiesPreview {
         'activitiesPreview',
         `${this.panelTitle} — ${path.basename(doc.fileName)}`,
         { viewColumn: vscode.ViewColumn.Beside, preserveFocus: false },
-        { enableScripts: false, retainContextWhenHidden: true, enableCommandUris: ['transitrixStudio.saveActivitiesAsSvg', 'transitrixStudio.saveActivitiesAsPng', 'transitrixStudio.copyActivitiesAsPng'] },
+        { enableScripts: false, retainContextWhenHidden: true, enableCommandUris: ['transitrixStudio.saveActivitiesAsSvg', 'transitrixStudio.saveActivitiesAsPng', 'transitrixStudio.copyActivitiesAsPng', OPEN_SPACING_SETTINGS_COMMAND] },
       );
       this.panel.onDidDispose(() => { this.panel = undefined; this.trackedUri = undefined; });
     }
@@ -581,6 +588,13 @@ export class ActivitiesPreview {
 
   async refreshSaved(doc: vscode.TextDocument): Promise<void> {
     if (!this.isShowingDocument(doc.uri)) return;
+    await this.pushDocument(doc);
+  }
+
+  /** Re-render the tracked document — used when a spacing/theme setting changes. */
+  async refreshConfig(): Promise<void> {
+    if (!this.panel || !this.trackedUri) return;
+    const doc = await vscode.workspace.openTextDocument(vscode.Uri.parse(this.trackedUri));
     await this.pushDocument(doc);
   }
 
@@ -608,7 +622,8 @@ export class ActivitiesPreview {
       if (!v.valid) {
         errorMsg = v.errors.map(e => `${e.code}: ${e.message}`).join('\n');
       } else {
-        const views = buildActivityViews(parsed as ActivityDoc, filename, docDate, docVersion);
+        const spacing = readSpacing('activities', { horizontalGap: ACTIVITIES_DEFAULT_H_GAP, verticalGap: ACTIVITIES_DEFAULT_V_GAP });
+        const views = buildActivityViews(parsed as ActivityDoc, { horizontalGap: spacing.horizontalGap, verticalGap: spacing.verticalGap }, filename, docDate, docVersion);
         bodyContent = buildCanvasContent(views);
         this.lastNetworkSvg = views.networkSvg;
         this.lastGanttSvg = views.ganttSvg;
@@ -637,6 +652,7 @@ export class ActivitiesPreview {
       saveSvgCommand: 'transitrixStudio.saveActivitiesAsSvg',
       savePngCommand: 'transitrixStudio.saveActivitiesAsPng',
       copyPngCommand: 'transitrixStudio.copyActivitiesAsPng',
+      spacingCommand: OPEN_SPACING_SETTINGS_COMMAND,
     });
   }
 
