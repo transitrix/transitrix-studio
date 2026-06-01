@@ -154,6 +154,34 @@
           "maximum": 300,
           "default": 24,
           "description": "Activities preview: vertical gap (px) between stacked activity nodes."
+        },
+        "transitrix.curvature.goals": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 3,
+          "default": 1,
+          "description": "Goals preview: edge curvature. 0 = straight lines, 1 = default, higher = stronger arc."
+        },
+        "transitrix.curvature.fgca": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 3,
+          "default": 1,
+          "description": "FGCA preview: edge curvature. 0 = straight lines, 1 = default, higher = stronger arc."
+        },
+        "transitrix.curvature.fga": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 3,
+          "default": 1,
+          "description": "FGA preview: edge curvature. 0 = straight lines, 1 = default, higher = stronger arc."
+        },
+        "transitrix.curvature.activities": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 3,
+          "default": 1,
+          "description": "Activities preview: CPM dependency-arrow curvature. 0 = straight lines, 1 = default, higher = stronger arc."
         }
       }
     },
@@ -504,6 +532,12 @@
       {
         "command": "transitrixStudio.openSpacingSettings",
         "title": "Transitrix: Open diagram spacing settings",
+        "category": "Transitrix",
+        "icon": "$(settings-gear)"
+      },
+      {
+        "command": "transitrixStudio.openCurvatureSettings",
+        "title": "Transitrix: Open diagram edge-curvature settings",
         "category": "Transitrix",
         "icon": "$(settings-gear)"
       }

@@ -16,8 +16,9 @@ import {
   type GanttResult,
 } from '../../packages/diagrams/src/activities/index.js';
 import { coerceDatesToIsoStrings } from '../../packages/diagrams/src/yaml-normalize.js';
+import { horizontalCubicEdgePath, DEFAULT_EDGE_CURVATURE } from '../../packages/diagrams/src/edge-path.js';
 import { savePngFromSvg, copyPngFromSvg } from './png-export.js';
-import { readSpacing, OPEN_SPACING_SETTINGS_COMMAND } from './spacing-config.js';
+import { readSpacing, readCurvature, OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND } from './spacing-config.js';
 
 // Default network (PSND) gaps — must match the layoutActivities defaults
 // (H_GAP / V_GAP) so an unconfigured preview is visually unchanged.
@@ -43,7 +44,7 @@ const N_NODE_W = 200;
 const N_NODE_H = 80;
 const N_PAD = 24;
 
-function networkSvg(doc: ActivityDoc, gaps: ActivitiesLayoutOptions = {}, heading?: string, filename?: string, date?: string, version?: string): string {
+function networkSvg(doc: ActivityDoc, gaps: ActivitiesLayoutOptions = {}, curvature: number = DEFAULT_EDGE_CURVATURE, heading?: string, filename?: string, date?: string, version?: string): string {
   const layout: ActivitiesLayout = layoutActivities(doc, gaps);
   if (layout.nodes.length === 0) {
     return '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="60"><text class="text-primary" x="10" y="40">No activities</text></svg>';
@@ -64,18 +65,12 @@ function networkSvg(doc: ActivityDoc, gaps: ActivitiesLayoutOptions = {}, headin
   const orderedEdges = [...layout.edges].sort(
     (a, b) => Number(Boolean(a.isCritical)) - Number(Boolean(b.isCritical)),
   );
-  // Edge path = a single cubic Bézier with horizontal control handles. Each
-  // control point shares its endpoint's Y, so the tangent is horizontal at
-  // both ends — the curve meets the vertical node edge at a true right angle
-  // and the marker-end arrow (orient="auto") reads as perpendicular. The
-  // handle length grows with both the horizontal and the vertical span so the
-  // curve stays visibly horizontal long enough for the arrowhead to sit flush:
-  // short handles leave the curve horizontal only at the exact endpoint, so a
-  // rigid arrowhead visibly mismatches the curve behind it. No straight stubs —
-  // a stub→curve joint is tangent-continuous but shows a curvature jump
-  // (0 → non-zero) the eye reads as a kink. Marker refX = markerWidth anchors
-  // the tip at the path endpoint, on the node's edge rather than inside it.
-  const EDGE_MIN_HANDLE = 64;
+  // Edge path = a single cubic Bézier with horizontal control handles (shared
+  // geometry in @transitrix/diagrams). The control points share their
+  // endpoint's Y so the tangent is horizontal at both ends — the curve meets
+  // the vertical node edge at a right angle and the marker-end arrow reads as
+  // perpendicular. `curvature` scales the handle length: 1 = default, 0 =
+  // straight, higher = stronger arc (vkgeorgia/strategy#76).
   const edgeSvg = orderedEdges.map(e => {
     const s = nodeMap.get(e.sourceId);
     const t = nodeMap.get(e.targetId);
@@ -84,16 +79,9 @@ function networkSvg(doc: ActivityDoc, gaps: ActivitiesLayoutOptions = {}, headin
     const sy = s.y + oy + s.height / 2;
     const tx = t.x + ox;
     const ty = t.y + oy + t.height / 2;
-    const dx = tx - sx;
-    const dy = ty - sy;
-    // Handle length is a magnitude only — the tangent stays horizontal
-    // regardless, so perpendicular entry/exit is guaranteed. When handle >
-    // dx/2 the control points cross over: intentional, it produces the
-    // graceful "lazy S" for vertically stacked nodes.
-    const handle = Math.max(EDGE_MIN_HANDLE, Math.abs(dx) * 0.5, Math.abs(dy) * 0.8);
     const cls = e.isCritical ? 'diagram-edge critical-edge' : 'diagram-edge';
     const marker = `url(#${e.isCritical ? 'arrow-crit' : 'arrow'})`;
-    return `<path d="M${sx},${sy} C${sx + handle},${sy} ${tx - handle},${ty} ${tx},${ty}" class="${cls}" marker-end="${marker}"/>`;
+    return `<path d="${horizontalCubicEdgePath(sx, sy, tx, ty, curvature)}" class="${cls}" marker-end="${marker}"/>`;
   }).join('\n');
 
   const nodeSvg = layout.nodes.map(n => {
@@ -435,9 +423,9 @@ interface ActivityViews {
   ganttSvg: string;
 }
 
-function buildActivityViews(doc: ActivityDoc, gaps: ActivitiesLayoutOptions, filename: string, date: string, version?: string): ActivityViews {
+function buildActivityViews(doc: ActivityDoc, gaps: ActivitiesLayoutOptions, curvature: number, filename: string, date: string, version?: string): ActivityViews {
   const networkHeading = 'Network view — Project Schedule Network Diagram (PSND)';
-  const networkSvgStr = networkSvg(doc, gaps, networkHeading, filename, date, version);
+  const networkSvgStr = networkSvg(doc, gaps, curvature, networkHeading, filename, date, version);
   const gantt: GanttResult = computeGanttLayout(doc);
 
   // Mirror titleBlockSvg's date line: `v{version} · {date}` when version is set.
@@ -579,7 +567,7 @@ export class ActivitiesPreview {
         'activitiesPreview',
         `${this.panelTitle} — ${path.basename(doc.fileName)}`,
         { viewColumn: vscode.ViewColumn.Beside, preserveFocus: false },
-        { enableScripts: false, retainContextWhenHidden: true, enableCommandUris: ['transitrixStudio.saveActivitiesAsSvg', 'transitrixStudio.saveActivitiesAsPng', 'transitrixStudio.copyActivitiesAsPng', OPEN_SPACING_SETTINGS_COMMAND] },
+        { enableScripts: false, retainContextWhenHidden: true, enableCommandUris: ['transitrixStudio.saveActivitiesAsSvg', 'transitrixStudio.saveActivitiesAsPng', 'transitrixStudio.copyActivitiesAsPng', OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND] },
       );
       this.panel.onDidDispose(() => { this.panel = undefined; this.trackedUri = undefined; });
     }
@@ -623,7 +611,7 @@ export class ActivitiesPreview {
         errorMsg = v.errors.map(e => `${e.code}: ${e.message}`).join('\n');
       } else {
         const spacing = readSpacing('activities', { horizontalGap: ACTIVITIES_DEFAULT_H_GAP, verticalGap: ACTIVITIES_DEFAULT_V_GAP });
-        const views = buildActivityViews(parsed as ActivityDoc, { horizontalGap: spacing.horizontalGap, verticalGap: spacing.verticalGap }, filename, docDate, docVersion);
+        const views = buildActivityViews(parsed as ActivityDoc, { horizontalGap: spacing.horizontalGap, verticalGap: spacing.verticalGap }, readCurvature('activities'), filename, docDate, docVersion);
         bodyContent = buildCanvasContent(views);
         this.lastNetworkSvg = views.networkSvg;
         this.lastGanttSvg = views.ganttSvg;
@@ -653,6 +641,7 @@ export class ActivitiesPreview {
       savePngCommand: 'transitrixStudio.saveActivitiesAsPng',
       copyPngCommand: 'transitrixStudio.copyActivitiesAsPng',
       spacingCommand: OPEN_SPACING_SETTINGS_COMMAND,
+      curvatureCommand: OPEN_CURVATURE_SETTINGS_COMMAND,
     });
   }
 
