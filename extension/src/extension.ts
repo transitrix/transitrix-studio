@@ -16,6 +16,7 @@ import { CapabilityMapPreview } from './capability-map-preview.js';
 import { ProcessBlueprintPreview } from './process-blueprint-preview.js';
 import { ActivityCardPreview } from './activity-card-preview.js';
 import { IssuesPreview } from './issues-preview.js';
+import { ComplianceMatrixPreview } from './compliance-matrix-preview.js';
 import type { LayoutMetrics, ValidationReport } from './types.js';
 import {
   documentMatchesCervinSource,
@@ -152,6 +153,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const processBlueprintPreview = new ProcessBlueprintPreview();
   const activityCardPreview = new ActivityCardPreview();
   const issuesPreview = new IssuesPreview();
+  const complianceMatrixPreview = new ComplianceMatrixPreview(context.extensionUri);
 
   context.subscriptions.push(
     vscode.commands.registerCommand('cervin.openPreview', async () => {
@@ -314,6 +316,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     }),
     vscode.commands.registerCommand('transitrixStudio.saveIssuesAsPng', () => issuesPreview.saveAsPng()),
     vscode.commands.registerCommand('transitrixStudio.copyIssuesAsPng', () => issuesPreview.copyAsPng()),
+    // Compliance matrix (vkgeorgia/strategy#84 Phase 2) — a repo-wide view, not
+    // bound to a file. `openComplianceFile` is invoked from cell command URIs.
+    vscode.commands.registerCommand('transitrixStudio.previewComplianceMatrix', () => complianceMatrixPreview.showOrReveal()),
+    vscode.commands.registerCommand('transitrixStudio.refreshComplianceMatrix', () => complianceMatrixPreview.refresh()),
+    vscode.commands.registerCommand('transitrixStudio.openComplianceFile', (fsPath: string) => complianceMatrixPreview.openFile(fsPath)),
     vscode.commands.registerCommand(OPEN_SPACING_SETTINGS_COMMAND, () =>
       vscode.commands.executeCommand('workbench.action.openSettings', SPACING_CONFIG_SECTION),
     ),
