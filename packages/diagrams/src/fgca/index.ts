@@ -2,6 +2,7 @@ export { buildFGCALayout, NODE_WIDTH, NODE_HEIGHT, COLUMN_GAP, ROW_GAP, COLUMN_B
 export type { FGCALayoutInput } from "./layout";
 export {
   layoutFGCAPreview,
+  selectScopedFGCA,
   FGCA_NODE_W,
   FGCA_NODE_H,
   FGCA_HEADER_H,
