@@ -1,17 +1,14 @@
 import * as vscode from 'vscode';
-import yaml from 'js-yaml';
 import { generateWebviewCss, type ThemeId } from '../../packages/diagrams/src/theme/index.js';
 import {
   buildComplianceMatrix,
   filterComplianceMatrix,
   type ComplianceMatrix,
-  type MatrixAssertionRef,
   type MatrixFilter,
-  type MatrixProduct,
-  type MatrixRequirement,
 } from '../../packages/diagrams/src/compliance-matrix/index.js';
 import type { AssertionStatus } from '../../packages/diagrams/src/assertion/types.js';
 import { genNonce } from './preview-controls.js';
+import { scanComplianceCanon } from './compliance-scan.js';
 
 // Compliance matrix preview (vkgeorgia/strategy#84 Phase 2).
 //
@@ -39,14 +36,6 @@ const REFRESH_COMMAND = 'transitrixStudio.refreshComplianceMatrix';
 
 function escXml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
-
-interface ScanResult {
-  products: MatrixProduct[];
-  requirements: MatrixRequirement[];
-  assertions: MatrixAssertionRef[];
-  /** assertion id → workspace file path, for cell click-to-open. */
-  assertionPaths: Map<string, string>;
 }
 
 export class ComplianceMatrixPreview {
@@ -82,21 +71,14 @@ export class ComplianceMatrixPreview {
   /** Re-scan the workspace and re-render. */
   async refresh(): Promise<void> {
     if (!this.panel) return;
-    const scan = await this.scanWorkspace();
-    this.assertionPaths = scan.assertionPaths;
+    const scan = await scanComplianceCanon();
+    this.assertionPaths = scan.pathById;
     this.fullMatrix = buildComplianceMatrix({
       products: scan.products,
       requirements: scan.requirements,
       assertions: scan.assertions,
     });
     this.render();
-  }
-
-  /** Open the file backing an assertion cell. */
-  async openFile(fsPath: string): Promise<void> {
-    if (!fsPath) return;
-    const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(fsPath));
-    await vscode.window.showTextDocument(doc, { viewColumn: vscode.ViewColumn.Beside, preserveFocus: false });
   }
 
   private async onMessage(m: { type?: string; statuses?: string[]; severities?: string[] }): Promise<void> {
@@ -106,49 +88,6 @@ export class ComplianceMatrixPreview {
       severities: (m.severities ?? []).filter(s => ALL_SEVERITIES.includes(s)),
     };
     this.render();
-  }
-
-  private async scanWorkspace(): Promise<ScanResult> {
-    const products: MatrixProduct[] = [];
-    const requirements: MatrixRequirement[] = [];
-    const assertions: MatrixAssertionRef[] = [];
-    const assertionPaths = new Map<string, string>();
-
-    const uris = await vscode.workspace.findFiles('**/*.{yaml,yml}', '**/node_modules/**', 5000);
-    for (const uri of uris) {
-      let doc: Record<string, unknown> | undefined;
-      try {
-        const bytes = await vscode.workspace.fs.readFile(uri);
-        const parsed = yaml.load(Buffer.from(bytes).toString('utf-8'));
-        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) doc = parsed as Record<string, unknown>;
-      } catch {
-        continue; // unparseable / unreadable — skip
-      }
-      if (!doc || typeof doc.id !== 'string') continue;
-
-      if (doc.notation === 'product') {
-        products.push({ id: doc.id, name: typeof doc.name === 'string' ? doc.name : doc.id });
-      } else if (doc.notation === 'requirement') {
-        requirements.push({
-          id: doc.id,
-          name: typeof doc.name === 'string' ? doc.name : doc.id,
-          severity: typeof doc.severity === 'string' ? doc.severity : undefined,
-        });
-      } else if (doc.notation === 'assertion') {
-        if (typeof doc.about === 'string' && typeof doc.subject === 'string' && typeof doc.status === 'string') {
-          assertions.push({
-            id: doc.id,
-            about: doc.about,
-            subject: doc.subject,
-            status: doc.status as AssertionStatus,
-            assessed_at: typeof doc.assessed_at === 'string' ? doc.assessed_at : undefined,
-            next_review_at: typeof doc.next_review_at === 'string' ? doc.next_review_at : undefined,
-          });
-          assertionPaths.set(doc.id, uri.fsPath);
-        }
-      }
-    }
-    return { products, requirements, assertions, assertionPaths };
   }
 
   private render(): void {
