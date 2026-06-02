@@ -2,7 +2,7 @@
   "name": "transitrix-studio",
   "displayName": "Transitrix Studio",
   "publisher": "transitrix",
-  "version": "1.2.1",
+  "version": "1.3.0",
   "description": "Architecture-as-code for the modern enterprise. Author 13 notations — goals, processes, capabilities, BPMN, applications, more — as plain YAML, get live diagrams in VS Code. Diffable in git. AI-friendly. Open source. Built on ArchiMate 3.2 and BPMN 2.0.",
   "license": "MIT",
   "icon": "icon.png",
@@ -220,13 +220,19 @@
         },
         "transitrix.view.fgca": {
           "type": "string",
-          "enum": ["tree", "table"],
+          "enum": [
+            "tree",
+            "table"
+          ],
           "default": "tree",
           "description": "FGCA preview: 'tree' renders the Factor→Goal→Change→Activity chain diagram; 'table' renders the chain flattened into a table with merged cells. Toggle live from the preview toolbar."
         },
         "transitrix.view.fga": {
           "type": "string",
-          "enum": ["tree", "table"],
+          "enum": [
+            "tree",
+            "table"
+          ],
           "default": "tree",
           "description": "FGA preview: 'tree' renders the Factor→Goal→Activity chain diagram; 'table' renders the chain flattened into a table with merged cells. Toggle live from the preview toolbar."
         }
