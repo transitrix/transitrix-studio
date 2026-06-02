@@ -1,0 +1,36 @@
+<idea-plugin>
+    <id>com.transitrix.intellij</id>
+    <name>Transitrix Studio</name>
+    <vendor url="https://github.com/transitrix/transitrix-studio">Transitrix</vendor>
+
+    <description><![CDATA[
+        Read-only previews for Transitrix notations inside IntelliJ IDEA.
+
+        Renders the same diagrams the VS Code extension produces — goals, FGCA,
+        FGA, activities, blocks, applications, products, process maps, scenarios,
+        capability maps, process blueprints, activity cards, issues, BPMN — by
+        bundling the shared <code>@transitrix/diagrams</code> library and loading
+        it into a JCEF webview.
+
+        MVP: read-only previews + SVG export. Editing, marketplace publication,
+        and PNG export are out of scope.
+
+        See <code>docs/adr/0001-intellij-mvp-tech-choice.md</code> for the
+        rendering and validation technology decision.
+    ]]></description>
+
+    <depends>com.intellij.modules.platform</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- JCEF preview registrations land in a follow-up PR (ADR plan step 3). -->
+    </extensions>
+
+    <actions>
+        <action id="transitrix.previewAction"
+                class="com.transitrix.intellij.PreviewAction"
+                text="Transitrix: Preview Notation"
+                description="Open a read-only Transitrix notation preview for the current file.">
+            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+        </action>
+    </actions>
+</idea-plugin>
