@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import type { Scope } from '../../packages/diagrams/src/scope.js';
+import type { ControlMessage } from './preview-controls.js';
 
 // Per-notation spacing controls (vkgeorgia/strategy#75). PR1 persists the
 // chosen gaps in VS Code configuration (`transitrix.spacing.<notation>.*`),
@@ -80,3 +81,52 @@ export const SCOPE_CONFIG_SECTION = 'transitrix.scope';
 
 /** Command that opens Settings filtered to the scope controls. */
 export const OPEN_SCOPE_SETTINGS_COMMAND = 'transitrixStudio.openScopeSettings';
+
+// ── In-preview control messages (PR2) ───────────────────────────────────────
+//
+// The interactive control panel (preview-controls.ts) posts a `ControlMessage`
+// on every change. The host writes the matching `transitrix.*` setting here, so
+// VS Code configuration stays the single source of truth — the in-preview
+// controls and the "…" Settings links edit the same store, and the existing
+// `onDidChangeConfiguration` handler re-renders. Writes go to the Global (User)
+// target, mirroring how the "…" links land users on User settings.
+
+function clamp(n: number, min: number, max: number): number {
+  if (!Number.isFinite(n)) return min;
+  return Math.min(max, Math.max(min, n));
+}
+
+/**
+ * Applies one in-preview control change to VS Code configuration for `notation`.
+ * Spacing/curvature apply to all four notations; scope only to goals/fgca/fga
+ * (the Activities panel never renders a scope row). Scope is mutually exclusive
+ * — setting a root clears the level cap and vice-versa, matching `readScope`'s
+ * "one mode at a time" precedence and #77's AC.
+ */
+export async function applyControlMessage(notation: SpacingNotation, msg: ControlMessage): Promise<void> {
+  if (!msg || msg.type !== 'transitrix:control') return;
+  const cfg = vscode.workspace.getConfiguration('transitrix');
+  const target = vscode.ConfigurationTarget.Global;
+
+  if (msg.control === 'spacing' && (msg.field === 'horizontalGap' || msg.field === 'verticalGap')) {
+    await cfg.update(`spacing.${notation}.${msg.field}`, clamp(Number(msg.value), 20, 300), target);
+    return;
+  }
+  if (msg.control === 'curvature') {
+    await cfg.update(`curvature.${notation}`, clamp(Number(msg.value), 0, 3), target);
+    return;
+  }
+  if (msg.control === 'scope' && notation !== 'activities') {
+    if (msg.field === 'reset') {
+      await cfg.update(`scope.${notation}.rootId`, '', target);
+      await cfg.update(`scope.${notation}.maxLevel`, -1, target);
+    } else if (msg.field === 'rootId') {
+      await cfg.update(`scope.${notation}.rootId`, String(msg.value ?? ''), target);
+      await cfg.update(`scope.${notation}.maxLevel`, -1, target);
+    } else if (msg.field === 'maxLevel') {
+      const lv = Number(msg.value);
+      await cfg.update(`scope.${notation}.maxLevel`, Number.isFinite(lv) && lv >= 0 ? Math.floor(lv) : -1, target);
+      await cfg.update(`scope.${notation}.rootId`, '', target);
+    }
+  }
+}
