@@ -1,5 +1,6 @@
 import type { ThemeId } from '../../packages/diagrams/src/theme/index.js';
 import { generateWebviewCss, generateSvgEmbedCss } from '../../packages/diagrams/src/theme/index.js';
+import { CONTROLS_PANEL_CSS } from './preview-controls.js';
 
 export type { ThemeId };
 
@@ -90,6 +91,23 @@ export interface DiagramFrameOpts {
    * opt-in contract as `spacingCommand`.
    */
   scopeCommand?: string;
+  /**
+   * Opt-in to in-preview interactive controls (vkgeorgia/strategy#75/#76/#77 —
+   * PR2). When present, the frame switches from the script-less static CSP to a
+   * strict nonce-based CSP (`default-src 'none'; style-src 'unsafe-inline';
+   * script-src 'nonce-…'`), injects the control panel below the toolbar, and
+   * appends the nonce'd wiring script. The preview's webview MUST be created
+   * with `enableScripts: true` for this to function. Omitted on every static
+   * (script-less) preview — those keep the script-less CSP byte-for-byte.
+   *
+   * `controlsPanel` / `controlsScript` come from `preview-controls.ts`
+   * (`buildControlsPanel` / `buildControlsScript`); `nonce` from `genNonce()`.
+   */
+  interactive?: {
+    nonce: string;
+    controlsPanel: string;
+    controlsScript: string;
+  };
 }
 
 function escXml(s: string): string {
@@ -283,6 +301,7 @@ export function buildDiagramFrame(opts: DiagramFrameOpts): string {
     themeId = 'transitrix', extraStyles = '', fixPrompt = '',
     title, subtitle, version, date,
     saveSvgCommand, savePngCommand, copyPngCommand, spacingCommand, curvatureCommand, scopeCommand,
+    interactive,
   } = opts;
 
   const canvasContent = bodyContent ?? svgContent;
@@ -374,17 +393,28 @@ export function buildDiagramFrame(opts: DiagramFrameOpts): string {
     ? `<div class="toolbar-actions">${actionParts.join('')}</div>`
     : '';
 
+  // Interactive previews (vkgeorgia/strategy#75/#76/#77 PR2) opt into a strict
+  // nonce-based CSP and the in-preview control panel. Static previews keep the
+  // script-less CSP unchanged — the only diff in their output is none.
+  const csp = interactive
+    ? `default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${interactive.nonce}';`
+    : `default-src 'none'; style-src 'unsafe-inline';`;
+  const controlsCss = interactive ? CONTROLS_PANEL_CSS : '';
+  const controlsPanel = interactive ? interactive.controlsPanel : '';
+  const controlsScript = interactive ? interactive.controlsScript : '';
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline';">
+  <meta http-equiv="Content-Security-Policy" content="${csp}">
   <style>
 ${generateWebviewCss(themeId)}
 ${FIX_PROMPT_CSS}
 ${FRAME_HEADER_CSS}
 ${TITLE_TOGGLE_CSS}
 ${ZOOM_CONTROL_CSS}
+${controlsCss}
 ${extraStyles}
   </style>
 </head>
@@ -392,11 +422,13 @@ ${extraStyles}
   ${toggleInput}
   ${zoomInputs}
   <div id="toolbar"><span class="toolbar-label">${escXml(notation)}: ${escXml(filename)}</span>${toolbarRight}</div>
+  ${controlsPanel}
   ${errBlock}${fixPromptBlock}${warnBlock}
   ${headerBlock}
   <div id="canvas">
     ${canvasContent}
   </div>
+  ${controlsScript}
 </body>
 </html>`;
 }

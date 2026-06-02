@@ -17,7 +17,8 @@ import { horizontalCubicEdgePath, DEFAULT_EDGE_CURVATURE } from '../../packages/
 import { coerceDatesToIsoStrings } from '../../packages/diagrams/src/yaml-normalize.js';
 import { checkScopeRoot, type Scope } from '../../packages/diagrams/src/scope.js';
 import { savePngFromSvg, copyPngFromSvg } from './png-export.js';
-import { readSpacing, readCurvature, readScope, OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND, OPEN_SCOPE_SETTINGS_COMMAND } from './spacing-config.js';
+import { readSpacing, readCurvature, readScope, applyControlMessage, OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND, OPEN_SCOPE_SETTINGS_COMMAND } from './spacing-config.js';
+import { genNonce, buildControlsPanel, buildControlsScript, type ControlsModel, type ScopeGoalOption } from './preview-controls.js';
 
 // ── Inline render types ─────────────────────────────────────────────────────
 //
@@ -60,6 +61,36 @@ const COL_LABELS: Record<string, string> = {
 
 function escXml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+/** Goal options + deepest level for the scope control, from a parsed doc. FGCA
+ *  and FGA goals are flat, so a `root` scope is the single matching goal. */
+function scopeInputsFromDoc(doc: FGCADoc): { goals: ScopeGoalOption[]; maxLevelPresent: number } {
+  return {
+    goals: doc.goals.map(g => ({ id: String(g.id), name: g.name ?? '' })),
+    maxLevelPresent: doc.goals.reduce((m, g) => Math.max(m, typeof g.level === 'number' ? g.level : 0), 0),
+  };
+}
+
+/** Assembles the interactive control-panel model shared by FGCA and FGA. */
+function fgcaControlsModel(
+  gaps: { horizontalGap: number; verticalGap: number },
+  defaults: { horizontalGap: number; verticalGap: number },
+  curvature: number,
+  scope: Scope,
+  goals: ScopeGoalOption[],
+  maxLevelPresent: number,
+): ControlsModel {
+  return {
+    spacing: { ...gaps, defaults },
+    curvature: { value: curvature, default: 1 },
+    scope: {
+      rootId: scope.mode === 'root' ? scope.rootGoalId : '',
+      maxLevel: scope.mode === 'level' ? scope.maxLevel : -1,
+      maxLevelPresent,
+      goals,
+    },
+  };
 }
 
 function buildSvg(
@@ -146,6 +177,8 @@ export class FGCAPreview {
   private trackedUri: string | undefined;
   private lastSvg = '';
 
+  constructor(private readonly extensionUri: vscode.Uri) {}
+
   isShowingDocument(uri: vscode.Uri): boolean {
     return this.panel != null && this.trackedUri === uri.toString();
   }
@@ -160,8 +193,16 @@ export class FGCAPreview {
         'fgcaPreview',
         `${this.panelTitle} — ${path.basename(doc.fileName)}`,
         { viewColumn: vscode.ViewColumn.Beside, preserveFocus: false },
-        { enableScripts: false, retainContextWhenHidden: true, enableCommandUris: ['transitrixStudio.saveFGCAAsSvg', 'transitrixStudio.saveFGCAAsPng', 'transitrixStudio.copyFGCAAsPng', OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND, OPEN_SCOPE_SETTINGS_COMMAND] },
+        {
+          // Scripts enabled for the in-preview controls under the strict nonce
+          // CSP (see goals-preview.ts for the full rationale; #75/#76/#77 PR2).
+          enableScripts: true,
+          retainContextWhenHidden: true,
+          localResourceRoots: [vscode.Uri.joinPath(this.extensionUri, 'media')],
+          enableCommandUris: ['transitrixStudio.saveFGCAAsSvg', 'transitrixStudio.saveFGCAAsPng', 'transitrixStudio.copyFGCAAsPng', OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND, OPEN_SCOPE_SETTINGS_COMMAND],
+        },
       );
+      this.panel.webview.onDidReceiveMessage((m) => { void applyControlMessage('fgca', m); });
       this.panel.onDidDispose(() => { this.panel = undefined; this.trackedUri = undefined; });
     }
     await this.pushDocument(doc);
@@ -189,6 +230,13 @@ export class FGCAPreview {
     let errorMsg = '';
     let warnings: string[] = [];
 
+    const spacingDefaults = { horizontalGap: FGCA_DEFAULT_COL_GAP, verticalGap: FGCA_DEFAULT_ROW_GAP };
+    const gaps = readSpacing('fgca', spacingDefaults);
+    const scope = readScope('fgca');
+    const curvature = readCurvature('fgca');
+    let goalOptions: ScopeGoalOption[] = [];
+    let maxLevelPresent = 0;
+
     try {
       const parsed = coerceDatesToIsoStrings(yaml.load(yamlText) as unknown);
       const meta = (parsed && typeof parsed === 'object' ? parsed : {}) as { version?: unknown; date?: unknown };
@@ -203,12 +251,11 @@ export class FGCAPreview {
         // IDs and singular `change.goal_id` / `change.activity_ids`. The
         // inline FGCADoc / buildSvg here accept both forms (number | string
         // unions) — pass through.
-        const gaps = readSpacing('fgca', { horizontalGap: FGCA_DEFAULT_COL_GAP, verticalGap: FGCA_DEFAULT_ROW_GAP });
-        const scope = readScope('fgca');
         const fgcaDoc = v.parsed as unknown as FGCADoc;
+        ({ goals: goalOptions, maxLevelPresent } = scopeInputsFromDoc(fgcaDoc));
         const scopeWarning = checkScopeRoot(scope, fgcaDoc.goals.map(g => g.id));
         if (scopeWarning) warnings.push(`${scopeWarning.code}: ${scopeWarning.message}`);
-        svgContent = buildSvg(fgcaDoc, false, { colGap: gaps.horizontalGap, rowGap: gaps.verticalGap, curvature: readCurvature('fgca'), scope }, 'FGCA — Factor → Goal → Change → Activity', filename, docDate, docVersion);
+        svgContent = buildSvg(fgcaDoc, false, { colGap: gaps.horizontalGap, rowGap: gaps.verticalGap, curvature, scope }, 'FGCA — Factor → Goal → Change → Activity', filename, docDate, docVersion);
       }
     } catch (e) {
       errorMsg = (e as Error).message ?? 'Parse error';
@@ -220,6 +267,9 @@ export class FGCAPreview {
       .getConfiguration('transitrix')
       .get<ThemeId>('theme', 'transitrix');
 
+    const nonce = genNonce();
+    const model = fgcaControlsModel(gaps, spacingDefaults, curvature, scope, goalOptions, maxLevelPresent);
+
     return buildDiagramFrame({
       filename, notation: 'FGCA', svgContent, errorMsg, warnings, themeId,
       saveSvgCommand: 'transitrixStudio.saveFGCAAsSvg',
@@ -228,6 +278,7 @@ export class FGCAPreview {
       spacingCommand: OPEN_SPACING_SETTINGS_COMMAND,
       curvatureCommand: OPEN_CURVATURE_SETTINGS_COMMAND,
       scopeCommand: OPEN_SCOPE_SETTINGS_COMMAND,
+      interactive: { nonce, controlsPanel: buildControlsPanel(model), controlsScript: buildControlsScript(nonce) },
     });
   }
 
@@ -277,6 +328,8 @@ export class FGAPreview {
   private trackedUri: string | undefined;
   private lastSvg = '';
 
+  constructor(private readonly extensionUri: vscode.Uri) {}
+
   isShowingDocument(uri: vscode.Uri): boolean {
     return this.panel != null && this.trackedUri === uri.toString();
   }
@@ -291,8 +344,16 @@ export class FGAPreview {
         'fgaPreview',
         `${this.panelTitle} — ${path.basename(doc.fileName)}`,
         { viewColumn: vscode.ViewColumn.Beside, preserveFocus: false },
-        { enableScripts: false, retainContextWhenHidden: true, enableCommandUris: ['transitrixStudio.saveFGAAsSvg', 'transitrixStudio.saveFGAAsPng', 'transitrixStudio.copyFGAAsPng', OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND, OPEN_SCOPE_SETTINGS_COMMAND] },
+        {
+          // Scripts enabled for the in-preview controls under the strict nonce
+          // CSP (#75/#76/#77 PR2).
+          enableScripts: true,
+          retainContextWhenHidden: true,
+          localResourceRoots: [vscode.Uri.joinPath(this.extensionUri, 'media')],
+          enableCommandUris: ['transitrixStudio.saveFGAAsSvg', 'transitrixStudio.saveFGAAsPng', 'transitrixStudio.copyFGAAsPng', OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND, OPEN_SCOPE_SETTINGS_COMMAND],
+        },
       );
+      this.panel.webview.onDidReceiveMessage((m) => { void applyControlMessage('fga', m); });
       this.panel.onDidDispose(() => { this.panel = undefined; this.trackedUri = undefined; });
     }
     await this.pushDocument(doc);
@@ -320,6 +381,13 @@ export class FGAPreview {
     let errorMsg = '';
     let warnings: string[] = [];
 
+    const spacingDefaults = { horizontalGap: FGCA_DEFAULT_COL_GAP, verticalGap: FGCA_DEFAULT_ROW_GAP };
+    const gaps = readSpacing('fga', spacingDefaults);
+    const scope = readScope('fga');
+    const curvature = readCurvature('fga');
+    let goalOptions: ScopeGoalOption[] = [];
+    let maxLevelPresent = 0;
+
     try {
       const parsed = coerceDatesToIsoStrings(yaml.load(yamlText) as unknown);
       const meta = (parsed && typeof parsed === 'object' ? parsed : {}) as { version?: unknown; date?: unknown };
@@ -331,12 +399,11 @@ export class FGAPreview {
         errorMsg = v.errors.map(e => `${e.code}: ${e.message}`).join('\n');
       } else {
         // FGA shares FGCA's FLAT shape; just hide the (absent) Changes column.
-        const gaps = readSpacing('fga', { horizontalGap: FGCA_DEFAULT_COL_GAP, verticalGap: FGCA_DEFAULT_ROW_GAP });
-        const scope = readScope('fga');
         const fgaDoc = v.parsed as unknown as FGCADoc;
+        ({ goals: goalOptions, maxLevelPresent } = scopeInputsFromDoc(fgaDoc));
         const scopeWarning = checkScopeRoot(scope, fgaDoc.goals.map(g => g.id));
         if (scopeWarning) warnings.push(`${scopeWarning.code}: ${scopeWarning.message}`);
-        svgContent = buildSvg(fgaDoc, true, { colGap: gaps.horizontalGap, rowGap: gaps.verticalGap, curvature: readCurvature('fga'), scope }, 'FGA — Factor → Goal → Activity', filename, docDate, docVersion);
+        svgContent = buildSvg(fgaDoc, true, { colGap: gaps.horizontalGap, rowGap: gaps.verticalGap, curvature, scope }, 'FGA — Factor → Goal → Activity', filename, docDate, docVersion);
       }
     } catch (e) {
       errorMsg = (e as Error).message ?? 'Parse error';
@@ -348,6 +415,9 @@ export class FGAPreview {
       .getConfiguration('transitrix')
       .get<ThemeId>('theme', 'transitrix');
 
+    const nonce = genNonce();
+    const model = fgcaControlsModel(gaps, spacingDefaults, curvature, scope, goalOptions, maxLevelPresent);
+
     return buildDiagramFrame({
       filename, notation: 'FGA', svgContent, errorMsg, warnings, themeId,
       saveSvgCommand: 'transitrixStudio.saveFGAAsSvg',
@@ -356,6 +426,7 @@ export class FGAPreview {
       spacingCommand: OPEN_SPACING_SETTINGS_COMMAND,
       curvatureCommand: OPEN_CURVATURE_SETTINGS_COMMAND,
       scopeCommand: OPEN_SCOPE_SETTINGS_COMMAND,
+      interactive: { nonce, controlsPanel: buildControlsPanel(model), controlsScript: buildControlsScript(nonce) },
     });
   }
 
