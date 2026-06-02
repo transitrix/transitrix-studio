@@ -32,6 +32,7 @@
     "critical-path",
     "process-map",
     "process-blueprint",
+    "activity-card",
     "capability-map",
     "scenarios",
     "applications",
@@ -62,6 +63,7 @@
     "workspaceContains:**/*.scenarios.transitrix.yaml",
     "workspaceContains:**/*.capability-map.transitrix.yaml",
     "workspaceContains:**/*.process-blueprint.transitrix.yaml",
+    "workspaceContains:**/*.activity-card.transitrix.yaml",
     "workspaceContains:**/*.issues.transitrix.yaml"
   ],
   "contributes": {
@@ -320,6 +322,17 @@
         "configuration": "./language-configuration.json"
       },
       {
+        "id": "transitrix-activity-card",
+        "aliases": [
+          "Transitrix Activity Card",
+          "Activity Card"
+        ],
+        "extensions": [
+          ".activity-card.transitrix.yaml"
+        ],
+        "configuration": "./language-configuration.json"
+      },
+      {
         "id": "transitrix-issues",
         "aliases": [
           "Transitrix Issues",
@@ -479,6 +492,28 @@
         "title": "Transitrix: Save process blueprint as SVG",
         "category": "Transitrix",
         "icon": "$(save)"
+      },
+      {
+        "command": "transitrixStudio.previewActivityCard",
+        "title": "Transitrix: Preview activity card",
+        "category": "Transitrix",
+        "icon": "$(type-hierarchy)"
+      },
+      {
+        "command": "transitrixStudio.saveActivityCardAsSvg",
+        "title": "Transitrix: Save activity card as SVG",
+        "category": "Transitrix",
+        "icon": "$(save)"
+      },
+      {
+        "command": "transitrixStudio.saveActivityCardAsPng",
+        "title": "Transitrix: Save activity card as PNG",
+        "category": "Transitrix"
+      },
+      {
+        "command": "transitrixStudio.copyActivityCardAsPng",
+        "title": "Transitrix: Copy activity card as PNG",
+        "category": "Transitrix"
       },
       {
         "command": "transitrixStudio.previewIssues",
@@ -701,6 +736,21 @@
         {
           "when": "activeWebviewPanelId == processBlueprintPreview",
           "command": "transitrixStudio.saveProcessBlueprintAsSvg",
+          "group": "navigation@-9"
+        },
+        {
+          "when": "resourceFilename =~ /\\.activity-card\\.transitrix\\.yaml$/",
+          "command": "transitrixStudio.previewActivityCard",
+          "group": "navigation@-10"
+        },
+        {
+          "when": "resourceFilename =~ /\\.activity-card\\.transitrix\\.yaml$/",
+          "command": "transitrixStudio.saveActivityCardAsSvg",
+          "group": "navigation@-9"
+        },
+        {
+          "when": "activeWebviewPanelId == activityCardPreview",
+          "command": "transitrixStudio.saveActivityCardAsSvg",
           "group": "navigation@-9"
         },
         {

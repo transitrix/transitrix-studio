@@ -1,0 +1,30 @@
+notation: fgca
+spec_version: "0.1"
+
+id: FGCA-EU-PROGRAMME-1
+name: "EU MDR conformity — motivation chain"
+description: "Factor → Goal → Change → Activity decomposition behind the EU MDR programme."
+period: "2026-2027"
+version: "0.1"
+date: "2026-05-28"
+author: Transitrix
+
+factors:
+  - id: FACTOR-EU-MDR-1
+    name: "EU Medical Device Regulation in force"
+    type: external
+
+goals:
+  - id: GOAL-EU-MARKET-1
+    name: "Maintain EU market access under MDR"
+    factors: [FACTOR-EU-MDR-1]
+
+changes:
+  - id: CHANGE-EU-COMPLIANCE-1
+    name: "Achieve & certify MDR compliance"
+    goals: [GOAL-EU-MARKET-1]
+
+activities:
+  - id: ACTIVITY-EU-NB-AUDIT-1
+    name: "Notified-body conformity audit"
+    changes: [CHANGE-EU-COMPLIANCE-1]
