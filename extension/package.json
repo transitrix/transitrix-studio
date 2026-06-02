@@ -217,6 +217,18 @@
           "minimum": -1,
           "default": -1,
           "description": "FGA preview: scope to a goal-level cap. Show only goals at this level and above, plus their connected factors/activities. -1 = no cap. Ignored when a scope root id is set."
+        },
+        "transitrix.view.fgca": {
+          "type": "string",
+          "enum": ["tree", "table"],
+          "default": "tree",
+          "description": "FGCA preview: 'tree' renders the Factor→Goal→Change→Activity chain diagram; 'table' renders the chain flattened into a table with merged cells. Toggle live from the preview toolbar."
+        },
+        "transitrix.view.fga": {
+          "type": "string",
+          "enum": ["tree", "table"],
+          "default": "tree",
+          "description": "FGA preview: 'tree' renders the Factor→Goal→Activity chain diagram; 'table' renders the chain flattened into a table with merged cells. Toggle live from the preview toolbar."
         }
       }
     },

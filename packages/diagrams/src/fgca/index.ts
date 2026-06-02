@@ -19,6 +19,8 @@ export type {
   FGCAPreviewEdge,
   FGCAPreviewColumnPos,
 } from "./preview-layout";
+export { buildChainTable } from "./chain-table";
+export type { ChainTable, ChainTableCell, ChainColumn, ChainCell, ChainTableOptions } from "./chain-table";
 export { validateFGCADoc } from "./validate";
 export type { FGCADoc, FGCAValidationResult, FGCAValidationError, FGCAValidationWarning } from "./validate";
 export {
