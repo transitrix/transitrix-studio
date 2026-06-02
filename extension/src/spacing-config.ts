@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import type { Scope } from '../../packages/diagrams/src/scope.js';
-import type { ControlMessage } from './preview-controls.js';
+import type { ControlMessage, PreviewView } from './preview-controls.js';
 
 // Per-notation spacing controls (vkgeorgia/strategy#75). PR1 persists the
 // chosen gaps in VS Code configuration (`transitrix.spacing.<notation>.*`),
@@ -82,6 +82,24 @@ export const SCOPE_CONFIG_SECTION = 'transitrix.scope';
 /** Command that opens Settings filtered to the scope controls. */
 export const OPEN_SCOPE_SETTINGS_COMMAND = 'transitrixStudio.openScopeSettings';
 
+// ── Tree ↔ table view (vkgeorgia/strategy#137) ──────────────────────────────
+//
+// FGCA/FGA previews can render as the tree/chain diagram (default) or as a
+// flattened chain table. Same settings-backed persistence as the controls
+// above: the in-preview toolbar toggle writes `transitrix.view.<notation>` and
+// the preview re-renders.
+
+export type ViewNotation = 'fgca' | 'fga';
+
+/** Reads the persisted view for a notation. Defaults to 'tree' (no change). */
+export function readView(notation: ViewNotation): PreviewView {
+  const v = vscode.workspace.getConfiguration('transitrix').get<string>(`view.${notation}`, 'tree');
+  return v === 'table' ? 'table' : 'tree';
+}
+
+/** Config section that, when changed, re-renders view-aware previews. */
+export const VIEW_CONFIG_SECTION = 'transitrix.view';
+
 // ── In-preview control messages (PR2) ───────────────────────────────────────
 //
 // The interactive control panel (preview-controls.ts) posts a `ControlMessage`
@@ -114,6 +132,10 @@ export async function applyControlMessage(notation: SpacingNotation, msg: Contro
   }
   if (msg.control === 'curvature') {
     await cfg.update(`curvature.${notation}`, clamp(Number(msg.value), 0, 3), target);
+    return;
+  }
+  if (msg.control === 'view' && (notation === 'fgca' || notation === 'fga')) {
+    await cfg.update(`view.${notation}`, msg.field === 'table' ? 'table' : 'tree', target);
     return;
   }
   if (msg.control === 'scope' && notation !== 'activities') {

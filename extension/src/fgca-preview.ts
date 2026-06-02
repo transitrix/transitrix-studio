@@ -14,11 +14,12 @@ import {
   FGCA_DEFAULT_ROW_GAP,
 } from '../../packages/diagrams/src/fgca/preview-layout.js';
 import { horizontalCubicEdgePath, DEFAULT_EDGE_CURVATURE } from '../../packages/diagrams/src/edge-path.js';
+import { buildChainTable, type ChainTable, type ChainColumn } from '../../packages/diagrams/src/fgca/chain-table.js';
 import { coerceDatesToIsoStrings } from '../../packages/diagrams/src/yaml-normalize.js';
 import { checkScopeRoot, type Scope } from '../../packages/diagrams/src/scope.js';
 import { savePngFromSvg, copyPngFromSvg } from './png-export.js';
-import { readSpacing, readCurvature, readScope, applyControlMessage, OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND, OPEN_SCOPE_SETTINGS_COMMAND } from './spacing-config.js';
-import { genNonce, buildControlsPanel, buildControlsScript, type ControlsModel, type ScopeGoalOption } from './preview-controls.js';
+import { readSpacing, readCurvature, readScope, readView, applyControlMessage, OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND, OPEN_SCOPE_SETTINGS_COMMAND } from './spacing-config.js';
+import { genNonce, buildControlsPanel, buildControlsScript, buildViewToggle, type ControlsModel, type ScopeGoalOption } from './preview-controls.js';
 
 // ── Inline render types ─────────────────────────────────────────────────────
 //
@@ -72,6 +73,43 @@ function scopeInputsFromDoc(doc: FGCADoc): { goals: ScopeGoalOption[]; maxLevelP
   };
 }
 
+// ── Chain table (vkgeorgia/strategy#137) ────────────────────────────────────
+//
+// The flattening + rowspan derivation lives in @transitrix/diagrams
+// (`buildChainTable`). Here we render that model as an HTML <table>. Scope
+// is a no-op in table view (per #137) — the table always shows the full doc.
+
+const CHAIN_COLUMN_HEADERS: Record<ChainColumn, string> = {
+  factor: 'Factor', goal: 'Goal', change: 'Change', activity: 'Activity',
+};
+
+const CHAIN_TABLE_CSS = `
+.chain-table-wrap { padding: 0 16px 16px; overflow-x: auto; }
+.chain-table { border-collapse: collapse; font-size: 12px; }
+.chain-table th, .chain-table td { border: 1px solid var(--ts-border, #cbd5e1); padding: 6px 12px; text-align: left; vertical-align: top; }
+.chain-table th { background: var(--ts-bg-subtle, #f1f5f9); color: var(--ts-text, #0f172a); font-weight: 600; }
+.chain-table td { color: var(--ts-text, #0f172a); }
+.chain-table td.chain-empty { background: var(--ts-bg-subtle, #f8fafc); }
+.chain-empty-table { padding: 24px 16px; color: var(--ts-text-muted, #64748b); font-style: italic; }
+`;
+
+function chainTableHtml(table: ChainTable): string {
+  if (table.rows.length === 0) {
+    return `<div class="chain-empty-table">Nothing to tabulate — the document has no factors, goals or activities.</div>`;
+  }
+  const head = `<tr>${table.columns.map(c => `<th>${CHAIN_COLUMN_HEADERS[c]}</th>`).join('')}</tr>`;
+  const body = table.rows.map(row => {
+    const cells = row.map(c => {
+      if (c === null) return ''; // covered by a rowspan above — emit no <td>
+      const span = c.rowSpan > 1 ? ` rowspan="${c.rowSpan}"` : '';
+      if (c.cell === null) return `<td${span} class="chain-empty"></td>`;
+      return `<td${span}>${escXml(c.cell.label)}</td>`;
+    }).join('');
+    return `<tr>${cells}</tr>`;
+  }).join('\n');
+  return `<div class="chain-table-wrap"><table class="chain-table"><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
+}
+
 /** Assembles the interactive control-panel model shared by FGCA and FGA. */
 function fgcaControlsModel(
   gaps: { horizontalGap: number; verticalGap: number },
@@ -91,6 +129,89 @@ function fgcaControlsModel(
       goals,
     },
   };
+}
+
+interface ChainPreviewParams {
+  /** Toolbar / frame notation label. */
+  notation: 'FGCA' | 'FGA';
+  /** Settings namespace + view key (`transitrix.{spacing,curvature,scope,view}.<this>`). */
+  viewNotation: 'fgca' | 'fga';
+  /** FGA hides the Change column. */
+  hideChanges: boolean;
+  /** SVG title-block heading (tree view). */
+  heading: string;
+  saveSvgCommand: string;
+  savePngCommand: string;
+  copyPngCommand: string;
+}
+
+/**
+ * Shared render path for the FGCA and FGA previews. Branches on the persisted
+ * tree↔table view (vkgeorgia/strategy#137):
+ *  - **tree** — the chain SVG, with the spacing/curvature/scope control panel +
+ *    Save/Zoom toolbar (the PR #86 interactive surface) plus the view toggle.
+ *  - **table** — the flattened chain table; the spacing/curvature/scope controls
+ *    are hidden and scope is a no-op (the table always shows the full doc), so
+ *    only the view toggle + Title toggle remain in the toolbar.
+ * Returns the frame HTML and the tree SVG (for Save-as-SVG; empty in table view).
+ */
+function renderChainPreview(
+  p: ChainPreviewParams,
+  parsedDoc: FGCADoc | null,
+  baseWarnings: string[],
+  errorMsg: string,
+  docVersion: string | undefined,
+  docDate: string,
+  filename: string,
+  themeId: ThemeId,
+): { html: string; svg: string } {
+  const view = readView(p.viewNotation);
+  const nonce = genNonce();
+  const script = buildControlsScript(nonce);
+  const viewToggleHtml = buildViewToggle(view);
+
+  if (view === 'table') {
+    // Scope is a no-op in table view, so no scope-warning is added here.
+    const body = parsedDoc ? chainTableHtml(buildChainTable(parsedDoc, { hideChanges: p.hideChanges })) : '';
+    const showHeader = !errorMsg && parsedDoc != null;
+    const html = buildDiagramFrame({
+      filename, notation: p.notation, bodyContent: body, errorMsg, warnings: baseWarnings, themeId,
+      extraStyles: CHAIN_TABLE_CSS,
+      title: showHeader ? p.heading : undefined,
+      version: docVersion,
+      date: showHeader ? docDate : undefined,
+      interactive: { nonce, controlsPanel: '', controlsScript: script, viewToggleHtml },
+    });
+    return { html, svg: '' };
+  }
+
+  // Tree view (default) — the PR #86 interactive control surface.
+  const spacingDefaults = { horizontalGap: FGCA_DEFAULT_COL_GAP, verticalGap: FGCA_DEFAULT_ROW_GAP };
+  const gaps = readSpacing(p.viewNotation, spacingDefaults);
+  const scope = readScope(p.viewNotation);
+  const curvature = readCurvature(p.viewNotation);
+  const warnings = [...baseWarnings];
+  let svg = '';
+  let goalOptions: ScopeGoalOption[] = [];
+  let maxLevelPresent = 0;
+  if (parsedDoc) {
+    ({ goals: goalOptions, maxLevelPresent } = scopeInputsFromDoc(parsedDoc));
+    const scopeWarning = checkScopeRoot(scope, parsedDoc.goals.map(g => g.id));
+    if (scopeWarning) warnings.push(`${scopeWarning.code}: ${scopeWarning.message}`);
+    svg = buildSvg(parsedDoc, p.hideChanges, { colGap: gaps.horizontalGap, rowGap: gaps.verticalGap, curvature, scope }, p.heading, filename, docDate, docVersion);
+  }
+  const model = fgcaControlsModel(gaps, spacingDefaults, curvature, scope, goalOptions, maxLevelPresent);
+  const html = buildDiagramFrame({
+    filename, notation: p.notation, svgContent: svg, errorMsg, warnings, themeId,
+    saveSvgCommand: p.saveSvgCommand,
+    savePngCommand: p.savePngCommand,
+    copyPngCommand: p.copyPngCommand,
+    spacingCommand: OPEN_SPACING_SETTINGS_COMMAND,
+    curvatureCommand: OPEN_CURVATURE_SETTINGS_COMMAND,
+    scopeCommand: OPEN_SCOPE_SETTINGS_COMMAND,
+    interactive: { nonce, controlsPanel: buildControlsPanel(model), controlsScript: script, viewToggleHtml },
+  });
+  return { html, svg };
 }
 
 function buildSvg(
@@ -226,22 +347,17 @@ export class FGCAPreview {
   }
 
   private buildHtml(yamlText: string, filename: string): string {
-    let svgContent = '';
+    let parsedDoc: FGCADoc | null = null;
     let errorMsg = '';
     let warnings: string[] = [];
-
-    const spacingDefaults = { horizontalGap: FGCA_DEFAULT_COL_GAP, verticalGap: FGCA_DEFAULT_ROW_GAP };
-    const gaps = readSpacing('fgca', spacingDefaults);
-    const scope = readScope('fgca');
-    const curvature = readCurvature('fgca');
-    let goalOptions: ScopeGoalOption[] = [];
-    let maxLevelPresent = 0;
+    let docVersion: string | undefined;
+    let docDate = todayIso();
 
     try {
       const parsed = coerceDatesToIsoStrings(yaml.load(yamlText) as unknown);
       const meta = (parsed && typeof parsed === 'object' ? parsed : {}) as { version?: unknown; date?: unknown };
-      const docVersion = typeof meta.version === 'string' ? meta.version : undefined;
-      const docDate = typeof meta.date === 'string' ? meta.date : todayIso();
+      docVersion = typeof meta.version === 'string' ? meta.version : undefined;
+      docDate = typeof meta.date === 'string' ? meta.date : todayIso();
       const v = parseCanonicalFGCA(parsed);
       warnings = v.warnings.map(w => `${w.code}: ${w.message}`);
       if (!v.valid || !v.parsed) {
@@ -251,35 +367,28 @@ export class FGCAPreview {
         // IDs and singular `change.goal_id` / `change.activity_ids`. The
         // inline FGCADoc / buildSvg here accept both forms (number | string
         // unions) — pass through.
-        const fgcaDoc = v.parsed as unknown as FGCADoc;
-        ({ goals: goalOptions, maxLevelPresent } = scopeInputsFromDoc(fgcaDoc));
-        const scopeWarning = checkScopeRoot(scope, fgcaDoc.goals.map(g => g.id));
-        if (scopeWarning) warnings.push(`${scopeWarning.code}: ${scopeWarning.message}`);
-        svgContent = buildSvg(fgcaDoc, false, { colGap: gaps.horizontalGap, rowGap: gaps.verticalGap, curvature, scope }, 'FGCA — Factor → Goal → Change → Activity', filename, docDate, docVersion);
+        parsedDoc = v.parsed as unknown as FGCADoc;
       }
     } catch (e) {
       errorMsg = (e as Error).message ?? 'Parse error';
     }
 
-    this.lastSvg = svgContent;
-
     const themeId = vscode.workspace
       .getConfiguration('transitrix')
       .get<ThemeId>('theme', 'transitrix');
 
-    const nonce = genNonce();
-    const model = fgcaControlsModel(gaps, spacingDefaults, curvature, scope, goalOptions, maxLevelPresent);
-
-    return buildDiagramFrame({
-      filename, notation: 'FGCA', svgContent, errorMsg, warnings, themeId,
-      saveSvgCommand: 'transitrixStudio.saveFGCAAsSvg',
-      savePngCommand: 'transitrixStudio.saveFGCAAsPng',
-      copyPngCommand: 'transitrixStudio.copyFGCAAsPng',
-      spacingCommand: OPEN_SPACING_SETTINGS_COMMAND,
-      curvatureCommand: OPEN_CURVATURE_SETTINGS_COMMAND,
-      scopeCommand: OPEN_SCOPE_SETTINGS_COMMAND,
-      interactive: { nonce, controlsPanel: buildControlsPanel(model), controlsScript: buildControlsScript(nonce) },
-    });
+    const { html, svg } = renderChainPreview(
+      {
+        notation: 'FGCA', viewNotation: 'fgca', hideChanges: false,
+        heading: 'FGCA — Factor → Goal → Change → Activity',
+        saveSvgCommand: 'transitrixStudio.saveFGCAAsSvg',
+        savePngCommand: 'transitrixStudio.saveFGCAAsPng',
+        copyPngCommand: 'transitrixStudio.copyFGCAAsPng',
+      },
+      parsedDoc, warnings, errorMsg, docVersion, docDate, filename, themeId,
+    );
+    this.lastSvg = svg;
+    return html;
   }
 
   private pngTarget() {
@@ -377,57 +486,45 @@ export class FGAPreview {
   }
 
   private buildHtml(yamlText: string, filename: string): string {
-    let svgContent = '';
+    let parsedDoc: FGCADoc | null = null;
     let errorMsg = '';
     let warnings: string[] = [];
-
-    const spacingDefaults = { horizontalGap: FGCA_DEFAULT_COL_GAP, verticalGap: FGCA_DEFAULT_ROW_GAP };
-    const gaps = readSpacing('fga', spacingDefaults);
-    const scope = readScope('fga');
-    const curvature = readCurvature('fga');
-    let goalOptions: ScopeGoalOption[] = [];
-    let maxLevelPresent = 0;
+    let docVersion: string | undefined;
+    let docDate = todayIso();
 
     try {
       const parsed = coerceDatesToIsoStrings(yaml.load(yamlText) as unknown);
       const meta = (parsed && typeof parsed === 'object' ? parsed : {}) as { version?: unknown; date?: unknown };
-      const docVersion = typeof meta.version === 'string' ? meta.version : undefined;
-      const docDate = typeof meta.date === 'string' ? meta.date : todayIso();
+      docVersion = typeof meta.version === 'string' ? meta.version : undefined;
+      docDate = typeof meta.date === 'string' ? meta.date : todayIso();
       const v = parseCanonicalFGA(parsed);
       warnings = v.warnings.map(w => `${w.code}: ${w.message}`);
       if (!v.valid || !v.parsed) {
         errorMsg = v.errors.map(e => `${e.code}: ${e.message}`).join('\n');
       } else {
         // FGA shares FGCA's FLAT shape; just hide the (absent) Changes column.
-        const fgaDoc = v.parsed as unknown as FGCADoc;
-        ({ goals: goalOptions, maxLevelPresent } = scopeInputsFromDoc(fgaDoc));
-        const scopeWarning = checkScopeRoot(scope, fgaDoc.goals.map(g => g.id));
-        if (scopeWarning) warnings.push(`${scopeWarning.code}: ${scopeWarning.message}`);
-        svgContent = buildSvg(fgaDoc, true, { colGap: gaps.horizontalGap, rowGap: gaps.verticalGap, curvature, scope }, 'FGA — Factor → Goal → Activity', filename, docDate, docVersion);
+        parsedDoc = v.parsed as unknown as FGCADoc;
       }
     } catch (e) {
       errorMsg = (e as Error).message ?? 'Parse error';
     }
 
-    this.lastSvg = svgContent;
-
     const themeId = vscode.workspace
       .getConfiguration('transitrix')
       .get<ThemeId>('theme', 'transitrix');
 
-    const nonce = genNonce();
-    const model = fgcaControlsModel(gaps, spacingDefaults, curvature, scope, goalOptions, maxLevelPresent);
-
-    return buildDiagramFrame({
-      filename, notation: 'FGA', svgContent, errorMsg, warnings, themeId,
-      saveSvgCommand: 'transitrixStudio.saveFGAAsSvg',
-      savePngCommand: 'transitrixStudio.saveFGAAsPng',
-      copyPngCommand: 'transitrixStudio.copyFGAAsPng',
-      spacingCommand: OPEN_SPACING_SETTINGS_COMMAND,
-      curvatureCommand: OPEN_CURVATURE_SETTINGS_COMMAND,
-      scopeCommand: OPEN_SCOPE_SETTINGS_COMMAND,
-      interactive: { nonce, controlsPanel: buildControlsPanel(model), controlsScript: buildControlsScript(nonce) },
-    });
+    const { html, svg } = renderChainPreview(
+      {
+        notation: 'FGA', viewNotation: 'fga', hideChanges: true,
+        heading: 'FGA — Factor → Goal → Activity',
+        saveSvgCommand: 'transitrixStudio.saveFGAAsSvg',
+        savePngCommand: 'transitrixStudio.saveFGAAsPng',
+        copyPngCommand: 'transitrixStudio.copyFGAAsPng',
+      },
+      parsedDoc, warnings, errorMsg, docVersion, docDate, filename, themeId,
+    );
+    this.lastSvg = svg;
+    return html;
   }
 
   private pngTarget() {
