@@ -646,6 +646,24 @@
         "icon": "$(refresh)"
       },
       {
+        "command": "transitrixStudio.previewGapDashboard",
+        "title": "Transitrix: Preview compliance gap dashboard",
+        "category": "Transitrix",
+        "icon": "$(checklist)"
+      },
+      {
+        "command": "transitrixStudio.refreshGapDashboard",
+        "title": "Transitrix: Refresh compliance gap dashboard",
+        "category": "Transitrix",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "transitrixStudio.exportGapDashboardCsv",
+        "title": "Transitrix: Export compliance gaps as CSV",
+        "category": "Transitrix",
+        "icon": "$(export)"
+      },
+      {
         "command": "transitrixStudio.openSpacingSettings",
         "title": "Transitrix: Open diagram spacing settings",
         "category": "Transitrix",
