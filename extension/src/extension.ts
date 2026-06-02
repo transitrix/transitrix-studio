@@ -14,6 +14,7 @@ import { ProcessMapPreview } from './process-map-preview.js';
 import { ScenariosPreview } from './scenarios-preview.js';
 import { CapabilityMapPreview } from './capability-map-preview.js';
 import { ProcessBlueprintPreview } from './process-blueprint-preview.js';
+import { ActivityCardPreview } from './activity-card-preview.js';
 import { IssuesPreview } from './issues-preview.js';
 import type { LayoutMetrics, ValidationReport } from './types.js';
 import {
@@ -76,6 +77,10 @@ function isProcessBlueprintFile(doc: vscode.TextDocument): boolean {
 
 function isIssuesFile(doc: vscode.TextDocument): boolean {
   return doc.fileName.endsWith('.issues.transitrix.yaml');
+}
+
+function isActivityCardFile(doc: vscode.TextDocument): boolean {
+  return doc.fileName.endsWith('.activity-card.transitrix.yaml');
 }
 
 async function loadCompiler(ext: vscode.ExtensionContext): Promise<CompileFn> {
@@ -144,6 +149,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const scenariosPreview = new ScenariosPreview();
   const capabilityMapPreview = new CapabilityMapPreview();
   const processBlueprintPreview = new ProcessBlueprintPreview();
+  const activityCardPreview = new ActivityCardPreview();
   const issuesPreview = new IssuesPreview();
 
   context.subscriptions.push(
@@ -281,6 +287,19 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     }),
     vscode.commands.registerCommand('transitrixStudio.saveProcessBlueprintAsPng', () => processBlueprintPreview.saveAsPng()),
     vscode.commands.registerCommand('transitrixStudio.copyProcessBlueprintAsPng', () => processBlueprintPreview.copyAsPng()),
+    vscode.commands.registerCommand('transitrixStudio.previewActivityCard', async () => {
+      const doc = vscode.window.activeTextEditor?.document;
+      if (!doc || !isActivityCardFile(doc)) {
+        vscode.window.showWarningMessage('Open a *.activity-card.transitrix.yaml file first.');
+        return;
+      }
+      await activityCardPreview.showOrReveal(doc);
+    }),
+    vscode.commands.registerCommand('transitrixStudio.saveActivityCardAsSvg', async () => {
+      await activityCardPreview.saveAsSvg();
+    }),
+    vscode.commands.registerCommand('transitrixStudio.saveActivityCardAsPng', () => activityCardPreview.saveAsPng()),
+    vscode.commands.registerCommand('transitrixStudio.copyActivityCardAsPng', () => activityCardPreview.copyAsPng()),
     vscode.commands.registerCommand('transitrixStudio.previewIssues', async () => {
       const doc = vscode.window.activeTextEditor?.document;
       if (!doc || !isIssuesFile(doc)) {
@@ -320,6 +339,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       void activitiesPreview.refreshConfig();
     }),
     vscode.workspace.onDidSaveTextDocument((doc) => {
+      // Multi-document: an open Activity Card re-resolves when one of its
+      // sibling *.activities.* / *.fgca.* documents is saved. Runs before the
+      // per-type routing below (which early-returns on a match).
+      void activityCardPreview.refreshIfSiblingSaved(doc);
       if (isGoalsFile(doc)) { void goalsPreview.refreshSaved(doc); return; }
       if (isFGCAFile(doc)) { void fgcaPreview.refreshSaved(doc); return; }
       if (isFGAFile(doc)) { void fgaPreview.refreshSaved(doc); return; }
@@ -331,6 +354,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       if (isScenariosFile(doc)) { void scenariosPreview.refreshSaved(doc); return; }
       if (isCapabilityMapFile(doc)) { void capabilityMapPreview.refreshSaved(doc); return; }
       if (isProcessBlueprintFile(doc)) { void processBlueprintPreview.refreshSaved(doc); return; }
+      if (isActivityCardFile(doc)) { void activityCardPreview.refreshSaved(doc); return; }
       if (isIssuesFile(doc)) { void issuesPreview.refreshSaved(doc); return; }
       if (!documentMatchesCervinSource(doc)) return;
       void preview.refreshSaved(doc);
@@ -347,6 +371,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       if (isScenariosFile(doc)) { await scenariosPreview.showOrReveal(doc); return; }
       if (isCapabilityMapFile(doc)) { await capabilityMapPreview.showOrReveal(doc); return; }
       if (isProcessBlueprintFile(doc)) { await processBlueprintPreview.showOrReveal(doc); return; }
+      if (isActivityCardFile(doc)) { await activityCardPreview.showOrReveal(doc); return; }
       if (isIssuesFile(doc)) { await issuesPreview.showOrReveal(doc); }
     }),
   );
