@@ -1,6 +1,7 @@
 export * from "./activities/index";
 export * from "./activity-card/index";
 export * from "./applications/index";
+export * from "./assertion/index";
 export * from "./blocks/index";
 export * from "./capability-map/index";
 export * from "./fgca/index";
@@ -9,7 +10,9 @@ export * from "./issues/index";
 export * from "./process-blueprint/index";
 export * from "./process-map/index";
 export * from "./products/index";
+export * from "./requirement/index";
 export * from "./scenarios/index";
 export * from "./theme/index";
+export * from "./typed-id";
 export * from "./validation-types";
 export { coerceDatesToIsoStrings } from "./yaml-normalize";
