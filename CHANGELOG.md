@@ -1,5 +1,58 @@
 # Changelog
 
+## [1.3.0] — 2026-06-02
+
+### Added
+- **Activity Card notation** (`*.activity-card.transitrix.yaml`) — `@transitrix/diagrams` types, cross-doc resolver, validator, layout, Studio preview, activation/build wiring, worked example. Save-as-SVG / PNG and copy-as-PNG commands.
+- **Configurable preview spacing** — `transitrix.spacing.{goals,fgca,fga,activities}.{horizontalGap,verticalGap}` settings.
+- **Configurable edge curvature** — `transitrix.curvature.{goals,fgca,fga,activities}` settings (0 = straight, 1 = default, higher = stronger arc).
+- **Scope filters for Goals/FGCA/FGA** — `transitrix.scope.{goals,fgca,fga}.{rootId,maxLevel}` settings (scope to a single subtree or to a level cap).
+- **Live in-preview controls** — spacing / curvature / scope adjustable from a toolbar inside the Goals, FGCA, FGA, and Activities previews (interactive webviews backed by a strict nonce-CSP).
+- **FGCA / FGA tree↔table view toggle** — flatten the chain into a table with merged cells (`Factor | Goal | Change | Activity`, FGA: `Factor | Goal | Activity`). Persisted per notation via `transitrix.view.{fgca,fga}`.
+- **Compliance notations** — Requirement and Assertion schemas + validators in `@transitrix/diagrams` (REQ-001..003, ASSERT-001..008).
+- **Compliance matrix preview** — Products × Requirements grid with status colouring; toolbar filters by jurisdiction / severity / status. Command: `transitrixStudio.previewComplianceMatrix`.
+- **Single-law compliance preview** — Law → Requirements → Assertions tree, triggered from any Codex file. Command: `transitrixStudio.previewSingleLaw`.
+- **Single-product compliance preview** — Product → bound Requirements → status. Command: `transitrixStudio.previewSingleProduct`.
+- **Compliance gap dashboard** — Requirements without Assertions, Assertions without evidence, stale Assertions past `next_review_at`; CSV export. Command: `transitrixStudio.previewGapDashboard`.
+- **`transitrix export-compliance` CLI** — exports the compliance matrix as Markdown (`--format md`, `--scope law:<id>|product:<id>`, `--output <path>`).
+
+### Changed
+- Validators across `goals`, `fgca`, `capability-map`, `process-map`, `applications`, `products`, `scenarios`, `process-blueprint` now guard each array element with an "entry must be an object" check before reading fields — malformed YAML (e.g. `goals: [null]`) degrades to a structured error panel instead of crashing the preview.
+
+### Fixed
+- `goals/validate.ts` — `goal.level` is now type-checked numerically; a string or missing `level` produces a SCHEMA_INVALID error instead of silently slipping through.
+- `goals/layout.ts` `placeSubtree` — adds a visited-set guard so a parent cycle / self-parent no longer overflows the stack when `layoutGoalTree` is called without prior validation.
+- `fgca/layout.ts` — `activity_ids` accesses are nullish-guarded so a change with no `activity_ids` renders cleanly instead of throwing.
+- `activities/validate.ts` ACT-008 — `start_date` / `end_date` are now format-checked against `YYYY-MM-DD` before lexicographic comparison.
+- `serve-ui.ts` — `createReadStream` now attaches an `'error'` handler that destroys the socket cleanly instead of crashing the process on a mid-stream disk error.
+- `serve-ui.ts` `isInsideRoot` — uses a direct path-prefix comparison so a candidate on a different Windows drive (`D:\` vs `C:\`) is correctly rejected.
+- `extension/package.json` — `activationEvents` extended to cover all eleven notation suffixes (activities, blocks, applications, products, process-map, scenarios, capability-map, process-blueprint, activity-card, issues) so previews and editor-title buttons activate from a cold VS Code window.
+
+### Docs
+- New ADR `docs/adr/0001-intellij-mvp-tech-choice.md` — records the rendering / validation technology choice for the upcoming IntelliJ IDEA extension MVP (JCEF + bundled `@transitrix/diagrams`). Tracking work only; no plugin code in this release.
+
+## [1.2.1] — 2026-05-29
+
+Marketplace re-package of 1.2.0. No user-facing changes; release-engineering only.
+
+## [1.2.0] — 2026-05-27
+
+### Added
+- PNG export across previews — `Save as .png` and `Copy as PNG` commands for goals, FGCA, FGA, activities, blocks, process-blueprint, issues, activity-card.
+- Refreshed Marketplace README and extension description (legacy "cervin" copy removed; native-binaries claim corrected).
+
+### Changed
+- Stopped tracking generated `extension/media/` assets in git.
+- Locked flat-canon FGCA/FGA rendering; FGA parser consolidated.
+
+## [1.1.0] — earlier 2026-05
+
+Internal release between 1.0.0 and 1.2.0; see git history for details.
+
+## [1.0.0] — earlier 2026-05
+
+First **1.x** Marketplace release after the v0.4.x line. See `0.4.x` entries below for the prior history.
+
 ## [0.4.19] — 2026-05-21
 
 ### Added
