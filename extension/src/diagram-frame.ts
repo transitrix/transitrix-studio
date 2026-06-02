@@ -78,6 +78,12 @@ export interface DiagramFrameOpts {
    * URIs via `enableCommandUris`.
    */
   spacingCommand?: string;
+  /**
+   * Command ID for the "Curvature…" toolbar link (opens Settings filtered to
+   * the per-notation edge-curvature control — vkgeorgia/strategy#76). Same
+   * opt-in contract as `spacingCommand`.
+   */
+  curvatureCommand?: string;
 }
 
 function escXml(s: string): string {
@@ -270,7 +276,7 @@ export function buildDiagramFrame(opts: DiagramFrameOpts): string {
     errorMsg = '', warnings = [],
     themeId = 'transitrix', extraStyles = '', fixPrompt = '',
     title, subtitle, version, date,
-    saveSvgCommand, savePngCommand, copyPngCommand, spacingCommand,
+    saveSvgCommand, savePngCommand, copyPngCommand, spacingCommand, curvatureCommand,
   } = opts;
 
   const canvasContent = bodyContent ?? svgContent;
@@ -314,9 +320,10 @@ export function buildDiagramFrame(opts: DiagramFrameOpts): string {
   const showSaveSvg = Boolean(canvasContent) && Boolean(saveSvgCommand);
   const showSavePng = Boolean(canvasContent) && Boolean(savePngCommand);
   const showCopyPng = Boolean(canvasContent) && Boolean(copyPngCommand);
-  // Spacing link shows whenever the preview opts in — including error renders,
-  // so the user can adjust the gap settings and trigger a re-render.
+  // Spacing/curvature links show whenever the preview opts in — including error
+  // renders, so the user can adjust the settings and trigger a re-render.
   const showSpacing = Boolean(spacingCommand);
+  const showCurvature = Boolean(curvatureCommand);
   // Zoom control gates on the same signal as Save .svg — the six vector
   // previews opt in by passing a saveSvgCommand. HTML catalogues are out of
   // scope per the orchestrator's call on issue #30.
@@ -349,6 +356,9 @@ export function buildDiagramFrame(opts: DiagramFrameOpts): string {
   }
   if (showSpacing) {
     actionParts.push(`<a href="command:${escXml(spacingCommand!)}" class="toolbar-btn" title="Adjust the horizontal/vertical spacing for this notation in Settings">Spacing…</a>`);
+  }
+  if (showCurvature) {
+    actionParts.push(`<a href="command:${escXml(curvatureCommand!)}" class="toolbar-btn" title="Adjust the edge curvature for this notation in Settings">Curvature…</a>`);
   }
   const toolbarRight = actionParts.length > 0
     ? `<div class="toolbar-actions">${actionParts.join('')}</div>`
