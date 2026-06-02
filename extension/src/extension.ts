@@ -19,6 +19,7 @@ import { IssuesPreview } from './issues-preview.js';
 import { ComplianceMatrixPreview } from './compliance-matrix-preview.js';
 import { SingleLawPreview } from './single-law-preview.js';
 import { SingleProductPreview } from './single-product-preview.js';
+import { GapDashboardPreview } from './gap-dashboard-preview.js';
 import { openComplianceFile } from './compliance-scan.js';
 import type { LayoutMetrics, ValidationReport } from './types.js';
 import {
@@ -159,6 +160,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const complianceMatrixPreview = new ComplianceMatrixPreview(context.extensionUri);
   const singleLawPreview = new SingleLawPreview(context.extensionUri);
   const singleProductPreview = new SingleProductPreview(context.extensionUri);
+  const gapDashboardPreview = new GapDashboardPreview(context.extensionUri);
 
   context.subscriptions.push(
     vscode.commands.registerCommand('cervin.openPreview', async () => {
@@ -340,6 +342,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       await singleProductPreview.showOrReveal(doc);
     }),
     vscode.commands.registerCommand('transitrixStudio.refreshSingleProduct', () => singleProductPreview.refresh()),
+    // Gap dashboard (vkgeorgia/strategy#84 Phase 4) — repo-wide, palette-invoked.
+    vscode.commands.registerCommand('transitrixStudio.previewGapDashboard', () => gapDashboardPreview.showOrReveal()),
+    vscode.commands.registerCommand('transitrixStudio.refreshGapDashboard', () => gapDashboardPreview.refresh()),
+    vscode.commands.registerCommand('transitrixStudio.exportGapDashboardCsv', () => gapDashboardPreview.exportCsv()),
     vscode.commands.registerCommand(OPEN_SPACING_SETTINGS_COMMAND, () =>
       vscode.commands.executeCommand('workbench.action.openSettings', SPACING_CONFIG_SECTION),
     ),
@@ -377,6 +383,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         void complianceMatrixPreview.refresh();
         void singleLawPreview.refresh();
         void singleProductPreview.refresh();
+        void gapDashboardPreview.refresh();
       }
       if (isGoalsFile(doc)) { void goalsPreview.refreshSaved(doc); return; }
       if (isFGCAFile(doc)) { void fgcaPreview.refreshSaved(doc); return; }
