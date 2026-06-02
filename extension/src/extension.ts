@@ -17,6 +17,9 @@ import { ProcessBlueprintPreview } from './process-blueprint-preview.js';
 import { ActivityCardPreview } from './activity-card-preview.js';
 import { IssuesPreview } from './issues-preview.js';
 import { ComplianceMatrixPreview } from './compliance-matrix-preview.js';
+import { SingleLawPreview } from './single-law-preview.js';
+import { SingleProductPreview } from './single-product-preview.js';
+import { openComplianceFile } from './compliance-scan.js';
 import type { LayoutMetrics, ValidationReport } from './types.js';
 import {
   documentMatchesCervinSource,
@@ -154,6 +157,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const activityCardPreview = new ActivityCardPreview();
   const issuesPreview = new IssuesPreview();
   const complianceMatrixPreview = new ComplianceMatrixPreview(context.extensionUri);
+  const singleLawPreview = new SingleLawPreview(context.extensionUri);
+  const singleProductPreview = new SingleProductPreview(context.extensionUri);
 
   context.subscriptions.push(
     vscode.commands.registerCommand('cervin.openPreview', async () => {
@@ -320,7 +325,21 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     // bound to a file. `openComplianceFile` is invoked from cell command URIs.
     vscode.commands.registerCommand('transitrixStudio.previewComplianceMatrix', () => complianceMatrixPreview.showOrReveal()),
     vscode.commands.registerCommand('transitrixStudio.refreshComplianceMatrix', () => complianceMatrixPreview.refresh()),
-    vscode.commands.registerCommand('transitrixStudio.openComplianceFile', (fsPath: string) => complianceMatrixPreview.openFile(fsPath)),
+    vscode.commands.registerCommand('transitrixStudio.openComplianceFile', (fsPath: string) => openComplianceFile(fsPath)),
+    // Single-law tree + single-product view (vkgeorgia/strategy#84 Phase 3) —
+    // triggered from a codex / product file's editor-title bar; repo-wide scan.
+    vscode.commands.registerCommand('transitrixStudio.previewSingleLaw', async () => {
+      const doc = vscode.window.activeTextEditor?.document;
+      if (!doc) { vscode.window.showWarningMessage('Open a codex file (LAW / REGULATION / POLICY / INTERNAL_STANDARD) first.'); return; }
+      await singleLawPreview.showOrReveal(doc);
+    }),
+    vscode.commands.registerCommand('transitrixStudio.refreshSingleLaw', () => singleLawPreview.refresh()),
+    vscode.commands.registerCommand('transitrixStudio.previewSingleProduct', async () => {
+      const doc = vscode.window.activeTextEditor?.document;
+      if (!doc) { vscode.window.showWarningMessage('Open a product file (notation: product) first.'); return; }
+      await singleProductPreview.showOrReveal(doc);
+    }),
+    vscode.commands.registerCommand('transitrixStudio.refreshSingleProduct', () => singleProductPreview.refresh()),
     vscode.commands.registerCommand(OPEN_SPACING_SETTINGS_COMMAND, () =>
       vscode.commands.executeCommand('workbench.action.openSettings', SPACING_CONFIG_SECTION),
     ),
@@ -352,6 +371,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       // sibling *.activities.* / *.fgca.* documents is saved. Runs before the
       // per-type routing below (which early-returns on a match).
       void activityCardPreview.refreshIfSiblingSaved(doc);
+      // Compliance views are repo-wide: re-scan the open ones whenever a canon
+      // artefact (by filename convention) is saved. No-op when no panel is open.
+      if (/^(PRODUCT|REQUIREMENT|ASSERTION|LAW|REGULATION|POLICY|INTERNAL_STANDARD)-.*\.ya?ml$/.test(path.basename(doc.fileName))) {
+        void complianceMatrixPreview.refresh();
+        void singleLawPreview.refresh();
+        void singleProductPreview.refresh();
+      }
       if (isGoalsFile(doc)) { void goalsPreview.refreshSaved(doc); return; }
       if (isFGCAFile(doc)) { void fgcaPreview.refreshSaved(doc); return; }
       if (isFGAFile(doc)) { void fgaPreview.refreshSaved(doc); return; }
