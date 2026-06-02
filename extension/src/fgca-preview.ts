@@ -15,8 +15,9 @@ import {
 } from '../../packages/diagrams/src/fgca/preview-layout.js';
 import { horizontalCubicEdgePath, DEFAULT_EDGE_CURVATURE } from '../../packages/diagrams/src/edge-path.js';
 import { coerceDatesToIsoStrings } from '../../packages/diagrams/src/yaml-normalize.js';
+import { checkScopeRoot, type Scope } from '../../packages/diagrams/src/scope.js';
 import { savePngFromSvg, copyPngFromSvg } from './png-export.js';
-import { readSpacing, readCurvature, OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND } from './spacing-config.js';
+import { readSpacing, readCurvature, readScope, OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND, OPEN_SCOPE_SETTINGS_COMMAND } from './spacing-config.js';
 
 // ── Inline render types ─────────────────────────────────────────────────────
 //
@@ -64,7 +65,7 @@ function escXml(s: string): string {
 function buildSvg(
   doc: FGCADoc,
   hideChanges = false,
-  opts: { colGap?: number; rowGap?: number; curvature?: number } = {},
+  opts: { colGap?: number; rowGap?: number; curvature?: number; scope?: Scope } = {},
   heading?: string,
   filename?: string,
   date?: string,
@@ -75,6 +76,7 @@ function buildSvg(
     hideChanges,
     colGap: opts.colGap,
     rowGap: opts.rowGap,
+    scope: opts.scope,
   });
   const showTitle = heading != null && filename != null && date != null;
   const titleH = showTitle ? TITLE_BLOCK_H : 0;
@@ -158,7 +160,7 @@ export class FGCAPreview {
         'fgcaPreview',
         `${this.panelTitle} — ${path.basename(doc.fileName)}`,
         { viewColumn: vscode.ViewColumn.Beside, preserveFocus: false },
-        { enableScripts: false, retainContextWhenHidden: true, enableCommandUris: ['transitrixStudio.saveFGCAAsSvg', 'transitrixStudio.saveFGCAAsPng', 'transitrixStudio.copyFGCAAsPng', OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND] },
+        { enableScripts: false, retainContextWhenHidden: true, enableCommandUris: ['transitrixStudio.saveFGCAAsSvg', 'transitrixStudio.saveFGCAAsPng', 'transitrixStudio.copyFGCAAsPng', OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND, OPEN_SCOPE_SETTINGS_COMMAND] },
       );
       this.panel.onDidDispose(() => { this.panel = undefined; this.trackedUri = undefined; });
     }
@@ -202,7 +204,11 @@ export class FGCAPreview {
         // inline FGCADoc / buildSvg here accept both forms (number | string
         // unions) — pass through.
         const gaps = readSpacing('fgca', { horizontalGap: FGCA_DEFAULT_COL_GAP, verticalGap: FGCA_DEFAULT_ROW_GAP });
-        svgContent = buildSvg(v.parsed as unknown as FGCADoc, false, { colGap: gaps.horizontalGap, rowGap: gaps.verticalGap, curvature: readCurvature('fgca') }, 'FGCA — Factor → Goal → Change → Activity', filename, docDate, docVersion);
+        const scope = readScope('fgca');
+        const fgcaDoc = v.parsed as unknown as FGCADoc;
+        const scopeWarning = checkScopeRoot(scope, fgcaDoc.goals.map(g => g.id));
+        if (scopeWarning) warnings.push(`${scopeWarning.code}: ${scopeWarning.message}`);
+        svgContent = buildSvg(fgcaDoc, false, { colGap: gaps.horizontalGap, rowGap: gaps.verticalGap, curvature: readCurvature('fgca'), scope }, 'FGCA — Factor → Goal → Change → Activity', filename, docDate, docVersion);
       }
     } catch (e) {
       errorMsg = (e as Error).message ?? 'Parse error';
@@ -221,6 +227,7 @@ export class FGCAPreview {
       copyPngCommand: 'transitrixStudio.copyFGCAAsPng',
       spacingCommand: OPEN_SPACING_SETTINGS_COMMAND,
       curvatureCommand: OPEN_CURVATURE_SETTINGS_COMMAND,
+      scopeCommand: OPEN_SCOPE_SETTINGS_COMMAND,
     });
   }
 
@@ -284,7 +291,7 @@ export class FGAPreview {
         'fgaPreview',
         `${this.panelTitle} — ${path.basename(doc.fileName)}`,
         { viewColumn: vscode.ViewColumn.Beside, preserveFocus: false },
-        { enableScripts: false, retainContextWhenHidden: true, enableCommandUris: ['transitrixStudio.saveFGAAsSvg', 'transitrixStudio.saveFGAAsPng', 'transitrixStudio.copyFGAAsPng', OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND] },
+        { enableScripts: false, retainContextWhenHidden: true, enableCommandUris: ['transitrixStudio.saveFGAAsSvg', 'transitrixStudio.saveFGAAsPng', 'transitrixStudio.copyFGAAsPng', OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND, OPEN_SCOPE_SETTINGS_COMMAND] },
       );
       this.panel.onDidDispose(() => { this.panel = undefined; this.trackedUri = undefined; });
     }
@@ -325,7 +332,11 @@ export class FGAPreview {
       } else {
         // FGA shares FGCA's FLAT shape; just hide the (absent) Changes column.
         const gaps = readSpacing('fga', { horizontalGap: FGCA_DEFAULT_COL_GAP, verticalGap: FGCA_DEFAULT_ROW_GAP });
-        svgContent = buildSvg(v.parsed as unknown as FGCADoc, true, { colGap: gaps.horizontalGap, rowGap: gaps.verticalGap, curvature: readCurvature('fga') }, 'FGA — Factor → Goal → Activity', filename, docDate, docVersion);
+        const scope = readScope('fga');
+        const fgaDoc = v.parsed as unknown as FGCADoc;
+        const scopeWarning = checkScopeRoot(scope, fgaDoc.goals.map(g => g.id));
+        if (scopeWarning) warnings.push(`${scopeWarning.code}: ${scopeWarning.message}`);
+        svgContent = buildSvg(fgaDoc, true, { colGap: gaps.horizontalGap, rowGap: gaps.verticalGap, curvature: readCurvature('fga'), scope }, 'FGA — Factor → Goal → Activity', filename, docDate, docVersion);
       }
     } catch (e) {
       errorMsg = (e as Error).message ?? 'Parse error';
@@ -344,6 +355,7 @@ export class FGAPreview {
       copyPngCommand: 'transitrixStudio.copyFGAAsPng',
       spacingCommand: OPEN_SPACING_SETTINGS_COMMAND,
       curvatureCommand: OPEN_CURVATURE_SETTINGS_COMMAND,
+      scopeCommand: OPEN_SCOPE_SETTINGS_COMMAND,
     });
   }
 

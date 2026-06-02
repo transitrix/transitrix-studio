@@ -182,6 +182,39 @@
           "maximum": 3,
           "default": 1,
           "description": "Activities preview: CPM dependency-arrow curvature. 0 = straight lines, 1 = default, higher = stronger arc."
+        },
+        "transitrix.scope.goals.rootId": {
+          "type": "string",
+          "default": "",
+          "description": "Goals preview: scope to a single goal's subtree. Set the goal id to show only that goal and its descendants. Empty = show all. Takes precedence over the level cap."
+        },
+        "transitrix.scope.goals.maxLevel": {
+          "type": "integer",
+          "minimum": -1,
+          "default": -1,
+          "description": "Goals preview: scope to a level cap. Show only goals at this level and above (e.g. 1 = top two levels). -1 = no cap. Ignored when a scope root id is set."
+        },
+        "transitrix.scope.fgca.rootId": {
+          "type": "string",
+          "default": "",
+          "description": "FGCA preview: scope to a single goal. Set the goal id to show only that goal plus the factors/changes/activities connected to it. Empty = show all. Takes precedence over the level cap."
+        },
+        "transitrix.scope.fgca.maxLevel": {
+          "type": "integer",
+          "minimum": -1,
+          "default": -1,
+          "description": "FGCA preview: scope to a goal-level cap. Show only goals at this level and above, plus their connected factors/changes/activities. -1 = no cap. Ignored when a scope root id is set."
+        },
+        "transitrix.scope.fga.rootId": {
+          "type": "string",
+          "default": "",
+          "description": "FGA preview: scope to a single goal. Set the goal id to show only that goal plus the factors/activities connected to it. Empty = show all. Takes precedence over the level cap."
+        },
+        "transitrix.scope.fga.maxLevel": {
+          "type": "integer",
+          "minimum": -1,
+          "default": -1,
+          "description": "FGA preview: scope to a goal-level cap. Show only goals at this level and above, plus their connected factors/activities. -1 = no cap. Ignored when a scope root id is set."
         }
       }
     },
@@ -540,6 +573,12 @@
         "title": "Transitrix: Open diagram edge-curvature settings",
         "category": "Transitrix",
         "icon": "$(settings-gear)"
+      },
+      {
+        "command": "transitrixStudio.openScopeSettings",
+        "title": "Transitrix: Open diagram scope (level/root) settings",
+        "category": "Transitrix",
+        "icon": "$(filter)"
       }
     ],
     "menus": {

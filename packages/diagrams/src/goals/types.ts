@@ -48,6 +48,8 @@ export interface MutationResult<T> {
   error?: ValidationError;
 }
 
+import type { Scope } from '../scope.js';
+
 export interface LayoutOptions {
   rankdir?: 'LR' | 'TB';
   nodeWidth?: number;
@@ -56,6 +58,8 @@ export interface LayoutOptions {
   nodeSep?: number;
   hideCollapsed?: number[];
   viewDepth?: number | null;
+  /** Trim the tree to a level cap or a subtree root (vkgeorgia/strategy#77). Defaults to 'all'. */
+  scope?: Scope;
 }
 
 export interface LaidOutNode {

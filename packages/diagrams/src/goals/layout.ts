@@ -1,9 +1,40 @@
 import type { Goal, GoalTree, LayoutOptions, GoalTreeLayout, LaidOutNode, LaidOutEdge } from './types.js';
+import type { Scope } from '../scope.js';
 
 const DEFAULT_NODE_WIDTH = 250;
 const DEFAULT_NODE_HEIGHT = 80;
 const DEFAULT_RANK_SEP = 80;
 const DEFAULT_NODE_SEP = 40;
+
+/**
+ * Trims a flat goal list to a scope (vkgeorgia/strategy#77).
+ *   - 'level' → goals with `level <= maxLevel`.
+ *   - 'root'  → the root goal (matched by string id) plus all its descendants
+ *               via `parent_id`; an empty list when the root is absent.
+ * Pure and exported so a future access-control layer can reuse it.
+ */
+export function selectScopedGoals(goals: Goal[], scope: Scope): Goal[] {
+  if (scope.mode === 'all') return goals;
+  if (scope.mode === 'level') return goals.filter(g => g.level <= scope.maxLevel);
+
+  // root mode: collect the subtree rooted at rootGoalId (descendants via parent_id).
+  const children = new Map<number, number[]>();
+  for (const g of goals) {
+    if (!children.has(g.parent_id)) children.set(g.parent_id, []);
+    children.get(g.parent_id)!.push(g.id);
+  }
+  const root = goals.find(g => String(g.id) === scope.rootGoalId);
+  if (!root) return [];
+  const keep = new Set<number>();
+  const stack = [root.id];
+  while (stack.length > 0) {
+    const id = stack.pop()!;
+    if (keep.has(id)) continue; // guard against malformed cycles
+    keep.add(id);
+    for (const c of children.get(id) ?? []) stack.push(c);
+  }
+  return goals.filter(g => keep.has(g.id));
+}
 
 export function layoutGoalTree(tree: GoalTree, options: LayoutOptions = {}): GoalTreeLayout {
   const {
@@ -13,10 +44,11 @@ export function layoutGoalTree(tree: GoalTree, options: LayoutOptions = {}): Goa
     nodeSep = DEFAULT_NODE_SEP,
     hideCollapsed = [],
     viewDepth = null,
+    scope = { mode: 'all' },
   } = options;
 
   const hiddenSet = new Set(hideCollapsed);
-  const goals = tree.goals;
+  const goals = selectScopedGoals(tree.goals, scope);
 
   // Build parent→children map
   const children = new Map<number, number[]>();
