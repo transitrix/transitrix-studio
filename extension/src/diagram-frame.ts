@@ -107,6 +107,12 @@ export interface DiagramFrameOpts {
     nonce: string;
     controlsPanel: string;
     controlsScript: string;
+    /**
+     * Optional toolbar segmented control (e.g. the tree↔table view toggle,
+     * vkgeorgia/strategy#137). Injected as the first item in the toolbar
+     * actions. Pass '' / omit when the preview has no toolbar control.
+     */
+    viewToggleHtml?: string;
   };
 }
 
@@ -365,6 +371,9 @@ export function buildDiagramFrame(opts: DiagramFrameOpts): string {
   <input type="radio" name="ts-zoom" id="z-200" class="zoom-radio">`
     : '';
   const actionParts: string[] = [];
+  if (interactive?.viewToggleHtml) {
+    actionParts.push(interactive.viewToggleHtml);
+  }
   if (showToggle) {
     actionParts.push(`<label for="ts-title-toggle" class="title-toggle" title="Show or hide the diagram title">Title</label>`);
   }

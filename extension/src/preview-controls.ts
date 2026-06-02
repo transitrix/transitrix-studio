@@ -64,12 +64,15 @@ export interface ControlsModel {
 /** Message posted from the webview to the host on every control change. */
 export interface ControlMessage {
   type: 'transitrix:control';
-  control: 'spacing' | 'curvature' | 'scope';
-  /** 'horizontalGap' | 'verticalGap' for spacing; 'rootId' | 'maxLevel' | 'reset' for scope; absent for curvature. */
-  field?: 'horizontalGap' | 'verticalGap' | 'rootId' | 'maxLevel' | 'reset';
-  /** Numeric for spacing/curvature/maxLevel; string for rootId; absent for reset. */
+  control: 'spacing' | 'curvature' | 'scope' | 'view';
+  /** spacing: 'horizontalGap'|'verticalGap'; scope: 'rootId'|'maxLevel'|'reset'; view: 'tree'|'table'; absent for curvature. */
+  field?: 'horizontalGap' | 'verticalGap' | 'rootId' | 'maxLevel' | 'reset' | 'tree' | 'table';
+  /** Numeric for spacing/curvature/maxLevel; string for rootId; absent for reset/view. */
   value?: number | string;
 }
+
+/** Tree ↔ table view, persisted per notation (vkgeorgia/strategy#137). */
+export type PreviewView = 'tree' | 'table';
 
 // Spacing bounds mirror the package.json `transitrix.spacing.*` schema (20–300).
 export const SPACING_MIN = 20;
@@ -115,6 +118,24 @@ export const CONTROLS_PANEL_CSS = `
 }
 .tx-ctl button { cursor: pointer; }
 .tx-ctl output { min-width: 22px; font-variant-numeric: tabular-nums; }
+
+/* View toggle (tree ↔ table) — a segmented control in the toolbar (#137).
+   Mirrors the zoom control's look so the toolbar reads consistently. */
+.tx-view { display: inline-flex; border: 1px solid var(--ts-border, #cbd5e1); border-radius: 4px; overflow: hidden; }
+.tx-view-btn {
+  cursor: pointer;
+  user-select: none;
+  font-size: 11px;
+  padding: 1px 8px;
+  color: var(--ts-text-muted, #64748b);
+  background: transparent;
+  border: none;
+  border-right: 1px solid var(--ts-border, #cbd5e1);
+  font-family: var(--vscode-font-family, sans-serif);
+}
+.tx-view-btn:last-child { border-right: none; }
+.tx-view-btn:hover { color: var(--ts-text, #0f172a); background: var(--ts-bg-elevated, #f1f5f9); }
+.tx-view-btn.active { color: var(--ts-text, #0f172a); background: var(--ts-bg-elevated, #f1f5f9); font-weight: 600; }
 `;
 
 /** True when any control differs from its no-visual-change default. */
@@ -182,6 +203,15 @@ export function buildControlsPanel(model: ControlsModel): string {
     ${rows.join('\n    ')}
   </div>
 </details>`;
+}
+
+/** Builds the toolbar segmented control that switches the tree ↔ table view
+ *  (#137). Wired by the same `data-tx-control` mechanism as the panel inputs —
+ *  the buttons post `{control:'view', field:'tree'|'table'}` to the host. */
+export function buildViewToggle(current: PreviewView): string {
+  const btn = (view: PreviewView, label: string): string =>
+    `<button type="button" class="tx-view-btn${current === view ? ' active' : ''}" data-tx-control="view" data-tx-field="${view}">${label}</button>`;
+  return `<span class="tx-view" title="Switch between the tree and table view">${btn('tree', 'Tree')}${btn('table', 'Table')}</span>`;
 }
 
 /** Builds the nonce'd wiring `<script>`. Reads `data-tx-*` inputs, posts a

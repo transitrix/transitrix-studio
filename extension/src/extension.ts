@@ -29,6 +29,7 @@ import {
   CURVATURE_CONFIG_SECTION,
   OPEN_SCOPE_SETTINGS_COMMAND,
   SCOPE_CONFIG_SECTION,
+  VIEW_CONFIG_SECTION,
 } from './spacing-config.js';
 
 function isGoalsFile(doc: vscode.TextDocument): boolean {
@@ -331,7 +332,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       if (
         !e.affectsConfiguration(SPACING_CONFIG_SECTION) &&
         !e.affectsConfiguration(CURVATURE_CONFIG_SECTION) &&
-        !e.affectsConfiguration(SCOPE_CONFIG_SECTION)
+        !e.affectsConfiguration(SCOPE_CONFIG_SECTION) &&
+        !e.affectsConfiguration(VIEW_CONFIG_SECTION)
       ) return;
       void goalsPreview.refreshConfig();
       void fgcaPreview.refreshConfig();
