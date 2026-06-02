@@ -23,11 +23,15 @@ function printUsage(): void {
        cervin metrics [--ext=.cervin.yaml,.bpmn.transitrix.yaml] <input.yaml> [--json]
        cervin validate <input.yaml> [--json]
        cervin validate [--ext=.cervin.yaml,.bpmn.transitrix.yaml] <input.yaml> [--json]
+       cervin export-compliance [--format md] [--scope law:<ID>|product:<ID>|gap] [--output <path>] [--root <dir>]
 
   serve     — local web UI (run npm run ui:build once beforehand).
   <compile> — YAML → BPMN 2.0 XML with layout metrics.
   metrics   — layout quality metrics (with --json for CI).
   validate  — BPMN validation only (no XML output; exit 1 on errors).
+  export-compliance — Markdown report of the compliance views (matrix by
+              default; law:/product:/gap scopes). Scans --root (default cwd) for
+              requirement/assertion/product/codex canon. PDF is a follow-on.
 
   --no-metrics  suppress quality metrics report on compile.
   --no-validate suppress validation warnings (errors always run).
@@ -361,6 +365,17 @@ try {
     await handleMetricsCommand(process.argv.slice(3));
   } else if (subcommand === 'validate') {
     await handleValidateCommand(process.argv.slice(3));
+  } else if (subcommand === 'export-compliance') {
+    // Loaded lazily through a computed specifier: the handler imports the
+    // @transitrix/diagrams *source*, which the rootDir-restricted emit build
+    // (tsconfig.build.json) must not pull into its program. A non-literal
+    // specifier keeps tsc from statically including it; tsx transpiles it at
+    // dev runtime. (`npm run compile` still type-checks the handler file.)
+    const handlerModule = './export-compliance.js';
+    const { handleExportComplianceCommand } = (await import(handlerModule)) as {
+      handleExportComplianceCommand: (argv: string[]) => Promise<void>;
+    };
+    await handleExportComplianceCommand(process.argv.slice(3));
   } else if (!subcommand || subcommand === 'compile') {
     // Default: compile
     const compileArgv = subcommand === 'compile'

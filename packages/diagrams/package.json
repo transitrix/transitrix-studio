@@ -2,6 +2,7 @@
   "name": "@transitrix/diagrams",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "description": "Shared rendering, validation, and pure mutations for Transitrix custom diagram formats.",
   "license": "MIT",
   "main": "dist/index.js",
