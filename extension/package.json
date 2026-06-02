@@ -610,6 +610,18 @@
         "category": "Transitrix"
       },
       {
+        "command": "transitrixStudio.previewComplianceMatrix",
+        "title": "Transitrix: Preview compliance matrix",
+        "category": "Transitrix",
+        "icon": "$(table)"
+      },
+      {
+        "command": "transitrixStudio.refreshComplianceMatrix",
+        "title": "Transitrix: Refresh compliance matrix",
+        "category": "Transitrix",
+        "icon": "$(refresh)"
+      },
+      {
         "command": "transitrixStudio.openSpacingSettings",
         "title": "Transitrix: Open diagram spacing settings",
         "category": "Transitrix",
