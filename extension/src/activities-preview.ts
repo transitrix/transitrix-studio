@@ -18,7 +18,8 @@ import {
 import { coerceDatesToIsoStrings } from '../../packages/diagrams/src/yaml-normalize.js';
 import { horizontalCubicEdgePath, DEFAULT_EDGE_CURVATURE } from '../../packages/diagrams/src/edge-path.js';
 import { savePngFromSvg, copyPngFromSvg } from './png-export.js';
-import { readSpacing, readCurvature, OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND } from './spacing-config.js';
+import { readSpacing, readCurvature, applyControlMessage, OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND } from './spacing-config.js';
+import { genNonce, buildControlsPanel, buildControlsScript } from './preview-controls.js';
 
 // Default network (PSND) gaps — must match the layoutActivities defaults
 // (H_GAP / V_GAP) so an unconfigured preview is visually unchanged.
@@ -553,6 +554,8 @@ export class ActivitiesPreview {
   private lastNetworkSvg = '';
   private lastGanttSvg = '';
 
+  constructor(private readonly extensionUri: vscode.Uri) {}
+
   isShowingDocument(uri: vscode.Uri): boolean {
     return this.panel != null && this.trackedUri === uri.toString();
   }
@@ -567,8 +570,18 @@ export class ActivitiesPreview {
         'activitiesPreview',
         `${this.panelTitle} — ${path.basename(doc.fileName)}`,
         { viewColumn: vscode.ViewColumn.Beside, preserveFocus: false },
-        { enableScripts: false, retainContextWhenHidden: true, enableCommandUris: ['transitrixStudio.saveActivitiesAsSvg', 'transitrixStudio.saveActivitiesAsPng', 'transitrixStudio.copyActivitiesAsPng', OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND] },
+        {
+          // Scripts enabled for the in-preview spacing/curvature controls under
+          // the strict nonce CSP (#75/#76 PR2). The CSS-only Network/Gantt tab
+          // switcher and zoom control continue to work unchanged. Activities
+          // has no scope control (#77 excludes it).
+          enableScripts: true,
+          retainContextWhenHidden: true,
+          localResourceRoots: [vscode.Uri.joinPath(this.extensionUri, 'media')],
+          enableCommandUris: ['transitrixStudio.saveActivitiesAsSvg', 'transitrixStudio.saveActivitiesAsPng', 'transitrixStudio.copyActivitiesAsPng', OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND],
+        },
       );
+      this.panel.webview.onDidReceiveMessage((m) => { void applyControlMessage('activities', m); });
       this.panel.onDidDispose(() => { this.panel = undefined; this.trackedUri = undefined; });
     }
     await this.pushDocument(doc);
@@ -596,6 +609,10 @@ export class ActivitiesPreview {
     let errorMsg = '';
     let warnings: string[] = [];
 
+    const spacingDefaults = { horizontalGap: ACTIVITIES_DEFAULT_H_GAP, verticalGap: ACTIVITIES_DEFAULT_V_GAP };
+    const spacing = readSpacing('activities', spacingDefaults);
+    const curvature = readCurvature('activities');
+
     try {
       const parsed = coerceDatesToIsoStrings(yaml.load(yamlText) as unknown);
       // Document version/date for the title block. `version` is optional;
@@ -610,8 +627,7 @@ export class ActivitiesPreview {
       if (!v.valid) {
         errorMsg = v.errors.map(e => `${e.code}: ${e.message}`).join('\n');
       } else {
-        const spacing = readSpacing('activities', { horizontalGap: ACTIVITIES_DEFAULT_H_GAP, verticalGap: ACTIVITIES_DEFAULT_V_GAP });
-        const views = buildActivityViews(parsed as ActivityDoc, { horizontalGap: spacing.horizontalGap, verticalGap: spacing.verticalGap }, readCurvature('activities'), filename, docDate, docVersion);
+        const views = buildActivityViews(parsed as ActivityDoc, { horizontalGap: spacing.horizontalGap, verticalGap: spacing.verticalGap }, curvature, filename, docDate, docVersion);
         bodyContent = buildCanvasContent(views);
         this.lastNetworkSvg = views.networkSvg;
         this.lastGanttSvg = views.ganttSvg;
@@ -629,6 +645,14 @@ export class ActivitiesPreview {
       .getConfiguration('transitrix')
       .get<ThemeId>('theme', 'transitrix');
 
+    const nonce = genNonce();
+    // Activities has spacing + curvature controls but no scope filter (#77
+    // excludes it — its multi-row CPM layout isn't a uniform tree).
+    const controlsPanel = buildControlsPanel({
+      spacing: { ...spacing, defaults: spacingDefaults },
+      curvature: { value: curvature, default: 1 },
+    });
+
     return buildDiagramFrame({
       filename,
       notation: 'Activities (PSND + Gantt)',
@@ -642,6 +666,7 @@ export class ActivitiesPreview {
       copyPngCommand: 'transitrixStudio.copyActivitiesAsPng',
       spacingCommand: OPEN_SPACING_SETTINGS_COMMAND,
       curvatureCommand: OPEN_CURVATURE_SETTINGS_COMMAND,
+      interactive: { nonce, controlsPanel, controlsScript: buildControlsScript(nonce) },
     });
   }
 

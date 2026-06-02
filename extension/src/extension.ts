@@ -133,10 +133,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const preview = new CervinPreview(context.extensionUri, (yaml: string) =>
     compiler().then((c) => c(yaml)),
   );
-  const goalsPreview = new GoalsPreview();
-  const fgcaPreview = new FGCAPreview();
-  const fgaPreview = new FGAPreview();
-  const activitiesPreview = new ActivitiesPreview();
+  const goalsPreview = new GoalsPreview(context.extensionUri);
+  const fgcaPreview = new FGCAPreview(context.extensionUri);
+  const fgaPreview = new FGAPreview(context.extensionUri);
+  const activitiesPreview = new ActivitiesPreview(context.extensionUri);
   const blocksPreview = new BlocksPreview();
   const applicationsPreview = new ApplicationsPreview();
   const productsPreview = new ProductsPreview();
@@ -305,9 +305,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     ),
     // Re-render the spacing/curvature/scope-aware previews when a gap, curvature
     // or scope setting changes — the settings-driven persistence mechanism
-    // (vkgeorgia/strategy#75, #76, #77). Previews keep `enableScripts: false`;
-    // the change is applied host-side by rebuilding the webview HTML from the
-    // tracked document.
+    // (vkgeorgia/strategy#75, #76, #77). Config is the single source of truth:
+    // both the in-preview controls (PR2) and the "…" Settings links write here,
+    // and this handler rebuilds the webview HTML from the tracked document.
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (
         !e.affectsConfiguration(SPACING_CONFIG_SECTION) &&

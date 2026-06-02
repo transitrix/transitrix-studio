@@ -13,7 +13,8 @@ import { parseCanonicalGoals } from '../../packages/diagrams/src/goals/parse-can
 import { coerceDatesToIsoStrings } from '../../packages/diagrams/src/yaml-normalize.js';
 import { horizontalCubicEdgePath, DEFAULT_EDGE_CURVATURE } from '../../packages/diagrams/src/edge-path.js';
 import { checkScopeRoot } from '../../packages/diagrams/src/scope.js';
-import { readSpacing, readCurvature, readScope, OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND, OPEN_SCOPE_SETTINGS_COMMAND } from './spacing-config.js';
+import { readSpacing, readCurvature, readScope, applyControlMessage, OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND, OPEN_SCOPE_SETTINGS_COMMAND } from './spacing-config.js';
+import { genNonce, buildControlsPanel, buildControlsScript, type ControlsModel, type ScopeGoalOption } from './preview-controls.js';
 
 // ── SVG renderer ─────────────────────────────────────────────────────────────
 //
@@ -95,6 +96,8 @@ export class GoalsPreview {
   private trackedUri: string | undefined;
   private lastSvg = '';
 
+  constructor(private readonly extensionUri: vscode.Uri) {}
+
   isShowingDocument(uri: vscode.Uri): boolean {
     return this.panel != null && this.trackedUri === uri.toString();
   }
@@ -109,8 +112,19 @@ export class GoalsPreview {
         'goalsPreview',
         `${this.panelTitle} — ${path.basename(doc.fileName)}`,
         { viewColumn: vscode.ViewColumn.Beside, preserveFocus: false },
-        { enableScripts: false, retainContextWhenHidden: true, enableCommandUris: ['transitrixStudio.saveGoalsAsSvg', 'transitrixStudio.saveGoalsAsPng', 'transitrixStudio.copyGoalsAsPng', OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND, OPEN_SCOPE_SETTINGS_COMMAND] },
+        {
+          // Scripts enabled for the in-preview spacing/curvature/scope controls
+          // (vkgeorgia/strategy#75/#76/#77 PR2) under the strict nonce CSP set
+          // in buildDiagramFrame. localResourceRoots is pinned to the
+          // extension's own media even though the inline-nonce'd controls load
+          // no resources — defence in depth per Valerii's posture call.
+          enableScripts: true,
+          retainContextWhenHidden: true,
+          localResourceRoots: [vscode.Uri.joinPath(this.extensionUri, 'media')],
+          enableCommandUris: ['transitrixStudio.saveGoalsAsSvg', 'transitrixStudio.saveGoalsAsPng', 'transitrixStudio.copyGoalsAsPng', OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND, OPEN_SCOPE_SETTINGS_COMMAND],
+        },
       );
+      this.panel.webview.onDidReceiveMessage((m) => { void applyControlMessage('goals', m); });
       this.panel.onDidDispose(() => { this.panel = undefined; this.trackedUri = undefined; });
     }
     await this.pushDocument(doc);
@@ -138,6 +152,15 @@ export class GoalsPreview {
     let errorMsg = '';
     let warnings: string[] = [];
 
+    const spacingDefaults = { horizontalGap: RANK_SEP, verticalGap: NODE_SEP };
+    const gaps = readSpacing('goals', spacingDefaults);
+    const scope = readScope('goals');
+    const curvature = readCurvature('goals');
+    // Populated on a successful parse — feeds the scope root-picker dropdown
+    // and the level-cap upper bound in the interactive control panel.
+    let goalOptions: ScopeGoalOption[] = [];
+    let maxLevelPresent = 0;
+
     try {
       const parsedYaml = coerceDatesToIsoStrings(yaml.load(yamlText) as unknown);
       const v = parseCanonicalGoals(parsedYaml);
@@ -149,8 +172,8 @@ export class GoalsPreview {
         const treeName = typeof meta.name === 'string' ? meta.name : '';
         const docVersion = typeof meta.version === 'string' ? meta.version : undefined;
         const docDate = typeof meta.date === 'string' ? meta.date : todayIso();
-        const gaps = readSpacing('goals', { horizontalGap: RANK_SEP, verticalGap: NODE_SEP });
-        const scope = readScope('goals');
+        goalOptions = v.parsed.goals.map(g => ({ id: String(g.id), name: g.name ?? '' }));
+        maxLevelPresent = v.parsed.goals.reduce((m, g) => Math.max(m, typeof g.level === 'number' ? g.level : 0), 0);
         const scopeWarning = checkScopeRoot(scope, v.parsed.goals.map(g => g.id));
         if (scopeWarning) warnings.push(`${scopeWarning.code}: ${scopeWarning.message}`);
         const layout = layoutGoalTree(v.parsed, {
@@ -160,7 +183,7 @@ export class GoalsPreview {
           nodeSep: gaps.verticalGap,
           scope,
         });
-        svgContent = layoutToSvg(layout, treeName, filename, docDate, docVersion, readCurvature('goals'));
+        svgContent = layoutToSvg(layout, treeName, filename, docDate, docVersion, curvature);
       }
     } catch (e) {
       errorMsg = (e as Error).message ?? 'Parse error';
@@ -172,6 +195,18 @@ export class GoalsPreview {
       .getConfiguration('transitrix')
       .get<ThemeId>('theme', 'transitrix');
 
+    const nonce = genNonce();
+    const model: ControlsModel = {
+      spacing: { ...gaps, defaults: spacingDefaults },
+      curvature: { value: curvature, default: 1 },
+      scope: {
+        rootId: scope.mode === 'root' ? scope.rootGoalId : '',
+        maxLevel: scope.mode === 'level' ? scope.maxLevel : -1,
+        maxLevelPresent,
+        goals: goalOptions,
+      },
+    };
+
     return buildDiagramFrame({
       filename, notation: 'Goal tree', svgContent, errorMsg, warnings, themeId,
       saveSvgCommand: 'transitrixStudio.saveGoalsAsSvg',
@@ -180,6 +215,7 @@ export class GoalsPreview {
       spacingCommand: OPEN_SPACING_SETTINGS_COMMAND,
       curvatureCommand: OPEN_CURVATURE_SETTINGS_COMMAND,
       scopeCommand: OPEN_SCOPE_SETTINGS_COMMAND,
+      interactive: { nonce, controlsPanel: buildControlsPanel(model), controlsScript: buildControlsScript(nonce) },
     });
   }
 
