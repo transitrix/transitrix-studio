@@ -7,6 +7,8 @@
 //
 // No React, no DOM, no vscode. Safe to call in Node.js or a test environment.
 
+import type { Scope } from '../scope.js';
+
 export type FGCAPreviewColumn = 'factor' | 'goal' | 'change' | 'activity';
 
 export interface FGCAPreviewFactor {
@@ -46,6 +48,49 @@ export interface FGCAPreviewLayoutOptions {
   colGap?: number;
   /** Vertical gap (px) between stacked nodes within a column. Default matches the historical hardcoded value. */
   rowGap?: number;
+  /** Trim to a level cap or a single root goal (vkgeorgia/strategy#77). Defaults to 'all'. */
+  scope?: Scope;
+}
+
+/**
+ * Trims an FGCA/FGA doc to a scope (vkgeorgia/strategy#77).
+ *
+ * FGCA/FGA goals are flat (no parent_id), so:
+ *   - 'level' → goals with `(level ?? 0) <= maxLevel`.
+ *   - 'root'  → the single goal whose id matches `rootGoalId` (empty when absent).
+ *
+ * Factors, changes and activities are then kept only when they touch a visible
+ * goal: a factor referenced by a visible goal, a change whose `goal_id` is
+ * visible, an activity bound to a visible goal directly or via a visible
+ * change. Pure and exported so an access-control layer can reuse it.
+ */
+export function selectScopedFGCA(doc: FGCAPreviewDoc, scope: Scope): FGCAPreviewDoc {
+  if (scope.mode === 'all') return doc;
+
+  const visibleGoals =
+    scope.mode === 'level'
+      ? doc.goals.filter(g => (g.level ?? 0) <= scope.maxLevel)
+      : doc.goals.filter(g => String(g.id) === scope.rootGoalId);
+
+  const visibleGoalIds = new Set(visibleGoals.map(g => g.id));
+
+  const changes = doc.changes ?? [];
+  const visibleChanges = changes.filter(c => visibleGoalIds.has(c.goal_id));
+  const activityIdsViaChange = new Set(visibleChanges.flatMap(c => c.activity_ids));
+
+  const visibleActivities = doc.activities.filter(
+    a => (a.goal_id != null && visibleGoalIds.has(a.goal_id)) || activityIdsViaChange.has(a.id),
+  );
+
+  const factorIds = new Set(visibleGoals.flatMap(g => (g.factor ?? []).map(f => f.id)));
+  const visibleFactors = doc.factors.filter(f => factorIds.has(f.id));
+
+  return {
+    factors: visibleFactors,
+    goals: visibleGoals,
+    changes: doc.changes === undefined ? undefined : visibleChanges,
+    activities: visibleActivities,
+  };
 }
 
 export interface FGCAPreviewNode {
@@ -84,14 +129,18 @@ export const FGCA_DEFAULT_COL_GAP = 160;
 export const FGCA_DEFAULT_ROW_GAP = 20;
 
 export function layoutFGCAPreview(
-  doc: FGCAPreviewDoc,
+  inputDoc: FGCAPreviewDoc,
   options: FGCAPreviewLayoutOptions = {},
 ): FGCAPreviewLayout {
   const {
     hideChanges = false,
     colGap = FGCA_DEFAULT_COL_GAP,
     rowGap = FGCA_DEFAULT_ROW_GAP,
+    scope = { mode: 'all' },
   } = options;
+
+  // Trim to scope first; everything below lays out the visible subset only.
+  const doc = selectScopedFGCA(inputDoc, scope);
 
   const colStride = FGCA_NODE_W + colGap;
   const cols: FGCAPreviewColumn[] = hideChanges

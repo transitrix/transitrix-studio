@@ -144,4 +144,32 @@ describe('layoutGoalTree', () => {
     };
     expect(() => layoutGoalTree(cyclic)).not.toThrow();
   });
+
+  // vkgeorgia/strategy#77 — scope filtering.
+  describe('scope', () => {
+    const ids = (l: ReturnType<typeof layoutGoalTree>) => l.nodes.map(n => n.id).sort((a, b) => a - b);
+
+    it("mode 'all' matches the baseline", () => {
+      expect(ids(layoutGoalTree(TREE, { scope: { mode: 'all' } }))).toEqual(ids(layoutGoalTree(TREE)));
+    });
+
+    it("mode 'level' trims goals strictly above the cap", () => {
+      // TREE: id1 level0, id2 level1, id3/id4 level2.
+      const layout = layoutGoalTree(TREE, { scope: { mode: 'level', maxLevel: 1 } });
+      expect(ids(layout)).toEqual([1, 2]);
+      expect(layout.nodes.every(n => n.data.level <= 1)).toBe(true);
+    });
+
+    it("mode 'root' keeps the chosen goal and its descendants", () => {
+      // root id2 → itself + children id3, id4.
+      const layout = layoutGoalTree(TREE, { scope: { mode: 'root', rootGoalId: '2' } });
+      expect(ids(layout)).toEqual([2, 3, 4]);
+    });
+
+    it("mode 'root' returns an empty layout when the root is absent", () => {
+      const layout = layoutGoalTree(TREE, { scope: { mode: 'root', rootGoalId: '999' } });
+      expect(layout.nodes).toHaveLength(0);
+      expect(layout.edges).toHaveLength(0);
+    });
+  });
 });

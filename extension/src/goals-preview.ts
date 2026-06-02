@@ -12,7 +12,8 @@ import {
 import { parseCanonicalGoals } from '../../packages/diagrams/src/goals/parse-canonical.js';
 import { coerceDatesToIsoStrings } from '../../packages/diagrams/src/yaml-normalize.js';
 import { horizontalCubicEdgePath, DEFAULT_EDGE_CURVATURE } from '../../packages/diagrams/src/edge-path.js';
-import { readSpacing, readCurvature, OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND } from './spacing-config.js';
+import { checkScopeRoot } from '../../packages/diagrams/src/scope.js';
+import { readSpacing, readCurvature, readScope, OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND, OPEN_SCOPE_SETTINGS_COMMAND } from './spacing-config.js';
 
 // ── SVG renderer ─────────────────────────────────────────────────────────────
 //
@@ -108,7 +109,7 @@ export class GoalsPreview {
         'goalsPreview',
         `${this.panelTitle} — ${path.basename(doc.fileName)}`,
         { viewColumn: vscode.ViewColumn.Beside, preserveFocus: false },
-        { enableScripts: false, retainContextWhenHidden: true, enableCommandUris: ['transitrixStudio.saveGoalsAsSvg', 'transitrixStudio.saveGoalsAsPng', 'transitrixStudio.copyGoalsAsPng', OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND] },
+        { enableScripts: false, retainContextWhenHidden: true, enableCommandUris: ['transitrixStudio.saveGoalsAsSvg', 'transitrixStudio.saveGoalsAsPng', 'transitrixStudio.copyGoalsAsPng', OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND, OPEN_SCOPE_SETTINGS_COMMAND] },
       );
       this.panel.onDidDispose(() => { this.panel = undefined; this.trackedUri = undefined; });
     }
@@ -149,11 +150,15 @@ export class GoalsPreview {
         const docVersion = typeof meta.version === 'string' ? meta.version : undefined;
         const docDate = typeof meta.date === 'string' ? meta.date : todayIso();
         const gaps = readSpacing('goals', { horizontalGap: RANK_SEP, verticalGap: NODE_SEP });
+        const scope = readScope('goals');
+        const scopeWarning = checkScopeRoot(scope, v.parsed.goals.map(g => g.id));
+        if (scopeWarning) warnings.push(`${scopeWarning.code}: ${scopeWarning.message}`);
         const layout = layoutGoalTree(v.parsed, {
           nodeWidth: NODE_W,
           nodeHeight: NODE_H,
           rankSep: gaps.horizontalGap,
           nodeSep: gaps.verticalGap,
+          scope,
         });
         svgContent = layoutToSvg(layout, treeName, filename, docDate, docVersion, readCurvature('goals'));
       }
@@ -174,6 +179,7 @@ export class GoalsPreview {
       copyPngCommand: 'transitrixStudio.copyGoalsAsPng',
       spacingCommand: OPEN_SPACING_SETTINGS_COMMAND,
       curvatureCommand: OPEN_CURVATURE_SETTINGS_COMMAND,
+      scopeCommand: OPEN_SCOPE_SETTINGS_COMMAND,
     });
   }
 

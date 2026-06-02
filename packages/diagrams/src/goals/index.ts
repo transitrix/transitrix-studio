@@ -15,5 +15,5 @@ export type {
 } from './types.js';
 
 export { validateGoalTree } from './validate.js';
-export { layoutGoalTree } from './layout.js';
+export { layoutGoalTree, selectScopedGoals } from './layout.js';
 export { reparent, addChild, deleteWithDescendants, moveToBacklog, restoreFromBacklog } from './mutations.js';

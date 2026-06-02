@@ -84,6 +84,12 @@ export interface DiagramFrameOpts {
    * opt-in contract as `spacingCommand`.
    */
   curvatureCommand?: string;
+  /**
+   * Command ID for the "Scope…" toolbar link (opens Settings filtered to the
+   * per-notation level/root scope controls — vkgeorgia/strategy#77). Same
+   * opt-in contract as `spacingCommand`.
+   */
+  scopeCommand?: string;
 }
 
 function escXml(s: string): string {
@@ -276,7 +282,7 @@ export function buildDiagramFrame(opts: DiagramFrameOpts): string {
     errorMsg = '', warnings = [],
     themeId = 'transitrix', extraStyles = '', fixPrompt = '',
     title, subtitle, version, date,
-    saveSvgCommand, savePngCommand, copyPngCommand, spacingCommand, curvatureCommand,
+    saveSvgCommand, savePngCommand, copyPngCommand, spacingCommand, curvatureCommand, scopeCommand,
   } = opts;
 
   const canvasContent = bodyContent ?? svgContent;
@@ -320,10 +326,11 @@ export function buildDiagramFrame(opts: DiagramFrameOpts): string {
   const showSaveSvg = Boolean(canvasContent) && Boolean(saveSvgCommand);
   const showSavePng = Boolean(canvasContent) && Boolean(savePngCommand);
   const showCopyPng = Boolean(canvasContent) && Boolean(copyPngCommand);
-  // Spacing/curvature links show whenever the preview opts in — including error
-  // renders, so the user can adjust the settings and trigger a re-render.
+  // Spacing/curvature/scope links show whenever the preview opts in — including
+  // error renders, so the user can adjust the settings and trigger a re-render.
   const showSpacing = Boolean(spacingCommand);
   const showCurvature = Boolean(curvatureCommand);
+  const showScope = Boolean(scopeCommand);
   // Zoom control gates on the same signal as Save .svg — the six vector
   // previews opt in by passing a saveSvgCommand. HTML catalogues are out of
   // scope per the orchestrator's call on issue #30.
@@ -359,6 +366,9 @@ export function buildDiagramFrame(opts: DiagramFrameOpts): string {
   }
   if (showCurvature) {
     actionParts.push(`<a href="command:${escXml(curvatureCommand!)}" class="toolbar-btn" title="Adjust the edge curvature for this notation in Settings">Curvature…</a>`);
+  }
+  if (showScope) {
+    actionParts.push(`<a href="command:${escXml(scopeCommand!)}" class="toolbar-btn" title="Scope this preview to a level cap or a single goal's subtree in Settings">Scope…</a>`);
   }
   const toolbarRight = actionParts.length > 0
     ? `<div class="toolbar-actions">${actionParts.join('')}</div>`
