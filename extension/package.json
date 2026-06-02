@@ -622,6 +622,30 @@
         "icon": "$(refresh)"
       },
       {
+        "command": "transitrixStudio.previewSingleLaw",
+        "title": "Transitrix: Preview compliance — single law",
+        "category": "Transitrix",
+        "icon": "$(law)"
+      },
+      {
+        "command": "transitrixStudio.refreshSingleLaw",
+        "title": "Transitrix: Refresh single-law compliance view",
+        "category": "Transitrix",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "transitrixStudio.previewSingleProduct",
+        "title": "Transitrix: Preview compliance — single product",
+        "category": "Transitrix",
+        "icon": "$(package)"
+      },
+      {
+        "command": "transitrixStudio.refreshSingleProduct",
+        "title": "Transitrix: Refresh single-product compliance view",
+        "category": "Transitrix",
+        "icon": "$(refresh)"
+      },
+      {
         "command": "transitrixStudio.openSpacingSettings",
         "title": "Transitrix: Open diagram spacing settings",
         "category": "Transitrix",
@@ -786,6 +810,16 @@
           "when": "resourceFilename =~ /\\.issues\\.transitrix\\.yaml$/",
           "command": "transitrixStudio.saveIssuesAsSvg",
           "group": "navigation@-9"
+        },
+        {
+          "when": "resourceFilename =~ /^(LAW|REGULATION|POLICY|INTERNAL_STANDARD)-.*\\.yaml$/",
+          "command": "transitrixStudio.previewSingleLaw",
+          "group": "navigation@-10"
+        },
+        {
+          "when": "resourceFilename =~ /^PRODUCT-.*\\.yaml$/",
+          "command": "transitrixStudio.previewSingleProduct",
+          "group": "navigation@-10"
         },
         {
           "when": "activeWebviewPanelId == issuesPreview",

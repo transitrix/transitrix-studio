@@ -4,6 +4,7 @@ export * from "./applications/index";
 export * from "./assertion/index";
 export * from "./blocks/index";
 export * from "./capability-map/index";
+export * from "./compliance/index";
 export * from "./compliance-matrix/index";
 export * from "./fgca/index";
 export * from "./goals/index";
