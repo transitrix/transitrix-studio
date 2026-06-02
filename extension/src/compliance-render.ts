@@ -40,7 +40,8 @@ body { padding: 0; }
 #cmp-toolbar { display: flex; align-items: baseline; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--ts-border, #cbd5e1); flex-wrap: wrap; }
 .cmp-title { font-size: 15px; font-weight: 700; color: var(--ts-text, #0f172a); }
 .cmp-subtitle { font-size: 12px; color: var(--ts-text-muted, #64748b); }
-.cmp-btn { font-size: 11px; padding: 2px 10px; border-radius: 4px; color: var(--ts-text-muted, #64748b); text-decoration: none; border: 1px solid var(--ts-border, #cbd5e1); margin-left: auto; }
+.cmp-toolbar-actions { margin-left: auto; display: inline-flex; gap: 6px; }
+.cmp-btn { font-size: 11px; padding: 2px 10px; border-radius: 4px; color: var(--ts-text-muted, #64748b); text-decoration: none; border: 1px solid var(--ts-border, #cbd5e1); }
 .cmp-btn:hover { color: var(--ts-text, #0f172a); background: var(--ts-bg-elevated, #f1f5f9); }
 #cmp-body { padding: 12px 16px 28px; }
 .cmp-link { color: var(--ts-brand-primary, #004d67); text-decoration: none; }
@@ -69,6 +70,15 @@ body { padding: 0; }
 .cmp-list th, .cmp-list td { border: 1px solid var(--ts-border, #cbd5e1); padding: 6px 12px; text-align: left; }
 .cmp-list th { background: var(--ts-bg-subtle, #f1f5f9); color: var(--ts-text, #0f172a); }
 .cmp-empty { color: var(--ts-text-muted, #64748b); padding: 24px 0; max-width: 640px; }
+
+/* Gap dashboard sections */
+.cmp-section { margin: 0 0 22px; max-width: 860px; }
+.cmp-section h2 { font-size: 13px; margin: 0 0 8px; color: var(--ts-text, #0f172a); }
+.cmp-section h2 .cmp-count { color: var(--ts-text-muted, #64748b); font-weight: 400; }
+.cmp-ok { color: var(--ts-status-success-fg, #065f46); font-size: 12px; }
+.cmp-rows { list-style: none; margin: 0; padding: 0; }
+.cmp-rows li { display: flex; align-items: center; gap: 8px; padding: 5px 2px; border-bottom: 1px solid var(--ts-border, #e2e8f0); font-size: 12px; }
+.cmp-rows .cmp-meta { color: var(--ts-text-muted, #64748b); font-size: 11px; }
 `;
 
 export interface ComplianceShellOptions {
@@ -77,6 +87,8 @@ export interface ComplianceShellOptions {
   themeId: ThemeId;
   /** Command id for the Refresh button (re-scan). */
   refreshCommand: string;
+  /** Extra toolbar buttons (command URIs), rendered before Refresh. */
+  extraButtons?: Array<{ command: string; label: string; title: string }>;
   /** Already-built body HTML (caller is responsible for escaping). */
   bodyHtml: string;
 }
@@ -97,7 +109,7 @@ ${COMPLIANCE_CSS}
   <div id="cmp-toolbar">
     <span class="cmp-title">${escXml(opts.title)}</span>
     ${opts.subtitle ? `<span class="cmp-subtitle">${escXml(opts.subtitle)}</span>` : ''}
-    <a href="command:${opts.refreshCommand}" class="cmp-btn" title="Re-scan the workspace">Refresh</a>
+    <span class="cmp-toolbar-actions">${(opts.extraButtons ?? []).map(b => `<a href="command:${b.command}" class="cmp-btn" title="${escXml(b.title)}">${escXml(b.label)}</a>`).join('')}<a href="command:${opts.refreshCommand}" class="cmp-btn" title="Re-scan the workspace">Refresh</a></span>
   </div>
   <div id="cmp-body">
     ${opts.bodyHtml}
