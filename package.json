@@ -30,6 +30,7 @@
     "compile:extension": "tsc -p extension/tsconfig.json --noEmit",
     "build": "tsc -p tsconfig.build.json",
     "build:webview": "node scripts/build-webview.mjs",
+    "build:webview-bundle": "node scripts/build-webview-bundle.mjs",
     "extension:bundle": "node scripts/build-extension-bundle.mjs",
     "extension:prep": "npm run build:webview && node scripts/build-compiler-bundle.mjs && npm run extension:bundle",
     "pretest": "npm run build",
