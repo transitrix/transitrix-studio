@@ -1,6 +1,6 @@
 // Markdown renderers for the compliance views (vkgeorgia/strategy#84 Phase 5).
 // Pure string builders consumed by the `transitrix export-compliance` CLI.
-// PDF (WeasyPrint) is the planned follow-on; this module is the Markdown half.
+// PDF rendering lives in `html.ts` (HTML doc fed to WeasyPrint by the CLI).
 
 import { buildComplianceMatrix } from '../compliance-matrix/index.js';
 import { buildComplianceIndex } from './reverse-index.js';
