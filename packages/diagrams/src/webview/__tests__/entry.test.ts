@@ -22,13 +22,15 @@ describe('webview/entry — Step 2 host API', () => {
     expect(typeof api.render).toBe('function');
   });
 
-  it('parses + validates a well-formed goals document', () => {
+  it('parses + validates + renders SVG for a well-formed goals document', () => {
     const r = render('goals', VALID_GOALS_DOC);
     expect(r.notation).toBe('goals');
     expect(r.status).toBe('ok');
     expect(r.errors).toEqual([]);
-    // Step 2 leaves SVG empty; Step 3 wires the goals renderer.
-    expect(r.svg).toBe('');
+    // Step 3 wires the goals renderer — SVG must now be non-empty and contain
+    // the goal name from the YAML.
+    expect(r.svg).toContain('<svg ');
+    expect(r.svg).toContain('Reach the moon');
   });
 
   it('returns YAML-PARSE on malformed input — no exception escapes to the host', () => {

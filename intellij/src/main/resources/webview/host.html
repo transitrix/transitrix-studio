@@ -1,0 +1,28 @@
+<!doctype html>
+<!--
+  JCEF host page for the Transitrix Studio IntelliJ plugin (ADR 0001 step 3).
+
+  The plugin reads this file from the classloader, splices in the bundled
+  @transitrix/diagrams JS + CSS plus a one-shot bootstrap that calls
+  `window.transitrix.render(kind, source)` and injects the resulting SVG (or
+  the validation error/warning panels) into #transitrix-root. Re-renders go
+  through the existing `loadHTML(...)` cycle on the JCEF browser — the page
+  itself stays declarative.
+
+  Placeholders the JVM host substitutes before loadHTML:
+    @@STYLES@@      — contents of webview/transitrix-render.css
+    @@BUNDLE@@      — contents of webview/transitrix-render.js
+    @@BOOTSTRAP@@   — JS snippet that invokes render() with the kind + source
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Transitrix preview</title>
+    <style>@@STYLES@@</style>
+  </head>
+  <body>
+    <div id="transitrix-root">Loading preview…</div>
+    <script>@@BUNDLE@@</script>
+    <script>@@BOOTSTRAP@@</script>
+  </body>
+</html>
