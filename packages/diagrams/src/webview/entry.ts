@@ -10,14 +10,16 @@
  * `window.transitrix.render(kind, source)` regardless of which notation the
  * user opened.
  *
- * Step 2 scope (this PR): wire YAML parsing, dispatch to the right validator,
- * surface validation/parse errors in a structured JSON shape. SVG output is
- * intentionally left empty for every notation; Step 3 swaps `goals` in first,
- * Step 4 fills the remaining ten.
+ * Step 2 scope: wire YAML parsing, dispatch to the right validator, surface
+ * validation/parse errors in a structured JSON shape.
+ * Step 3 scope (this PR): wire the `goals` SVG renderer so the bundle returns
+ * non-empty `svg` for a valid goals document. Step 4 fills the remaining ten
+ * notations.
  */
 import yaml from 'js-yaml';
 
 import { parseCanonicalGoals } from '../goals/parse-canonical.js';
+import { renderGoalsSvg } from './render-goals.js';
 
 export interface RenderError {
   code: string;
@@ -103,6 +105,11 @@ function dispatchValidate(kind: NotationKind, doc: unknown): RenderResult {
       const r = emptyResult('goals', v.valid ? 'ok' : 'error');
       r.errors.push(...v.errors);
       r.warnings.push(...v.warnings);
+      if (v.valid && v.parsed) {
+        const meta = (doc ?? {}) as { name?: unknown };
+        const treeName = typeof meta.name === 'string' ? meta.name : '';
+        r.svg = renderGoalsSvg(v.parsed, { treeName });
+      }
       return r;
     }
     // Step 4 wires the remaining notations. Until then they parse successfully
