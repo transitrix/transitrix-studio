@@ -1,4 +1,4 @@
-// `cervin export-compliance` handler (vkgeorgia/strategy#84 Phase 5).
+// `cervin export-compliance` handler (vkgeorgia/strategy#84 Phase 5 + PDF follow-on).
 //
 // Lives in its own module — separate from cli.ts — because it imports the
 // compliance library from `@transitrix/diagrams` *source*. The root emit build
@@ -8,13 +8,16 @@
 // It is still type-checked by `npm run compile` (the root program has no
 // rootDir restriction).
 
-import { writeFileSync, readFileSync, readdirSync } from 'node:fs';
+import { writeFileSync, readFileSync, readdirSync, mkdtempSync, rmSync } from 'node:fs';
 import * as path from 'node:path';
+import * as os from 'node:os';
+import { spawnSync } from 'node:child_process';
 import yaml from 'js-yaml';
 import {
   emptyCanon,
   ingestComplianceDoc,
   renderComplianceMarkdown,
+  renderComplianceHtml,
   type ComplianceCanon,
   type ReportScope,
 } from '../packages/diagrams/src/compliance/index.js';
@@ -56,6 +59,51 @@ function parseScope(scopeArg: string | undefined): ReportScope | null {
   return null;
 }
 
+/** Invoke `weasyprint <html> <pdf>`. WeasyPrint is a Python tool; we shell out
+ *  rather than re-implement PDF generation in JS, matching the engine the
+ *  Transitrix site uses for one-pager renders so the styling stays consistent.
+ *  Surfaces ENOENT as an installable-prereq message rather than a stack trace. */
+function runWeasyPrint(htmlPath: string, pdfPath: string): { ok: true } | { ok: false; message: string } {
+  const candidates = process.platform === 'win32'
+    ? ['weasyprint.exe', 'weasyprint']
+    : ['weasyprint'];
+  let lastErr: NodeJS.ErrnoException | null = null;
+  for (const cmd of candidates) {
+    const res = spawnSync(cmd, [htmlPath, pdfPath], { encoding: 'utf-8' });
+    if (res.error && (res.error as NodeJS.ErrnoException).code === 'ENOENT') {
+      lastErr = res.error as NodeJS.ErrnoException;
+      continue;
+    }
+    if (res.error) {
+      return { ok: false, message: `weasyprint failed to launch: ${res.error.message}` };
+    }
+    if (res.status !== 0) {
+      const stderr = (res.stderr || '').trim();
+      return {
+        ok: false,
+        message: `weasyprint exited with code ${res.status}${stderr ? `:\n${stderr}` : ''}`,
+      };
+    }
+    return { ok: true };
+  }
+  return {
+    ok: false,
+    message:
+      'weasyprint executable not found on PATH. ' +
+      'PDF export requires WeasyPrint (https://weasyprint.org/) — install it (e.g. `pipx install weasyprint`) and re-run.' +
+      (lastErr ? ` Last error: ${lastErr.message}` : ''),
+  };
+}
+
+function defaultPdfFilename(scope: ReportScope): string {
+  switch (scope.mode) {
+    case 'matrix': return 'compliance-matrix.pdf';
+    case 'gap': return 'compliance-gap.pdf';
+    case 'law': return `compliance-${scope.id}.pdf`;
+    case 'product': return `compliance-${scope.id}.pdf`;
+  }
+}
+
 export async function handleExportComplianceCommand(argv: string[]): Promise<void> {
   const format = (flagValue(argv, '--format') ?? 'md').toLowerCase();
   const output = flagValue(argv, '--output');
@@ -66,23 +114,39 @@ export async function handleExportComplianceCommand(argv: string[]): Promise<voi
     console.error('export-compliance: unknown --scope (expected law:<LAW-ID>, product:<PRODUCT-ID>, gap, or omit for the full matrix).');
     process.exit(1);
   }
-  if (format === 'pdf') {
-    console.error('export-compliance: PDF export is the Phase 5 follow-on (WeasyPrint, A4 branded). Use --format md for now.');
-    process.exit(1);
-  }
-  if (format !== 'md') {
+  if (format !== 'md' && format !== 'pdf') {
     console.error(`export-compliance: unknown --format '${format}' (expected md or pdf).`);
     process.exit(1);
   }
 
   const canon = scanCanonFs(root);
   const today = new Date().toISOString().slice(0, 10);
-  const markdown = renderComplianceMarkdown(canon, scope, { today });
 
-  if (output) {
-    writeFileSync(output, markdown, 'utf-8');
-    console.error(`Wrote ${output}`);
-  } else {
-    process.stdout.write(markdown);
+  if (format === 'md') {
+    const markdown = renderComplianceMarkdown(canon, scope, { today });
+    if (output) {
+      writeFileSync(output, markdown, 'utf-8');
+      console.error(`Wrote ${output}`);
+    } else {
+      process.stdout.write(markdown);
+    }
+    return;
+  }
+
+  // format === 'pdf'
+  const html = renderComplianceHtml(canon, scope, { today });
+  const pdfPath = output ?? defaultPdfFilename(scope);
+  const tmpDir = mkdtempSync(path.join(os.tmpdir(), 'cervin-export-'));
+  const htmlPath = path.join(tmpDir, 'report.html');
+  try {
+    writeFileSync(htmlPath, html, 'utf-8');
+    const result = runWeasyPrint(htmlPath, pdfPath);
+    if (!result.ok) {
+      console.error(`export-compliance: ${result.message}`);
+      process.exit(1);
+    }
+    console.error(`Wrote ${pdfPath}`);
+  } finally {
+    try { rmSync(tmpDir, { recursive: true, force: true }); } catch { /* best-effort cleanup */ }
   }
 }
