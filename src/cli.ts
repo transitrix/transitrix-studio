@@ -23,15 +23,16 @@ function printUsage(): void {
        cervin metrics [--ext=.cervin.yaml,.bpmn.transitrix.yaml] <input.yaml> [--json]
        cervin validate <input.yaml> [--json]
        cervin validate [--ext=.cervin.yaml,.bpmn.transitrix.yaml] <input.yaml> [--json]
-       cervin export-compliance [--format md] [--scope law:<ID>|product:<ID>|gap] [--output <path>] [--root <dir>]
+       cervin export-compliance [--format md|pdf] [--scope law:<ID>|product:<ID>|gap] [--output <path>] [--root <dir>]
 
   serve     — local web UI (run npm run ui:build once beforehand).
   <compile> — YAML → BPMN 2.0 XML with layout metrics.
   metrics   — layout quality metrics (with --json for CI).
   validate  — BPMN validation only (no XML output; exit 1 on errors).
-  export-compliance — Markdown report of the compliance views (matrix by
+  export-compliance — Markdown or PDF report of the compliance views (matrix by
               default; law:/product:/gap scopes). Scans --root (default cwd) for
-              requirement/assertion/product/codex canon. PDF is a follow-on.
+              requirement/assertion/product/codex canon. PDF rendering requires
+              WeasyPrint on PATH (pipx install weasyprint).
 
   --no-metrics  suppress quality metrics report on compile.
   --no-validate suppress validation warnings (errors always run).

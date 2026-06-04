@@ -6,6 +6,8 @@ export { emptyCanon, ingestComplianceDoc } from './classify.js';
 export type { ComplianceCanon, ComplianceProduct, ComplianceCodexDoc } from './classify.js';
 export { renderComplianceMarkdown } from './markdown.js';
 export type { ReportScope, MarkdownOptions } from './markdown.js';
+export { renderComplianceHtml } from './html.js';
+export type { HtmlOptions } from './html.js';
 export type {
   ComplianceIndex,
   ComplianceIndexInput,
