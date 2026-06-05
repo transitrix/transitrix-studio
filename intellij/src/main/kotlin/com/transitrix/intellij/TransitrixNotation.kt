@@ -7,10 +7,10 @@ package com.transitrix.intellij
  * The suffix list mirrors `extension/package.json` `activationEvents` plus
  * the `*.cervin.yaml` / `*.bpmn.transitrix.yaml` files the VS Code extension
  * handles. The kinds returned here are the same strings the JS-side
- * `entry.ts` whitelists in `SUPPORTED_KINDS`. Phase 3 (ADR 0001 step 3) only
- * ships the `goals` renderer end-to-end; the other supported kinds return
- * `NOTATION-NOT-WIRED` from the bundle, which the host page surfaces as a
- * clear error panel — that's the deliberate Phase 3 / Phase 4 boundary.
+ * `entry.ts` whitelists in `SUPPORTED_KINDS`. As of Phase 4 (ADR 0001 step 4)
+ * every kind below is wired to its validator + renderer in the bundle, so a
+ * valid document renders and a malformed one surfaces the validation error
+ * panel.
  */
 object TransitrixNotation {
 
