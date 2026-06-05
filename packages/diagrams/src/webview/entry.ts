@@ -12,14 +12,49 @@
  *
  * Step 2 scope: wire YAML parsing, dispatch to the right validator, surface
  * validation/parse errors in a structured JSON shape.
- * Step 3 scope (this PR): wire the `goals` SVG renderer so the bundle returns
- * non-empty `svg` for a valid goals document. Step 4 fills the remaining ten
- * notations.
+ * Step 3 scope: wire the `goals` SVG renderer so the bundle returns non-empty
+ * `svg` for a valid goals document.
+ * Step 4 scope (this PR): wire the remaining eleven notations — each one
+ * validates the parsed YAML and, when valid, renders host-neutral markup
+ * (SVG for the diagram notations, an HTML fragment for the catalogue
+ * notations). The JVM host drops whatever `svg` carries into the DOM, so the
+ * field name is historical — it transports any self-contained markup.
  */
 import yaml from 'js-yaml';
 
+import { validateActivities } from '../activities/index.js';
+import type { ActivityDoc } from '../activities/index.js';
+import { validateActivityCard } from '../activity-card/index.js';
+import type { ActivityCardDoc } from '../activity-card/index.js';
+import { validateApplicationsCatalogue } from '../applications/index.js';
+import type { ApplicationsCatalogueFile } from '../applications/index.js';
+import { validateNestedBlocks } from '../blocks/index.js';
+import type { BlocksFile } from '../blocks/index.js';
+import { validateCapabilityMap } from '../capability-map/index.js';
+import type { CapabilityMapFile } from '../capability-map/index.js';
+import { parseCanonicalFGCA, parseCanonicalFGA } from '../fgca/parse-canonical.js';
 import { parseCanonicalGoals } from '../goals/parse-canonical.js';
+import { validateProcessBlueprint } from '../process-blueprint/index.js';
+import type { ProcessBlueprintFile } from '../process-blueprint/index.js';
+import { validateProcessMap } from '../process-map/index.js';
+import type { ProcessMapFile } from '../process-map/index.js';
+import { validateProductsCatalogue } from '../products/index.js';
+import type { ProductsCatalogueFile } from '../products/index.js';
+import { validateScenario } from '../scenarios/index.js';
+import type { ScenarioFile } from '../scenarios/index.js';
+import { coerceDatesToIsoStrings } from '../yaml-normalize.js';
+
+import { renderActivitiesSvg } from './render-activities.js';
+import { renderActivityCardSvg } from './render-activity-card.js';
+import { renderApplicationsHtml } from './render-applications.js';
+import { renderBlocksSvg } from './render-blocks.js';
+import { renderCapabilityMapHtml } from './render-capability-map.js';
+import { renderFgcaSvg } from './render-fgca.js';
 import { renderGoalsSvg } from './render-goals.js';
+import { renderProcessBlueprintSvg } from './render-process-blueprint.js';
+import { renderProcessMapHtml } from './render-process-map.js';
+import { renderProductsHtml } from './render-products.js';
+import { renderScenarioHtml } from './render-scenarios.js';
 
 export interface RenderError {
   code: string;
@@ -38,7 +73,12 @@ export type RenderStatus = 'ok' | 'error';
 export interface RenderResult {
   status: RenderStatus;
   notation: string;
-  /** SVG markup once the renderer for `notation` is wired (Step 3+). Empty until then. */
+  /**
+   * Self-contained markup for the rendered notation — an `<svg>` for the
+   * diagram notations, an HTML `<section>` for the catalogue notations. Empty
+   * on validation failure (the host shows the error panel instead). The field
+   * name is historical; the JVM host injects whatever it carries into the DOM.
+   */
   svg: string;
   errors: RenderError[];
   warnings: RenderWarning[];
@@ -46,8 +86,8 @@ export interface RenderResult {
 
 /**
  * Notation kinds the host can request. Mirrors the `*.<kind>.<…>` suffix
- * convention used by the VS Code extension's `activationEvents`. Step 4 fills
- * the remaining ten; Step 2 only wires `goals` to its validator.
+ * convention used by the VS Code extension's `activationEvents`. All twelve
+ * are wired to their validator + renderer as of Step 4.
  */
 export type NotationKind =
   | 'goals'
@@ -92,10 +132,40 @@ function errorResult(notation: string, code: string, message: string, path?: str
 
 function parseYaml(source: string): { doc?: unknown; error?: string } {
   try {
-    return { doc: yaml.load(source) };
+    // Coerce native `Date`s (bare `2026-06-01` per YAML 1.1) back to ISO
+    // strings before validation — every notation validator expects string
+    // dates, and the VS Code previews apply the same normalisation. Without
+    // it the canonical-minus-quotes form would falsely fail shape checks.
+    return { doc: coerceDatesToIsoStrings(yaml.load(source)) };
   } catch (e: unknown) {
     return { error: e instanceof Error ? e.message : String(e) };
   }
+}
+
+interface ValidationLike {
+  valid: boolean;
+  errors: RenderError[];
+  warnings: RenderWarning[];
+}
+
+/**
+ * Shared shape for the validate-then-render notations: copy the validator's
+ * errors/warnings into the result, and render markup only once the document is
+ * valid. `renderMarkup` is a thunk so the (type-asserted) render call never
+ * runs against a document the validator rejected.
+ */
+function renderFromValidation(
+  kind: NotationKind,
+  result: ValidationLike,
+  renderMarkup: () => string,
+): RenderResult {
+  const r = emptyResult(kind, result.valid ? 'ok' : 'error');
+  r.errors.push(...result.errors);
+  r.warnings.push(...result.warnings);
+  if (result.valid) {
+    r.svg = renderMarkup();
+  }
+  return r;
 }
 
 function dispatchValidate(kind: NotationKind, doc: unknown): RenderResult {
@@ -112,9 +182,67 @@ function dispatchValidate(kind: NotationKind, doc: unknown): RenderResult {
       }
       return r;
     }
-    // Step 4 wires the remaining notations. Until then they parse successfully
-    // and surface a clear "not wired" error rather than crashing — the JVM
-    // host can show the user a meaningful message instead of an empty panel.
+    // FGCA and FGA share the canonical parse + renderer; only the layer
+    // visibility differs (FGA collapses the Change column). Both carry the
+    // parsed `FGCADoc` on the result's `parsed` field when valid.
+    case 'fgca': {
+      const v = parseCanonicalFGCA(doc);
+      const r = emptyResult('fgca', v.valid ? 'ok' : 'error');
+      r.errors.push(...v.errors);
+      r.warnings.push(...v.warnings);
+      if (v.valid && v.parsed) {
+        r.svg = renderFgcaSvg(v.parsed, { variant: 'fgca' });
+      }
+      return r;
+    }
+    case 'fga': {
+      const v = parseCanonicalFGA(doc);
+      const r = emptyResult('fga', v.valid ? 'ok' : 'error');
+      r.errors.push(...v.errors);
+      r.warnings.push(...v.warnings);
+      if (v.valid && v.parsed) {
+        r.svg = renderFgcaSvg(v.parsed, { variant: 'fga' });
+      }
+      return r;
+    }
+    case 'activities':
+      return renderFromValidation('activities', validateActivities(doc), () =>
+        renderActivitiesSvg(doc as ActivityDoc),
+      );
+    case 'activity-card':
+      return renderFromValidation('activity-card', validateActivityCard(doc), () =>
+        renderActivityCardSvg(doc as ActivityCardDoc),
+      );
+    case 'process-blueprint':
+      return renderFromValidation('process-blueprint', validateProcessBlueprint(doc), () =>
+        renderProcessBlueprintSvg(doc as ProcessBlueprintFile),
+      );
+    case 'blocks':
+      return renderFromValidation('blocks', validateNestedBlocks(doc), () =>
+        renderBlocksSvg(doc as BlocksFile),
+      );
+    // Catalogue notations render an HTML fragment from the header nested under
+    // their top-level wrapper key (`<thing>_catalogue` / `scenario` / …).
+    case 'applications':
+      return renderFromValidation('applications', validateApplicationsCatalogue(doc), () =>
+        renderApplicationsHtml((doc as ApplicationsCatalogueFile).applications_catalogue),
+      );
+    case 'products':
+      return renderFromValidation('products', validateProductsCatalogue(doc), () =>
+        renderProductsHtml((doc as ProductsCatalogueFile).products_catalogue),
+      );
+    case 'process-map':
+      return renderFromValidation('process-map', validateProcessMap(doc), () =>
+        renderProcessMapHtml((doc as ProcessMapFile).process_map),
+      );
+    case 'scenarios':
+      return renderFromValidation('scenarios', validateScenario(doc), () =>
+        renderScenarioHtml((doc as ScenarioFile).scenario),
+      );
+    case 'capability-map':
+      return renderFromValidation('capability-map', validateCapabilityMap(doc), () =>
+        renderCapabilityMapHtml((doc as CapabilityMapFile).capability_map),
+      );
     default:
       return errorResult(
         kind,

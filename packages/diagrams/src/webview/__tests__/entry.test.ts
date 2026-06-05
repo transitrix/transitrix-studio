@@ -45,11 +45,14 @@ describe('webview/entry — Step 2 host API', () => {
     expect(r.errors[0].code).toBe('KIND-UNKNOWN');
   });
 
-  it('returns NOTATION-NOT-WIRED for kinds that parse but have no Step 2 renderer', () => {
-    // fgca is a supported kind but Step 4 wires its validator into the bundle.
+  it('routes non-goals kinds to their validator after Step 4 (no NOTATION-NOT-WIRED)', () => {
+    // Every supported kind is now wired to its validator + renderer. A
+    // malformed fgca document must surface a structured validation error from
+    // the fgca validator — never the Step-2/3 "not wired" placeholder.
     const r = render('fgca', 'changes: []\n');
     expect(r.status).toBe('error');
-    expect(r.errors[0].code).toBe('NOTATION-NOT-WIRED');
+    expect(r.errors.length).toBeGreaterThan(0);
+    expect(r.errors.every((e) => e.code !== 'NOTATION-NOT-WIRED')).toBe(true);
   });
 
   it('surfaces goals validation errors structurally (e.g. missing notation header)', () => {
