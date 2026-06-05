@@ -74,3 +74,250 @@ body {
   max-width: 100%;
   height: auto;
 }
+
+/* ---------------------------------------------------------------------------
+ * Catalogue notations (Step 4)
+ *
+ * The HTML-fragment renderers (applications, products, process-map, scenarios,
+ * capability-map) emit class-tagged markup but no inline styles — the host page
+ * is the single place these classes get themed, so the JCEF preview stays
+ * consistent with the dark IntelliJ chrome above. The SVG notations embed their
+ * own theme CSS and do not depend on anything below.
+ * ------------------------------------------------------------------------- */
+
+:root {
+  --tx-panel: #2b2d30;
+  --tx-border: #393b40;
+  --tx-accent: #4aa3df;
+  --tx-tag-bg: #34373b;
+  --tx-ok-bg: #1f3a2b;
+  --tx-ok-fg: #7ee2a8;
+  --tx-info-bg: #14344a;
+  --tx-info-fg: #76c2f0;
+  --tx-warn-bg: #3d3322;
+  --tx-warn-fg: #f3d3a3;
+  --tx-danger-bg: #3d2222;
+  --tx-danger-fg: #f3a3a3;
+}
+
+.tx-catalogue {
+  max-width: 1100px;
+}
+
+.catalogue-header {
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--tx-border);
+}
+
+.catalogue-title {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.catalogue-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 4px;
+  color: var(--tx-muted);
+  font-size: 12px;
+}
+
+.catalogue-id-tag,
+.group-id {
+  font-family: var(--tx-mono);
+  color: var(--tx-accent);
+}
+
+.catalogue-version {
+  font-family: var(--tx-mono);
+}
+
+.catalogue-subtitle {
+  margin-top: 6px;
+  color: var(--tx-fg);
+}
+
+.catalogue-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.catalogue-table th,
+.catalogue-table td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--tx-border);
+  vertical-align: top;
+}
+
+.catalogue-table th {
+  color: var(--tx-muted);
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.catalogue-table tbody tr:hover {
+  background: var(--tx-panel);
+}
+
+.catalogue-name {
+  font-weight: 600;
+}
+
+.catalogue-id {
+  font-family: var(--tx-mono);
+  font-size: 11px;
+  color: var(--tx-accent);
+}
+
+.catalogue-desc {
+  color: var(--tx-muted);
+  margin-top: 2px;
+}
+
+.type-tag,
+.cap-tag,
+.group-tag {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 10px;
+  background: var(--tx-tag-bg);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.tx-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.badge-active { background: var(--tx-ok-bg); color: var(--tx-ok-fg); }
+.badge-draft { background: var(--tx-info-bg); color: var(--tx-info-fg); }
+.badge-deprecated,
+.badge-archived { background: var(--tx-warn-bg); color: var(--tx-warn-fg); }
+.badge-decommissioning { background: var(--tx-danger-bg); color: var(--tx-danger-fg); }
+.badge-high { background: var(--tx-danger-bg); color: var(--tx-danger-fg); }
+.badge-medium { background: var(--tx-warn-bg); color: var(--tx-warn-fg); }
+.badge-low { background: var(--tx-info-bg); color: var(--tx-info-fg); }
+
+.maturity-dots {
+  letter-spacing: 1px;
+  color: var(--tx-accent);
+}
+
+.cell-empty {
+  color: var(--tx-muted);
+}
+
+.vendor-internal { color: var(--tx-ok-fg); }
+.vendor-external { color: var(--tx-info-fg); }
+
+.empty-catalogue,
+.empty-group,
+.empty-map,
+.empty-scenario {
+  text-align: center;
+  color: var(--tx-muted);
+  font-style: italic;
+  padding: 24px;
+}
+
+.intg-dir,
+.intg-proto { color: var(--tx-accent); font-family: var(--tx-mono); font-size: 11px; }
+.intg-desc { color: var(--tx-muted); }
+
+details { margin-top: 6px; font-size: 12px; }
+details summary { cursor: pointer; color: var(--tx-accent); user-select: none; }
+details ul { margin: 4px 0 0 16px; padding: 0; }
+details li { margin-bottom: 3px; }
+
+code {
+  font-family: var(--tx-mono);
+  background: var(--tx-tag-bg);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 12px;
+}
+
+/* Process map — grouped sections */
+.group-section { margin-bottom: 22px; }
+.group-header { margin-bottom: 8px; }
+.group-meta { display: flex; gap: 8px; align-items: center; }
+.group-title { font-size: 15px; margin: 4px 0 0; }
+.group-desc { color: var(--tx-muted); margin: 2px 0 0; }
+.group-tag-operating { background: var(--tx-info-bg); color: var(--tx-info-fg); }
+.group-tag-supporting { background: var(--tx-tag-bg); }
+.group-tag-management { background: var(--tx-ok-bg); color: var(--tx-ok-fg); }
+.bpmn-link { color: var(--tx-accent); white-space: nowrap; }
+
+/* Scenarios — stacked sections */
+.scn-section { margin-bottom: 18px; }
+.scn-section-title {
+  font-size: 14px;
+  margin: 0 0 8px;
+  border-bottom: 1px solid var(--tx-border);
+  padding-bottom: 4px;
+}
+.scn-count {
+  font-size: 11px;
+  color: var(--tx-muted);
+  font-weight: 400;
+}
+.scn-vision-text { margin: 0; }
+.scn-ref-list { margin: 0; padding-left: 18px; }
+.scn-ref-list li { margin-bottom: 3px; }
+
+/* Capability map — nested cards on two axes */
+.cap-axis { margin-bottom: 22px; }
+.cap-axis-title { font-size: 14px; margin: 0 0 10px; }
+.cap-axis-list { display: flex; flex-direction: column; gap: 10px; }
+.capability-card {
+  border: 1px solid var(--tx-border);
+  border-radius: 6px;
+  padding: 10px 12px;
+  background: var(--tx-panel);
+}
+.cap-children {
+  margin-top: 8px;
+  margin-left: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-left: 2px solid var(--tx-border);
+  padding-left: 10px;
+}
+.capability-head { display: flex; gap: 10px; align-items: baseline; }
+.capability-name { font-weight: 600; }
+.capability-id { font-family: var(--tx-mono); font-size: 11px; color: var(--tx-accent); }
+.capability-maturity { display: inline-flex; gap: 4px; align-items: center; }
+.maturity-pill {
+  display: inline-block;
+  min-width: 22px;
+  text-align: center;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--tx-tag-bg);
+}
+.maturity-1 { background: var(--tx-danger-bg); color: var(--tx-danger-fg); }
+.maturity-2 { background: var(--tx-warn-bg); color: var(--tx-warn-fg); }
+.maturity-3 { background: var(--tx-info-bg); color: var(--tx-info-fg); }
+.maturity-4,
+.maturity-5 { background: var(--tx-ok-bg); color: var(--tx-ok-fg); }
+.maturity-arrow { color: var(--tx-muted); }
+.cap-meta-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.cap-meta { color: var(--tx-muted); font-size: 12px; }
+.cap-desc { margin-top: 6px; }
+.cap-apps { margin-top: 6px; font-size: 12px; }
+.cap-apps-label { color: var(--tx-muted); }
