@@ -48,6 +48,16 @@ export interface ProcessBlueprintLayoutOptions {
   pillHeight?: number;
   pillGap?: number;
   cellPadding?: number;
+  /** Vertical advance between wrapped text lines in goal/result cells (px). */
+  textLineHeight?: number;
+  /** Approximate glyph width used to estimate wrap width (px per char). */
+  textCharWidth?: number;
+  /** Horizontal text inset inside goal/result cells (px, both sides). */
+  cellTextPadX?: number;
+  /** Top+bottom padding added around wrapped goal/result text (px). */
+  cellTextPadY?: number;
+  /** Maximum wrapped lines per goal/result cell before truncating with an ellipsis. */
+  maxTextLines?: number;
 }
 
 export interface LayoutBounds {
@@ -78,6 +88,8 @@ export interface StageHeaderCell {
 export interface StageTextCell {
   stageIndex: number;
   text: string;
+  /** Word-wrapped lines of `text`, pre-fitted to the cell width by the layout. */
+  lines: string[];
   x: number;
   y: number;
   width: number;
@@ -108,6 +120,10 @@ export interface ProcessBlueprintLayout {
   bounds: LayoutBounds;
   legendColumnWidth: number;
   stageColumnWidth: number;
+  /** Vertical advance between wrapped text lines, so renderers stack tspans consistently. */
+  textLineHeight: number;
+  /** Horizontal text inset used for goal/result cells (px). */
+  cellTextPadX: number;
   legend: LegendCell[];
   stageHeaders: StageHeaderCell[];
   goalCells: StageTextCell[];
