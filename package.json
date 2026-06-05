@@ -1,6 +1,6 @@
 {
   "name": "transitrix-studio",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "private": true,
   "workspaces": [
     "packages/*"
@@ -44,7 +44,7 @@
     "ui:build": "vite build --config ui/vite.config.ts",
     "ui:preview": "npm run build && npm run ui:build && vite preview --config ui/vite.config.ts",
     "bump-extension-version": "node scripts/bump-extension-version.mjs",
-    "package-extension": "npm run extension:prep && npm run bump-extension-version && cd extension && vsce package",
+    "package-extension": "npm run extension:prep && npm run bump-extension-version && cd extension && vsce package --out ../output/",
     "sync-examples": "node scripts/sync-examples-from-methodology.mjs"
   },
   "bin": {

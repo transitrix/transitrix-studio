@@ -29,7 +29,11 @@ extension/backends/
 # real surface and pollutes the VSIX. Keep `npm install` in extension/ from
 # regenerating one.
 extension/package-lock.json
-output/
+# Packaged .vsix artifacts land in output/ (see package-extension). Ignore the
+# contents but keep the directory itself so `vsce package --out ../output/`
+# works on a fresh clone.
+output/*
+!output/.gitkeep
 *.vsix
 # Python bytecode
 __pycache__/

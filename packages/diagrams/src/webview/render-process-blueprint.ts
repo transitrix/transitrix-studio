@@ -24,6 +24,26 @@ function truncate(text: string, maxChars: number): string {
   return text.slice(0, Math.max(0, maxChars - 1)) + '…';
 }
 
+/**
+ * Render a left-anchored, vertically centred multi-line text cell. `lines` are
+ * pre-wrapped by the layout; the block is centred within the cell height.
+ */
+function textCellSvg(
+  lines: string[],
+  cls: string,
+  x: number,
+  cellTop: number,
+  cellHeight: number,
+  lineHeight: number,
+): string {
+  const ls = lines.length > 0 ? lines : [''];
+  const first = cellTop + cellHeight / 2 - ((ls.length - 1) / 2) * lineHeight;
+  const tspans = ls
+    .map((ln, i) => `<tspan x="${x}" y="${first + i * lineHeight}">${escXml(ln)}</tspan>`)
+    .join('');
+  return `<text class="${cls}" dominant-baseline="central">${tspans}</text>`;
+}
+
 export interface RenderProcessBlueprintOptions {
   title?: string;
 }
@@ -70,12 +90,13 @@ export function renderProcessBlueprintSvg(
     );
   }
 
+  const textX = layout.cellTextPadX;
   for (const c of layout.goalCells) {
     parts.push(
       `<rect class="diagram-node level-3" x="${c.x + ox}" y="${c.y + oy}" width="${c.width}" height="${c.height}"/>`,
     );
     parts.push(
-      `<text class="text-secondary" x="${c.x + ox + 10}" y="${c.y + oy + c.height / 2}" dominant-baseline="central">${escXml(truncate(c.text, 32))}</text>`,
+      textCellSvg(c.lines, 'text-secondary', c.x + ox + textX, c.y + oy, c.height, layout.textLineHeight),
     );
   }
   for (const c of layout.resultCells) {
@@ -83,7 +104,7 @@ export function renderProcessBlueprintSvg(
       `<rect class="diagram-node level-4" x="${c.x + ox}" y="${c.y + oy}" width="${c.width}" height="${c.height}"/>`,
     );
     parts.push(
-      `<text class="text-secondary" x="${c.x + ox + 10}" y="${c.y + oy + c.height / 2}" dominant-baseline="central">${escXml(truncate(c.text, 32))}</text>`,
+      textCellSvg(c.lines, 'text-secondary', c.x + ox + textX, c.y + oy, c.height, layout.textLineHeight),
     );
   }
 
