@@ -1,5 +1,17 @@
 # Transitrix Studio — changelog
 
+## 1.4.0 — 2026-06-05
+
+Adds PDF export for the compliance views and fixes Process Blueprint cells clipping their text.
+
+### Added
+
+- **PDF export for compliance views** — `transitrix export-compliance --format pdf` renders the matrix / single-law / single-product / gap views as a self-contained A4-portrait branded PDF via WeasyPrint (`pipx install weasyprint`); a clear install hint is shown when the binary is missing.
+
+### Fixed
+
+- **Process Blueprint goal/result cells now wrap their text** instead of cutting it off at ~32 characters with an ellipsis. Each cell word-wraps to the column width and the goal/result rows grow to fit the tallest cell (capped at 6 lines), so long stage goals and results stay readable.
+
 ## 1.2.1 — 2026-05-28
 
 Patch release. Refreshes the Marketplace description that was bundled into 1.2.0 stale (the rewrite landed after publish), and adds the N+1 hierarchy validator for Goals trees.
