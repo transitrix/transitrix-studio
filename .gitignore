@@ -4,6 +4,14 @@ node_modules/
 **/0. archive/
 
 dist/
+# Compiled output must never land beside the TypeScript sources. The diagrams
+# package builds to dist/ (above); these patterns are a backstop so a stray
+# bare `tsc` / `npx tsc <file>.ts` run can't litter the pure-TS src tree with
+# emitted .js/.d.ts and have it show up as untracked churn.
+packages/diagrams/src/**/*.js
+packages/diagrams/src/**/*.js.map
+packages/diagrams/src/**/*.d.ts
+packages/diagrams/src/**/*.d.ts.map
 extension/out/
 extension/compiler/
 # The entire media/ tree is build output: build-webview.mjs wipes and
