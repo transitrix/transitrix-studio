@@ -1,5 +1,38 @@
 # Transitrix Studio — changelog
 
+## 1.4.0 — 2026-06-05
+
+Adds PDF export for the compliance views and fixes Process Blueprint cells clipping their text.
+
+### Added
+
+- **PDF export for compliance views** — `transitrix export-compliance --format pdf` renders the matrix / single-law / single-product / gap views as a self-contained A4-portrait branded PDF via WeasyPrint (`pipx install weasyprint`); a clear install hint is shown when the binary is missing.
+
+### Fixed
+
+- **Process Blueprint goal/result cells now wrap their text** instead of cutting it off at ~32 characters with an ellipsis. Each cell word-wraps to the column width and the goal/result rows grow to fit the tallest cell (capped at 6 lines), so long stage goals and results stay readable.
+
+## 1.3.0 — 2026-06-02
+
+Adds the Activity Card notation, the compliance suite (matrix / single-law / single-product / gap dashboard + Markdown export), and live in-preview controls for spacing, curvature and scope.
+
+### Added
+
+- **Activity Card notation** (`*.activity-card.transitrix.yaml`) — full preview with Save-as-SVG / PNG and Copy-as-PNG.
+- **Compliance views** — Products × Requirements **matrix** (filter by jurisdiction / severity / status), **single-law** tree (Law → Requirements → Assertions), **single-product** view (Product → bound Requirements → status), and a **gap dashboard** (requirements without assertions, assertions without evidence, stale assertions past review date; CSV export).
+- **`transitrix export-compliance` CLI** — exports the compliance matrix as Markdown (`--format md`, `--scope law:<id>|product:<id>`, `--output <path>`).
+- **Live in-preview controls** — spacing, edge curvature and scope are adjustable from a toolbar inside the Goals, FGCA, FGA and Activities previews, plus matching `transitrix.spacing.*` / `transitrix.curvature.*` / `transitrix.scope.*` settings.
+- **FGCA / FGA tree↔table toggle** — flatten the chain into a merged-cell table (`Factor | Goal | Change | Activity`; FGA: `Factor | Goal | Activity`), persisted per notation.
+
+### Changed
+
+- Every notation validator now guards each array element with an "entry must be an object" check, so malformed YAML (e.g. `goals: [null]`) degrades to a clear error panel instead of crashing the preview.
+- `activationEvents` extended to cover all eleven notation suffixes, so previews and editor-title buttons activate from a cold VS Code window.
+
+### Fixed
+
+- Goals `level` is type-checked numerically; cyclic / self-parent goal trees no longer overflow the stack; FGCA changes with no `activity_ids` render cleanly; Activity dates are format-checked before comparison.
+
 ## 1.2.1 — 2026-05-28
 
 Patch release. Refreshes the Marketplace description that was bundled into 1.2.0 stale (the rewrite landed after publish), and adds the N+1 hierarchy validator for Goals trees.

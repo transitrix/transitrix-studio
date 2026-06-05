@@ -2,8 +2,13 @@
 
 ## [Unreleased]
 
+## [1.4.0] — 2026-06-05
+
 ### Added
 - **`transitrix export-compliance --format pdf`** — PDF export of the compliance views (matrix / single-law / single-product / gap) via WeasyPrint. The HTML half (`renderComplianceHtml` in `@transitrix/diagrams/compliance`) builds a self-contained A4-portrait branded document; the CLI hands it to a `weasyprint` subprocess on PATH and surfaces a clear install hint when the binary is missing.
+
+### Fixed
+- **Process Blueprint goal/result cells now wrap their text** instead of truncating it to a single 32-character line. The layout word-wraps each cell to the column width and grows the goal/result rows to fit the tallest cell (capped at 6 lines with an ellipsis); both the VS Code preview and the JCEF webview renderer share the wrapped layout.
 
 ## [1.3.0] — 2026-06-02
 

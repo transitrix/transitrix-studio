@@ -31,6 +31,11 @@ const DEFAULTS: Required<ProcessBlueprintLayoutOptions> = {
   pillHeight: 28,
   pillGap: 4,
   cellPadding: 8,
+  textLineHeight: 15,
+  textCharWidth: 6.2,
+  cellTextPadX: 10,
+  cellTextPadY: 10,
+  maxTextLines: 6,
 };
 
 interface RawPill {
@@ -44,6 +49,59 @@ interface RawPill {
 
 function resolveOptions(options: ProcessBlueprintLayoutOptions | undefined): Required<ProcessBlueprintLayoutOptions> {
   return { ...DEFAULTS, ...(options ?? {}) };
+}
+
+/**
+ * Greedy word-wrap to a max characters-per-line budget. Words longer than the
+ * budget are hard-split; if the result exceeds `maxLines`, the last kept line
+ * is truncated with an ellipsis so a single pathological cell can't grow the
+ * whole row unbounded.
+ */
+function wrapText(text: string, maxChars: number, maxLines: number): string[] {
+  const trimmed = (text ?? '').trim();
+  if (trimmed.length === 0) return [];
+  const budget = Math.max(1, maxChars);
+
+  const words = trimmed.split(/\s+/);
+  const lines: string[] = [];
+  let cur = '';
+  const flush = (): void => {
+    if (cur.length > 0) {
+      lines.push(cur);
+      cur = '';
+    }
+  };
+
+  for (const word of words) {
+    if (word.length > budget) {
+      // Token wider than the cell: hard-break it across lines.
+      flush();
+      let rest = word;
+      while (rest.length > budget) {
+        lines.push(rest.slice(0, budget));
+        rest = rest.slice(budget);
+      }
+      cur = rest;
+      continue;
+    }
+    const candidate = cur.length > 0 ? `${cur} ${word}` : word;
+    if (candidate.length > budget) {
+      flush();
+      cur = word;
+    } else {
+      cur = candidate;
+    }
+  }
+  flush();
+
+  if (lines.length > maxLines) {
+    const capped = lines.slice(0, maxLines);
+    const last = capped[maxLines - 1];
+    const clipped = last.length > budget - 1 ? last.slice(0, budget - 1) : last;
+    capped[maxLines - 1] = `${clipped.replace(/…$/, '')}…`;
+    return capped;
+  }
+  return lines;
 }
 
 function buildStageIndex(stages: Stage[]): Map<string, number> {
@@ -170,29 +228,47 @@ export function layoutProcessBlueprint(
     height: opts.stageHeaderHeight,
   }));
 
-  // Goal + result rows
+  // Goal + result rows. Text is word-wrapped to the column width, and each row
+  // grows to fit the tallest cell so nothing is clipped.
+  const maxCharsPerLine = Math.max(
+    4,
+    Math.floor((opts.stageColumnWidth - 2 * opts.cellTextPadX) / opts.textCharWidth),
+  );
+  const wrap = (text: string): string[] => wrapText(text, maxCharsPerLine, opts.maxTextLines);
+  const rowHeightFor = (lineCounts: number[], minHeight: number): number => {
+    const maxLines = Math.max(1, ...lineCounts);
+    return Math.max(minHeight, maxLines * opts.textLineHeight + 2 * opts.cellTextPadY);
+  };
+
+  const goalLines = stages.map(s => wrap(s?.goal ?? ''));
+  const resultLines = stages.map(s => wrap(s?.result ?? ''));
+
   const goalRowY = opts.stageHeaderHeight;
-  const resultRowY = goalRowY + opts.goalRowHeight;
+  const goalRowHeight = rowHeightFor(goalLines.map(l => l.length), opts.goalRowHeight);
+  const resultRowY = goalRowY + goalRowHeight;
+  const resultRowHeight = rowHeightFor(resultLines.map(l => l.length), opts.resultRowHeight);
 
   const goalCells: StageTextCell[] = stages.map((s, i) => ({
     stageIndex: i,
     text: s?.goal ?? '',
+    lines: goalLines[i],
     x: opts.legendColumnWidth + i * opts.stageColumnWidth,
     y: goalRowY,
     width: opts.stageColumnWidth,
-    height: opts.goalRowHeight,
+    height: goalRowHeight,
   }));
 
   const resultCells: StageTextCell[] = stages.map((s, i) => ({
     stageIndex: i,
     text: s?.result ?? '',
+    lines: resultLines[i],
     x: opts.legendColumnWidth + i * opts.stageColumnWidth,
     y: resultRowY,
     width: opts.stageColumnWidth,
-    height: opts.resultRowHeight,
+    height: resultRowHeight,
   }));
 
-  const aspectsStartY = resultRowY + opts.resultRowHeight;
+  const aspectsStartY = resultRowY + resultRowHeight;
 
   // Aspect rows: only categories with at least one entry, in fixed order.
   const aspectRows: AspectRow[] = [];
@@ -250,8 +326,8 @@ export function layoutProcessBlueprint(
 
   // Legend (left column labels): one entry per row.
   const legend: LegendCell[] = [
-    { kind: 'goal', label: 'Goal', y: goalRowY, height: opts.goalRowHeight },
-    { kind: 'result', label: 'Result', y: resultRowY, height: opts.resultRowHeight },
+    { kind: 'goal', label: 'Goal', y: goalRowY, height: goalRowHeight },
+    { kind: 'result', label: 'Result', y: resultRowY, height: resultRowHeight },
     ...aspectRows.map<LegendCell>(row => ({
       kind: 'aspect',
       category: row.category,
@@ -268,6 +344,8 @@ export function layoutProcessBlueprint(
     bounds: { x: 0, y: 0, width: totalWidth, height: totalHeight },
     legendColumnWidth: opts.legendColumnWidth,
     stageColumnWidth: opts.stageColumnWidth,
+    textLineHeight: opts.textLineHeight,
+    cellTextPadX: opts.cellTextPadX,
     legend,
     stageHeaders,
     goalCells,
