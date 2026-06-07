@@ -1,5 +1,6 @@
 import { generateWebviewCss, type ThemeId } from '../../packages/diagrams/src/theme/index.js';
 import type { AssertionStatus } from '../../packages/diagrams/src/assertion/types.js';
+import type { ViewScore } from '../../packages/diagrams/src/confidence/index.js';
 
 // Shared HTML rendering for the script-less compliance views — the single-law
 // tree and single-product view (vkgeorgia/strategy#84 Phase 3). These previews
@@ -40,6 +41,12 @@ body { padding: 0; }
 #cmp-toolbar { display: flex; align-items: baseline; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--ts-border, #cbd5e1); flex-wrap: wrap; }
 .cmp-title { font-size: 15px; font-weight: 700; color: var(--ts-text, #0f172a); }
 .cmp-subtitle { font-size: 12px; color: var(--ts-text-muted, #64748b); }
+.cmp-confidence { width: 100%; font-size: 11px; color: var(--ts-text-muted, #64748b); }
+.cmp-confidence-band { display: inline-block; padding: 0 6px; margin-right: 4px; border-radius: 3px; font-weight: 700; background: var(--ts-bg-subtle, #f1f5f9); color: var(--ts-text, #0f172a); }
+.cmp-confidence-band[data-band="A"] { background: var(--ts-status-success-bg, #d1fae5); color: var(--ts-status-success-fg, #065f46); }
+.cmp-confidence-band[data-band="B"] { background: var(--ts-status-info-bg, #e0f2fe); color: var(--ts-status-info-fg, #0c4a6e); }
+.cmp-confidence-band[data-band="C"] { background: var(--ts-status-warning-bg, #fef9c3); color: var(--ts-status-warning-fg, #854d0e); }
+.cmp-confidence-band[data-band="D"] { background: var(--ts-status-error-bg, #fee2e2); color: var(--ts-status-error-fg, #991b1b); }
 .cmp-toolbar-actions { margin-left: auto; display: inline-flex; gap: 6px; }
 .cmp-btn { font-size: 11px; padding: 2px 10px; border-radius: 4px; color: var(--ts-text-muted, #64748b); text-decoration: none; border: 1px solid var(--ts-border, #cbd5e1); }
 .cmp-btn:hover { color: var(--ts-text, #0f172a); background: var(--ts-bg-elevated, #f1f5f9); }
@@ -91,6 +98,29 @@ export interface ComplianceShellOptions {
   extraButtons?: Array<{ command: string; label: string; title: string }>;
   /** Already-built body HTML (caller is responsible for escaping). */
   bodyHtml: string;
+  /**
+   * View-level composite confidence for the rendered element set
+   * (CONTRACT §11.6). Rendered next to the formation date as a small subline
+   * under the title (DQ-2, vkgeorgia/strategy#162). Omit or pass an empty
+   * composite to suppress the line entirely.
+   */
+  confidence?: ViewScore;
+}
+
+/**
+ * Renders the §11.6 confidence header as a coloured-band pill plus the
+ * formation date + mean + sourced %. Suppresses itself for an empty
+ * element set (no view to score). Static / script-less — pure HTML.
+ */
+export function confidenceLineHtml(view: ViewScore): string {
+  const c = view.composite;
+  if (c.element_count === 0) return '';
+  const mean = c.mean.toFixed(2);
+  const coverage = Math.round(c.coverage * 100);
+  return `<span class="cmp-confidence" title="Data confidence per CONTRACT §11.6 — weakest-link headline.">`
+    + `<span class="cmp-confidence-band" data-band="${escXml(c.band)}">${escXml(c.band)}</span>`
+    + `Data confidence (as of ${escXml(view.today)}) · ${escXml(mean)} mean · ${coverage}% sourced`
+    + `</span>`;
 }
 
 /** Full webview document for a script-less compliance view (static CSP). */
@@ -110,6 +140,7 @@ ${COMPLIANCE_CSS}
     <span class="cmp-title">${escXml(opts.title)}</span>
     ${opts.subtitle ? `<span class="cmp-subtitle">${escXml(opts.subtitle)}</span>` : ''}
     <span class="cmp-toolbar-actions">${(opts.extraButtons ?? []).map(b => `<a href="command:${b.command}" class="cmp-btn" title="${escXml(b.title)}">${escXml(b.label)}</a>`).join('')}<a href="command:${opts.refreshCommand}" class="cmp-btn" title="Re-scan the workspace">Refresh</a></span>
+    ${opts.confidence ? confidenceLineHtml(opts.confidence) : ''}
   </div>
   <div id="cmp-body">
     ${opts.bodyHtml}

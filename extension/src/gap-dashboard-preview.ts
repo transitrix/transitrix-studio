@@ -1,9 +1,10 @@
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 import { type ThemeId } from '../../packages/diagrams/src/theme/index.js';
-import { buildComplianceIndex, buildGapReport, type GapReport } from '../../packages/diagrams/src/compliance/index.js';
+import { buildComplianceIndex, buildGapReport, scoreComplianceView, type GapReport } from '../../packages/diagrams/src/compliance/index.js';
 import { scanComplianceCanon } from './compliance-scan.js';
 import { complianceShell, escXml, openLink, statusBadge } from './compliance-render.js';
+import type { ViewScore } from '../../packages/diagrams/src/confidence/index.js';
 
 // Gap dashboard (vkgeorgia/strategy#84 Phase 4). A repo-wide operational view
 // for compliance owners: requirements with no assertion, assertions with a
@@ -24,6 +25,7 @@ export class GapDashboardPreview {
   readonly panelTitle = 'Compliance Gap Dashboard';
   private panel: vscode.WebviewPanel | undefined;
   private lastReport: GapReport | undefined;
+  private lastConfidence: ViewScore | undefined;
   private pathById = new Map<string, string>();
 
   constructor(private readonly extensionUri: vscode.Uri) {}
@@ -48,7 +50,11 @@ export class GapDashboardPreview {
     const scan = await scanComplianceCanon();
     this.pathById = scan.pathById;
     const index = buildComplianceIndex({ requirements: scan.requirements, assertions: scan.assertions });
-    this.lastReport = buildGapReport(index, { today: todayIso() });
+    const today = todayIso();
+    this.lastReport = buildGapReport(index, { today });
+    // Confidence across the full scanned canon — the dashboard's "view" is
+    // every requirement + assertion in the repo (CONTRACT §11.6).
+    this.lastConfidence = scoreComplianceView(scan.requirements, scan.assertions, today);
     const themeId = vscode.workspace.getConfiguration('transitrix').get<ThemeId>('theme', 'transitrix');
     this.panel.webview.html = this.buildHtml(this.lastReport, themeId);
   }
@@ -117,6 +123,7 @@ export class GapDashboardPreview {
       refreshCommand: REFRESH_COMMAND,
       extraButtons: [{ command: EXPORT_CSV_COMMAND, label: 'Export CSV', title: 'Save the gap report as a CSV file' }],
       bodyHtml: body,
+      confidence: this.lastConfidence,
     });
   }
 }

@@ -2,9 +2,14 @@ import * as path from 'node:path';
 import * as vscode from 'vscode';
 import yaml from 'js-yaml';
 import { type ThemeId } from '../../packages/diagrams/src/theme/index.js';
-import { buildComplianceIndex, buildLawTree, type LawTree } from '../../packages/diagrams/src/compliance/index.js';
+import { buildComplianceIndex, buildLawTree, scoreComplianceView, type LawTree } from '../../packages/diagrams/src/compliance/index.js';
 import { scanComplianceCanon } from './compliance-scan.js';
 import { complianceShell, escXml, openLink, statusBadge } from './compliance-render.js';
+
+/** Today as ISO YYYY-MM-DD (extension host clock; the library stays clock-free). */
+function todayIso(): string {
+  return new Date().toISOString().slice(0, 10);
+}
 
 // Single-law tree (vkgeorgia/strategy#84 Phase 3). Triggered from a codex file
 // (LAW / REGULATION / POLICY / INTERNAL_STANDARD) in the editor-title bar.
@@ -86,12 +91,19 @@ export class SingleLawPreview {
     const index = buildComplianceIndex({ requirements: scan.requirements, assertions: scan.assertions });
     const tree = buildLawTree(lawId, index);
 
+    // Confidence over every element rendered in the tree — requirements
+    // derived from this law + every assertion targeting them (CONTRACT §11.6).
+    const treeRequirements = tree.requirements.map(n => n.requirement);
+    const treeAssertions = tree.requirements.flatMap(n => n.assertions);
+    const confidence = scoreComplianceView(treeRequirements, treeAssertions, todayIso());
+
     this.panel.webview.html = complianceShell({
       title: lawName,
       subtitle: `${lawId} · ${tree.requirements.length} requirement(s)`,
       themeId,
       refreshCommand: REFRESH_COMMAND,
       bodyHtml: this.treeHtml(tree, scan.pathById),
+      confidence,
     });
   }
 
