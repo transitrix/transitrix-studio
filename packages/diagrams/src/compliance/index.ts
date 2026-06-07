@@ -8,6 +8,12 @@ export { renderComplianceMarkdown } from './markdown.js';
 export type { ReportScope, MarkdownOptions } from './markdown.js';
 export { renderComplianceHtml } from './html.js';
 export type { HtmlOptions } from './html.js';
+export {
+  assertionToScoringElement,
+  complianceConfidenceHeader,
+  requirementToScoringElement,
+  scoreComplianceView,
+} from './confidence.js';
 export type {
   ComplianceIndex,
   ComplianceIndexInput,

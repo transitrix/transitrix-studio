@@ -51,7 +51,13 @@ export function ingestComplianceDoc(canon: ComplianceCanon, doc: unknown): strin
     return id;
   }
   if (d.notation === 'requirement') {
-    canon.requirements.push({ id, name: str(d.name) ?? id, severity: str(d.severity), derived_from: strArray(d.derived_from) });
+    canon.requirements.push({
+      id,
+      name: str(d.name) ?? id,
+      severity: str(d.severity),
+      derived_from: strArray(d.derived_from),
+      admitted_at: str(d.admitted_at),
+    });
     return id;
   }
   if (d.notation === 'assertion') {
@@ -64,6 +70,7 @@ export function ingestComplianceDoc(canon: ComplianceCanon, doc: unknown): strin
       assessed_at: str(d.assessed_at),
       next_review_at: str(d.next_review_at),
       evidenceCount: Array.isArray(d.evidence) ? d.evidence.length : 0,
+      admitted_at: str(d.admitted_at),
     });
     return id;
   }
