@@ -15,7 +15,6 @@ import { ScenariosPreview } from './scenarios-preview.js';
 import { CapabilityMapPreview } from './capability-map-preview.js';
 import { ProcessBlueprintPreview } from './process-blueprint-preview.js';
 import { ActivityCardPreview } from './activity-card-preview.js';
-import { IssuesPreview } from './issues-preview.js';
 import { ComplianceMatrixPreview } from './compliance-matrix-preview.js';
 import { SingleLawPreview } from './single-law-preview.js';
 import { SingleProductPreview } from './single-product-preview.js';
@@ -79,10 +78,6 @@ function isCapabilityMapFile(doc: vscode.TextDocument): boolean {
 
 function isProcessBlueprintFile(doc: vscode.TextDocument): boolean {
   return doc.fileName.endsWith('.process-blueprint.transitrix.yaml');
-}
-
-function isIssuesFile(doc: vscode.TextDocument): boolean {
-  return doc.fileName.endsWith('.issues.transitrix.yaml');
 }
 
 function isActivityCardFile(doc: vscode.TextDocument): boolean {
@@ -156,7 +151,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const capabilityMapPreview = new CapabilityMapPreview();
   const processBlueprintPreview = new ProcessBlueprintPreview();
   const activityCardPreview = new ActivityCardPreview();
-  const issuesPreview = new IssuesPreview();
   const complianceMatrixPreview = new ComplianceMatrixPreview(context.extensionUri);
   const singleLawPreview = new SingleLawPreview(context.extensionUri);
   const singleProductPreview = new SingleProductPreview(context.extensionUri);
@@ -310,19 +304,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     }),
     vscode.commands.registerCommand('transitrixStudio.saveActivityCardAsPng', () => activityCardPreview.saveAsPng()),
     vscode.commands.registerCommand('transitrixStudio.copyActivityCardAsPng', () => activityCardPreview.copyAsPng()),
-    vscode.commands.registerCommand('transitrixStudio.previewIssues', async () => {
-      const doc = vscode.window.activeTextEditor?.document;
-      if (!doc || !isIssuesFile(doc)) {
-        vscode.window.showWarningMessage('Open a *.issues.transitrix.yaml file first.');
-        return;
-      }
-      await issuesPreview.showOrReveal(doc);
-    }),
-    vscode.commands.registerCommand('transitrixStudio.saveIssuesAsSvg', async () => {
-      await issuesPreview.saveAsSvg();
-    }),
-    vscode.commands.registerCommand('transitrixStudio.saveIssuesAsPng', () => issuesPreview.saveAsPng()),
-    vscode.commands.registerCommand('transitrixStudio.copyIssuesAsPng', () => issuesPreview.copyAsPng()),
     // Compliance matrix (vkgeorgia/strategy#84 Phase 2) — a repo-wide view, not
     // bound to a file. `openComplianceFile` is invoked from cell command URIs.
     vscode.commands.registerCommand('transitrixStudio.previewComplianceMatrix', () => complianceMatrixPreview.showOrReveal()),
@@ -397,7 +378,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       if (isCapabilityMapFile(doc)) { void capabilityMapPreview.refreshSaved(doc); return; }
       if (isProcessBlueprintFile(doc)) { void processBlueprintPreview.refreshSaved(doc); return; }
       if (isActivityCardFile(doc)) { void activityCardPreview.refreshSaved(doc); return; }
-      if (isIssuesFile(doc)) { void issuesPreview.refreshSaved(doc); return; }
       if (!documentMatchesCervinSource(doc)) return;
       void preview.refreshSaved(doc);
     }),
@@ -414,7 +394,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       if (isCapabilityMapFile(doc)) { await capabilityMapPreview.showOrReveal(doc); return; }
       if (isProcessBlueprintFile(doc)) { await processBlueprintPreview.showOrReveal(doc); return; }
       if (isActivityCardFile(doc)) { await activityCardPreview.showOrReveal(doc); return; }
-      if (isIssuesFile(doc)) { await issuesPreview.showOrReveal(doc); }
     }),
   );
 }
