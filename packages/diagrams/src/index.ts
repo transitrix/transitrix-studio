@@ -6,6 +6,7 @@ export * from "./blocks/index";
 export * from "./capability-map/index";
 export * from "./compliance/index";
 export * from "./compliance-matrix/index";
+export * from "./confidence/index";
 export * from "./fgca/index";
 export * from "./goals/index";
 export * from "./issues/index";
