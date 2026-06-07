@@ -29,7 +29,6 @@ Transitrix flips that:
 | Risk | **Scenarios** | Scenario planning across factors |
 | Catalogue | **Applications** | Applications, integrations, platforms, data stores |
 | Catalogue | **Products** | Digital products, services, bundles |
-| Tracking | **Issues** | Nested issue register with colour-coded status |
 | Decomposition | **Nested blocks** | Recursive block tree |
 
 Every preview ships with a toolbar: title toggle, discrete zoom (50–200%), save as SVG, save as PNG (2× for crisp output), and copy PNG to clipboard (Windows today; macOS / Linux planned).
