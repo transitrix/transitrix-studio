@@ -12,6 +12,8 @@ export interface IndexRequirement {
   severity?: string;
   /** Typed IDs of the codex sources this requirement derives from. */
   derived_from?: string[];
+  /** Admission date (CONTRACT §6) — feeds DQ-1 freshness decay. */
+  admitted_at?: string;
 }
 
 /** Projection of an ASSERTION the compliance views need. */
@@ -24,6 +26,8 @@ export interface IndexAssertion {
   next_review_at?: string;
   /** Number of evidence entries — feeds the Phase 4 "no evidence" gap. */
   evidenceCount?: number;
+  /** Admission date (CONTRACT §6) — feeds DQ-1 freshness decay. */
+  admitted_at?: string;
 }
 
 export interface ComplianceIndexInput {

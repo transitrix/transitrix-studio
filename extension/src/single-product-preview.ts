@@ -2,9 +2,14 @@ import * as path from 'node:path';
 import * as vscode from 'vscode';
 import yaml from 'js-yaml';
 import { type ThemeId } from '../../packages/diagrams/src/theme/index.js';
-import { buildComplianceIndex, buildProductView, type ProductView } from '../../packages/diagrams/src/compliance/index.js';
+import { buildComplianceIndex, buildProductView, scoreComplianceView, type ProductView } from '../../packages/diagrams/src/compliance/index.js';
 import { scanComplianceCanon } from './compliance-scan.js';
 import { complianceShell, escXml, openLink, statusBadge } from './compliance-render.js';
+
+/** Today as ISO YYYY-MM-DD (extension host clock; the library stays clock-free). */
+function todayIso(): string {
+  return new Date().toISOString().slice(0, 10);
+}
 
 // Single-product view (vkgeorgia/strategy#84 Phase 3). Triggered from a PRODUCT
 // file in the editor-title bar. Shows the product → every requirement an
@@ -84,12 +89,18 @@ export class SingleProductPreview {
     const index = buildComplianceIndex({ requirements: scan.requirements, assertions: scan.assertions });
     const view = buildProductView(productId, index);
 
+    // Confidence over the rendered requirement/assertion pairs (CONTRACT §11.6).
+    const viewRequirements = view.requirements.map(r => r.requirement);
+    const viewAssertions = view.requirements.map(r => r.assertion);
+    const confidence = scoreComplianceView(viewRequirements, viewAssertions, todayIso());
+
     this.panel.webview.html = complianceShell({
       title: productName,
       subtitle: `${productId} · ${view.requirements.length} requirement(s) asserted`,
       themeId,
       refreshCommand: REFRESH_COMMAND,
       bodyHtml: this.viewHtml(view, scan.pathById),
+      confidence,
     });
   }
 
