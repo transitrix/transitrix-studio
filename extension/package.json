@@ -37,7 +37,6 @@
     "scenarios",
     "applications",
     "products",
-    "issues",
     "yaml"
   ],
   "categories": [
@@ -63,8 +62,7 @@
     "workspaceContains:**/*.scenarios.transitrix.yaml",
     "workspaceContains:**/*.capability-map.transitrix.yaml",
     "workspaceContains:**/*.process-blueprint.transitrix.yaml",
-    "workspaceContains:**/*.activity-card.transitrix.yaml",
-    "workspaceContains:**/*.issues.transitrix.yaml"
+    "workspaceContains:**/*.activity-card.transitrix.yaml"
   ],
   "contributes": {
     "configuration": {
@@ -351,17 +349,6 @@
         "configuration": "./language-configuration.json"
       },
       {
-        "id": "transitrix-issues",
-        "aliases": [
-          "Transitrix Issues",
-          "Issues Register"
-        ],
-        "extensions": [
-          ".issues.transitrix.yaml"
-        ],
-        "configuration": "./language-configuration.json"
-      },
-      {
         "id": "transitrix-activities",
         "aliases": [
           "Transitrix Activities",
@@ -534,18 +521,6 @@
         "category": "Transitrix"
       },
       {
-        "command": "transitrixStudio.previewIssues",
-        "title": "Transitrix: Preview issues register",
-        "category": "Transitrix",
-        "icon": "$(list-tree)"
-      },
-      {
-        "command": "transitrixStudio.saveIssuesAsSvg",
-        "title": "Transitrix: Save issues register as SVG",
-        "category": "Transitrix",
-        "icon": "$(save)"
-      },
-      {
         "command": "transitrixStudio.saveBlocksAsPng",
         "title": "Transitrix: Save block diagram as PNG",
         "category": "Transitrix"
@@ -603,16 +578,6 @@
       {
         "command": "transitrixStudio.copyProcessBlueprintAsPng",
         "title": "Transitrix: Copy process blueprint as PNG",
-        "category": "Transitrix"
-      },
-      {
-        "command": "transitrixStudio.saveIssuesAsPng",
-        "title": "Transitrix: Save issues register as PNG",
-        "category": "Transitrix"
-      },
-      {
-        "command": "transitrixStudio.copyIssuesAsPng",
-        "title": "Transitrix: Copy issues register as PNG",
         "category": "Transitrix"
       },
       {
@@ -826,16 +791,6 @@
           "group": "navigation@-9"
         },
         {
-          "when": "resourceFilename =~ /\\.issues\\.transitrix\\.yaml$/",
-          "command": "transitrixStudio.previewIssues",
-          "group": "navigation@-10"
-        },
-        {
-          "when": "resourceFilename =~ /\\.issues\\.transitrix\\.yaml$/",
-          "command": "transitrixStudio.saveIssuesAsSvg",
-          "group": "navigation@-9"
-        },
-        {
           "when": "resourceFilename =~ /^(LAW|REGULATION|POLICY|INTERNAL_STANDARD)-.*\\.yaml$/",
           "command": "transitrixStudio.previewSingleLaw",
           "group": "navigation@-10"
@@ -844,11 +799,6 @@
           "when": "resourceFilename =~ /^PRODUCT-.*\\.yaml$/",
           "command": "transitrixStudio.previewSingleProduct",
           "group": "navigation@-10"
-        },
-        {
-          "when": "activeWebviewPanelId == issuesPreview",
-          "command": "transitrixStudio.saveIssuesAsSvg",
-          "group": "navigation@-9"
         }
       ]
     }
