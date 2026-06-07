@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Removed
+- **Issues register notation retired.** The `issues` notation (`*.issues.transitrix.yaml`) — diagrams module, extension preview/commands/menus/language, activation event, and example — is removed, following the methodology decision to retire the model-side `ISSUE` type (architectural problems/risks are modelled as `ASSESSMENT`; team tracking uses Work Items). Files moved to `0. archive/`. Breaking change for `@transitrix/diagrams` consumers importing the issues exports.
+
 ## [1.4.0] — 2026-06-05
 
 ### Added
