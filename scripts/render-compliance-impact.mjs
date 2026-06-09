@@ -1,28 +1,31 @@
 #!/usr/bin/env node
 /**
- * Interim compliance-impact matrix renderer
- * (vkgeorgia/strategy#166 — fast-track interim; full Studio consumer-side
- * renderer is tracked under #84).
+ * Compliance-impact matrix renderer — CV-1 view-config wiring
+ * (vkgeorgia/strategy#84, builds on #166 interim renderer).
  *
- * Materialises the subject × obligation × status matrix per the render contract
- * in methodology/notations/views/21-compliance-impact.md §5, at the coarsest
- * grain (`product` × `obligation`). Stage / task grouping is intentionally out
- * of scope here — those need a process-flow walk and a process-blueprint join
- * that the full renderer will handle.
+ * Materialises the subject × obligation × status matrix per the render
+ * contract in methodology/notations/views/21-compliance-impact.md §5, at
+ * the coarsest grain (`product` × `obligation`).
  *
- * Usage:
+ * Usage — named view-config file:
  *   node scripts/render-compliance-impact.mjs \
- *        --view <path/to/COMPLIANCE_IMPACT-…compliance-impact.transitrix.yaml> \
+ *        --view <path/to/COMPLIANCE_IMPACT-view.yaml> \
+ *        --canon <path/to/canon-root> \
+ *        [--out <path/to/output.md>]
+ *
+ * Usage — registry (directory of view-config files):
+ *   node scripts/render-compliance-impact.mjs \
+ *        --registry <path/to/views-dir> --report <view-id> \
  *        --canon <path/to/canon-root> \
  *        [--out <path/to/output.md>]
  *
  * The script:
- *   1. Parses the view config (one YAML doc per file).
- *   2. Recursively scans the canon root for *.yaml / *.yml and ingests every
- *      file that classify.ingestComplianceDoc recognises (PRODUCT / REQUIREMENT
- *      / ASSERTION elements + codex documents).
- *   3. Calls `@transitrix/diagrams` `buildImpactMatrix` + `renderImpactMarkdown`
- *      and writes the result to stdout (or --out).
+ *   1. Resolves the view config (from --view file or --registry + --report).
+ *   2. Logs the active defaults for any omitted optional fields.
+ *   3. Scans the canon root recursively for *.yaml / *.yml and ingests each
+ *      file that classify.ingestComplianceDoc recognises.
+ *   4. Calls `buildImpactMatrix` + `renderImpactMarkdown` and writes the
+ *      result to stdout (or --out).
  *
  * Requires `npm run build -w @transitrix/diagrams` to have produced
  * packages/diagrams/dist/.
@@ -38,22 +41,36 @@ const STUDIO_ROOT = path.resolve(HERE, '..');
 const DIST_INDEX = path.join(STUDIO_ROOT, 'packages', 'diagrams', 'dist', 'index.js');
 
 function parseArgs(argv) {
-  const out = { view: null, canon: null, output: null };
+  const out = { view: null, registry: null, report: null, canon: null, output: null };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--view') out.view = argv[++i];
     else if (a.startsWith('--view=')) out.view = a.slice('--view='.length);
+    else if (a === '--registry') out.registry = argv[++i];
+    else if (a.startsWith('--registry=')) out.registry = a.slice('--registry='.length);
+    else if (a === '--report') out.report = argv[++i];
+    else if (a.startsWith('--report=')) out.report = a.slice('--report='.length);
     else if (a === '--canon') out.canon = argv[++i];
     else if (a.startsWith('--canon=')) out.canon = a.slice('--canon='.length);
     else if (a === '--out') out.output = argv[++i];
     else if (a.startsWith('--out=')) out.output = a.slice('--out='.length);
     else if (a === '--help' || a === '-h') {
       console.log(
-        `Usage: node scripts/render-compliance-impact.mjs --view <view.yaml> --canon <canon-root> [--out <file>]
-  --view   <path>   compliance-impact view config (required)
-  --canon  <path>   root of the canon to scan recursively (required)
-  --out    <path>   write markdown to this file (default: stdout)
-  -h, --help        show this help`,
+        `Usage (named file):
+  node scripts/render-compliance-impact.mjs \\
+       --view <view.yaml> --canon <canon-root> [--out <file>]
+
+Usage (registry):
+  node scripts/render-compliance-impact.mjs \\
+       --registry <views-dir> --report <view-id> --canon <canon-root> [--out <file>]
+
+Options:
+  --view      <path>   compliance-impact view config YAML file
+  --registry  <path>   directory of view config YAML files (use with --report)
+  --report    <id>     view.id to select from the registry
+  --canon     <path>   root of the canon to scan recursively (required)
+  --out       <path>   write markdown to this file (default: stdout)
+  -h, --help           show this help`,
       );
       process.exit(0);
     } else {
@@ -61,8 +78,12 @@ function parseArgs(argv) {
       process.exit(2);
     }
   }
-  if (!out.view || !out.canon) {
-    console.error('Missing --view or --canon. Run with --help for usage.');
+  if (!out.canon) {
+    console.error('Missing --canon. Run with --help for usage.');
+    process.exit(2);
+  }
+  if (!out.view && !(out.registry && out.report)) {
+    console.error('Provide either --view <file> or --registry <dir> --report <id>. Run with --help for usage.');
     process.exit(2);
   }
   return out;
@@ -86,42 +107,59 @@ async function* walkYaml(root) {
   }
 }
 
-function viewConfigFromYaml(raw) {
-  if (!raw || typeof raw !== 'object') throw new Error('view: expected an object at the document root');
-  const v = raw.view;
-  if (!v || typeof v !== 'object') throw new Error('view: missing top-level `view:` object');
-  if (!v.id || typeof v.id !== 'string') throw new Error('view.id: required string');
-  if (!v.name || typeof v.name !== 'string') throw new Error('view.name: required string');
-  if (!v.subjects || typeof v.subjects !== 'object') throw new Error('view.subjects: required object (COMPIMP-002)');
-  return {
-    id: v.id,
-    name: v.name,
-    description: typeof v.description === 'string' ? v.description : undefined,
-    subjects: {
-      products: Array.isArray(v.subjects.products) ? v.subjects.products.filter(x => typeof x === 'string') : undefined,
-      processes: Array.isArray(v.subjects.processes) ? v.subjects.processes.filter(x => typeof x === 'string') : undefined,
-    },
-    obligations: {
-      include: Array.isArray(v.obligations?.include)
-        ? v.obligations.include.filter(x => typeof x === 'string')
-        : undefined,
-      filter: v.obligations?.filter
-        ? {
-            derived_from_codex: Array.isArray(v.obligations.filter.derived_from_codex)
-              ? v.obligations.filter.derived_from_codex.filter(x => typeof x === 'string')
-              : undefined,
-          }
-        : undefined,
-    },
-    status_display: v.status_display ? { show: v.status_display.show } : undefined,
-    empty_cells: v.empty_cells
-      ? {
-          no_obligation_label: v.empty_cells.no_obligation_label,
-          no_obligation_applies_label: v.empty_cells.no_obligation_applies_label,
-        }
-      : undefined,
-    order_rows_by: v.order_rows_by,
-  };
+/**
+ * Scan a registry directory for a view config whose view.id matches `reportId`.
+ * Returns the raw parsed YAML object of the first match, or null if not found.
+ */
+async function findInRegistry(registryDir, reportId) {
+  let entries;
+  try {
+    entries = await fs.readdir(registryDir, { withFileTypes: true });
+  } catch (err) {
+    console.error(`Registry directory not readable: ${registryDir} — ${err.message}`);
+    process.exit(2);
+  }
+  for (const e of entries) {
+    if (!e.isFile()) continue;
+    if (!e.name.endsWith('.yaml') && !e.name.endsWith('.yml')) continue;
+    const full = path.join(registryDir, e.name);
+    let raw;
+    try {
+      raw = await readYaml(full);
+    } catch {
+      continue;
+    }
+    // Accept both bare { id, name } and wrapped { view: { id, name } } shapes.
+    const v = raw?.view ?? raw;
+    if (v?.id === reportId) return raw;
+  }
+  return null;
+}
+
+/**
+ * Log the active defaults that were filled in for this run, so re-runs are
+ * auditable without a full view config.
+ */
+function logActiveDefaults(config, defaults) {
+  const assumed = [];
+  if (!config.subjects?.products?.length && !config.subjects?.processes?.length) {
+    assumed.push('subjects: none specified (empty matrix columns — no product/process IDs in view config)');
+  }
+  if (!config.status_display) {
+    assumed.push(
+      `status_display.show: [${defaults.status_display.show.join(', ')}] (all statuses accepted)`,
+    );
+  }
+  if (!config.order_rows_by) {
+    assumed.push(`order_rows_by: "${defaults.order_rows_by}" (lexicographic by REQUIREMENT ID)`);
+  }
+  if (!config.empty_cells?.no_obligation_label) {
+    assumed.push(`empty_cells.no_obligation_label: "${defaults.empty_cells.no_obligation_label}"`);
+  }
+  if (assumed.length) {
+    console.error('[render-compliance-impact] assumed defaults:');
+    for (const line of assumed) console.error(`  • ${line}`);
+  }
 }
 
 async function main() {
@@ -136,11 +174,33 @@ async function main() {
     process.exit(3);
   }
   const diagrams = await import(pathToFileURL(DIST_INDEX).href);
-  const { emptyCanon, ingestComplianceDoc, buildImpactMatrix, renderImpactMarkdown } = diagrams;
+  const { emptyCanon, ingestComplianceDoc, buildImpactMatrix, renderImpactMarkdown, parseImpactViewConfig, COMPLIANCE_IMPACT_DEFAULTS } = diagrams;
 
-  const viewRaw = await readYaml(args.view);
-  const view = viewConfigFromYaml(viewRaw);
+  // Resolve the view config.
+  let viewRaw;
+  if (args.view) {
+    viewRaw = await readYaml(args.view);
+  } else {
+    viewRaw = await findInRegistry(args.registry, args.report);
+    if (!viewRaw) {
+      console.error(`Report "${args.report}" not found in registry: ${args.registry}`);
+      process.exit(2);
+    }
+  }
 
+  const parseResult = parseImpactViewConfig(viewRaw);
+  if (!parseResult.ok) {
+    console.error('Invalid view config:');
+    for (const e of parseResult.errors) console.error(`  • ${e}`);
+    process.exit(2);
+  }
+  const view = parseResult.config;
+
+  console.error(`[render-compliance-impact] view: ${view.id} — ${view.name}`);
+  if (view.snapshot_at) console.error(`[render-compliance-impact] snapshot_at: ${view.snapshot_at}`);
+  logActiveDefaults(view, COMPLIANCE_IMPACT_DEFAULTS);
+
+  // Scan canon.
   const canon = emptyCanon();
   let scanned = 0;
   let ingested = 0;
@@ -150,12 +210,9 @@ async function main() {
     try {
       parsed = await readYaml(file);
     } catch (err) {
-      // Malformed YAML — skip with a warning; the interim renderer is best-effort.
       console.error(`skip ${file}: ${err instanceof Error ? err.message : String(err)}`);
       continue;
     }
-    // js-yaml.load returns one doc for `yaml.load`; multi-doc files would need `yaml.loadAll`.
-    // Keep it simple: one root doc per canon file.
     if (ingestComplianceDoc(canon, parsed)) ingested += 1;
   }
 
