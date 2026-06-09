@@ -4,7 +4,7 @@ import yaml from 'js-yaml';
 import { type ThemeId } from '../../packages/diagrams/src/theme/index.js';
 import { buildComplianceIndex, buildProductView, scoreComplianceView, type ProductView } from '../../packages/diagrams/src/compliance/index.js';
 import { scanComplianceCanon } from './compliance-scan.js';
-import { complianceShell, escXml, openLink, statusBadge } from './compliance-render.js';
+import { complianceShell, deadlineBadge, escXml, openLink, statusBadge } from './compliance-render.js';
 
 /** Today as ISO YYYY-MM-DD (extension host clock; the library stays clock-free). */
 function todayIso(): string {
@@ -108,19 +108,22 @@ export class SingleProductPreview {
     if (view.requirements.length === 0) {
       return `<div class="cmp-empty">No assertion names <strong>${escXml(view.productId)}</strong> as its subject yet — this product has no recorded compliance claims.</div>`;
     }
+    const today = todayIso();
     const rows = view.requirements.map(({ requirement, assertion }) => {
       const reqLink = openLink(OPEN_FILE_COMMAND, pathById.get(requirement.id), escXml(requirement.name), `Open ${requirement.id}`);
       const aLink = openLink(OPEN_FILE_COMMAND, pathById.get(assertion.id), escXml(assertion.id), `Open ${assertion.id}`);
       const review = assertion.next_review_at ? escXml(assertion.next_review_at) : '—';
+      const dl = deadlineBadge(requirement.deadline, today);
       return `<tr>
         <td>${reqLink}<div class="cmp-req-id">${escXml(requirement.id)}</div></td>
         <td>${statusBadge(assertion.status)}</td>
         <td>${aLink}</td>
         <td>${review}</td>
+        <td>${dl || '—'}</td>
       </tr>`;
     }).join('');
     return `<table class="cmp-list">
-      <thead><tr><th>Requirement</th><th>Status</th><th>Assertion</th><th>Next review</th></tr></thead>
+      <thead><tr><th>Requirement</th><th>Status</th><th>Assertion</th><th>Next review</th><th>Deadline</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>`;
   }
