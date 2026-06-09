@@ -8,7 +8,7 @@ export { renderComplianceMarkdown } from './markdown.js';
 export type { ReportScope, MarkdownOptions } from './markdown.js';
 export { renderComplianceHtml } from './html.js';
 export type { HtmlOptions } from './html.js';
-export { buildImpactMatrix, renderImpactMarkdown, parseImpactViewConfig, COMPLIANCE_IMPACT_DEFAULTS, extractObjectDetails } from './impact.js';
+export { buildImpactMatrix, renderImpactMarkdown, parseImpactViewConfig, COMPLIANCE_IMPACT_DEFAULTS, extractObjectDetails, computeDeadlineStatus } from './impact.js';
 export type {
   ImpactCell,
   ImpactColumn,
@@ -30,6 +30,7 @@ export {
 export type {
   ComplianceIndex,
   ComplianceIndexInput,
+  DeadlineStatus,
   IndexRequirement,
   IndexAssertion,
   LawTree,

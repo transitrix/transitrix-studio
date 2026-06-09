@@ -10,7 +10,7 @@
 import type { AssertionStatus } from '../assertion/types.js';
 import type { ComplianceCanon } from './classify.js';
 import { buildComplianceIndex } from './reverse-index.js';
-import type { ComplianceIndex, IndexAssertion, IndexRequirement, ObjectDetailInput, ObjectDetailDef } from './types.js';
+import type { ComplianceIndex, IndexAssertion, IndexRequirement, ObjectDetailInput, ObjectDetailDef, DeadlineStatus } from './types.js';
 
 /** Filter selecting REQUIREMENTs by codex source (jurisdiction / regime keys
  *  are accepted for forward compatibility but not yet honoured — the canon
@@ -257,6 +257,20 @@ export interface ImpactCell {
   kind: 'bound' | 'n_a_only' | 'gap';
   /** The assertions that contributed to this cell, id-sorted. */
   assertions: IndexAssertion[];
+  /**
+   * CV-3 blueprint-lane decorations.
+   *
+   * `isNew`    — the row's REQUIREMENT was admitted after the report
+   *              `snapshot_at` date (dashed-border decoration).
+   * `isUrgent` — the cell is a gap AND the requirement has a deadline
+   *              whose temporal status is `past_due` or `in_force`.
+   * `deadlineStatus` — temporal distance to the deadline (or `'none'`).
+   */
+  decoration: {
+    isNew: boolean;
+    isUrgent: boolean;
+    deadlineStatus: DeadlineStatus;
+  };
 }
 
 export interface ImpactMatrix {
@@ -282,10 +296,42 @@ export interface ImpactMatrix {
   cells: ImpactCell[][];
   /** Canonical empty-cell labels actually used (after defaults applied). */
   emptyLabels: Required<ImpactEmptyCellLabels>;
+  /**
+   * CV-3 derived obligations lane.
+   *
+   * For each column, the set of codex source IDs (`REQUIREMENT.derived_from`)
+   * that appear in at least one non-gap cell in that column.  Renderers use
+   * this to display a "laws lane" header above or below the matrix columns.
+   * Empty array when no requirement in the column has a `derived_from`.
+   */
+  obligationsLane: string[][];
 }
 
 const DEFAULT_NO_OBLIGATION_LABEL = 'No mapped obligation (current model)';
 const DEFAULT_NO_OBLIGATION_APPLIES_LABEL = 'No obligation applies';
+
+// ── Deadline temporal status (CV-3) ─────────────────────────────────────────
+
+/** Number of days within which a deadline is considered "in force" (imminent). */
+const IN_FORCE_HORIZON_DAYS = 30;
+
+/**
+ * Classify a REQUIREMENT deadline relative to a reference date.
+ *
+ * @param deadline  ISO 8601 date string (YYYY-MM-DD), or undefined.
+ * @param today     Reference date string (YYYY-MM-DD); defaults to today.
+ */
+export function computeDeadlineStatus(
+  deadline: string | undefined,
+  today: string = new Date().toISOString().slice(0, 10),
+): DeadlineStatus {
+  if (!deadline) return 'none';
+  if (deadline < today) return 'past_due';
+  const daysAway = Math.round(
+    (new Date(deadline).getTime() - new Date(today).getTime()) / (1000 * 60 * 60 * 24),
+  );
+  return daysAway <= IN_FORCE_HORIZON_DAYS ? 'in_force' : 'upcoming';
+}
 
 function byId<T extends { id: string }>(a: T, b: T): number {
   return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
@@ -458,6 +504,39 @@ export function buildImpactMatrix(
     }
   }
 
+  // ── CV-3 decorations ────────────────────────────────────────────────────
+  const today = new Date().toISOString().slice(0, 10);
+  for (let r = 0; r < cells.length; r++) {
+    const req = obligations[r];
+    const deadlineStatus = computeDeadlineStatus(req.deadline, today);
+    // "new" = requirement admitted after the snapshot date.
+    const isNew =
+      !!config.snapshot_at &&
+      !!req.admitted_at &&
+      req.admitted_at > config.snapshot_at;
+    for (let c = 0; c < cells[r].length; c++) {
+      const cell = cells[r][c];
+      const isUrgent =
+        cell.kind === 'gap' &&
+        (deadlineStatus === 'past_due' || deadlineStatus === 'in_force');
+      cell.decoration = { isNew, isUrgent, deadlineStatus };
+    }
+  }
+
+  // ── CV-3 derived obligations lane ───────────────────────────────────────
+  // For each column: collect codex source IDs from non-gap rows.
+  const obligationsLane: string[][] = columns.map((_, c) => {
+    const codexIds = new Set<string>();
+    for (let r = 0; r < cells.length; r++) {
+      if (cells[r][c].kind !== 'gap') {
+        for (const src of obligations[r].derived_from ?? []) {
+          codexIds.add(src);
+        }
+      }
+    }
+    return [...codexIds].sort();
+  });
+
   return {
     viewId: config.id,
     viewName: config.name,
@@ -471,11 +550,17 @@ export function buildImpactMatrix(
       no_obligation_applies_label:
         config.empty_cells?.no_obligation_applies_label ?? DEFAULT_NO_OBLIGATION_APPLIES_LABEL,
     },
+    obligationsLane,
   };
 }
 
 function emptyCell(): ImpactCell {
-  return { status: null, kind: 'gap', assertions: [] };
+  return {
+    status: null,
+    kind: 'gap',
+    assertions: [],
+    decoration: { isNew: false, isUrgent: false, deadlineStatus: 'none' },
+  };
 }
 
 // ── Process-blueprint stage extractor (CV-3a) ───────────────────────────────

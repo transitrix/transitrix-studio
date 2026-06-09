@@ -57,6 +57,7 @@ export function ingestComplianceDoc(canon: ComplianceCanon, doc: unknown): strin
       severity: str(d.severity),
       derived_from: strArray(d.derived_from),
       admitted_at: str(d.admitted_at),
+      deadline: str(d.deadline),
     });
     return id;
   }
