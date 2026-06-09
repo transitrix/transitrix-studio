@@ -4,7 +4,7 @@ import yaml from 'js-yaml';
 import { type ThemeId } from '../../packages/diagrams/src/theme/index.js';
 import { buildComplianceIndex, buildLawTree, scoreComplianceView, type LawTree } from '../../packages/diagrams/src/compliance/index.js';
 import { scanComplianceCanon } from './compliance-scan.js';
-import { complianceShell, escXml, openLink, statusBadge } from './compliance-render.js';
+import { complianceShell, deadlineBadge, escXml, openLink, statusBadge } from './compliance-render.js';
 
 /** Today as ISO YYYY-MM-DD (extension host clock; the library stays clock-free). */
 function todayIso(): string {
@@ -111,9 +111,11 @@ export class SingleLawPreview {
     if (tree.requirements.length === 0) {
       return `<div class="cmp-empty">No requirements derive from <strong>${escXml(tree.lawId)}</strong>. Add <code>derived_from: [${escXml(tree.lawId)}]</code> to a requirement to bind it.</div>`;
     }
+    const today = new Date().toISOString().slice(0, 10);
     return tree.requirements.map(node => {
       const r = node.requirement;
       const sev = r.severity ? `<span class="cmp-sev cmp-sev-${escXml(r.severity)}">${escXml(r.severity)}</span>` : '';
+      const dl = deadlineBadge(r.deadline, today);
       const reqLink = openLink(OPEN_FILE_COMMAND, pathById.get(r.id), escXml(r.name), `Open ${r.id}`);
       const assertions = node.assertions.length === 0
         ? `<div class="cmp-none">No assertion targets this requirement — compliance gap.</div>`
@@ -123,7 +125,7 @@ export class SingleLawPreview {
             return `<li>${statusBadge(a.status)} ${link}${meta ? ` <span class="cmp-meta">${escXml(meta)}</span>` : ''}</li>`;
           }).join('')}</ul>`;
       return `<div class="cmp-req">
-        <div class="cmp-req-head">${sev}<span class="cmp-req-name">${reqLink}</span><span class="cmp-req-id">${escXml(r.id)}</span></div>
+        <div class="cmp-req-head">${sev}<span class="cmp-req-name">${reqLink}</span><span class="cmp-req-id">${escXml(r.id)}</span>${dl}</div>
         ${assertions}
       </div>`;
     }).join('');
