@@ -1,11 +1,11 @@
 // Compliance-impact matrix derivation + markdown renderer
-// (vkgeorgia/strategy#166 — interim renderer; full Studio consumer-side
-// renderer tracked under #84).
+// (vkgeorgia/strategy#166 — interim renderer; CV-1 view-config wiring
+// per strategy#84 decomposition refresh).
 //
 // Implements the render contract from
 // methodology/notations/views/21-compliance-impact.md §5 at the coarsest grain
 // (`product` columns × `obligation` rows). Stage / task grouping is planned
-// for the full consumer-side renderer and intentionally out of scope here.
+// for CV-3a and intentionally out of scope here.
 
 import type { AssertionStatus } from '../assertion/types.js';
 import type { ComplianceCanon } from './classify.js';
@@ -36,10 +36,28 @@ export interface ImpactEmptyCellLabels {
   no_obligation_applies_label?: string;
 }
 
+/**
+ * Named, versioned view-config — the report *definition*.
+ *
+ * A saved view config is the source of truth for a deterministic report run:
+ * given the same config + canon, `buildImpactMatrix` always produces the
+ * same matrix. Configs are stored in YAML files (top-level `view:` key) and
+ * referenced by `id`.
+ *
+ * `snapshot_at` (ISO 8601 date) records when the report was last generated.
+ * CV-3 blueprint-lane rendering uses it to mark obligations that appeared in
+ * the canon *after* the snapshot as "new" (dashed-border cell decoration).
+ */
 export interface ImpactViewConfig {
   id: string;
   name: string;
   description?: string;
+  /**
+   * ISO 8601 date of the last report snapshot (YYYY-MM-DD).
+   * Populated automatically by the CLI on each run and stored back to the
+   * view-config file, giving CV-3 its "new since last run" signal.
+   */
+  snapshot_at?: string;
   subjects: ImpactSubjects;
   obligations: {
     include?: string[];
@@ -48,6 +66,139 @@ export interface ImpactViewConfig {
   status_display?: ImpactStatusDisplay;
   empty_cells?: ImpactEmptyCellLabels;
   order_rows_by?: 'id' | 'name';
+}
+
+// ── Pinned defaults ─────────────────────────────────────────────────────────
+
+/**
+ * Explicit defaults for every optional field in ImpactViewConfig.
+ *
+ * When a view config omits a field, COMPLIANCE_IMPACT_DEFAULTS defines the
+ * assumed behaviour. The CLI prints these so re-runs without a full config
+ * are auditable ("what I assumed").
+ */
+export const COMPLIANCE_IMPACT_DEFAULTS = {
+  /** Accept all four active statuses + n_a in cell aggregation. */
+  status_display: {
+    show: ['compliant', 'partial', 'non_compliant', 'under_review', 'n_a'] as AssertionStatus[],
+  },
+  /** Order rows by canonical REQUIREMENT ID (lexicographic). */
+  order_rows_by: 'id' as const,
+  /** §5.3 empty-cell labels. */
+  empty_cells: {
+    no_obligation_label: 'No mapped obligation (current model)',
+    no_obligation_applies_label: 'No obligation applies',
+  },
+  /** Obligation scope: all known REQUIREMENTs in the canon (no filter). */
+  obligations: { include: undefined as string[] | undefined, filter: undefined },
+  /** Subjects: empty — must be supplied explicitly in the view config. */
+  subjects: { products: [] as string[], processes: [] as string[] },
+} as const;
+
+// ── View-config parser ──────────────────────────────────────────────────────
+
+export type ParseImpactViewConfigResult =
+  | { ok: true; config: ImpactViewConfig }
+  | { ok: false; errors: string[] };
+
+/**
+ * Validate and normalise a raw (YAML-parsed) value into an ImpactViewConfig.
+ *
+ * Accepts both the bare config object and the view-config file shape
+ * (`{ view: { id, name, … } }`) — the top-level `view:` wrapper is unwrapped
+ * automatically.
+ *
+ * Every optional field is filled from COMPLIANCE_IMPACT_DEFAULTS, so callers
+ * can rely on the returned config being complete without any `??` chains.
+ *
+ * Returns `{ ok: false, errors }` on schema violations rather than throwing,
+ * so the CLI can surface a clean error message without a stack trace.
+ */
+export function parseImpactViewConfig(raw: unknown): ParseImpactViewConfigResult {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return { ok: false, errors: ['view config: expected an object at the document root'] };
+  }
+  const top = raw as Record<string, unknown>;
+
+  // Unwrap optional `view:` wrapper (view-config YAML files use this key).
+  const v: Record<string, unknown> =
+    'view' in top && top.view && typeof top.view === 'object' && !Array.isArray(top.view)
+      ? (top.view as Record<string, unknown>)
+      : top;
+
+  const errors: string[] = [];
+  if (!v.id || typeof v.id !== 'string') errors.push('view.id: required string');
+  if (!v.name || typeof v.name !== 'string') errors.push('view.name: required string');
+  if (v.subjects !== undefined && (typeof v.subjects !== 'object' || Array.isArray(v.subjects))) {
+    errors.push('view.subjects: expected an object');
+  }
+  if (errors.length) return { ok: false, errors };
+
+  const subjects =
+    v.subjects && typeof v.subjects === 'object' && !Array.isArray(v.subjects)
+      ? (v.subjects as Record<string, unknown>)
+      : {};
+  const obligations =
+    v.obligations && typeof v.obligations === 'object' && !Array.isArray(v.obligations)
+      ? (v.obligations as Record<string, unknown>)
+      : {};
+  const obFilter =
+    obligations.filter && typeof obligations.filter === 'object' && !Array.isArray(obligations.filter)
+      ? (obligations.filter as Record<string, unknown>)
+      : null;
+  const statusDisplay =
+    v.status_display && typeof v.status_display === 'object' && !Array.isArray(v.status_display)
+      ? (v.status_display as Record<string, unknown>)
+      : {};
+  const emptyCells =
+    v.empty_cells && typeof v.empty_cells === 'object' && !Array.isArray(v.empty_cells)
+      ? (v.empty_cells as Record<string, unknown>)
+      : {};
+
+  const config: ImpactViewConfig = {
+    id: v.id as string,
+    name: v.name as string,
+    description: typeof v.description === 'string' ? v.description : undefined,
+    snapshot_at: typeof v.snapshot_at === 'string' ? v.snapshot_at : undefined,
+    subjects: {
+      products: Array.isArray(subjects.products)
+        ? (subjects.products as unknown[]).filter((x): x is string => typeof x === 'string')
+        : [...COMPLIANCE_IMPACT_DEFAULTS.subjects.products],
+      processes: Array.isArray(subjects.processes)
+        ? (subjects.processes as unknown[]).filter((x): x is string => typeof x === 'string')
+        : [...COMPLIANCE_IMPACT_DEFAULTS.subjects.processes],
+    },
+    obligations: {
+      include: Array.isArray(obligations.include)
+        ? (obligations.include as unknown[]).filter((x): x is string => typeof x === 'string')
+        : undefined,
+      filter: obFilter
+        ? {
+            derived_from_codex: Array.isArray(obFilter.derived_from_codex)
+              ? (obFilter.derived_from_codex as unknown[]).filter((x): x is string => typeof x === 'string')
+              : undefined,
+          }
+        : undefined,
+    },
+    status_display: {
+      show: Array.isArray(statusDisplay.show)
+        ? (statusDisplay.show as unknown[]).filter((x): x is AssertionStatus => typeof x === 'string')
+        : [...COMPLIANCE_IMPACT_DEFAULTS.status_display.show],
+    },
+    empty_cells: {
+      no_obligation_label:
+        typeof emptyCells.no_obligation_label === 'string'
+          ? emptyCells.no_obligation_label
+          : COMPLIANCE_IMPACT_DEFAULTS.empty_cells.no_obligation_label,
+      no_obligation_applies_label:
+        typeof emptyCells.no_obligation_applies_label === 'string'
+          ? emptyCells.no_obligation_applies_label
+          : COMPLIANCE_IMPACT_DEFAULTS.empty_cells.no_obligation_applies_label,
+    },
+    order_rows_by: v.order_rows_by === 'name' ? 'name' : COMPLIANCE_IMPACT_DEFAULTS.order_rows_by,
+  };
+
+  return { ok: true, config };
 }
 
 /** A single cell of the rendered matrix. */
@@ -67,6 +218,12 @@ export interface ImpactMatrix {
   viewId: string;
   viewName: string;
   description?: string;
+  /**
+   * ISO 8601 date of the last report snapshot, copied from the view config.
+   * CV-3 blueprint-lane rendering uses this to flag obligations that appeared
+   * after the snapshot as "new" (dashed-border cell decoration).
+   */
+  snapshotAt?: string;
   /** Row dimension — REQUIREMENT projections, in the configured order. */
   rows: IndexRequirement[];
   /** Column dimension — subject IDs (PRODUCT ids in the coarsest grain). */
@@ -206,6 +363,7 @@ export function buildImpactMatrix(canon: ComplianceCanon, config: ImpactViewConf
     viewId: config.id,
     viewName: config.name,
     description: config.description,
+    snapshotAt: config.snapshot_at,
     rows: obligations,
     columns,
     cells,
@@ -250,6 +408,7 @@ export function renderImpactMarkdown(matrix: ImpactMatrix): string {
   lines.push(`# ${matrix.viewName}`);
   lines.push('');
   lines.push(`View ID: \`${matrix.viewId}\``);
+  if (matrix.snapshotAt) lines.push(`Report snapshot: ${matrix.snapshotAt}`);
   if (matrix.description) {
     lines.push('');
     lines.push(matrix.description);

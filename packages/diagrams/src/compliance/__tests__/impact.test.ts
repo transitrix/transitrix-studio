@@ -1,6 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { emptyCanon } from '../classify.js';
-import { buildImpactMatrix, renderImpactMarkdown, type ImpactViewConfig } from '../impact.js';
+import {
+  buildImpactMatrix,
+  renderImpactMarkdown,
+  parseImpactViewConfig,
+  COMPLIANCE_IMPACT_DEFAULTS,
+  type ImpactViewConfig,
+} from '../impact.js';
 import type { ComplianceCanon } from '../classify.js';
 
 // Industry- and regime-agnostic synthetic fixture: opaque ids only, no real
@@ -174,5 +180,87 @@ describe('renderImpactMarkdown', () => {
     });
     const md = renderImpactMarkdown(matrix);
     expect(md).toContain('No obligations in scope');
+  });
+
+  it('propagates snapshot_at into the matrix and renders it', () => {
+    const canon = buildCanon();
+    const matrix = buildImpactMatrix(canon, { ...baseConfig, snapshot_at: '2026-06-09' });
+    expect(matrix.snapshotAt).toBe('2026-06-09');
+    const md = renderImpactMarkdown(matrix);
+    expect(md).toContain('Report snapshot: 2026-06-09');
+  });
+});
+
+// ── parseImpactViewConfig ───────────────────────────────────────────────────
+
+describe('parseImpactViewConfig', () => {
+  it('returns ok:false for a non-object', () => {
+    const r = parseImpactViewConfig(null);
+    expect(r.ok).toBe(false);
+  });
+
+  it('returns ok:false when id is missing', () => {
+    const r = parseImpactViewConfig({ name: 'X', subjects: {} });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.errors.some(e => e.includes('id'))).toBe(true);
+  });
+
+  it('returns ok:false when name is missing', () => {
+    const r = parseImpactViewConfig({ id: 'X', subjects: {} });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.errors.some(e => e.includes('name'))).toBe(true);
+  });
+
+  it('unwraps the top-level view: wrapper', () => {
+    const r = parseImpactViewConfig({ view: { id: 'V-1', name: 'My view', subjects: {} } });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.config.id).toBe('V-1');
+  });
+
+  it('fills all optional fields from COMPLIANCE_IMPACT_DEFAULTS', () => {
+    const r = parseImpactViewConfig({ id: 'V-1', name: 'My view', subjects: {} });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    const c = r.config;
+    expect(c.subjects.products).toEqual([]);
+    expect(c.subjects.processes).toEqual([]);
+    expect(c.status_display?.show).toEqual(COMPLIANCE_IMPACT_DEFAULTS.status_display.show);
+    expect(c.order_rows_by).toBe('id');
+    expect(c.empty_cells?.no_obligation_label).toBe(
+      COMPLIANCE_IMPACT_DEFAULTS.empty_cells.no_obligation_label,
+    );
+    expect(c.empty_cells?.no_obligation_applies_label).toBe(
+      COMPLIANCE_IMPACT_DEFAULTS.empty_cells.no_obligation_applies_label,
+    );
+  });
+
+  it('preserves explicit subject lists and snapshot_at', () => {
+    const r = parseImpactViewConfig({
+      id: 'V-2',
+      name: 'View 2',
+      snapshot_at: '2026-01-01',
+      subjects: { products: ['PRODUCT-A-1', 'PRODUCT-B-1'] },
+    });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.config.subjects.products).toEqual(['PRODUCT-A-1', 'PRODUCT-B-1']);
+    expect(r.config.snapshot_at).toBe('2026-01-01');
+  });
+
+  it('applies custom order_rows_by:name', () => {
+    const r = parseImpactViewConfig({ id: 'V-3', name: 'V', subjects: {}, order_rows_by: 'name' });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.config.order_rows_by).toBe('name');
+  });
+
+  it('parses obligation filter correctly', () => {
+    const r = parseImpactViewConfig({
+      id: 'V-4',
+      name: 'V',
+      subjects: {},
+      obligations: { filter: { derived_from_codex: ['LAW-X-1'] } },
+    });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.config.obligations.filter?.derived_from_codex).toEqual(['LAW-X-1']);
   });
 });
