@@ -60,12 +60,8 @@ export interface ProcessBlueprintLayoutOptions {
   maxTextLines?: number;
 }
 
-export interface LayoutBounds {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
+import type { LayoutBounds } from '../geometry.js';
+export type { LayoutBounds };
 
 export interface LegendCell {
   kind: 'goal' | 'result' | 'aspect';

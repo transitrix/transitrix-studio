@@ -5,7 +5,6 @@ export type {
   ProcessBlueprintHeader,
   ProcessBlueprintFile,
   ProcessBlueprintLayoutOptions,
-  LayoutBounds,
   LegendCell,
   StageHeaderCell,
   StageTextCell,

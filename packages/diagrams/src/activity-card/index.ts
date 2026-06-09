@@ -11,7 +11,6 @@ export type {
   ResolvedMotivation,
   ResolvedChildActivity,
   ResolvedActivityCard,
-  LayoutBounds,
   DateField,
   MilestoneMarker,
   ChainNode,
