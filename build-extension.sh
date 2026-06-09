@@ -88,6 +88,10 @@ else
 fi
 
 echo
+echo "=== verify-extension-packaging"
+node scripts/verify-extension-packaging.mjs
+
+echo
 if [ -n "$target" ]; then
   echo "=== [3/3] vsce package --target $target -> output/"
 else

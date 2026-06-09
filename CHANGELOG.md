@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+## [1.4.1] — 2026-06-09
+
+### Fixed
+- **VSIX packaging** — retired extension sources no longer ship inside the Marketplace
+  artifact. `issues-preview.ts` moved from `extension/0. archive/` to repo-root
+  `0. archive/extension/`; `extension/.vscodeignore` excludes archive paths;
+  `verify-extension-packaging.mjs` gates `build-extension` and CI.
+
 ### Removed
 - **Issues register notation retired.** The `issues` notation (`*.issues.transitrix.yaml`) — diagrams module, extension preview/commands/menus/language, activation event, and example — is removed, following the methodology decision to retire the model-side `ISSUE` type (architectural problems/risks are modelled as `ASSESSMENT`; team tracking uses Work Items). Files moved to `0. archive/`. Breaking change for `@transitrix/diagrams` consumers importing the issues exports.
 

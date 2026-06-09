@@ -3,6 +3,11 @@ tsconfig.json
 .vscode-test/**
 **/*.map
 
+# Archive trees belong at repo-root 0. archive/extension/, never inside extension/.
+# Safety net — vsce must never ship retired sources or local agent artefacts.
+0. archive/**
+.archive/**
+
 # node_modules IS shipped inside the VSIX so the compiler bundle can resolve
 # runtime dependencies (ajv, elkjs, etc.) via require at runtime. The
 # build-compiler-bundle.mjs step installs a clean, workspace-ignored

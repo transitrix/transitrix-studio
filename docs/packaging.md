@@ -23,6 +23,20 @@ binary landed. The resulting `.vsix` is correct **only for the OS/arch it was
 built on** — installing it elsewhere makes PNG export fail at runtime
 (SVG export and previews are unaffected).
 
+## Archive paths must stay outside `extension/`
+
+Retired extension sources (e.g. dropped previews) live under
+`0. archive/extension/` at the **repo root**, not inside `extension/`. Anything
+under `extension/0. archive/` or `extension/.archive/` would otherwise land in
+the VSIX unless excluded.
+
+Safeguards (vkgeorgia/strategy — `.archive` convention):
+
+- `extension/.vscodeignore` lists `0. archive/**` and `.archive/**`
+- `node scripts/verify-extension-packaging.mjs` runs before every
+  `build-extension.bat` / `build-extension.sh` `vsce package` step and fails
+  if those folders reappear under `extension/`
+
 ## Build per-platform VSIXs for the Marketplace
 
 Tag each VSIX with `vsce package --target <target>` so the Marketplace serves
