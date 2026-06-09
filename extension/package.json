@@ -62,7 +62,10 @@
     "workspaceContains:**/*.scenarios.transitrix.yaml",
     "workspaceContains:**/*.capability-map.transitrix.yaml",
     "workspaceContains:**/*.process-blueprint.transitrix.yaml",
-    "workspaceContains:**/*.activity-card.transitrix.yaml"
+    "workspaceContains:**/*.activity-card.transitrix.yaml",
+    "workspaceContains:**/*.compliance-impact.view.yaml",
+    "workspaceContains:**/ASSERTION-*.yaml",
+    "workspaceContains:**/REQUIREMENT-*.yaml"
   ],
   "contributes": {
     "configuration": {
@@ -589,6 +592,18 @@
       {
         "command": "transitrixStudio.refreshComplianceMatrix",
         "title": "Transitrix: Refresh compliance matrix",
+        "category": "Transitrix",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "transitrixStudio.previewComplianceImpact",
+        "title": "Transitrix: Preview compliance-impact matrix",
+        "category": "Transitrix",
+        "icon": "$(graph)"
+      },
+      {
+        "command": "transitrixStudio.refreshComplianceImpact",
+        "title": "Transitrix: Refresh compliance-impact matrix",
         "category": "Transitrix",
         "icon": "$(refresh)"
       },

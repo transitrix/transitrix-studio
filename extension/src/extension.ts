@@ -16,6 +16,7 @@ import { CapabilityMapPreview } from './capability-map-preview.js';
 import { ProcessBlueprintPreview } from './process-blueprint-preview.js';
 import { ActivityCardPreview } from './activity-card-preview.js';
 import { ComplianceMatrixPreview } from './compliance-matrix-preview.js';
+import { ComplianceImpactPreview } from './compliance-impact-preview.js';
 import { SingleLawPreview } from './single-law-preview.js';
 import { SingleProductPreview } from './single-product-preview.js';
 import { GapDashboardPreview } from './gap-dashboard-preview.js';
@@ -152,6 +153,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const processBlueprintPreview = new ProcessBlueprintPreview();
   const activityCardPreview = new ActivityCardPreview();
   const complianceMatrixPreview = new ComplianceMatrixPreview(context.extensionUri);
+  const complianceImpactPreview = new ComplianceImpactPreview(context.extensionUri);
   const singleLawPreview = new SingleLawPreview(context.extensionUri);
   const singleProductPreview = new SingleProductPreview(context.extensionUri);
   const gapDashboardPreview = new GapDashboardPreview(context.extensionUri);
@@ -309,6 +311,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand('transitrixStudio.previewComplianceMatrix', () => complianceMatrixPreview.showOrReveal()),
     vscode.commands.registerCommand('transitrixStudio.refreshComplianceMatrix', () => complianceMatrixPreview.refresh()),
     vscode.commands.registerCommand('transitrixStudio.openComplianceFile', (fsPath: string) => openComplianceFile(fsPath)),
+    // Compliance-impact matrix (vkgeorgia/strategy#84 CV-2) — obligation × subject
+    // view per §5 of 21-compliance-impact.md; uses ImpactViewConfig (CV-1).
+    vscode.commands.registerCommand('transitrixStudio.previewComplianceImpact', () => complianceImpactPreview.showOrReveal()),
+    vscode.commands.registerCommand('transitrixStudio.refreshComplianceImpact', () => complianceImpactPreview.refresh()),
     // Single-law tree + single-product view (vkgeorgia/strategy#84 Phase 3) —
     // triggered from a codex / product file's editor-title bar; repo-wide scan.
     vscode.commands.registerCommand('transitrixStudio.previewSingleLaw', async () => {
@@ -362,6 +368,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       // artefact (by filename convention) is saved. No-op when no panel is open.
       if (/^(PRODUCT|REQUIREMENT|ASSERTION|LAW|REGULATION|POLICY|INTERNAL_STANDARD)-.*\.ya?ml$/.test(path.basename(doc.fileName))) {
         void complianceMatrixPreview.refresh();
+        void complianceImpactPreview.refresh();
         void singleLawPreview.refresh();
         void singleProductPreview.refresh();
         void gapDashboardPreview.refresh();
