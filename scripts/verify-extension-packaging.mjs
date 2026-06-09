@@ -1,8 +1,6 @@
 /**
- * Gate before `vsce package`:
- * 1. extension/ must not contain archive folders (they would ship in the VSIX).
- * 2. Repo root must not use legacy `0. archive/extension/` — retired extension
- *    sources belong under `.archive/extension/`.
+ * Gate before `vsce package`: extension/ must contain only shippable runtime
+ * assets. Non-runtime directory names are blocked by FORBIDDEN_DIR_NAMES below.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -11,9 +9,8 @@ import { fileURLToPath } from 'node:url';
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const extRoot = path.join(root, 'extension');
 
-const FORBIDDEN_UNDER_EXTENSION = new Set(['0. archive', '.archive']);
-const LEGACY_EXTENSION_ARCHIVE = path.join(root, '0. archive', 'extension');
-const CANONICAL_EXTENSION_ARCHIVE = path.join(root, '.archive', 'extension');
+// Directory names that must never appear under extension/ (would ship in the VSIX).
+const FORBIDDEN_DIR_NAMES = new Set(['0. archive', '.archive']);
 
 /** @returns {string[]} relative paths under extension/ that must not ship */
 function findForbiddenUnderExtension(dir, rel = '') {
@@ -27,7 +24,7 @@ function findForbiddenUnderExtension(dir, rel = '') {
   for (const ent of entries) {
     const relPath = rel ? `${rel}/${ent.name}` : ent.name;
     if (ent.isDirectory()) {
-      if (FORBIDDEN_UNDER_EXTENSION.has(ent.name)) {
+      if (FORBIDDEN_DIR_NAMES.has(ent.name)) {
         hits.push(relPath);
         continue;
       }
@@ -37,30 +34,14 @@ function findForbiddenUnderExtension(dir, rel = '') {
   return hits;
 }
 
-let failed = false;
-
-const underExtension = findForbiddenUnderExtension(extRoot);
-if (underExtension.length > 0) {
-  failed = true;
-  console.error('verify-extension-packaging: archive path(s) under extension/ — must not ship in a VSIX:');
-  for (const p of underExtension) {
+const forbidden = findForbiddenUnderExtension(extRoot);
+if (forbidden.length > 0) {
+  console.error('verify-extension-packaging: non-runtime path(s) under extension/:');
+  for (const p of forbidden) {
     console.error(`  extension/${p}`);
   }
-  console.error('');
-  console.error(`Move retired extension sources to ${path.relative(root, CANONICAL_EXTENSION_ARCHIVE)}/ at the repo root.`);
-}
-
-if (fs.existsSync(LEGACY_EXTENSION_ARCHIVE)) {
-  failed = true;
-  console.error('verify-extension-packaging: legacy repo-root path still present:');
-  console.error(`  ${path.relative(root, LEGACY_EXTENSION_ARCHIVE)}/`);
-  console.error(`Migrate contents to ${path.relative(root, CANONICAL_EXTENSION_ARCHIVE)}/ and remove the legacy folder.`);
-}
-
-if (failed) {
-  console.error('');
-  console.error('extension/.vscodeignore excludes 0. archive/** and .archive/** as a VSIX safety net.');
+  console.error('Remove or relocate before packaging. See docs/packaging.md.');
   process.exit(1);
 }
 
-console.log('verify-extension-packaging: OK (no archive folders under extension/; no legacy 0. archive/extension/)');
+console.log('verify-extension-packaging: OK');

@@ -1,9 +1,7 @@
 node_modules/
 
-# Archive root — canonical: .archive/ (agent logs/bus local-only; retired sources tracked)
-.archive/agent-runs/
-.archive/agent-bus/
-# Legacy folder name (leading space) — do not create new paths; migrate to .archive/
+# Local-only trees (never commit; see contributor orientation)
+.archive/
 **/0. archive/
 
 dist/

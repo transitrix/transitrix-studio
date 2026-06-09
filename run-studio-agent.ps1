@@ -23,7 +23,7 @@ $RepoPath  = "C:\GitHub\transitrix-studio"
 $ProjLabel = "proj:transitrix-studio"
 # -----------------------------------------------------------------------------
 
-$LogDir  = Join-Path $RepoPath ".archive\agent-runs"
+$LogDir  = Join-Path $RepoPath "0. archive\agent-runs"
 New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
 $LogFile = Join-Path $LogDir ("$($AgentName.ToLower())-agent-{0:yyyy-MM-dd-HHmmss}.log" -f (Get-Date))
 
@@ -51,7 +51,7 @@ There is no human at the keyboard - never wait for interactive input.
 Working repo: $RepoPath (you are already in it).
 
 1. Orient: read ./CLAUDE.md here, and STRATEGY.md in C:\GitHub\strategy.
-   Then read your bus inbox at ./.archive/agent-bus/inbox.md - act on any
+   Then read your bus inbox at ./0.\ archive/agent-bus/inbox.md - act on any
    answer/relay entries dated after your previous run - this is how the orchestrator
    replies to your questions and relays facts from sibling agents (local-only file).
 2. Pull YOUR open tasks only:
@@ -81,7 +81,7 @@ If canon settles it, follow canon and do NOT ask.
 
 IF YOU ARE BLOCKED, UNSURE, OR A DECISION IS NEEDED (and canon does NOT settle it):
    Do not stall and do not guess. Write your question to your bus OUTBOX - append an
-   entry to ./.archive/agent-bus/outbox.md (format is in that file) with
+   entry to ./0.\ archive/agent-bus/outbox.md (format is in that file) with
    enough context to answer, referencing the hub issue. Then set the signal label:
      gh issue edit <N> -R vkgeorgia/strategy --add-label needs:answer
    The label is the SIGNAL; your outbox carries the TEXT. The orchestrator reads your

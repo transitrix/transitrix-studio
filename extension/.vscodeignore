@@ -3,8 +3,6 @@ tsconfig.json
 .vscode-test/**
 **/*.map
 
-# Archive trees belong at repo-root .archive/extension/, never inside extension/.
-# Safety net — vsce must never ship retired sources or local agent artefacts.
 0. archive/**
 .archive/**
 
