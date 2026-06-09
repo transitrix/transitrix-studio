@@ -9,7 +9,7 @@ import {
   type ImpactCell,
 } from '../../packages/diagrams/src/compliance/impact.js';
 import type { AssertionStatus } from '../../packages/diagrams/src/assertion/types.js';
-import type { IndexRequirement } from '../../packages/diagrams/src/compliance/types.js';
+import type { IndexRequirement, DeadlineStatus } from '../../packages/diagrams/src/compliance/types.js';
 import { genNonce } from './preview-controls.js';
 import { scanComplianceCanon, openComplianceFile } from './compliance-scan.js';
 import type { ScannedCanon } from './compliance-scan.js';
@@ -228,6 +228,8 @@ interface ImpactFilter {
   statuses: Set<AssertionStatus>;
   severities: Set<string>;
   jurisdictions: Set<string>;
+  /** CV-3: show/hide the derived obligations lane row. */
+  showObligationsLane: boolean;
 }
 
 function defaultFilter(): ImpactFilter {
@@ -235,6 +237,7 @@ function defaultFilter(): ImpactFilter {
     statuses: new Set<AssertionStatus>(),
     severities: new Set<string>(),
     jurisdictions: new Set<string>(),
+    showObligationsLane: true,
   };
 }
 
@@ -339,6 +342,7 @@ export class ComplianceImpactPreview {
     statuses?: string[];
     severities?: string[];
     jurisdictions?: string[];
+    showObligationsLane?: boolean;
   }): Promise<void> {
     if (m?.type !== 'transitrix:impact-filter') return;
     this.filter = {
@@ -349,6 +353,7 @@ export class ComplianceImpactPreview {
       jurisdictions: new Set(
         (m.jurisdictions ?? []).filter(j => typeof j === 'string' && j.length > 0),
       ),
+      showObligationsLane: m.showObligationsLane ?? this.filter.showObligationsLane,
     };
     this.render();
   }
@@ -379,7 +384,7 @@ export class ComplianceImpactPreview {
       totalPending > 0 ? ' &middot; <strong>' + totalPending + '</strong> pending (admission)' : '';
 
     const empty = rows.length === 0 || columns.length === 0;
-    const bodyHtml = empty ? this.emptyHtml(matrix) : this.gridHtml(rows, columns, cells, matrix.emptyLabels);
+    const bodyHtml = empty ? this.emptyHtml(matrix) : this.gridHtml(rows, columns, cells, matrix.emptyLabels, matrix.obligationsLane, this.filter.showObligationsLane);
 
     const statusBoxes = ALL_STATUSES.map(
       s =>
@@ -416,6 +421,11 @@ export class ComplianceImpactPreview {
           )
           .join('')
       : '';
+
+    const laneToggle =
+      '<label class="ci-chip"><input type="checkbox" data-ci-lane-obligations' +
+      (this.filter.showObligationsLane ? ' checked' : '') +
+      '> Laws lane</label>';
 
     const configLine =
       config.id === 'auto'
@@ -467,10 +477,10 @@ export class ComplianceImpactPreview {
       '\n' +
       '    ' +
       jurisdictionRow +
+      '\n    <span class="ci-filter-label">Lanes</span>' +
+      laneToggle +
       '\n' +
       '  </div>\n' +
-      '  ' +
-      bodyHtml +
       '\n' +
       '  <script nonce="' +
       nonce +
@@ -491,6 +501,7 @@ export class ComplianceImpactPreview {
       "        statuses: collect('status'),\n" +
       "        severities: collect('severity'),\n" +
       "        jurisdictions: collect('jurisdiction'),\n" +
+      "        showObligationsLane: !!(document.querySelector('[data-ci-lane-obligations]') || {}).checked,\n" +
       "      });\n" +
       "    });\n" +
       "  });\n" +
@@ -513,6 +524,8 @@ export class ComplianceImpactPreview {
     columns: ImpactColumn[],
     cells: ImpactCell[][],
     emptyLabels: { no_obligation_label: string; no_obligation_applies_label: string },
+    obligationsLane: string[][],
+    showObligationsLane: boolean,
   ): string {
     const head =
       '<tr>\n      <th class="ci-corner"></th>\n      ' +
@@ -520,6 +533,13 @@ export class ComplianceImpactPreview {
         .map(col => '<th class="ci-col"><div class="ci-col-name">' + escXml(col.label) + '</div></th>')
         .join('') +
       '\n    </tr>';
+    const laneRow = showObligationsLane
+      ? '<tr class="ci-obligations-lane"><th class="ci-corner ci-lane-label">Laws</th>' +
+        obligationsLane.map(ids =>
+          '<td class="ci-lane-cell">' +
+          (ids.length ? ids.map(id => '<span class="ci-law-badge">' + escXml(id) + '</span>').join('') : '') +
+          '</td>').join('') + '</tr>'
+      : '';
 
     const bodyRows = rows
       .map((req, ri) => {
@@ -637,7 +657,9 @@ export class ComplianceImpactPreview {
     return (
       '<div id="ci-grid-wrap"><table id="ci-grid"><thead>' +
       head +
-      '</thead><tbody>' +
+      '</thead>' +
+      laneRow +
+      '<tbody>' +
       bodyRows +
       '</tbody></table></div>'
     );
@@ -689,4 +711,11 @@ body { padding: 0; }
 .ci-badge-under_review { color: var(--ts-status-info-fg, #0c4a6e); background: var(--ts-status-info-bg, #e0f2fe); }
 .ci-empty { padding: 40px 24px; color: var(--ts-text-muted, #64748b); max-width: 640px; }
 .ci-empty code { background: var(--ts-bg-subtle, #f1f5f9); padding: 1px 4px; border-radius: 3px; }
+.ci-new { box-shadow: inset 0 0 0 2px #6366f1; }
+.ci-urgent { background: repeating-linear-gradient(45deg, #fee2e2, #fee2e2 5px, #fef2f2 5px, #fef2f2 10px) !important; }
+.ci-urgent-badge { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 50%; background: #dc2626; color: #fff; font-weight: 700; font-size: 11px; }
+.ci-obligations-lane th, .ci-obligations-lane td { background: var(--ts-bg-subtle, #f0f4ff); font-size: 10px; }
+.ci-lane-label { font-weight: 700; color: var(--ts-text-muted, #64748b); padding: 4px 8px; }
+.ci-lane-cell { text-align: left; padding: 4px 8px; vertical-align: middle; }
+.ci-law-badge { display: inline-block; padding: 1px 5px; border-radius: 3px; font-size: 9px; color: #3730a3; background: #e0e7ff; text-transform: uppercase; letter-spacing: 0.04em; margin: 1px 2px; white-space: nowrap; }
 `;

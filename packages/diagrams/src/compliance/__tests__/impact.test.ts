@@ -6,6 +6,7 @@ import {
   parseImpactViewConfig,
   COMPLIANCE_IMPACT_DEFAULTS,
   extractObjectDetails,
+  computeDeadlineStatus,
   type ImpactViewConfig,
 } from '../impact.js';
 import type { ComplianceCanon } from '../classify.js';
@@ -375,5 +376,107 @@ describe('CV-3a — stage grouping (ImpactColumn, extractObjectDetails, buildImp
     );
     const md = renderImpactMarkdown(matrix);
     expect(md).toContain('PROD-1:S1');
+  });
+});
+
+describe('CV-3 -- blueprint-lane decorations + obligations lane', () => {
+  it('computeDeadlineStatus function is available', () => {
+    expect(typeof computeDeadlineStatus).toBe('function');
+  });
+
+  it('cell.decoration.isNew = false when no snapshot_at', () => {
+    const canon = emptyCanon();
+    canon.requirements.push({ id: 'REQ-1', name: 'R1', admitted_at: '2026-01-01' });
+    canon.assertions.push({ id: 'ASS-1', about: 'REQ-1', subject: 'PROD-1', status: 'compliant' });
+    const matrix = buildImpactMatrix(canon, {
+      id: 'V', name: 'V',
+      subjects: { products: ['PROD-1'] },
+      obligations: {},
+    });
+    expect(matrix.cells[0][0].decoration.isNew).toBe(false);
+  });
+
+  it('cell.decoration.isNew = true when req admitted after snapshot_at', () => {
+    const canon = emptyCanon();
+    canon.requirements.push({ id: 'REQ-1', name: 'R1', admitted_at: '2026-06-01' });
+    canon.assertions.push({ id: 'ASS-1', about: 'REQ-1', subject: 'PROD-1', status: 'compliant' });
+    const matrix = buildImpactMatrix(canon, {
+      id: 'V', name: 'V',
+      snapshot_at: '2026-05-01',
+      subjects: { products: ['PROD-1'] },
+      obligations: {},
+    });
+    // admitted_at (2026-06-01) > snapshot_at (2026-05-01) -> isNew
+    expect(matrix.cells[0][0].decoration.isNew).toBe(true);
+  });
+
+  it('cell.decoration.isUrgent = true when gap + past_due deadline', () => {
+    const canon = emptyCanon();
+    canon.requirements.push({ id: 'REQ-1', name: 'R1', deadline: '2000-01-01' });
+    // No assertion -> gap cell
+    const matrix = buildImpactMatrix(canon, {
+      id: 'V', name: 'V',
+      subjects: { products: ['PROD-1'] },
+      obligations: {},
+    });
+    expect(matrix.cells[0][0].kind).toBe('gap');
+    expect(matrix.cells[0][0].decoration.isUrgent).toBe(true);
+    expect(matrix.cells[0][0].decoration.deadlineStatus).toBe('past_due');
+  });
+
+  it('cell.decoration.isUrgent = false on bound cell even with past deadline', () => {
+    const canon = emptyCanon();
+    canon.requirements.push({ id: 'REQ-1', name: 'R1', deadline: '2000-01-01' });
+    canon.assertions.push({ id: 'ASS-1', about: 'REQ-1', subject: 'PROD-1', status: 'compliant' });
+    const matrix = buildImpactMatrix(canon, {
+      id: 'V', name: 'V',
+      subjects: { products: ['PROD-1'] },
+      obligations: {},
+    });
+    expect(matrix.cells[0][0].kind).toBe('bound');
+    // Not urgent: cell is bound, not a gap
+    expect(matrix.cells[0][0].decoration.isUrgent).toBe(false);
+  });
+
+  it('obligationsLane lists derived_from codex IDs for non-gap columns', () => {
+    const canon = emptyCanon();
+    canon.requirements.push({ id: 'REQ-1', name: 'R1', derived_from: ['LAW-X', 'REG-Y'] });
+    canon.requirements.push({ id: 'REQ-2', name: 'R2', derived_from: ['LAW-X'] });
+    // Only REQ-1 is bound in PROD-1 column; REQ-2 is a gap
+    canon.assertions.push({ id: 'ASS-1', about: 'REQ-1', subject: 'PROD-1', status: 'compliant' });
+    const matrix = buildImpactMatrix(canon, {
+      id: 'V', name: 'V',
+      subjects: { products: ['PROD-1'] },
+      obligations: {},
+    });
+    // obligationsLane[0] (PROD-1 column): REQ-1 is bound -> derived_from -> LAW-X, REG-Y sorted
+    expect(matrix.obligationsLane[0]).toEqual(['LAW-X', 'REG-Y']);
+  });
+
+  it('obligationsLane is empty for columns with only gap cells', () => {
+    const canon = emptyCanon();
+    canon.requirements.push({ id: 'REQ-1', name: 'R1', derived_from: ['LAW-X'] });
+    // No assertions -> all gaps
+    const matrix = buildImpactMatrix(canon, {
+      id: 'V', name: 'V',
+      subjects: { products: ['PROD-1'] },
+      obligations: {},
+    });
+    expect(matrix.obligationsLane[0]).toEqual([]);
+  });
+});
+
+describe('computeDeadlineStatus', () => {
+  it('returns none for missing deadline', () => {
+    expect(computeDeadlineStatus(undefined, '2026-06-01')).toBe('none');
+  });
+  it('returns past_due when deadline < today', () => {
+    expect(computeDeadlineStatus('2026-01-01', '2026-06-01')).toBe('past_due');
+  });
+  it('returns in_force within 30 days', () => {
+    expect(computeDeadlineStatus('2026-06-20', '2026-06-01')).toBe('in_force');
+  });
+  it('returns upcoming more than 30 days away', () => {
+    expect(computeDeadlineStatus('2026-12-31', '2026-06-01')).toBe('upcoming');
   });
 });
