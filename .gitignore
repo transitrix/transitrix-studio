@@ -1,6 +1,9 @@
 node_modules/
 
-# Superseded / archived trees (never delete—move content here instead of deleting)
+# Archive root — canonical: .archive/ (agent logs/bus local-only; retired sources tracked)
+.archive/agent-runs/
+.archive/agent-bus/
+# Legacy folder name (leading space) — do not create new paths; migrate to .archive/
 **/0. archive/
 
 dist/

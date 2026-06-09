@@ -26,16 +26,18 @@ built on** — installing it elsewhere makes PNG export fail at runtime
 ## Archive paths must stay outside `extension/`
 
 Retired extension sources (e.g. dropped previews) live under
-`0. archive/extension/` at the **repo root**, not inside `extension/`. Anything
-under `extension/0. archive/` or `extension/.archive/` would otherwise land in
-the VSIX unless excluded.
+`.archive/extension/` at the **repo root**, not inside `extension/` and not
+under the legacy `0. archive/extension/` path. Anything under
+`extension/0. archive/` or `extension/.archive/` would otherwise land in the VSIX
+unless excluded.
 
-Safeguards (vkgeorgia/strategy — `.archive` convention):
+Safeguards (`.archive` convention — see `CLAUDE.md`):
 
 - `extension/.vscodeignore` lists `0. archive/**` and `.archive/**`
 - `node scripts/verify-extension-packaging.mjs` runs before every
-  `build-extension.bat` / `build-extension.sh` `vsce package` step and fails
-  if those folders reappear under `extension/`
+  `build-extension.bat` / `build-extension.sh` `vsce package` step and fails if
+  archive folders appear under `extension/` or if legacy `0. archive/extension/`
+  exists at the repo root
 
 ## Build per-platform VSIXs for the Marketplace
 

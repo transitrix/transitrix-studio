@@ -7,7 +7,7 @@
 ### Fixed
 - **VSIX packaging** — retired extension sources no longer ship inside the Marketplace
   artifact. `issues-preview.ts` moved from `extension/0. archive/` to repo-root
-  `0. archive/extension/`; `extension/.vscodeignore` excludes archive paths;
+  `.archive/extension/`; `extension/.vscodeignore` excludes archive paths;
   `verify-extension-packaging.mjs` gates `build-extension` and CI.
 
 ### Removed
