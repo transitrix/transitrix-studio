@@ -28,6 +28,34 @@ export interface IndexAssertion {
   evidenceCount?: number;
   /** Admission date (CONTRACT §6) — feeds DQ-1 freshness decay. */
   admitted_at?: string;
+  /**
+   * Typed IDs of the stages / tasks where the requirement is realised for
+   * the subject (16-assertion.md §2 `realised_via`). Populated when the
+   * assertion carries granular evidence; absent when the claim covers the
+   * entire subject without stage decomposition. CV-3a uses this to fill
+   * stage-grouped matrix cells.
+   */
+  realised_via?: string[];
+}
+
+// ── Stage grouping (CV-3a) ──────────────────────────────────────────────────
+
+/** One detail-level element of a business object, used as a matrix sub-column. */
+export interface ObjectDetailDef {
+  id: string;
+  name: string;
+}
+
+/**
+ * Maps a business object to its ordered detail elements.
+ * Passed into `buildImpactMatrix` when `grouping.columns` is
+ * `object-details`. The details can be process stages, product
+ * components, capability modules, etc. — whatever sub-structure the object
+ * exposes. Typically extracted from a process-blueprint via`extractObjectDetails`.
+ */
+export interface ObjectDetailInput {
+  objectId: string;
+  details: ObjectDetailDef[];
 }
 
 export interface ComplianceIndexInput {
