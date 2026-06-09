@@ -59,10 +59,10 @@ export async function compileCervinYamlWithLayout(
   // Convert BpmnModdle warnings to validation findings (error severity)
   // Any XML generation defect is a compiler bug, not a user error
   if (bpmnWarnings && bpmnWarnings.length > 0) {
-    const bpmnFindings: ValidationFinding[] = bpmnWarnings.map((warning: any) => ({
+    const bpmnFindings: ValidationFinding[] = bpmnWarnings.map((warning: { message?: string }) => ({
       ruleId: 'RD-111-BPMN-MODDLE',
       severity: 'error' as const,
-      message: `BPMN 2.0 conformance: ${warning.message || String(warning)}`,
+      message: `BPMN 2.0 conformance: ${warning.message ?? String(warning)}`,
       hint: 'This is a Transitrix Studio compiler bug; please report it',
       docUrl: 'docs/validation.md#bpmn-moddle-validation',
     }))
