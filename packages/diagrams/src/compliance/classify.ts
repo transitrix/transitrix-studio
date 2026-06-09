@@ -71,6 +71,7 @@ export function ingestComplianceDoc(canon: ComplianceCanon, doc: unknown): strin
       next_review_at: str(d.next_review_at),
       evidenceCount: Array.isArray(d.evidence) ? d.evidence.length : 0,
       admitted_at: str(d.admitted_at),
+      realised_via: strArray(d.realised_via),
     });
     return id;
   }

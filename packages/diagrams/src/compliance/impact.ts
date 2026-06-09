@@ -10,7 +10,7 @@
 import type { AssertionStatus } from '../assertion/types.js';
 import type { ComplianceCanon } from './classify.js';
 import { buildComplianceIndex } from './reverse-index.js';
-import type { ComplianceIndex, IndexAssertion, IndexRequirement } from './types.js';
+import type { ComplianceIndex, IndexAssertion, IndexRequirement, StageGroupInput, StageGroupDef } from './types.js';
 
 /** Filter selecting REQUIREMENTs by codex source (jurisdiction / regime keys
  *  are accepted for forward compatibility but not yet honoured — the canon
@@ -34,6 +34,42 @@ export interface ImpactEmptyCellLabels {
   /** Label used when an admitted ASSERTION exists with status `n_a`
    *  (modelled fact: the obligation does not apply). */
   no_obligation_applies_label?: string;
+}
+
+// ── Column model (CV-3a) ────────────────────────────────────────────────────
+
+/**
+ * A matrix column descriptor.
+ *
+ * At the coarsest grain (`grouping.columns: 'product'`) a column maps to a
+ * single subject: `{ subjectId, label: subjectId }`.
+ *
+ * At `grouping.columns: 'product-stage'` a column represents one (product,
+ * stage) pair: `{ subjectId: productId, stageId, label: productId + ':' + stageId }`.
+ * A cell is populated when an ASSERTION has `subject === subjectId` and
+ * `stageId ∈ assertion.realised_via` (or `realised_via` is absent, meaning
+ * the assertion covers the entire subject — it then contributes to every
+ * stage column for that subject).
+ */
+export interface ImpactColumn {
+  /** Subject (product / process / capability) the column belongs to. */
+  subjectId: string;
+  /** Stage ID — present only when grouping.columns is not 'product'. */
+  stageId?: string;
+  /** Human-readable column header. */
+  label: string;
+}
+
+/**
+ * Grouping options for matrix columns.
+ *
+ * `columns` controls the column grain:
+ *   - `'product'` (default) — one column per subject.
+ *   - `'product-stage'`     — one column per (subject, stage) pair derived
+ *     from `stageGroups` passed to `buildImpactMatrix`.
+ */
+export interface ImpactGrouping {
+  columns: 'product' | 'product-stage';
 }
 
 /**
@@ -66,6 +102,13 @@ export interface ImpactViewConfig {
   status_display?: ImpactStatusDisplay;
   empty_cells?: ImpactEmptyCellLabels;
   order_rows_by?: 'id' | 'name';
+  /**
+   * Column grouping options.  Omit (or set `columns: 'product'`) for the
+   * default single-column-per-subject behaviour.  Set `columns: 'product-stage'`
+   * and pass `stageGroups` into `buildImpactMatrix` to expand each subject
+   * into per-stage sub-columns.
+   */
+  grouping?: ImpactGrouping;
 }
 
 // ── Pinned defaults ─────────────────────────────────────────────────────────
@@ -93,6 +136,8 @@ export const COMPLIANCE_IMPACT_DEFAULTS = {
   obligations: { include: undefined as string[] | undefined, filter: undefined },
   /** Subjects: empty — must be supplied explicitly in the view config. */
   subjects: { products: [] as string[], processes: [] as string[] },
+  /** Column grain: one column per subject (no stage decomposition). */
+  grouping: { columns: 'product' as const },
 } as const;
 
 // ── View-config parser ──────────────────────────────────────────────────────
@@ -226,8 +271,13 @@ export interface ImpactMatrix {
   snapshotAt?: string;
   /** Row dimension — REQUIREMENT projections, in the configured order. */
   rows: IndexRequirement[];
-  /** Column dimension — subject IDs (PRODUCT ids in the coarsest grain). */
-  columns: string[];
+  /**
+   * Column dimension.
+   *
+   * At `grouping.columns: 'product'` (default) each entry has only `subjectId`
+   * and `label`.  At `'product-stage'` entries additionally carry `stageId`.
+   */
+  columns: ImpactColumn[];
   /** Cells, indexed as `cell[rowIdx][colIdx]`. */
   cells: ImpactCell[][];
   /** Canonical empty-cell labels actually used (after defaults applied). */
@@ -298,16 +348,63 @@ function aggregateStatus(assertions: IndexAssertion[]): AssertionStatus {
   return 'n_a';
 }
 
+// ── Column builder helpers (CV-3a) ──────────────────────────────────────────
+
+function buildProductColumns(config: ImpactViewConfig): ImpactColumn[] {
+  const subjects = [...(config.subjects.products ?? []), ...(config.subjects.processes ?? [])];
+  return subjects.map(id => ({ subjectId: id, label: id }));
+}
+
+function buildProductStageColumns(config: ImpactViewConfig, stageGroups: StageGroupInput[]): ImpactColumn[] {
+  const stageMap = new Map<string, StageGroupDef[]>(stageGroups.map(sg => [sg.subjectId, sg.stages]));
+  const subjects = [...(config.subjects.products ?? []), ...(config.subjects.processes ?? [])];
+  const cols: ImpactColumn[] = [];
+  for (const subjectId of subjects) {
+    const stages = stageMap.get(subjectId);
+    if (!stages || stages.length === 0) {
+      cols.push({ subjectId, label: subjectId });
+    } else {
+      for (const stage of stages) {
+        cols.push({ subjectId, stageId: stage.id, label: `${subjectId}:${stage.id}` });
+      }
+    }
+  }
+  return cols;
+}
+
 /**
- * Build the matrix per §5.2 at the `product` × `obligation` grain.
+ * Returns true when assertion `a` contributes to column `col`.
+ *
+ * At `'product'` grain: `a.subject` must match `col.subjectId`.
+ * At `'product-stage'` grain: `a.subject` must match AND either
+ * `a.realised_via` is absent (claim covers the whole subject, so every stage
+ * inherits it) OR `col.stageId` ∈ `a.realised_via`.
+ */
+function assertionMatchesColumn(a: IndexAssertion, col: ImpactColumn): boolean {
+  if (a.subject !== col.subjectId) return false;
+  if (!col.stageId) return true;
+  if (!a.realised_via || a.realised_via.length === 0) return true;
+  return a.realised_via.includes(col.stageId);
+}
+
+/**
+ * Build the matrix per §5.2.
+ *
+ * At the default `grouping.columns: 'product'` grain, one column per subject.
+ * At `grouping.columns: 'product-stage'`, pass `stageGroups` to expand each
+ * subject into per-stage sub-columns (typically extracted from a
+ * process-blueprint document via `extractStageGroups`).  Subjects with no
+ * stage mapping fall back to a single product-grain column automatically.
  *
  * Subjects are taken from `config.subjects.products` and
- * `config.subjects.processes` directly (in that order; no PRODUCT→PROCESS
- * derivation walk yet — that needs a `realises` index out of scope here).
- * Subjects with no binding obligation still appear as columns so the gap is
- * visible. Rows are the resolved obligations, ordered per `order_rows_by`.
+ * `config.subjects.processes` (in that order).  Subjects with no binding
+ * obligation still appear as columns so the gap is visible.
  */
-export function buildImpactMatrix(canon: ComplianceCanon, config: ImpactViewConfig): ImpactMatrix {
+export function buildImpactMatrix(
+  canon: ComplianceCanon,
+  config: ImpactViewConfig,
+  stageGroups?: StageGroupInput[],
+): ImpactMatrix {
   const index = buildComplianceIndex({
     requirements: canon.requirements,
     assertions: canon.assertions,
@@ -315,9 +412,11 @@ export function buildImpactMatrix(canon: ComplianceCanon, config: ImpactViewConf
 
   const obligations = orderRows(resolveObligations(config, index, canon.requirements), config.order_rows_by);
 
-  const products = config.subjects.products ?? [];
-  const processes = config.subjects.processes ?? [];
-  const columns = [...products, ...processes];
+  const useStageGrain =
+    config.grouping?.columns === 'product-stage' && stageGroups && stageGroups.length > 0;
+  const columns: ImpactColumn[] = useStageGrain
+    ? buildProductStageColumns(config, stageGroups!)
+    : buildProductColumns(config);
 
   const allowedStatuses = new Set<AssertionStatus>(
     config.status_display?.show ?? ['compliant', 'partial', 'non_compliant', 'under_review', 'n_a'],
@@ -326,13 +425,13 @@ export function buildImpactMatrix(canon: ComplianceCanon, config: ImpactViewConf
   const rowIndex = new Set(obligations.map(r => r.id));
   const cells: ImpactCell[][] = obligations.map(() => columns.map(() => emptyCell()));
 
-  // Walk the assertions index per subject and fill cells whose obligation is in scope.
   for (let c = 0; c < columns.length; c++) {
-    const subject = columns[c];
-    const subjectAssertions = index.assertionsBySubject.get(subject) ?? [];
+    const col = columns[c];
+    const subjectAssertions = index.assertionsBySubject.get(col.subjectId) ?? [];
     for (const a of subjectAssertions) {
       if (!rowIndex.has(a.about)) continue;
       if (!allowedStatuses.has(a.status)) continue;
+      if (!assertionMatchesColumn(a, col)) continue;
       const rowIdx = obligations.findIndex(r => r.id === a.about);
       if (rowIdx < 0) continue;
       cells[rowIdx][c].assertions.push(a);
@@ -377,6 +476,46 @@ export function buildImpactMatrix(canon: ComplianceCanon, config: ImpactViewConf
 
 function emptyCell(): ImpactCell {
   return { status: null, kind: 'gap', assertions: [] };
+}
+
+// ── Process-blueprint stage extractor (CV-3a) ───────────────────────────────
+
+/**
+ * Extract `StageGroupInput` from a raw (YAML-parsed) process-blueprint document.
+ *
+ * Accepts both the bare document object and the wrapped form
+ * (`{ process_blueprint: { id, stages: […] } }`).
+ * Returns `null` when the document is not a recognisable process-blueprint or
+ * has no `id` / `stages` array so callers can skip unrecognised files safely.
+ *
+ * Pass the returned value into `buildImpactMatrix` as part of the
+ * `stageGroups` array when `grouping.columns: 'product-stage'` is configured.
+ */
+export function extractStageGroups(doc: unknown): StageGroupInput | null {
+  if (!doc || typeof doc !== 'object' || Array.isArray(doc)) return null;
+  const top = doc as Record<string, unknown>;
+
+  const bp: Record<string, unknown> | null =
+    top.notation === 'process_blueprint'
+      ? top
+      : top.process_blueprint && typeof top.process_blueprint === 'object' && !Array.isArray(top.process_blueprint)
+        ? (top.process_blueprint as Record<string, unknown>)
+        : null;
+
+  if (!bp) return null;
+  const id = typeof bp.id === 'string' ? bp.id : null;
+  if (!id) return null;
+  if (!Array.isArray(bp.stages)) return null;
+
+  const stages: StageGroupDef[] = [];
+  for (const s of bp.stages) {
+    if (!s || typeof s !== 'object' || Array.isArray(s)) continue;
+    const sid = typeof s.id === 'string' ? s.id : null;
+    if (!sid) continue;
+    stages.push({ id: sid, name: typeof s.name === 'string' ? s.name : sid });
+  }
+
+  return { subjectId: id, stages };
 }
 
 // ── Markdown rendering ──────────────────────────────────────────────────────
@@ -424,7 +563,7 @@ export function renderImpactMarkdown(matrix: ImpactMatrix): string {
     return lines.join('\n') + '\n';
   }
 
-  const header = ['Obligation', ...matrix.columns.map(escMd)];
+  const header = ['Obligation', ...matrix.columns.map(col => escMd(col.label))];
   lines.push('| ' + header.join(' | ') + ' |');
   lines.push('|' + header.map(() => '---').join('|') + '|');
 

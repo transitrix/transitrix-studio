@@ -28,6 +28,33 @@ export interface IndexAssertion {
   evidenceCount?: number;
   /** Admission date (CONTRACT §6) — feeds DQ-1 freshness decay. */
   admitted_at?: string;
+  /**
+   * Typed IDs of the stages / tasks where the requirement is realised for
+   * the subject (16-assertion.md §2 `realised_via`). Populated when the
+   * assertion carries granular evidence; absent when the claim covers the
+   * entire subject without stage decomposition. CV-3a uses this to fill
+   * stage-grouped matrix cells.
+   */
+  realised_via?: string[];
+}
+
+// ── Stage grouping (CV-3a) ──────────────────────────────────────────────────
+
+/** One stage / task within a process flow, used as a matrix sub-column. */
+export interface StageGroupDef {
+  id: string;
+  name: string;
+}
+
+/**
+ * Maps a subject (product / process) to its ordered stages.
+ * Passed into `buildImpactMatrix` when `grouping.columns` is
+ * `product-stage` or `product-stage-task`. Typically extracted from a
+ * process-blueprint document via `extractStageGroups`.
+ */
+export interface StageGroupInput {
+  subjectId: string;
+  stages: StageGroupDef[];
 }
 
 export interface ComplianceIndexInput {

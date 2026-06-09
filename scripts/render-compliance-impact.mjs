@@ -4,8 +4,12 @@
  * (vkgeorgia/strategy#84, builds on #166 interim renderer).
  *
  * Materialises the subject × obligation × status matrix per the render
- * contract in methodology/notations/views/21-compliance-impact.md §5, at
- * the coarsest grain (`product` × `obligation`).
+ * contract in methodology/notations/views/21-compliance-impact.md §5.
+ * Supports two column grains:
+ *   - product (default)      — one column per subject.
+ *   - product-stage (CV-3a)  — one column per (subject, stage) pair; requires
+ *     process-blueprint YAML files to be present in the canon root so
+ *     `extractStageGroups` can map subject IDs to their ordered stages.
  *
  * Usage — named view-config file:
  *   node scripts/render-compliance-impact.mjs \
@@ -174,7 +178,15 @@ async function main() {
     process.exit(3);
   }
   const diagrams = await import(pathToFileURL(DIST_INDEX).href);
-  const { emptyCanon, ingestComplianceDoc, buildImpactMatrix, renderImpactMarkdown, parseImpactViewConfig, COMPLIANCE_IMPACT_DEFAULTS } = diagrams;
+  const {
+    emptyCanon,
+    ingestComplianceDoc,
+    buildImpactMatrix,
+    renderImpactMarkdown,
+    parseImpactViewConfig,
+    COMPLIANCE_IMPACT_DEFAULTS,
+    extractStageGroups,
+  } = diagrams;
 
   // Resolve the view config.
   let viewRaw;
@@ -200,8 +212,10 @@ async function main() {
   if (view.snapshot_at) console.error(`[render-compliance-impact] snapshot_at: ${view.snapshot_at}`);
   logActiveDefaults(view, COMPLIANCE_IMPACT_DEFAULTS);
 
-  // Scan canon.
+  // Scan canon — collect compliance artefacts and process-blueprints (for stage grouping).
   const canon = emptyCanon();
+  /** Raw parsed YAML docs that look like process-blueprints, for extractStageGroups. */
+  const rawBlueprints = [];
   let scanned = 0;
   let ingested = 0;
   for await (const file of walkYaml(args.canon)) {
@@ -214,6 +228,11 @@ async function main() {
       continue;
     }
     if (ingestComplianceDoc(canon, parsed)) ingested += 1;
+    // Collect process-blueprints for stage-grouping (CV-3a).
+    const bp = parsed?.process_blueprint ?? parsed;
+    if (bp?.notation === 'process_blueprint' || parsed?.process_blueprint) {
+      rawBlueprints.push(parsed);
+    }
   }
 
   console.error(
@@ -222,7 +241,27 @@ async function main() {
       `assertions=${canon.assertions.length})`,
   );
 
-  const matrix = buildImpactMatrix(canon, view);
+  // Build stage groups when grouping.columns = 'product-stage'.
+  let stageGroups;
+  if (view.grouping?.columns === 'product-stage') {
+    stageGroups = rawBlueprints.flatMap(doc => {
+      const sg = extractStageGroups(doc);
+      return sg ? [sg] : [];
+    });
+    if (stageGroups.length === 0) {
+      console.error(
+        '[render-compliance-impact] warning: grouping.columns=product-stage but no process-blueprint ' +
+          'documents found in the canon root — falling back to product grain.',
+      );
+    } else {
+      console.error(
+        `[render-compliance-impact] stage-grouping: ${stageGroups.length} blueprint(s), ` +
+          stageGroups.map(sg => `${sg.subjectId}(${sg.stages.length} stages)`).join(', '),
+      );
+    }
+  }
+
+  const matrix = buildImpactMatrix(canon, view, stageGroups);
   const md = renderImpactMarkdown(matrix);
 
   if (args.output) {

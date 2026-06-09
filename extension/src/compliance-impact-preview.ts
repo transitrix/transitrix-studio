@@ -3,6 +3,7 @@ import yaml from 'js-yaml';
 import { generateWebviewCss, type ThemeId } from '../../packages/diagrams/src/theme/index.js';
 import {
   buildImpactMatrix,
+  type ImpactColumn,
   type ImpactViewConfig,
   type ImpactMatrix,
   type ImpactCell,
@@ -241,7 +242,7 @@ function applyFilter(
   matrix: ImpactMatrix,
   filter: ImpactFilter,
   jIndex: Map<string, string[]>,
-): { rows: IndexRequirement[]; columns: string[]; cells: ImpactCell[][] } {
+): { rows: IndexRequirement[]; columns: ImpactColumn[]; cells: ImpactCell[][] } {
   let rows = matrix.rows;
 
   if (filter.severities.size > 0) {
@@ -509,14 +510,14 @@ export class ComplianceImpactPreview {
 
   private gridHtml(
     rows: IndexRequirement[],
-    columns: string[],
+    columns: ImpactColumn[],
     cells: ImpactCell[][],
     emptyLabels: { no_obligation_label: string; no_obligation_applies_label: string },
   ): string {
     const head =
       '<tr>\n      <th class="ci-corner"></th>\n      ' +
       columns
-        .map(col => '<th class="ci-col"><div class="ci-col-name">' + escXml(col) + '</div></th>')
+        .map(col => '<th class="ci-col"><div class="ci-col-name">' + escXml(col.label) + '</div></th>')
         .join('') +
       '\n    </tr>';
 
@@ -559,7 +560,7 @@ export class ComplianceImpactPreview {
             const cell = cells[ri][ci];
 
             if (cell.kind === 'gap') {
-              const pendingCount = this.pendingIndex.get(pendingKey(req.id, col)) ?? 0;
+              const pendingCount = this.pendingIndex.get(pendingKey(req.id, col.subjectId)) ?? 0;
               if (pendingCount > 0) {
                 return (
                   '<td class="ci-cell ci-pending" title="' +
@@ -567,7 +568,7 @@ export class ComplianceImpactPreview {
                   ' assertion(s) pending admission for (' +
                   escXml(req.id) +
                   ', ' +
-                  escXml(col) +
+                  escXml(col.label) +
                   ')">\n' +
                   '              <span class="ci-badge-pending">' +
                   pendingCount +
