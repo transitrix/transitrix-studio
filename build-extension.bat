@@ -74,6 +74,14 @@ if "%BUMP%"=="1" (
 )
 
 echo.
+echo === verify-extension-packaging
+node scripts\verify-extension-packaging.mjs
+if errorlevel 1 (
+  echo build-extension: verify-extension-packaging failed.
+  exit /b 1
+)
+
+echo.
 if defined TARGET (
   echo === [3/3] vsce package --target %TARGET% -^> output\
 ) else (

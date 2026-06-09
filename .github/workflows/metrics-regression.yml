@@ -35,6 +35,9 @@ jobs:
       - name: Prepare extension assets
         run: npm run extension:prep
 
+      - name: Verify extension packaging hygiene
+        run: node scripts/verify-extension-packaging.mjs
+
       - name: Run core + diagrams tests
         run: npm test
 

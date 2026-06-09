@@ -3,6 +3,9 @@ tsconfig.json
 .vscode-test/**
 **/*.map
 
+0. archive/**
+.archive/**
+
 # node_modules IS shipped inside the VSIX so the compiler bundle can resolve
 # runtime dependencies (ajv, elkjs, etc.) via require at runtime. The
 # build-compiler-bundle.mjs step installs a clean, workspace-ignored

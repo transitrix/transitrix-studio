@@ -2,8 +2,15 @@
 
 ## [Unreleased]
 
+## [1.4.1] — 2026-06-09
+
+### Fixed
+- **VSIX packaging** — drop a retired preview source that was still under
+  `extension/` and ship a `verify-extension-packaging` gate in build scripts and CI
+  so non-runtime paths cannot re-enter the Marketplace artifact.
+
 ### Removed
-- **Issues register notation retired.** The `issues` notation (`*.issues.transitrix.yaml`) — diagrams module, extension preview/commands/menus/language, activation event, and example — is removed, following the methodology decision to retire the model-side `ISSUE` type (architectural problems/risks are modelled as `ASSESSMENT`; team tracking uses Work Items). Files moved to `0. archive/`. Breaking change for `@transitrix/diagrams` consumers importing the issues exports.
+- **Issues register notation retired.** The `issues` notation (`*.issues.transitrix.yaml`) — diagrams module, extension preview/commands/menus/language, activation event, and example — is removed, following the methodology decision to retire the model-side `ISSUE` type (architectural problems/risks are modelled as `ASSESSMENT`; team tracking uses Work Items). Breaking change for `@transitrix/diagrams` consumers importing the issues exports.
 
 ## [1.4.0] — 2026-06-05
 
