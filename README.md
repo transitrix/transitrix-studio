@@ -8,7 +8,7 @@ Text-first BPMN authoring: write your process as structured YAML, compile to val
 
 Transitrix Studio brings **text-first diagram authoring** to VS Code. Instead of dragging shapes in a GUI editor, you write YAML — structured, diffable, reviewable in pull requests. The compiler produces BPMN 2.0 XML with computed layout coordinates using the ELK (Eclipse Layout Kernel) engine.
 
-Studio previews the full Transitrix notation kit shipping in 1.0.0 — twelve notations spanning the process (BPMN, Process Map, Process Blueprint), strategy (FGCA, FGA, Goals), capability, scenario, catalogue (Applications, Products), block, and activity families. See [`extension/README.md`](extension/README.md) for the per-format list shipping in the VSIX, and the methodology repo for the notation specs themselves: [github.com/transitrix/methodology](https://github.com/transitrix/methodology).
+Studio previews the full Transitrix notation kit — **13 diagram notations** plus compliance views and canon artefacts (assertion / requirement). See [`extension/README.md`](extension/README.md) for the authoritative per-format list shipping in the VSIX, and the methodology repo for the notation specs themselves: [github.com/transitrix/methodology](https://github.com/transitrix/methodology).
 
 > **Legacy identifiers.** The `.cervin.yaml` file extension and the `cervin` CLI binary name predate the `transitrix` rename and are kept accepted for backward compatibility; new files should use the canonical `*.<short-name>.transitrix.yaml` form per the methodology (e.g. `*.bpmn.transitrix.yaml` for BPMN).
 

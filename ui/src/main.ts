@@ -173,7 +173,7 @@ ${renderLayoutDrawer().replace('<details class="layout-drawer"', '<details class
           <option value="markdown_tables">Markdown document (all tables)</option>
         </select>
       </label>
-      <p class="blocks-hint muted">Requires Python 3 and <code>svgbob_cli</code> (install: <code>cargo install svgbob_cli</code>). Samples: <code>examples/nested-blocks/</code>; see <code>backends/blocks/README.md</code>.</p>
+      <p class="blocks-hint muted">Nested blocks render natively from structured YAML (<code>*.blocks.transitrix.yaml</code>). Samples: <code>examples/blocks/</code>. The ASCII and Markdown table modes below are legacy input shapes for this browser UI tab.</p>
     </div>
     <div class="editor-wrap">
       <textarea id="yaml" spellcheck="false" aria-label="BPMN YAML source"></textarea>
