@@ -51,7 +51,8 @@ This document maps **top-level folders** to **roles** so you know where to look 
 | [`scripts/`](../scripts/) | Build and dev tooling: `build-compiler-bundle.mjs`, `build-webview.mjs`, `build-extension-bundle.mjs`, `bump-extension-version.mjs`, `measure-baseline.mjs`, `ci-metrics-diff.mjs`. |
 | [`docs/`](../docs/) | **Project documentation**: this layout map, glossary, metrics baselines, validation notes. |
 | [`output/`](../output/) | **Build output** for `build-extension.bat` — packaged `.vsix` files. Gitignored. |
-| [`0. archive/`](../0.%20archive/) | **Superseded trees and accepted-task records.** Gitignored. Move content here instead of deleting. |
+| [`.archive/`](../.archive/) | **Superseded trees, agent-bus, agent-run logs, accepted-task records.** Gitignored. Canonical archive root — use this in all new prompts, scripts, and docs. |
+| `0. archive/` *(legacy)* | Former archive root (leading space in the folder name). Still gitignored and still works if content remains there; migrate to `.archive/` when convenient. |
 | [`intellij/`](../intellij/) | **IntelliJ plugin** packaging and install docs (optional IDE surface; separate from the VS Code extension). |
 
 Root config files (`package.json`, `tsconfig*.json`, `.vscode/`, `.github/workflows/`): orchestrate build, lint, test, extension packaging, CI.
@@ -93,7 +94,7 @@ Both suites are required to pass — CI (`.github/workflows/metrics-regression.y
 | Nested blocks (native YAML) | [`packages/diagrams/src/blocks/`](../packages/diagrams/src/blocks/), samples in [`examples/blocks/`](../examples/blocks/) |
 | Validation rules for a non-BPMN notation | [`packages/diagrams/src/<notation>/validate.ts`](../packages/diagrams/) |
 | Preview rendering for a non-BPMN notation | [`extension/src/<notation>-preview.ts`](../extension/src/) |
-| Adding a new notation | Pattern in [TX-020 archive](../0.%20archive/tasks/TX-020.md): library module under `packages/diagrams/src/<notation>/`, preview under `extension/src/<notation>-preview.ts`, wiring in `extension/src/extension.ts` and `extension/package.json`, example in `examples/<notation>/`. |
+| Adding a new notation | Pattern in [TX-020 archive](../.archive/tasks/TX-020.md) (legacy copy may still live under `0. archive/tasks/`): library module under `packages/diagrams/src/<notation>/`, preview under `extension/src/<notation>-preview.ts`, wiring in `extension/src/extension.ts` and `extension/package.json`, example in `examples/<notation>/`. |
 
 ---
 

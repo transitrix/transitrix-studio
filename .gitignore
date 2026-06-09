@@ -1,7 +1,8 @@
 node_modules/
 
 # Superseded / archived trees (never delete—move content here instead of deleting)
-**/0. archive/
+.archive/
+**/0. archive/   # legacy path — still honoured until content is migrated
 
 dist/
 # Compiled output must never land beside the TypeScript sources. The diagrams
