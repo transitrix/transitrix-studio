@@ -107,23 +107,40 @@ function parseScope(scopeArg: string | undefined): ReportScope | null {
   return null;
 }
 
+/** Bounded wait for WeasyPrint — pathological HTML/CSS must not hang the CLI. */
+export const WEASYPRINT_TIMEOUT_MS = 120_000;
+
 /** Invoke `weasyprint <html> <pdf>`. WeasyPrint is a Python tool; we shell out
  *  rather than re-implement PDF generation in JS, matching the engine the
  *  Transitrix site uses for one-pager renders so the styling stays consistent.
  *  Surfaces ENOENT as an installable-prereq message rather than a stack trace. */
-function runWeasyPrint(htmlPath: string, pdfPath: string): { ok: true } | { ok: false; message: string } {
+export function runWeasyPrint(
+  htmlPath: string,
+  pdfPath: string,
+  opts?: { timeoutMs?: number },
+): { ok: true } | { ok: false; message: string } {
+  const timeoutMs = opts?.timeoutMs ?? WEASYPRINT_TIMEOUT_MS;
   const candidates = process.platform === 'win32'
     ? ['weasyprint.exe', 'weasyprint']
     : ['weasyprint'];
   let lastErr: NodeJS.ErrnoException | null = null;
   for (const cmd of candidates) {
-    const res = spawnSync(cmd, [htmlPath, pdfPath], { encoding: 'utf-8' });
-    if (res.error && (res.error as NodeJS.ErrnoException).code === 'ENOENT') {
-      lastErr = res.error as NodeJS.ErrnoException;
-      continue;
-    }
+    const res = spawnSync(cmd, [htmlPath, pdfPath], { encoding: 'utf-8', timeout: timeoutMs });
     if (res.error) {
-      return { ok: false, message: `weasyprint failed to launch: ${res.error.message}` };
+      const err = res.error as NodeJS.ErrnoException;
+      if (err.code === 'ENOENT') {
+        lastErr = err;
+        continue;
+      }
+      if (err.code === 'ETIMEDOUT') {
+        return {
+          ok: false,
+          message:
+            `weasyprint timed out after ${Math.round(timeoutMs / 1000)}s — ` +
+            'the report may be too large or WeasyPrint may be hung.',
+        };
+      }
+      return { ok: false, message: `weasyprint failed to launch: ${err.message}` };
     }
     if (res.status !== 0) {
       const stderr = (res.stderr || '').trim();
