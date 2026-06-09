@@ -142,12 +142,8 @@ export interface ResolvedActivityCard {
 
 // ── Layout geometry (pure; the preview turns this into SVG) ───────────────────
 
-export interface LayoutBounds {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
+import type { LayoutBounds } from '../geometry.js';
+export type { LayoutBounds };
 
 /** A boxed value-pair shown in the dates band. */
 export interface DateField {
