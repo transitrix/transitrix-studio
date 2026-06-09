@@ -81,3 +81,49 @@ describe('gap report — acme_corp worked examples', () => {
     expect(report.staleAssertions).toEqual([]);
   });
 });
+
+describe('CV-5 -- pastDeadlineRequirements', () => {
+  it('lists requirements with past deadline and no compliant assertion', () => {
+    const indexLocal = buildComplianceIndex({
+      requirements: [
+        { id: 'REQ-PD-1', name: 'Past deadline, no assertion', deadline: '2020-01-01' },
+        { id: 'REQ-PD-2', name: 'Past deadline, non-compliant assertion', deadline: '2020-01-01' },
+        { id: 'REQ-PD-3', name: 'Past deadline, compliant assertion', deadline: '2020-01-01' },
+        { id: 'REQ-FU-1', name: 'Future deadline', deadline: '2099-01-01' },
+        { id: 'REQ-ND-1', name: 'No deadline' },
+      ],
+      assertions: [
+        { id: 'ASS-2', about: 'REQ-PD-2', subject: 'S', status: 'non_compliant' },
+        { id: 'ASS-3', about: 'REQ-PD-3', subject: 'S', status: 'compliant' },
+      ],
+    });
+    const r = buildGapReport(indexLocal, { today: '2026-06-09' });
+    // REQ-PD-1 and REQ-PD-2 are past-deadline without full compliance
+    expect(r.pastDeadlineRequirements.map(x => x.id)).toEqual(['REQ-PD-1', 'REQ-PD-2']);
+    // REQ-PD-3 has a compliant assertion -> excluded
+    expect(r.pastDeadlineRequirements.map(x => x.id)).not.toContain('REQ-PD-3');
+    // Future or no deadline -> excluded
+    expect(r.pastDeadlineRequirements.map(x => x.id)).not.toContain('REQ-FU-1');
+    expect(r.pastDeadlineRequirements.map(x => x.id)).not.toContain('REQ-ND-1');
+  });
+
+  it('is empty when no today is supplied (clock-free)', () => {
+    const idx2 = buildComplianceIndex({
+      requirements: [{ id: 'REQ-PD-1', name: 'Past', deadline: '2020-01-01' }],
+      assertions: [],
+    });
+    expect(buildGapReport(idx2, {}).pastDeadlineRequirements).toEqual([]);
+  });
+
+  it('sorts oldest deadline first', () => {
+    const idx3 = buildComplianceIndex({
+      requirements: [
+        { id: 'REQ-A', name: 'A', deadline: '2022-06-01' },
+        { id: 'REQ-B', name: 'B', deadline: '2019-01-01' },
+      ],
+      assertions: [],
+    });
+    const r3 = buildGapReport(idx3, { today: '2026-06-09' });
+    expect(r3.pastDeadlineRequirements.map(x => x.id)).toEqual(['REQ-B', 'REQ-A']);
+  });
+});
