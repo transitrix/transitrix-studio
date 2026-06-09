@@ -279,7 +279,7 @@ describe('CV-3a — stage grouping (ImpactColumn, extractStageGroups, buildImpac
     const canon = buildCanon();
     const matrix = buildImpactMatrix(
       canon,
-      { ...baseConfig, subjects: { products: ['PRODUCT-A-1'] }, grouping: { columns: 'product-stage' } },
+      { ...baseConfig, subjects: { products: ['PRODUCT-A-1'] }, grouping: { columns: 'object-stage' } },
       [{ subjectId: 'PRODUCT-A-1', stages: [{ id: 'STAGE-1', name: 'Stage One' }, { id: 'STAGE-2', name: 'Stage Two' }] }],
     );
     expect(matrix.columns.map(c => c.label)).toEqual(['PRODUCT-A-1:STAGE-1', 'PRODUCT-A-1:STAGE-2']);
@@ -297,7 +297,7 @@ describe('CV-3a — stage grouping (ImpactColumn, extractStageGroups, buildImpac
         id: 'V', name: 'V',
         subjects: { products: ['PROD-1'] },
         obligations: {},
-        grouping: { columns: 'product-stage' },
+        grouping: { columns: 'object-stage' },
       },
       [{ subjectId: 'PROD-1', stages: [{ id: 'S1', name: 's1' }, { id: 'S2', name: 's2' }] }],
     );
@@ -320,7 +320,7 @@ describe('CV-3a — stage grouping (ImpactColumn, extractStageGroups, buildImpac
         id: 'V', name: 'V',
         subjects: { products: ['PROD-1'] },
         obligations: {},
-        grouping: { columns: 'product-stage' },
+        grouping: { columns: 'object-stage' },
       },
       [{ subjectId: 'PROD-1', stages: [{ id: 'STAGE-A', name: 'a' }, { id: 'STAGE-B', name: 'b' }] }],
     );
@@ -335,7 +335,7 @@ describe('CV-3a — stage grouping (ImpactColumn, extractStageGroups, buildImpac
       {
         ...baseConfig,
         subjects: { products: ['PRODUCT-A-1', 'PRODUCT-B-1'] },
-        grouping: { columns: 'product-stage' },
+        grouping: { columns: 'object-stage' },
       },
       // Only provide stages for A — B falls back to a single column.
       [{ subjectId: 'PRODUCT-A-1', stages: [{ id: 'S1', name: 's1' }] }],
@@ -369,7 +369,7 @@ describe('CV-3a — stage grouping (ImpactColumn, extractStageGroups, buildImpac
         id: 'V', name: 'Stage Report',
         subjects: { products: ['PROD-1'] },
         obligations: {},
-        grouping: { columns: 'product-stage' },
+        grouping: { columns: 'object-stage' },
       },
       [{ subjectId: 'PROD-1', stages: [{ id: 'S1', name: 'Stage One' }] }],
     );

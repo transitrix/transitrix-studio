@@ -243,14 +243,14 @@ async function main() {
 
   // Build stage groups when grouping.columns = 'product-stage'.
   let stageGroups;
-  if (view.grouping?.columns === 'product-stage') {
+  if (view.grouping?.columns === 'object-stage') {
     stageGroups = rawBlueprints.flatMap(doc => {
       const sg = extractStageGroups(doc);
       return sg ? [sg] : [];
     });
     if (stageGroups.length === 0) {
       console.error(
-        '[render-compliance-impact] warning: grouping.columns=product-stage but no process-blueprint ' +
+        '[render-compliance-impact] warning: grouping.columns=object-stage but no process-blueprint ' +
           'documents found in the canon root — falling back to product grain.',
       );
     } else {

@@ -69,7 +69,7 @@ export interface ImpactColumn {
  *     from `stageGroups` passed to `buildImpactMatrix`.
  */
 export interface ImpactGrouping {
-  columns: 'product' | 'product-stage';
+  columns: 'object' | 'object-stage';
 }
 
 /**
@@ -136,8 +136,8 @@ export const COMPLIANCE_IMPACT_DEFAULTS = {
   obligations: { include: undefined as string[] | undefined, filter: undefined },
   /** Subjects: empty — must be supplied explicitly in the view config. */
   subjects: { products: [] as string[], processes: [] as string[] },
-  /** Column grain: one column per subject (no stage decomposition). */
-  grouping: { columns: 'product' as const },
+  /** Column grain: one column per business object (no stage decomposition). */
+  grouping: { columns: 'object' as const },
 } as const;
 
 // ── View-config parser ──────────────────────────────────────────────────────
@@ -413,7 +413,7 @@ export function buildImpactMatrix(
   const obligations = orderRows(resolveObligations(config, index, canon.requirements), config.order_rows_by);
 
   const useStageGrain =
-    config.grouping?.columns === 'product-stage' && stageGroups && stageGroups.length > 0;
+    config.grouping?.columns === 'object-stage' && stageGroups && stageGroups.length > 0;
   const columns: ImpactColumn[] = useStageGrain
     ? buildProductStageColumns(config, stageGroups!)
     : buildProductColumns(config);
