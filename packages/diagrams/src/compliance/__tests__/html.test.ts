@@ -105,3 +105,38 @@ describe('renderComplianceHtml — gap', () => {
     expect(html).toMatch(/1 gap\(s\)/);
   });
 });
+
+// ── CV-6: renderImpactMatrixHtml ─────────────────────────────────────────────
+
+import { renderImpactMatrixHtml } from '../html.js';
+import { buildImpactMatrix } from '../impact.js';
+
+describe('renderImpactMatrixHtml (CV-6)', () => {
+  it('returns a complete HTML document with matrix title and table', () => {
+    const canon = emptyCanon();
+    ingestComplianceDoc(canon, { notation: 'product', id: 'PROD-1', name: 'Product One' });
+    ingestComplianceDoc(canon, { notation: 'requirement', id: 'REQ-1', name: 'Req One', severity: 'high' });
+    ingestComplianceDoc(canon, { notation: 'assertion', id: 'ASS-1', about: 'REQ-1', subject: 'PROD-1', status: 'compliant' });
+    const matrix = buildImpactMatrix(
+      { products: canon.products, requirements: canon.requirements, assertions: canon.assertions, codex: canon.codex },
+      { id: 'VIEW-1', name: 'My View', subjects: { products: ['PROD-1'] }, obligations: {} },
+    );
+    const html = renderImpactMatrixHtml(matrix, { today: '2026-06-09' });
+    expect(html).toContain('<table>');
+    expect(html).toContain('My View');
+    expect(html).toContain('VIEW-1');
+    expect(html).toContain('OK');
+  });
+
+  it('renders gap cells with no_obligation_label text', () => {
+    const canon = emptyCanon();
+    ingestComplianceDoc(canon, { notation: 'product', id: 'PROD-1', name: 'P1' });
+    ingestComplianceDoc(canon, { notation: 'requirement', id: 'REQ-1', name: 'R1' });
+    const matrix = buildImpactMatrix(
+      { products: canon.products, requirements: canon.requirements, assertions: canon.assertions, codex: canon.codex },
+      { id: 'V2', name: 'V2', subjects: { products: ['PROD-1'] }, obligations: {} },
+    );
+    const html = renderImpactMatrixHtml(matrix);
+    expect(html).toContain('No mapped obligation');
+  });
+});
