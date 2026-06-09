@@ -90,29 +90,35 @@ export function validateActivities(input: unknown): ActivityValidationResult {
   const idSet = new Set<string>();
 
   for (let i = 0; i < doc.activities.length; i++) {
-    const a = doc.activities[i] as unknown as Record<string, unknown>;
+    const a = doc.activities[i] as unknown;
     const path = `activities[${i}]`;
 
+    if (!a || typeof a !== 'object') {
+      errors.push({ code: 'SCHEMA_INVALID', message: 'activity entry must be an object', path });
+      continue;
+    }
+    const act = a as Record<string, unknown>;
+
     // ACT-010: reject single-value forms
-    if ('goal' in a) {
+    if ('goal' in act) {
       errors.push({ code: 'ACT-010', message: `Use "goals: []" array form instead of "goal:" (activity at index ${i})`, path });
     }
-    if ('predecessor' in a) {
+    if ('predecessor' in act) {
       errors.push({ code: 'ACT-010', message: `Use "predecessors: []" array form instead of "predecessor:" (activity at index ${i})`, path });
     }
-    if ('tag' in a) {
+    if ('tag' in act) {
       errors.push({ code: 'ACT-010', message: `Use "tags: []" array form instead of "tag:" (activity at index ${i})`, path });
     }
 
     // ACT-002: non-empty id
-    if (!a.id || typeof a.id !== 'string' || (a.id as string).trim() === '') {
+    if (!act.id || typeof act.id !== 'string' || (act.id as string).trim() === '') {
       errors.push({ code: 'ACT-002', message: `Activity at index ${i} is missing a non-empty id`, path });
       continue;
     }
-    const id = a.id as string;
+    const id = act.id as string;
 
     // ACT-003: non-empty name
-    if (!a.name || typeof a.name !== 'string' || (a.name as string).trim() === '') {
+    if (!act.name || typeof act.name !== 'string' || (act.name as string).trim() === '') {
       errors.push({ code: 'ACT-003', message: `Activity "${id}" is missing a non-empty name`, path });
     }
 
@@ -126,7 +132,7 @@ export function validateActivities(input: unknown): ActivityValidationResult {
     // ACT-009: non-negative numeric fields
     const numericFields = ['duration', 'labor_cost', 'resources_cost', 'effort', 'score', 'sort'] as const;
     for (const field of numericFields) {
-      const val = a[field];
+      const val = act[field];
       if (val !== undefined && val !== null) {
         if (typeof val !== 'number' || val < 0) {
           errors.push({ code: 'ACT-009', message: `Activity "${id}" field "${field}" must be a non-negative number, got ${String(val)}`, path });
@@ -135,7 +141,7 @@ export function validateActivities(input: unknown): ActivityValidationResult {
     }
 
     // ACT-011: warn if no duration
-    if (a.duration === undefined || a.duration === null) {
+    if (act.duration === undefined || act.duration === null) {
       warnings.push({ code: 'ACT-011', message: `Activity "${id}" has no duration — cannot participate in CPM analysis`, path });
     }
   }

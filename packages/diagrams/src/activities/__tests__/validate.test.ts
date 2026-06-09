@@ -386,6 +386,12 @@ describe('validateActivities', () => {
     });
     expect(r.warnings.some(w => w.code === 'ACT-019')).toBe(false);
   });
+
+  it('[blocker] tolerates a null element in activities[] without throwing', () => {
+    const r = validateActivities({ ...minimalValid, activities: [null] });
+    expect(r.valid).toBe(false);
+    expect(r.errors.some(e => e.code === 'SCHEMA_INVALID')).toBe(true);
+  });
 });
 
 describe('activities examples (regression)', () => {
