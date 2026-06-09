@@ -1,6 +1,7 @@
 import { generateWebviewCss, type ThemeId } from '../../packages/diagrams/src/theme/index.js';
 import type { AssertionStatus } from '../../packages/diagrams/src/assertion/types.js';
 import type { ViewScore } from '../../packages/diagrams/src/confidence/index.js';
+import { computeDeadlineStatus } from '../../packages/diagrams/src/compliance/impact.js';
 
 // Shared HTML rendering for the script-less compliance views — the single-law
 // tree and single-product view (vkgeorgia/strategy#84 Phase 3). These previews
@@ -23,6 +24,16 @@ export function escXml(s: string): string {
 /** A coloured status pill. */
 export function statusBadge(status: AssertionStatus): string {
   return `<span class="cmp-badge cmp-${status}">${escXml(STATUS_LABELS[status])}</span>`;
+}
+
+/**
+ * A coloured deadline pill. Returns an empty string when `deadline` is absent.
+ * Uses today (ISO YYYY-MM-DD) from the caller to stay clock-free in the library.
+ */
+export function deadlineBadge(deadline: string | undefined, today: string): string {
+  if (!deadline) return '';
+  const ds = computeDeadlineStatus(deadline, today);
+  return `<span class="cmp-deadline cmp-dl-${ds}" title="Deadline: ${escXml(deadline)}">${escXml(deadline)}</span>`;
 }
 
 /**
@@ -77,6 +88,13 @@ body { padding: 0; }
 .cmp-list th, .cmp-list td { border: 1px solid var(--ts-border, #cbd5e1); padding: 6px 12px; text-align: left; }
 .cmp-list th { background: var(--ts-bg-subtle, #f1f5f9); color: var(--ts-text, #0f172a); }
 .cmp-empty { color: var(--ts-text-muted, #64748b); padding: 24px 0; max-width: 640px; }
+
+/* Deadline pill (CV-4) */
+.cmp-deadline { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 10px; font-family: var(--vscode-editor-font-family, monospace); margin-left: 4px; }
+.cmp-dl-past_due { background: var(--ts-status-error-bg, #fee2e2); color: var(--ts-status-error-fg, #991b1b); font-weight: 700; }
+.cmp-dl-in_force { background: var(--ts-status-warning-bg, #fef9c3); color: var(--ts-status-warning-fg, #854d0e); font-weight: 600; }
+.cmp-dl-upcoming { background: var(--ts-bg-subtle, #f1f5f9); color: var(--ts-text-muted, #64748b); }
+.cmp-dl-none { display: none; }
 
 /* Gap dashboard sections */
 .cmp-section { margin: 0 0 22px; max-width: 860px; }
