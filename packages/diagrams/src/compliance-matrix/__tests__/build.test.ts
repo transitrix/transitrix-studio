@@ -63,6 +63,62 @@ describe('buildComplianceMatrix', () => {
   });
 });
 
+describe('buildComplianceMatrix — jurisdiction resolution (F16)', () => {
+  it('resolves Requirement.jurisdictions from derived_from → codex', () => {
+    const m = buildComplianceMatrix(input({
+      requirements: [
+        { id: 'REQUIREMENT-DATA-ERASURE-1', name: 'Erasure', severity: 'high',
+          derived_from: ['LAW-PERSONAL-DATA-2017-1'] },
+        { id: 'REQUIREMENT-AUDIT-LOG-RETENTION-1', name: 'Audit logs', severity: 'medium',
+          derived_from: ['LAW-AUDIT-2020-1', 'LAW-PERSONAL-DATA-2017-1'] },
+      ],
+      codex: [
+        { id: 'LAW-PERSONAL-DATA-2017-1', jurisdiction: 'ge' },
+        { id: 'LAW-AUDIT-2020-1', jurisdiction: 'eu' },
+      ],
+    }));
+    const erasure = m.requirements.find(r => r.id === 'REQUIREMENT-DATA-ERASURE-1')!;
+    const audit = m.requirements.find(r => r.id === 'REQUIREMENT-AUDIT-LOG-RETENTION-1')!;
+    expect(erasure.jurisdictions).toEqual(['ge']);
+    // Sorted, deduplicated union.
+    expect(audit.jurisdictions).toEqual(['eu', 'ge']);
+  });
+
+  it('leaves jurisdictions undefined when no codex source resolves', () => {
+    const m = buildComplianceMatrix(input({
+      requirements: [
+        { id: 'REQUIREMENT-INTERNAL-1', name: 'Internal', severity: 'low' },
+        { id: 'REQUIREMENT-DANGLING-1', name: 'Dangling', severity: 'low',
+          derived_from: ['LAW-MISSING-1'] },
+      ],
+      codex: [{ id: 'LAW-OTHER-1', jurisdiction: 'us' }],
+    }));
+    expect(m.requirements.find(r => r.id === 'REQUIREMENT-INTERNAL-1')!.jurisdictions).toBeUndefined();
+    expect(m.requirements.find(r => r.id === 'REQUIREMENT-DANGLING-1')!.jurisdictions).toBeUndefined();
+  });
+
+  it('ignores codex entries with no jurisdiction (e.g. internal POLICY)', () => {
+    const m = buildComplianceMatrix(input({
+      requirements: [
+        { id: 'REQUIREMENT-DATA-ERASURE-1', name: 'Erasure', severity: 'high',
+          derived_from: ['POLICY-INTERNAL-1'] },
+      ],
+      codex: [{ id: 'POLICY-INTERNAL-1' }],
+    }));
+    expect(m.requirements[0].jurisdictions).toBeUndefined();
+  });
+
+  it('works with no codex input (backwards-compatible)', () => {
+    const m = buildComplianceMatrix(input({
+      requirements: [
+        { id: 'REQUIREMENT-DATA-ERASURE-1', name: 'Erasure', severity: 'high',
+          derived_from: ['LAW-PERSONAL-DATA-2017-1'] },
+      ],
+    }));
+    expect(m.requirements[0].jurisdictions).toBeUndefined();
+  });
+});
+
 describe('filterComplianceMatrix', () => {
   it('trims requirement columns by severity', () => {
     const m = buildComplianceMatrix(input());
@@ -85,5 +141,60 @@ describe('filterComplianceMatrix', () => {
     const m = buildComplianceMatrix(input());
     const f = filterComplianceMatrix(m, {});
     expect(f.summary).toEqual(m.summary);
+  });
+
+  it('keeps only columns whose resolved jurisdiction is in the filter (F16)', () => {
+    const m = buildComplianceMatrix(input({
+      requirements: [
+        { id: 'REQUIREMENT-DATA-ERASURE-1', name: 'Erasure', severity: 'high',
+          derived_from: ['LAW-PERSONAL-DATA-2017-1'] },
+        { id: 'REQUIREMENT-AUDIT-LOG-RETENTION-1', name: 'Audit logs', severity: 'medium',
+          derived_from: ['LAW-AUDIT-2020-1'] },
+      ],
+      codex: [
+        { id: 'LAW-PERSONAL-DATA-2017-1', jurisdiction: 'ge' },
+        { id: 'LAW-AUDIT-2020-1', jurisdiction: 'eu' },
+      ],
+    }));
+    const f = filterComplianceMatrix(m, { jurisdictions: ['ge'] });
+    expect(f.requirements.map(r => r.id)).toEqual(['REQUIREMENT-DATA-ERASURE-1']);
+    expect(f.cells[0]).toHaveLength(1);
+  });
+
+  it('drops requirements with no resolved jurisdiction when the filter is active', () => {
+    const m = buildComplianceMatrix(input({
+      requirements: [
+        { id: 'REQUIREMENT-DATA-ERASURE-1', name: 'Erasure', severity: 'high',
+          derived_from: ['LAW-PERSONAL-DATA-2017-1'] },
+        { id: 'REQUIREMENT-INTERNAL-1', name: 'Internal', severity: 'low' },
+      ],
+      codex: [{ id: 'LAW-PERSONAL-DATA-2017-1', jurisdiction: 'ge' }],
+    }));
+    const f = filterComplianceMatrix(m, { jurisdictions: ['ge'] });
+    expect(f.requirements.map(r => r.id)).toEqual(['REQUIREMENT-DATA-ERASURE-1']);
+  });
+
+  it('combines jurisdiction filter with severity (intersection)', () => {
+    const m = buildComplianceMatrix(input({
+      requirements: [
+        { id: 'REQUIREMENT-DATA-ERASURE-1', name: 'Erasure', severity: 'high',
+          derived_from: ['LAW-PERSONAL-DATA-2017-1'] },
+        { id: 'REQUIREMENT-DATA-PORTABILITY-1', name: 'Portability', severity: 'medium',
+          derived_from: ['LAW-PERSONAL-DATA-2017-1'] },
+      ],
+      codex: [{ id: 'LAW-PERSONAL-DATA-2017-1', jurisdiction: 'ge' }],
+    }));
+    const f = filterComplianceMatrix(m, { jurisdictions: ['ge'], severities: ['high'] });
+    expect(f.requirements.map(r => r.id)).toEqual(['REQUIREMENT-DATA-ERASURE-1']);
+  });
+
+  it('empty jurisdiction array is treated as no-filter on that dimension', () => {
+    const m = buildComplianceMatrix(input({
+      requirements: [
+        { id: 'REQUIREMENT-INTERNAL-1', name: 'Internal', severity: 'low' },
+      ],
+    }));
+    const f = filterComplianceMatrix(m, { jurisdictions: [] });
+    expect(f.requirements).toHaveLength(1);
   });
 });

@@ -38,6 +38,15 @@ function escXml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+/** Union of jurisdictions resolved across the matrix's columns, sorted. */
+function collectJurisdictions(matrix: ComplianceMatrix): string[] {
+  const out = new Set<string>();
+  for (const r of matrix.requirements) {
+    for (const j of r.jurisdictions ?? []) out.add(j);
+  }
+  return [...out].sort();
+}
+
 export class ComplianceMatrixPreview {
   readonly panelTitle = 'Compliance Matrix';
   private panel: vscode.WebviewPanel | undefined;
@@ -75,17 +84,23 @@ export class ComplianceMatrixPreview {
     this.assertionPaths = scan.pathById;
     this.fullMatrix = buildComplianceMatrix({
       products: scan.products,
-      requirements: scan.requirements,
+      requirements: scan.requirements.map(r => ({
+        id: r.id, name: r.name, severity: r.severity, derived_from: r.derived_from,
+      })),
       assertions: scan.assertions,
+      codex: scan.codex.map(c => ({ id: c.id, jurisdiction: c.jurisdiction })),
     });
     this.render();
   }
 
-  private async onMessage(m: { type?: string; statuses?: string[]; severities?: string[] }): Promise<void> {
+  private async onMessage(m: {
+    type?: string; statuses?: string[]; severities?: string[]; jurisdictions?: string[];
+  }): Promise<void> {
     if (m?.type !== 'transitrix:matrix-filter') return;
     this.filter = {
       statuses: (m.statuses ?? []).filter((s): s is AssertionStatus => (ALL_STATUSES as string[]).includes(s)),
       severities: (m.severities ?? []).filter(s => ALL_SEVERITIES.includes(s)),
+      jurisdictions: (m.jurisdictions ?? []).filter(j => typeof j === 'string' && j.length > 0),
     };
     this.render();
   }
@@ -113,12 +128,25 @@ export class ComplianceMatrixPreview {
 
     const filterStatuses = new Set(this.filter.statuses ?? []);
     const filterSeverities = new Set(this.filter.severities ?? []);
+    const filterJurisdictions = new Set(this.filter.jurisdictions ?? []);
     const statusBoxes = ALL_STATUSES.map(s =>
       `<label class="cm-chip"><input type="checkbox" data-cm-status="${s}"${filterStatuses.has(s) ? ' checked' : ''}> ${escXml(STATUS_LABELS[s])}</label>`,
     ).join('');
     const severityBoxes = ALL_SEVERITIES.map(s =>
       `<label class="cm-chip"><input type="checkbox" data-cm-severity="${s}"${filterSeverities.has(s) ? ' checked' : ''}> ${escXml(s)}</label>`,
     ).join('');
+
+    // Jurisdiction chips come from the union of jurisdictions resolved on the
+    // full matrix's columns. Hidden entirely when no requirement resolved one
+    // (e.g. no codex files in the workspace) so the toolbar doesn't claim a
+    // dimension that has no values.
+    const jurisdictionUniverse = collectJurisdictions(this.fullMatrix!);
+    const jurisdictionBoxes = jurisdictionUniverse.map(j =>
+      `<label class="cm-chip"><input type="checkbox" data-cm-jurisdiction="${escXml(j)}"${filterJurisdictions.has(j) ? ' checked' : ''}> ${escXml(j)}</label>`,
+    ).join('');
+    const jurisdictionRow = jurisdictionUniverse.length
+      ? `<span class="cm-filter-label">Jurisdiction</span>${jurisdictionBoxes}`
+      : '';
 
     return `<!DOCTYPE html>
 <html lang="en">
@@ -139,6 +167,7 @@ ${MATRIX_CSS}
   <div id="cm-filters">
     <span class="cm-filter-label">Status</span>${statusBoxes}
     <span class="cm-filter-label">Severity</span>${severityBoxes}
+    ${jurisdictionRow}
   </div>
   ${body}
   <script nonce="${nonce}">
@@ -151,9 +180,14 @@ ${MATRIX_CSS}
     });
     return out;
   }
-  document.querySelectorAll('[data-cm-status],[data-cm-severity]').forEach(function (el) {
+  document.querySelectorAll('[data-cm-status],[data-cm-severity],[data-cm-jurisdiction]').forEach(function (el) {
     el.addEventListener('change', function () {
-      vscode.postMessage({ type: 'transitrix:matrix-filter', statuses: collect('status'), severities: collect('severity') });
+      vscode.postMessage({
+        type: 'transitrix:matrix-filter',
+        statuses: collect('status'),
+        severities: collect('severity'),
+        jurisdictions: collect('jurisdiction'),
+      });
     });
   });
 }());
@@ -166,7 +200,18 @@ ${MATRIX_CSS}
     const { products, requirements, cells } = matrix;
     const head = `<tr>
       <th class="cm-corner"></th>
-      ${requirements.map(r => `<th class="cm-col" title="${escXml(r.id)}${r.severity ? ` · severity: ${escXml(r.severity)}` : ''}"><div class="cm-col-name">${escXml(r.name)}</div>${r.severity ? `<div class="cm-col-sev cm-sev-${escXml(r.severity)}">${escXml(r.severity)}</div>` : ''}</th>`).join('')}
+      ${requirements.map(r => {
+        const js = r.jurisdictions ?? [];
+        const titleParts = [
+          escXml(r.id),
+          r.severity ? `severity: ${escXml(r.severity)}` : null,
+          js.length ? `jurisdiction: ${escXml(js.join(', '))}` : null,
+        ].filter(Boolean).join(' · ');
+        const jBadge = js.length
+          ? `<div class="cm-col-jur">${js.map(j => `<span class="cm-jur-chip">${escXml(j)}</span>`).join(' ')}</div>`
+          : '';
+        return `<th class="cm-col" title="${titleParts}"><div class="cm-col-name">${escXml(r.name)}</div>${r.severity ? `<div class="cm-col-sev cm-sev-${escXml(r.severity)}">${escXml(r.severity)}</div>` : ''}${jBadge}</th>`;
+      }).join('')}
     </tr>`;
 
     const rows = products.map((p, ri) => {
@@ -214,6 +259,8 @@ body { padding: 0; }
 .cm-col { padding: 6px 10px; vertical-align: bottom; text-align: left; background: var(--ts-bg-subtle, #f1f5f9); min-width: 90px; max-width: 160px; }
 .cm-col-name { font-weight: 600; color: var(--ts-text, #0f172a); }
 .cm-col-sev { font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 2px; }
+.cm-col-jur { margin-top: 4px; display: flex; flex-wrap: wrap; gap: 3px; }
+.cm-jur-chip { display: inline-block; padding: 1px 5px; border-radius: 3px; font-size: 10px; color: var(--ts-text-muted, #64748b); background: var(--ts-bg-elevated, #e2e8f0); text-transform: uppercase; letter-spacing: 0.04em; }
 .cm-sev-high { color: #b91c1c; }
 .cm-sev-medium { color: #b45309; }
 .cm-sev-low { color: #2563eb; }
