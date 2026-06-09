@@ -40,21 +40,22 @@ export interface IndexAssertion {
 
 // ── Stage grouping (CV-3a) ──────────────────────────────────────────────────
 
-/** One stage / task within a process flow, used as a matrix sub-column. */
-export interface StageGroupDef {
+/** One detail-level element of a business object, used as a matrix sub-column. */
+export interface ObjectDetailDef {
   id: string;
   name: string;
 }
 
 /**
- * Maps a subject (product / process) to its ordered stages.
+ * Maps a business object to its ordered detail elements.
  * Passed into `buildImpactMatrix` when `grouping.columns` is
- * `product-stage` or `product-stage-task`. Typically extracted from a
- * process-blueprint document via `extractStageGroups`.
+ * `object-details`. The details can be process stages, product
+ * components, capability modules, etc. — whatever sub-structure the object
+ * exposes. Typically extracted from a process-blueprint via`extractObjectDetails`.
  */
-export interface StageGroupInput {
-  subjectId: string;
-  stages: StageGroupDef[];
+export interface ObjectDetailInput {
+  objectId: string;
+  details: ObjectDetailDef[];
 }
 
 export interface ComplianceIndexInput {

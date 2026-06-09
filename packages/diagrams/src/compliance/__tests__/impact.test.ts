@@ -5,7 +5,7 @@ import {
   renderImpactMarkdown,
   parseImpactViewConfig,
   COMPLIANCE_IMPACT_DEFAULTS,
-  extractStageGroups,
+  extractObjectDetails,
   type ImpactViewConfig,
 } from '../impact.js';
 import type { ComplianceCanon } from '../classify.js';
@@ -266,7 +266,7 @@ describe('parseImpactViewConfig', () => {
   });
 });
 
-describe('CV-3a — stage grouping (ImpactColumn, extractStageGroups, buildImpactMatrix stage grain)', () => {
+describe('CV-3a — stage grouping (ImpactColumn, extractObjectDetails, buildImpactMatrix stage grain)', () => {
   it('default product grain: columns are plain ImpactColumn with label=subjectId', () => {
     const canon = buildCanon();
     const matrix = buildImpactMatrix(canon, baseConfig);
@@ -279,8 +279,8 @@ describe('CV-3a — stage grouping (ImpactColumn, extractStageGroups, buildImpac
     const canon = buildCanon();
     const matrix = buildImpactMatrix(
       canon,
-      { ...baseConfig, subjects: { products: ['PRODUCT-A-1'] }, grouping: { columns: 'object-stage' } },
-      [{ subjectId: 'PRODUCT-A-1', stages: [{ id: 'STAGE-1', name: 'Stage One' }, { id: 'STAGE-2', name: 'Stage Two' }] }],
+      { ...baseConfig, subjects: { products: ['PRODUCT-A-1'] }, grouping: { columns: 'object-details' } },
+      [{ objectId: 'PRODUCT-A-1', details: [{ id: 'STAGE-1', name: 'Stage One' }, { id: 'STAGE-2', name: 'Stage Two' }] }],
     );
     expect(matrix.columns.map(c => c.label)).toEqual(['PRODUCT-A-1:STAGE-1', 'PRODUCT-A-1:STAGE-2']);
     expect(matrix.columns.map(c => c.stageId)).toEqual(['STAGE-1', 'STAGE-2']);
@@ -297,9 +297,9 @@ describe('CV-3a — stage grouping (ImpactColumn, extractStageGroups, buildImpac
         id: 'V', name: 'V',
         subjects: { products: ['PROD-1'] },
         obligations: {},
-        grouping: { columns: 'object-stage' },
+        grouping: { columns: 'object-details' },
       },
-      [{ subjectId: 'PROD-1', stages: [{ id: 'S1', name: 's1' }, { id: 'S2', name: 's2' }] }],
+      [{ objectId: 'PROD-1', details: [{ id: 'S1', name: 's1' }, { id: 'S2', name: 's2' }] }],
     );
     // Both stage columns should be bound (no realised_via means all stages inherit).
     expect(matrix.cells[0][0].kind).toBe('bound');
@@ -320,9 +320,9 @@ describe('CV-3a — stage grouping (ImpactColumn, extractStageGroups, buildImpac
         id: 'V', name: 'V',
         subjects: { products: ['PROD-1'] },
         obligations: {},
-        grouping: { columns: 'object-stage' },
+        grouping: { columns: 'object-details' },
       },
-      [{ subjectId: 'PROD-1', stages: [{ id: 'STAGE-A', name: 'a' }, { id: 'STAGE-B', name: 'b' }] }],
+      [{ objectId: 'PROD-1', details: [{ id: 'STAGE-A', name: 'a' }, { id: 'STAGE-B', name: 'b' }] }],
     );
     expect(matrix.cells[0][0].kind).toBe('bound');   // STAGE-A: covered
     expect(matrix.cells[0][1].kind).toBe('gap');     // STAGE-B: gap
@@ -335,28 +335,28 @@ describe('CV-3a — stage grouping (ImpactColumn, extractStageGroups, buildImpac
       {
         ...baseConfig,
         subjects: { products: ['PRODUCT-A-1', 'PRODUCT-B-1'] },
-        grouping: { columns: 'object-stage' },
+        grouping: { columns: 'object-details' },
       },
       // Only provide stages for A — B falls back to a single column.
-      [{ subjectId: 'PRODUCT-A-1', stages: [{ id: 'S1', name: 's1' }] }],
+      [{ objectId: 'PRODUCT-A-1', details: [{ id: 'S1', name: 's1' }] }],
     );
     expect(matrix.columns.map(c => c.label)).toEqual(['PRODUCT-A-1:S1', 'PRODUCT-B-1']);
     // PRODUCT-B-1 fallback column: no stageId.
     expect(matrix.columns[1].stageId).toBeUndefined();
   });
 
-  it('extractStageGroups — returns null for non-blueprint docs', () => {
-    expect(extractStageGroups(null)).toBeNull();
-    expect(extractStageGroups({ notation: 'requirement', id: 'R1' })).toBeNull();
-    expect(extractStageGroups({ process_blueprint: { stages: [{ id: 'S1' }] } })).toBeNull(); // missing id
+  it('extractObjectDetails — returns null for non-blueprint docs', () => {
+    expect(extractObjectDetails(null)).toBeNull();
+    expect(extractObjectDetails({ notation: 'requirement', id: 'R1' })).toBeNull();
+    expect(extractObjectDetails({ process_blueprint: { details: [{ id: 'S1' }] } })).toBeNull(); // missing id
   });
 
-  it('extractStageGroups — extracts subjectId and stages from process_blueprint wrapper', () => {
+  it('extractObjectDetails — extracts subjectId and stages from process_blueprint wrapper', () => {
     const doc = { process_blueprint: { id: 'PROC-1', notation: 'process_blueprint', stages: [{ id: 'S1', name: 'Stage One' }, { id: 'S2', name: 'Stage Two' }] } };
-    const sg = extractStageGroups(doc);
+    const sg = extractObjectDetails(doc);
     expect(sg).not.toBeNull();
-    expect(sg!.subjectId).toBe('PROC-1');
-    expect(sg!.stages.map((s: { id: string }) => s.id)).toEqual(['S1', 'S2']);
+    expect(sg!.objectId).toBe('PROC-1');
+    expect(sg!.details.map((s: { id: string }) => s.id)).toEqual(['S1', 'S2']);
   });
 
   it('renderImpactMarkdown uses column labels in the table header', () => {
@@ -369,9 +369,9 @@ describe('CV-3a — stage grouping (ImpactColumn, extractStageGroups, buildImpac
         id: 'V', name: 'Stage Report',
         subjects: { products: ['PROD-1'] },
         obligations: {},
-        grouping: { columns: 'object-stage' },
+        grouping: { columns: 'object-details' },
       },
-      [{ subjectId: 'PROD-1', stages: [{ id: 'S1', name: 'Stage One' }] }],
+      [{ objectId: 'PROD-1', details: [{ id: 'S1', name: 'Stage One' }] }],
     );
     const md = renderImpactMarkdown(matrix);
     expect(md).toContain('PROD-1:S1');

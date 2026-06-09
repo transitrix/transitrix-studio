@@ -9,7 +9,7 @@
  *   - product (default)      — one column per subject.
  *   - product-stage (CV-3a)  — one column per (subject, stage) pair; requires
  *     process-blueprint YAML files to be present in the canon root so
- *     `extractStageGroups` can map subject IDs to their ordered stages.
+ *     `extractObjectDetails` can map subject IDs to their ordered stages.
  *
  * Usage — named view-config file:
  *   node scripts/render-compliance-impact.mjs \
@@ -185,7 +185,7 @@ async function main() {
     renderImpactMarkdown,
     parseImpactViewConfig,
     COMPLIANCE_IMPACT_DEFAULTS,
-    extractStageGroups,
+    extractObjectDetails,
   } = diagrams;
 
   // Resolve the view config.
@@ -214,7 +214,7 @@ async function main() {
 
   // Scan canon — collect compliance artefacts and process-blueprints (for stage grouping).
   const canon = emptyCanon();
-  /** Raw parsed YAML docs that look like process-blueprints, for extractStageGroups. */
+  /** Raw parsed YAML docs that look like process-blueprints, for extractObjectDetails. */
   const rawBlueprints = [];
   let scanned = 0;
   let ingested = 0;
@@ -242,26 +242,26 @@ async function main() {
   );
 
   // Build stage groups when grouping.columns = 'product-stage'.
-  let stageGroups;
-  if (view.grouping?.columns === 'object-stage') {
-    stageGroups = rawBlueprints.flatMap(doc => {
-      const sg = extractStageGroups(doc);
-      return sg ? [sg] : [];
+  let objectDetails;
+  if (view.grouping?.columns === 'object-details') {
+    objectDetails = rawBlueprints.flatMap(doc => {
+      const sg = extractObjectDetails(doc);
+      return sg ? [d] : [];
     });
-    if (stageGroups.length === 0) {
+    if (objectDetails.length === 0) {
       console.error(
-        '[render-compliance-impact] warning: grouping.columns=object-stage but no process-blueprint ' +
+        '[render-compliance-impact] warning: grouping.columns=object-details but no process-blueprint ' +
           'documents found in the canon root — falling back to product grain.',
       );
     } else {
       console.error(
-        `[render-compliance-impact] stage-grouping: ${stageGroups.length} blueprint(s), ` +
-          stageGroups.map(sg => `${sg.subjectId}(${sg.stages.length} stages)`).join(', '),
+        `[render-compliance-impact] stage-grouping: ${objectDetails.length} blueprint(s), ` +
+          objectDetails.map(d => `${d.objectId}(${d.details.length} details)`).join(', '),
       );
     }
   }
 
-  const matrix = buildImpactMatrix(canon, view, stageGroups);
+  const matrix = buildImpactMatrix(canon, view, objectDetails);
   const md = renderImpactMarkdown(matrix);
 
   if (args.output) {

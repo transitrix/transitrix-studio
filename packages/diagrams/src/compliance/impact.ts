@@ -10,7 +10,7 @@
 import type { AssertionStatus } from '../assertion/types.js';
 import type { ComplianceCanon } from './classify.js';
 import { buildComplianceIndex } from './reverse-index.js';
-import type { ComplianceIndex, IndexAssertion, IndexRequirement, StageGroupInput, StageGroupDef } from './types.js';
+import type { ComplianceIndex, IndexAssertion, IndexRequirement, ObjectDetailInput, ObjectDetailDef } from './types.js';
 
 /** Filter selecting REQUIREMENTs by codex source (jurisdiction / regime keys
  *  are accepted for forward compatibility but not yet honoured — the canon
@@ -66,10 +66,10 @@ export interface ImpactColumn {
  * `columns` controls the column grain:
  *   - `'product'` (default) — one column per subject.
  *   - `'product-stage'`     — one column per (subject, stage) pair derived
- *     from `stageGroups` passed to `buildImpactMatrix`.
+ *     from `objectDetails` passed to `buildImpactMatrix`.
  */
 export interface ImpactGrouping {
-  columns: 'object' | 'object-stage';
+  columns: 'object' | 'object-details';
 }
 
 /**
@@ -105,7 +105,7 @@ export interface ImpactViewConfig {
   /**
    * Column grouping options.  Omit (or set `columns: 'product'`) for the
    * default single-column-per-subject behaviour.  Set `columns: 'product-stage'`
-   * and pass `stageGroups` into `buildImpactMatrix` to expand each subject
+   * and pass `objectDetails` into `buildImpactMatrix` to expand each subject
    * into per-stage sub-columns.
    */
   grouping?: ImpactGrouping;
@@ -355,17 +355,17 @@ function buildProductColumns(config: ImpactViewConfig): ImpactColumn[] {
   return subjects.map(id => ({ subjectId: id, label: id }));
 }
 
-function buildProductStageColumns(config: ImpactViewConfig, stageGroups: StageGroupInput[]): ImpactColumn[] {
-  const stageMap = new Map<string, StageGroupDef[]>(stageGroups.map(sg => [sg.subjectId, sg.stages]));
+function buildObjectDetailColumns(config: ImpactViewConfig, objectDetails: ObjectDetailInput[]): ImpactColumn[] {
+  const detailMap = new Map<string, ObjectDetailDef[]>(objectDetails.map(d => [d.objectId, d.details]));
   const subjects = [...(config.subjects.products ?? []), ...(config.subjects.processes ?? [])];
   const cols: ImpactColumn[] = [];
   for (const subjectId of subjects) {
-    const stages = stageMap.get(subjectId);
-    if (!stages || stages.length === 0) {
+    const details = detailMap.get(subjectId);
+    if (!details || details.length === 0) {
       cols.push({ subjectId, label: subjectId });
     } else {
-      for (const stage of stages) {
-        cols.push({ subjectId, stageId: stage.id, label: `${subjectId}:${stage.id}` });
+      for (const detail of details) {
+        cols.push({ subjectId, stageId: detail.id, label: `${subjectId}:${detail.id}` });
       }
     }
   }
@@ -391,9 +391,9 @@ function assertionMatchesColumn(a: IndexAssertion, col: ImpactColumn): boolean {
  * Build the matrix per §5.2.
  *
  * At the default `grouping.columns: 'product'` grain, one column per subject.
- * At `grouping.columns: 'product-stage'`, pass `stageGroups` to expand each
+ * At `grouping.columns: 'product-stage'`, pass `objectDetails` to expand each
  * subject into per-stage sub-columns (typically extracted from a
- * process-blueprint document via `extractStageGroups`).  Subjects with no
+ * process-blueprint document via `extractObjectDetails`).  Subjects with no
  * stage mapping fall back to a single product-grain column automatically.
  *
  * Subjects are taken from `config.subjects.products` and
@@ -403,7 +403,7 @@ function assertionMatchesColumn(a: IndexAssertion, col: ImpactColumn): boolean {
 export function buildImpactMatrix(
   canon: ComplianceCanon,
   config: ImpactViewConfig,
-  stageGroups?: StageGroupInput[],
+  objectDetails?: ObjectDetailInput[],
 ): ImpactMatrix {
   const index = buildComplianceIndex({
     requirements: canon.requirements,
@@ -413,9 +413,9 @@ export function buildImpactMatrix(
   const obligations = orderRows(resolveObligations(config, index, canon.requirements), config.order_rows_by);
 
   const useStageGrain =
-    config.grouping?.columns === 'object-stage' && stageGroups && stageGroups.length > 0;
+    config.grouping?.columns === 'object-details' && objectDetails && objectDetails.length > 0;
   const columns: ImpactColumn[] = useStageGrain
-    ? buildProductStageColumns(config, stageGroups!)
+    ? buildObjectDetailColumns(config, objectDetails!)
     : buildProductColumns(config);
 
   const allowedStatuses = new Set<AssertionStatus>(
@@ -481,7 +481,7 @@ function emptyCell(): ImpactCell {
 // ── Process-blueprint stage extractor (CV-3a) ───────────────────────────────
 
 /**
- * Extract `StageGroupInput` from a raw (YAML-parsed) process-blueprint document.
+ * Extract `ObjectDetailInput` from a raw (YAML-parsed) process-blueprint document.
  *
  * Accepts both the bare document object and the wrapped form
  * (`{ process_blueprint: { id, stages: […] } }`).
@@ -489,9 +489,9 @@ function emptyCell(): ImpactCell {
  * has no `id` / `stages` array so callers can skip unrecognised files safely.
  *
  * Pass the returned value into `buildImpactMatrix` as part of the
- * `stageGroups` array when `grouping.columns: 'product-stage'` is configured.
+ * `objectDetails` array when `grouping.columns: 'product-stage'` is configured.
  */
-export function extractStageGroups(doc: unknown): StageGroupInput | null {
+export function extractObjectDetails(doc: unknown): ObjectDetailInput | null {
   if (!doc || typeof doc !== 'object' || Array.isArray(doc)) return null;
   const top = doc as Record<string, unknown>;
 
@@ -507,15 +507,15 @@ export function extractStageGroups(doc: unknown): StageGroupInput | null {
   if (!id) return null;
   if (!Array.isArray(bp.stages)) return null;
 
-  const stages: StageGroupDef[] = [];
+  const details: ObjectDetailDef[] = [];
   for (const s of bp.stages) {
     if (!s || typeof s !== 'object' || Array.isArray(s)) continue;
     const sid = typeof s.id === 'string' ? s.id : null;
     if (!sid) continue;
-    stages.push({ id: sid, name: typeof s.name === 'string' ? s.name : sid });
+    details.push({ id: sid, name: typeof s.name === 'string' ? s.name : sid });
   }
 
-  return { subjectId: id, stages };
+  return { objectId: id, details };
 }
 
 // ── Markdown rendering ──────────────────────────────────────────────────────
