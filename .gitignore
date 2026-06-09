@@ -1,6 +1,7 @@
 node_modules/
 
-# Superseded / archived trees (never delete—move content here instead of deleting)
+# Local-only trees (never commit; see contributor orientation)
+.archive/
 **/0. archive/
 
 dist/

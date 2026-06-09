@@ -23,6 +23,14 @@ binary landed. The resulting `.vsix` is correct **only for the OS/arch it was
 built on** — installing it elsewhere makes PNG export fail at runtime
 (SVG export and previews are unaffected).
 
+## Packaging hygiene
+
+Only runtime assets may live under `extension/`. Before every
+`build-extension.bat` / `build-extension.sh` `vsce package` step,
+`node scripts/verify-extension-packaging.mjs` fails the build if forbidden
+non-runtime paths appear there (`extension/.vscodeignore` is a second line of
+defence).
+
 ## Build per-platform VSIXs for the Marketplace
 
 Tag each VSIX with `vsce package --target <target>` so the Marketplace serves
