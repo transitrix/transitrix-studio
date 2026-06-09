@@ -14,7 +14,25 @@ export interface IndexRequirement {
   derived_from?: string[];
   /** Admission date (CONTRACT §6) — feeds DQ-1 freshness decay. */
   admitted_at?: string;
+  /**
+   * Compliance deadline (ISO 8601 date, YYYY-MM-DD).
+   * When a gap exists on a cell whose requirement carries a deadline that is
+   * past or imminent, CV-3 renders an urgent decoration on the cell.
+   */
+  deadline?: string;
 }
+
+// ── Temporal status (CV-3) ──────────────────────────────────────────────────
+
+/**
+ * Temporal status of a requirement deadline relative to today.
+ *
+ * - `past_due`  — deadline has already passed (`deadline < today`).
+ * - `in_force`  — deadline is within the next 30 days.
+ * - `upcoming`  — deadline is more than 30 days away.
+ * - `none`      — no deadline set.
+ */
+export type DeadlineStatus = 'past_due' | 'in_force' | 'upcoming' | 'none';
 
 /** Projection of an ASSERTION the compliance views need. */
 export interface IndexAssertion {
