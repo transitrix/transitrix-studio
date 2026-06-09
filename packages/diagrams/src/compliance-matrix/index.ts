@@ -6,5 +6,6 @@ export type {
   MatrixRequirement,
   MatrixAssertionRef,
   MatrixCell,
+  MatrixCodexDoc,
   MatrixFilter,
 } from './types.js';
