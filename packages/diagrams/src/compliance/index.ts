@@ -8,6 +8,16 @@ export { renderComplianceMarkdown } from './markdown.js';
 export type { ReportScope, MarkdownOptions } from './markdown.js';
 export { renderComplianceHtml } from './html.js';
 export type { HtmlOptions } from './html.js';
+export { buildImpactMatrix, renderImpactMarkdown } from './impact.js';
+export type {
+  ImpactCell,
+  ImpactEmptyCellLabels,
+  ImpactMatrix,
+  ImpactObligationFilter,
+  ImpactStatusDisplay,
+  ImpactSubjects,
+  ImpactViewConfig,
+} from './impact.js';
 export {
   assertionToScoringElement,
   complianceConfidenceHeader,
