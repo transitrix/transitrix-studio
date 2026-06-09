@@ -112,12 +112,12 @@ function productMarkdown(canon: ComplianceCanon, productId: string): string {
 function gapMarkdown(canon: ComplianceCanon, today?: string): string {
   const index = buildComplianceIndex({ requirements: canon.requirements, assertions: canon.assertions });
   const report = buildGapReport(index, { today });
-  const total = report.requirementsWithoutAssertions.length + report.assertionsWithoutEvidence.length + report.staleAssertions.length;
-  const out: string[] = ['# Compliance Gap Dashboard', '', `_${total} gap(s)_`, ''];
+  const total = report.requirementsWithoutAssertions.length + report.assertionsWithoutEvidence.length + report.staleAssertions.length + report.pastDeadlineRequirements.length;
+  const out: string[] = ['# Compliance Gap Dashboard', '', `_${total} gap(s) across 4 checks_`, ''];
 
   out.push(`## Requirements without assertions (${report.requirementsWithoutAssertions.length})`, '');
   if (report.requirementsWithoutAssertions.length === 0) out.push('_✓ none_', '');
-  else { for (const r of report.requirementsWithoutAssertions) out.push(`- [ ] \`${r.id}\` ${r.name}${r.severity ? ` — severity: ${r.severity}` : ''}`); out.push(''); }
+  else { for (const r of report.requirementsWithoutAssertions) out.push(`- [ ] \`${r.id}\` ${r.name}${r.severity ? ` — severity: ${r.severity}` : ''}${r.deadline ? ` — deadline: ${r.deadline}` : ''}`); out.push(''); }
 
   out.push(`## Assertions without evidence — ASSERT-007 (${report.assertionsWithoutEvidence.length})`, '');
   if (report.assertionsWithoutEvidence.length === 0) out.push('_✓ none_', '');
@@ -126,6 +126,10 @@ function gapMarkdown(canon: ComplianceCanon, today?: string): string {
   out.push(`## Stale assertions — ASSERT-008 (${report.staleAssertions.length})`, '');
   if (report.staleAssertions.length === 0) out.push('_✓ none_', '');
   else { for (const a of report.staleAssertions) out.push(`- [ ] \`${a.id}\` — review due ${a.next_review_at ?? '—'}, subject \`${a.subject}\``); out.push(''); }
+
+  out.push(`## Past-deadline requirements — CV-5 (${report.pastDeadlineRequirements.length})`, '');
+  if (report.pastDeadlineRequirements.length === 0) out.push('_✓ none_', '');
+  else { for (const r of report.pastDeadlineRequirements) out.push(`- [ ] \`${r.id}\` ${r.name} — deadline: ${r.deadline ?? '—'}${r.severity ? `, severity: ${r.severity}` : ''}`); out.push(''); }
 
   return out.join('\n');
 }

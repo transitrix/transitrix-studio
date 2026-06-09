@@ -81,3 +81,15 @@ describe('renderComplianceMarkdown — acme conformance', () => {
     expect(md).toContain('`REQUIREMENT-AUDIT-LOG-RETENTION-1`');
   });
 });
+
+describe('gapMarkdown CV-5 pastDeadlineRequirements section', () => {
+  it('includes the 4th section in output', () => {
+    const canon = emptyCanon();
+    ingestComplianceDoc(canon, { notation: 'requirement', id: 'REQ-PD-1', name: 'Past', deadline: '2020-01-01' });
+    const md = renderComplianceMarkdown(canon, { mode: 'gap' }, { today: '2026-06-09' });
+    expect(md).toContain('Past-deadline requirements');
+    expect(md).toContain('REQ-PD-1');
+    expect(md).toContain('2020-01-01');
+    expect(md).toContain('4 checks');
+  });
+});

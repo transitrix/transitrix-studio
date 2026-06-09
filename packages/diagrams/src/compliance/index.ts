@@ -6,8 +6,8 @@ export { emptyCanon, ingestComplianceDoc } from './classify.js';
 export type { ComplianceCanon, ComplianceProduct, ComplianceCodexDoc } from './classify.js';
 export { renderComplianceMarkdown } from './markdown.js';
 export type { ReportScope, MarkdownOptions } from './markdown.js';
-export { renderComplianceHtml } from './html.js';
-export type { HtmlOptions } from './html.js';
+export { renderComplianceHtml, renderImpactMatrixHtml } from './html.js';
+export type { HtmlOptions, ImpactMatrixHtmlOptions } from './html.js';
 export { buildImpactMatrix, renderImpactMarkdown, parseImpactViewConfig, COMPLIANCE_IMPACT_DEFAULTS, extractObjectDetails, computeDeadlineStatus } from './impact.js';
 export type {
   ImpactCell,

@@ -18,6 +18,10 @@ import {
   ingestComplianceDoc,
   renderComplianceMarkdown,
   renderComplianceHtml,
+  renderImpactMatrixHtml,
+  buildImpactMatrix,
+  parseImpactViewConfig,
+  renderImpactMarkdown,
   type ComplianceCanon,
   type ReportScope,
 } from '../packages/diagrams/src/compliance/index.js';
@@ -25,6 +29,50 @@ import {
 function flagValue(argv: string[], name: string): string | undefined {
   const i = argv.indexOf(name);
   return i >= 0 && i + 1 < argv.length ? argv[i + 1] : undefined;
+}
+
+/**
+ * CV-6: loads a named view-config YAML from a registry directory.
+ * Tries `<registry>/<id>.compliance-impact.view.yaml` then `<registry>/<id>.yaml`.
+ * Falls back to scanning `<root>` for a file whose `id` field matches.
+ */
+function loadViewConfigRaw(registry: string | undefined, reportId: string, root: string): unknown | null {
+  const candidates: string[] = [];
+  if (registry) {
+    candidates.push(
+      path.join(registry, `${reportId}.compliance-impact.view.yaml`),
+      path.join(registry, `${reportId}.yaml`),
+    );
+  }
+  // Always try root as fallback
+  candidates.push(
+    path.join(root, `${reportId}.compliance-impact.view.yaml`),
+    path.join(root, `${reportId}.yaml`),
+  );
+  for (const candidate of candidates) {
+    try {
+      const raw = yaml.load(readFileSync(candidate, 'utf-8'));
+      return raw;
+    } catch { /* try next */ }
+  }
+  // Scan root for a view-config file whose id matches
+  try {
+    const entries = readdirSync(root, { recursive: true }) as string[];
+    for (const rel of entries) {
+      if (typeof rel !== 'string') continue;
+      if (!/\.ya?ml$/i.test(rel)) continue;
+      if (rel.split(/[\\/]/).includes('node_modules')) continue;
+      try {
+        const raw = yaml.load(readFileSync(path.join(root, rel), 'utf-8'));
+        if (raw && typeof raw === 'object') {
+          const r = raw as Record<string, unknown>;
+          const inner = r.view && typeof r.view === 'object' ? r.view as Record<string, unknown> : r;
+          if (inner.id === reportId) return raw;
+        }
+      } catch { /* skip */ }
+    }
+  } catch { /* no root scan */ }
+  return null;
 }
 
 /** Filesystem scan for compliance canon under `root` (mirrors the extension's
@@ -108,19 +156,70 @@ export async function handleExportComplianceCommand(argv: string[]): Promise<voi
   const format = (flagValue(argv, '--format') ?? 'md').toLowerCase();
   const output = flagValue(argv, '--output');
   const root = flagValue(argv, '--root') ?? process.cwd();
-  const scope = parseScope(flagValue(argv, '--scope'));
+  const reportId = flagValue(argv, '--report');
+  const registry = flagValue(argv, '--registry');
 
-  if (scope === null) {
-    console.error('export-compliance: unknown --scope (expected law:<LAW-ID>, product:<PRODUCT-ID>, gap, or omit for the full matrix).');
-    process.exit(1);
-  }
   if (format !== 'md' && format !== 'pdf') {
     console.error(`export-compliance: unknown --format '${format}' (expected md or pdf).`);
     process.exit(1);
   }
 
-  const canon = scanCanonFs(root);
   const today = new Date().toISOString().slice(0, 10);
+
+  // ── CV-6 named view-config path ─────────────────────────────────────────
+  if (reportId) {
+    const rawCfg = loadViewConfigRaw(registry, reportId, root);
+    if (!rawCfg) {
+      console.error(`export-compliance: view-config '${reportId}' not found. Searched${registry ? ` registry '${registry}'` : ''} and root '${root}'.`);
+      process.exit(1);
+    }
+    const parseResult = parseImpactViewConfig(rawCfg);
+    if (!parseResult.ok) {
+      console.error(`export-compliance: view-config '${reportId}' is invalid:\n${parseResult.errors.map(e => `  - ${e}`).join('\n')}`);
+      process.exit(1);
+    }
+    const viewConfig = parseResult.config;
+    console.error(`[export-compliance] report: ${viewConfig.id} | format: ${format}`);
+    const canon = scanCanonFs(root);
+    // Auto-fill products if not specified in the view config
+    const effectiveProducts = viewConfig.subjects?.products?.length
+      ? viewConfig.subjects.products
+      : canon.products.map(p => p.id).sort();
+    const matrix = buildImpactMatrix(
+      { products: canon.products, requirements: canon.requirements, assertions: canon.assertions, codex: canon.codex },
+      { ...viewConfig, subjects: { ...viewConfig.subjects, products: effectiveProducts } },
+    );
+
+    if (format === 'md') {
+      const markdown = renderImpactMarkdown(matrix);
+      if (output) { writeFileSync(output, markdown, 'utf-8'); console.error(`Wrote ${output}`); }
+      else { process.stdout.write(markdown); }
+      return;
+    }
+    // format === 'pdf'
+    const html = renderImpactMatrixHtml(matrix, { today });
+    const pdfPath = output ?? `compliance-impact-${viewConfig.id}.pdf`;
+    const tmpDir = mkdtempSync(path.join(os.tmpdir(), 'cervin-export-'));
+    const htmlPath = path.join(tmpDir, 'report.html');
+    try {
+      writeFileSync(htmlPath, html, 'utf-8');
+      const result = runWeasyPrint(htmlPath, pdfPath);
+      if (!result.ok) { console.error(`export-compliance: ${result.message}`); process.exit(1); }
+      console.error(`Wrote ${pdfPath}`);
+    } finally {
+      try { rmSync(tmpDir, { recursive: true, force: true }); } catch { /* best-effort */ }
+    }
+    return;
+  }
+
+  // ── Legacy --scope path (Phase 5) ──────────────────────────────────────
+  const scope = parseScope(flagValue(argv, '--scope'));
+  if (scope === null) {
+    console.error('export-compliance: unknown --scope (expected law:<LAW-ID>, product:<PRODUCT-ID>, gap, or omit for the full matrix). Use --report <id> for named view-config.');
+    process.exit(1);
+  }
+
+  const canon = scanCanonFs(root);
 
   if (format === 'md') {
     const markdown = renderComplianceMarkdown(canon, scope, { today });

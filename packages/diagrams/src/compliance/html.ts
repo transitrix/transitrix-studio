@@ -15,6 +15,7 @@ import { buildGapReport } from './gap-report.js';
 import type { ComplianceCanon } from './classify.js';
 import type { ReportScope } from './markdown.js';
 import type { AssertionStatus } from '../assertion/types.js';
+import type { ImpactMatrix } from './impact.js';
 
 const STATUS_LABELS: Record<AssertionStatus, string> = {
   compliant: 'Compliant',
@@ -199,7 +200,7 @@ export function renderComplianceHtml(canon: ComplianceCanon, scope: ReportScope,
         return `<section class="cmp-section"><h2>${escHtml(heading)} <span class="cmp-count">(${count})</span></h2>${body}</section>`;
       };
       const reqs = report.requirementsWithoutAssertions.map(r => (
-        `<li><code>${escHtml(r.id)}</code> ${escHtml(r.name)}${r.severity ? ` <span class="cmp-meta">severity ${escHtml(r.severity)}</span>` : ''}</li>`
+        `<li><code>${escHtml(r.id)}</code> ${escHtml(r.name)}${r.severity ? ` <span class="cmp-meta">severity ${escHtml(r.severity)}</span>` : ''}${r.deadline ? ` <span class="cmp-meta">deadline ${escHtml(r.deadline)}</span>` : ''}</li>`
       ));
       const noEvidence = report.assertionsWithoutEvidence.map(a => (
         `<li><code>${escHtml(a.id)}</code> <span class="cmp-meta">about <code>${escHtml(a.about)}</code>, subject <code>${escHtml(a.subject)}</code>, status ${escHtml(a.status)}</span></li>`
@@ -207,13 +208,88 @@ export function renderComplianceHtml(canon: ComplianceCanon, scope: ReportScope,
       const stale = report.staleAssertions.map(a => (
         `<li><code>${escHtml(a.id)}</code> <span class="cmp-meta">review due ${a.next_review_at ? escHtml(a.next_review_at) : '—'}, subject <code>${escHtml(a.subject)}</code></span></li>`
       ));
+      const pastDl = report.pastDeadlineRequirements.map(r => (
+        `<li><code>${escHtml(r.id)}</code> ${escHtml(r.name)} <span class="cmp-meta">deadline ${r.deadline ? escHtml(r.deadline) : '—'}${r.severity ? `, severity ${escHtml(r.severity)}` : ''}</span></li>`
+      ));
+      const total4 = report.requirementsWithoutAssertions.length + report.assertionsWithoutEvidence.length + report.staleAssertions.length + report.pastDeadlineRequirements.length;
       const body = [
-        summary,
+        `<p class="cmp-summary">${total4} gap(s) across 4 checks</p>`,
         section('Requirements without assertions', report.requirementsWithoutAssertions.length, reqs),
         section('Assertions without evidence — ASSERT-007', report.assertionsWithoutEvidence.length, noEvidence),
         section('Stale assertions — ASSERT-008', report.staleAssertions.length, stale),
+        section('Past-deadline requirements (CV-5)', report.pastDeadlineRequirements.length, pastDl),
       ].join('');
       return htmlDoc(title, options.today, body);
     }
   }
+}
+
+// ── CV-6: Impact matrix HTML renderer ───────────────────────────────────────
+
+export interface ImpactMatrixHtmlOptions {
+  /** Today as ISO YYYY-MM-DD — stamped in the document header. */
+  today?: string;
+}
+
+/**
+ * Renders an `ImpactMatrix` (from `buildImpactMatrix`) as a self-contained
+ * A4 HTML document suitable for WeasyPrint PDF output.
+ *
+ * Used by `cervin export-compliance --report <id> --format pdf`.
+ */
+export function renderImpactMatrixHtml(matrix: ImpactMatrix, options: ImpactMatrixHtmlOptions = {}): string {
+  const STATUS_GLYPH: Partial<Record<string, string>> = {
+    compliant: 'OK', partial: 'PARTIAL', non_compliant: 'FAIL',
+    under_review: 'REVIEW', n_a: 'N/A',
+  };
+  const statusClass = (s: string | null) => s ?? 'gap';
+
+  const colHeaders = matrix.columns.map(c => `<th>${escHtml(c.label)}</th>`).join('');
+  const head = `<tr><th>Obligation</th>${colHeaders}</tr>`;
+  const rows = matrix.rows.map((req, ri) => {
+    const rowLabel = `${escHtml(req.id)}${req.name && req.name !== req.id ? ` — ${escHtml(req.name)}` : ''}`;
+    const cells = matrix.cells[ri].map(cell => {
+      if (cell.kind === 'gap') return `<td class="cmp-gap">${escHtml(matrix.emptyLabels.no_obligation_label)}</td>`;
+      if (cell.kind === 'n_a_only') return `<td class="cmp-na">${escHtml(matrix.emptyLabels.no_obligation_applies_label)}</td>`;
+      const glyph = STATUS_GLYPH[cell.status ?? ''] ?? String(cell.status);
+      return `<td class="cmp-${statusClass(cell.status)}">${escHtml(glyph)}</td>`;
+    }).join('');
+    const dlInfo = req.deadline ? ` <span class="cmp-dl">⚑ ${escHtml(req.deadline)}</span>` : '';
+    return `<tr><td class="cmp-row-label">${rowLabel}${dlInfo}</td>${cells}</tr>`;
+  }).join('');
+
+  const snapshotLine = matrix.snapshotAt ? `<span>Snapshot: ${escHtml(matrix.snapshotAt)}</span>` : '';
+  const desc = matrix.description ? `<p>${escHtml(matrix.description)}</p>` : '';
+
+  const extraCss = `
+table { border-collapse: collapse; width: 100%; font-size: 9pt; }
+th, td { border: 1px solid #cbd5e1; padding: 3pt 5pt; text-align: center; vertical-align: middle; }
+td.cmp-row-label { text-align: left; font-size: 8.5pt; max-width: 180pt; white-space: normal; }
+.cmp-compliant { background: #d1fae5; color: #065f46; font-weight: 700; }
+.cmp-partial { background: #fef9c3; color: #854d0e; font-weight: 700; }
+.cmp-non_compliant { background: #fee2e2; color: #991b1b; font-weight: 700; }
+.cmp-under_review { background: #e0f2fe; color: #0c4a6e; }
+.cmp-gap { background: #f8fafc; color: #94a3b8; font-size: 8pt; }
+.cmp-na { background: #f1f5f9; color: #94a3b8; font-size: 8pt; }
+.cmp-dl { color: #b45309; font-size: 8pt; }`;
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+${CSS}
+${extraCss}
+</style>
+</head>
+<body>
+<div class="cmp-header">
+  <div class="cmp-eyebrow">Compliance Impact Matrix</div>
+  <h1>${escHtml(matrix.viewName)}</h1>
+  <div class="cmp-stamp">View: <code>${escHtml(matrix.viewId)}</code> ${snapshotLine}${options.today ? ` · Generated: ${escHtml(options.today)}` : ''}</div>
+</div>
+${desc}
+<table><thead>${head}</thead><tbody>${rows}</tbody></table>
+</body>
+</html>`;
 }
