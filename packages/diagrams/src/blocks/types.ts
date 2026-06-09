@@ -50,12 +50,8 @@ export interface LaidOutBlock {
   children: LaidOutBlock[];
 }
 
-export interface LayoutBounds {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
+import type { LayoutBounds } from '../geometry.js';
+export type { LayoutBounds };
 
 export interface BlocksLayout {
   bounds: LayoutBounds;

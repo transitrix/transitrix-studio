@@ -3,7 +3,6 @@ export type {
   NestedBlocksHeader,
   BlocksFile,
   BlocksLayoutOptions,
-  LayoutBounds,
   LaidOutBlock,
   BlocksLayout,
 } from './types.js';
