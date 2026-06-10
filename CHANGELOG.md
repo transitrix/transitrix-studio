@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Added
+- **`transitrix` CLI binary** — the primary command is now `transitrix`; it is added as a `bin` entry (and an `npm run transitrix` script) pointing at the same `dist/cli.js`. `--help` and usage text recommend `transitrix`.
+
+### Deprecated
+- **`cervin` CLI is deprecated, use `transitrix`.** The `cervin` bin is kept as a compatibility alias (no removal in this release; slated for 2.0.0). Invoking the tool under the `cervin` name prints a one-line deprecation notice to stderr. First phase of the Cervin → Transitrix CLI rename (CLAUDE.md §Cervin naming, P1).
+
 ## [1.4.1] — 2026-06-09
 
 ### Fixed
