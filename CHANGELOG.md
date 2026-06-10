@@ -8,6 +8,9 @@
 - **VS Code settings `transitrix.fileExtensions` / `transitrix.exportEnabled`** — canonical replacements for the legacy `cervin.*` keys, registered in the extension's `contributes.configuration`.
 - **VS Code commands `transitrix.openPreview` / `transitrix.exportSvg` / `transitrix.exportPng` / `transitrix.exportBpmn`** — canonical replacements for the `cervin.*` commands. The editor-title preview button now invokes `transitrix.openPreview`.
 
+### Docs
+- **CLI usage outside VS Code** — new [`docs/cli.md`](docs/cli.md) and a rewritten README CLI section explain how to get the `transitrix` CLI on `PATH` from a clone (`npm install && npm run build && npm link`), how to run it without a global install, and how a script/skill should auto-detect it. Clarifies the CLI is not yet on npm and the VS Code extension does not ship a PATH binary (unblocks scripted/CI/skill use — strategy #187).
+
 ### Deprecated
 - **`cervin` CLI is deprecated, use `transitrix`.** The `cervin` bin is kept as a compatibility alias (no removal in this release; slated for 2.0.0). Invoking the tool under the `cervin` name prints a one-line deprecation notice to stderr. First phase of the Cervin → Transitrix CLI rename (CLAUDE.md §Cervin naming, P1).
 - **`cervin.*` extension settings are deprecated, use `transitrix.*`.** The legacy `cervin.fileExtensions` / `cervin.exportEnabled` keys are read as a fallback when their `transitrix.*` counterpart is unset (existing configs keep working) and are marked deprecated in the settings UI; removal is slated for 2.0.0. A one-time migration notice is shown on activation when a legacy key is in effect. Second phase of the Cervin → Transitrix rename (CLAUDE.md §Cervin naming, P2).
