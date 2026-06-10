@@ -40,6 +40,21 @@ node scripts/debug/debug-ports.mjs examples/bpmn/feature-release.cervin.yaml
 
 These are intended for development only. Not for end-user consumption.
 
+## Per-user display preferences
+
+The `.transitrix/display-preferences/` folder is the designated home for **per-user,
+local** display preferences (lane toggles, decoration preferences for diagram previews
+such as the Process Blueprint compliance lane).
+
+The folder is tracked by `.transitrix/display-preferences/.gitkeep` so its location
+is defined in the repo and every contributor has it; its *contents* are `.gitignore`d
+and **never committed**. Each contributor keeps their own preference files locally
+without affecting others.
+
+Naming convention for preference files (all `.json`): one file per notation, e.g.
+`process-blueprint.json`. The exact schema is determined by the tooling layer; there
+is no enforced schema in v0.1. See ADR 0002 for the compliance-lane toggle.
+
 ## Licensing
 
 By submitting a pull request, you agree that your contribution is licensed under the project's MIT License (see [LICENSE](LICENSE)) on the same terms as the project itself (inbound = outbound), and that you have the right to submit it (no employer or third-party rights conflict).

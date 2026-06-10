@@ -3,6 +3,12 @@ import type {
   AspectEntry,
   AspectPill,
   AspectRow,
+  ComplianceChip,
+  ComplianceDecoration,
+  ComplianceLaneAssertion,
+  ComplianceLaneInput,
+  ComplianceLaneRequirement,
+  ComplianceRow,
   ProcessBlueprintLayoutOptions,
   LegendCell,
   ProcessBlueprintFile,
@@ -21,7 +27,7 @@ const ASPECT_LABEL: Record<AspectCategory, string> = {
   information_entities: 'Information',
 };
 
-const DEFAULTS: Required<ProcessBlueprintLayoutOptions> = {
+const DEFAULTS = {
   legendColumnWidth: 140,
   stageColumnWidth: 220,
   stageHeaderHeight: 40,
@@ -36,7 +42,9 @@ const DEFAULTS: Required<ProcessBlueprintLayoutOptions> = {
   cellTextPadX: 10,
   cellTextPadY: 10,
   maxTextLines: 6,
-};
+  complianceLane: undefined,
+  complianceInput: undefined,
+} satisfies Required<ProcessBlueprintLayoutOptions>;
 
 interface RawPill {
   category: AspectCategory;
@@ -207,6 +215,141 @@ function packPillsIntoSlots(pills: RawPill[]): { slot: number[]; maxSlot: number
   return { slot, maxSlot };
 }
 
+// ── Compliance lane derivation ────────────────────────────────────────────────
+
+/** ISO 8601 date comparison helper — no Date parsing, string comparison is valid for YYYY-MM-DD. */
+function deadlineStatus(
+  deadline: string | undefined,
+  today: string,
+): 'past_due' | 'in_force' | 'upcoming' | 'none' {
+  if (!deadline) return 'none';
+  if (deadline < today) return 'past_due';
+  const daysAway = Math.round(
+    (new Date(deadline).getTime() - new Date(today).getTime()) / (1000 * 60 * 60 * 24),
+  );
+  return daysAway <= 30 ? 'in_force' : 'upcoming';
+}
+
+/**
+ * Derive the laid-out compliance row for a process blueprint.
+ *
+ * For each stage, gathers the laws that bind that stage (via the
+ * assertion → requirement → derived_from chain), applies the jurisdiction
+ * filter, and computes the three orthogonal decorations per law chip.
+ */
+function deriveComplianceRow(
+  stages: Stage[],
+  stageIndexById: Map<string, number>,
+  input: ComplianceLaneInput,
+  opts: Required<ProcessBlueprintLayoutOptions>,
+  yStart: number,
+): ComplianceRow | undefined {
+  const {
+    complianceLane: laneConfig,
+    legendColumnWidth,
+    stageColumnWidth,
+    cellPadding,
+    pillHeight,
+    pillGap,
+    aspectRowMinHeight,
+  } = opts;
+
+  if (!laneConfig?.enabled) return undefined;
+
+  const today = laneConfig.referenceDate ?? new Date().toISOString().slice(0, 10);
+  const filterJurisdictions = laneConfig.jurisdictions?.length ? new Set(laneConfig.jurisdictions) : null;
+
+  // Build requirement index: id → requirement.
+  const reqById = new Map<string, ComplianceLaneRequirement>();
+  for (const r of input.requirements) {
+    if (r?.id) reqById.set(r.id, r);
+  }
+
+  // Per-stage accumulation: stageIdx → lawId → { worstStatus, deadline }
+  type LawAccumulator = { gap: boolean; deadline: string | undefined };
+  const stageAccum = new Map<number, Map<string, LawAccumulator>>();
+
+  for (const a of input.assertions) {
+    if (!a || typeof a !== 'object') continue;
+    const realisedVia: string[] = Array.isArray(a.realised_via) ? a.realised_via : [];
+    if (realisedVia.length === 0) continue;
+
+    const req = reqById.get(a.about);
+    if (!req) continue;
+
+    const lawIds: string[] = Array.isArray(req.derived_from)
+      ? (req.derived_from as string[]).filter((x): x is string => typeof x === 'string')
+      : [];
+    if (lawIds.length === 0) continue;
+
+    for (const stageRef of realisedVia) {
+      if (typeof stageRef !== 'string') continue;
+      const idx = stageIndexById.get(stageRef.trim());
+      if (idx === undefined) continue;
+
+      for (const lawId of lawIds) {
+        // Apply jurisdiction filter.
+        if (filterJurisdictions) {
+          const jur = input.codexJurisdictions?.[lawId];
+          if (!jur || !filterJurisdictions.has(jur)) continue;
+        }
+
+        if (!stageAccum.has(idx)) stageAccum.set(idx, new Map());
+        const lawMap = stageAccum.get(idx)!;
+        const existing = lawMap.get(lawId);
+        const isGap = a.status === 'non_compliant' || a.status === 'partial';
+        if (!existing) {
+          lawMap.set(lawId, { gap: isGap, deadline: req.deadline });
+        } else {
+          existing.gap = existing.gap || isGap;
+          // Keep the earlier deadline (more urgent).
+          if (req.deadline && (!existing.deadline || req.deadline < existing.deadline)) {
+            existing.deadline = req.deadline;
+          }
+        }
+      }
+    }
+  }
+
+  if (stageAccum.size === 0) return undefined;
+
+  // Determine how many slots (rows) per stage.
+  const slotsPerStage = new Map<number, number>();
+  for (const [idx, lawMap] of stageAccum) {
+    slotsPerStage.set(idx, lawMap.size);
+  }
+  const maxSlots = Math.max(0, ...slotsPerStage.values());
+  if (maxSlots === 0) return undefined;
+
+  const contentHeight = maxSlots * (pillHeight + pillGap) - pillGap;
+  const rowHeight = Math.max(aspectRowMinHeight, contentHeight + 2 * cellPadding);
+
+  const chips: ComplianceChip[] = [];
+
+  for (const [stageIdx, lawMap] of stageAccum) {
+    const prevLawIds = new Set<string>(laneConfig.previousSnapshot?.[stages[stageIdx]?.id ?? ''] ?? []);
+    let slot = 0;
+
+    for (const [lawId, accum] of lawMap) {
+      const decorations: ComplianceDecoration[] = [];
+      if (!prevLawIds.has(lawId)) decorations.push('new');
+      if (accum.gap) {
+        decorations.push('gap');
+        const ds = deadlineStatus(accum.deadline, today);
+        if (ds !== 'none') decorations.push('deadline');
+      }
+
+      const x = legendColumnWidth + stageIdx * stageColumnWidth + cellPadding;
+      const width = stageColumnWidth - 2 * cellPadding;
+      const y = yStart + cellPadding + slot * (pillHeight + pillGap);
+      chips.push({ stageIndex: stageIdx, lawId, decorations, x, y, width, height: pillHeight });
+      slot++;
+    }
+  }
+
+  return { y: yStart, height: rowHeight, chips };
+}
+
 export function layoutProcessBlueprint(
   file: ProcessBlueprintFile,
   options?: ProcessBlueprintLayoutOptions,
@@ -324,6 +467,21 @@ export function layoutProcessBlueprint(
     aspectCursorY += rowHeight;
   }
 
+  // Compliance lane — derived from assertions/requirements, rendered after aspect rows.
+  let complianceRow: import('./types.js').ComplianceRow | undefined;
+  if (opts.complianceLane?.enabled && opts.complianceInput) {
+    complianceRow = deriveComplianceRow(
+      stages,
+      stageIndexById,
+      opts.complianceInput,
+      opts,
+      aspectCursorY,
+    );
+    if (complianceRow) {
+      aspectCursorY += complianceRow.height;
+    }
+  }
+
   // Legend (left column labels): one entry per row.
   const legend: LegendCell[] = [
     { kind: 'goal', label: 'Goal', y: goalRowY, height: goalRowHeight },
@@ -335,6 +493,9 @@ export function layoutProcessBlueprint(
       y: row.y,
       height: row.height,
     })),
+    ...(complianceRow
+      ? [{ kind: 'compliance' as const, label: 'Compliance', y: complianceRow.y, height: complianceRow.height }]
+      : []),
   ];
 
   const totalWidth = opts.legendColumnWidth + stages.length * opts.stageColumnWidth;
@@ -351,5 +512,6 @@ export function layoutProcessBlueprint(
     goalCells,
     resultCells,
     aspectRows,
+    complianceRow,
   };
 }
