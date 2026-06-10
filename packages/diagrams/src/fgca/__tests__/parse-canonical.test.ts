@@ -215,12 +215,12 @@ describe('parseCanonicalFGA', () => {
 });
 
 describe('parseCanonicalFGCA — example file regression', () => {
-  const EXAMPLES_DIR = path.resolve(process.cwd(), '..', '..', 'examples', 'fgca');
+  const EXAMPLES_DIR = path.resolve(process.cwd(), '..', '..', 'tests', 'fixtures', 'notation-corpus', 'fgca');
   const files = fs.existsSync(EXAMPLES_DIR)
     ? fs.readdirSync(EXAMPLES_DIR).filter((f) => f.endsWith('.transitrix.yaml'))
     : [];
   for (const file of files) {
-    it(`accepts examples/fgca/${file}`, () => {
+    it(`accepts tests/fixtures/notation-corpus/fgca/${file}`, () => {
       const text = fs.readFileSync(path.join(EXAMPLES_DIR, file), 'utf8');
       const parsedYaml = yaml.load(text);
       const r = parseCanonicalFGCA(parsedYaml);
@@ -231,12 +231,12 @@ describe('parseCanonicalFGCA — example file regression', () => {
 });
 
 describe('parseCanonicalFGA — example file regression', () => {
-  const EXAMPLES_DIR = path.resolve(process.cwd(), '..', '..', 'examples', 'fga');
+  const EXAMPLES_DIR = path.resolve(process.cwd(), '..', '..', 'tests', 'fixtures', 'notation-corpus', 'fga');
   const files = fs.existsSync(EXAMPLES_DIR)
     ? fs.readdirSync(EXAMPLES_DIR).filter((f) => f.endsWith('.transitrix.yaml'))
     : [];
   for (const file of files) {
-    it(`accepts examples/fga/${file} and resolves every activity to a goal`, () => {
+    it(`accepts tests/fixtures/notation-corpus/fga/${file} and resolves every activity to a goal`, () => {
       const text = fs.readFileSync(path.join(EXAMPLES_DIR, file), 'utf8');
       const r = parseCanonicalFGA(yaml.load(text));
       expect(r.errors).toEqual([]);

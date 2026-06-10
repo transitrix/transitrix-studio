@@ -1,5 +1,5 @@
 // Conformance test — the compliance matrix on the acme_corp worked examples
-// (mirrored under examples/product, examples/requirement, examples/assertion).
+// (mirrored under tests/fixtures/notation-corpus/product, tests/fixtures/notation-corpus/requirement, tests/fixtures/notation-corpus/assertion).
 // Pins the #84 Phase 2 acceptance: the matrix renders correctly and gaps are
 // obvious.
 
@@ -11,7 +11,7 @@ import yaml from 'js-yaml';
 import { buildComplianceMatrix } from '../build.js';
 import type { MatrixAssertionRef, MatrixProduct, MatrixRequirement } from '../types.js';
 
-const examples = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../../../examples');
+const examples = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../../../tests/fixtures/notation-corpus');
 function loadAll(dir: string): Record<string, unknown>[] {
   const full = path.join(examples, dir);
   return readdirSync(full)

@@ -12,7 +12,7 @@ import { layoutProcess } from '../src/layout.js';
 import { irFromValidatedDsl, parseYamlToIr, type YamlDocumentRoot } from '../src/parser.js';
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
-const sampleCervinPath = join(repoRoot, 'examples', 'bpmn', 'order-fulfillment.bpmn.transitrix.yaml');
+const sampleCervinPath = join(repoRoot, 'tests', 'fixtures', 'notation-corpus', 'bpmn', 'order-fulfillment.bpmn.transitrix.yaml');
 
 describe('parser', () => {
   it('parses sample and collects flows', () => {
@@ -23,7 +23,7 @@ describe('parser', () => {
   });
 
   it('accepts canonical .bpmn.transitrix.yaml example', () => {
-    const p = join(repoRoot, 'examples', 'bpmn', 'order-fulfillment.bpmn.transitrix.yaml');
+    const p = join(repoRoot, 'tests', 'fixtures', 'notation-corpus', 'bpmn', 'order-fulfillment.bpmn.transitrix.yaml');
     const yaml = readFileSync(p, 'utf8');
     const ir = parseYamlToIr(yaml);
     expect(ir.id).toBe('order-fulfillment');
@@ -179,7 +179,7 @@ describe('layout', () => {
   });
 
   it('cross-lane flow keeps at least two waypoints once geometry exists', async () => {
-    const featurePath = join(repoRoot, 'examples', 'bpmn', 'feature-release.bpmn.transitrix.yaml');
+    const featurePath = join(repoRoot, 'tests', 'fixtures', 'notation-corpus', 'bpmn', 'feature-release.bpmn.transitrix.yaml');
     const yaml = await readFile(featurePath, 'utf8');
     const ir = parseYamlToIr(yaml);
     const layout = await layoutProcess(ir);
@@ -190,7 +190,7 @@ describe('layout', () => {
 
   // RD-046: cross-lane X-alignment regression tests
   it('element X coordinates are independent of laneVerticalGap (phase-1 separation invariant)', async () => {
-    const featurePath = join(repoRoot, 'examples', 'bpmn', 'feature-release.bpmn.transitrix.yaml');
+    const featurePath = join(repoRoot, 'tests', 'fixtures', 'notation-corpus', 'bpmn', 'feature-release.bpmn.transitrix.yaml');
     const yaml = await readFile(featurePath, 'utf8');
     const ir = parseYamlToIr(yaml);
     const baseline = await layoutProcess(ir, { laneVerticalGap: 40 });
@@ -203,7 +203,7 @@ describe('layout', () => {
   });
 
   it('forward cross-lane flows: target element is to the right of source (RD-046)', async () => {
-    const featurePath = join(repoRoot, 'examples', 'bpmn', 'feature-release.bpmn.transitrix.yaml');
+    const featurePath = join(repoRoot, 'tests', 'fixtures', 'notation-corpus', 'bpmn', 'feature-release.bpmn.transitrix.yaml');
     const yaml = await readFile(featurePath, 'utf8');
     const ir = parseYamlToIr(yaml);
     const layout = await layoutProcess(ir);
@@ -595,7 +595,7 @@ describe('layout', () => {
     // feature-release: gw-deploy-split (parallelGateway) in lane-infra
     //   → task-health  (above gateway center Y)  must exit TOP vertex
     //   → task-staging (below gateway center Y)  must exit BOTTOM vertex
-    const featurePath = join(repoRoot, 'examples', 'bpmn', 'feature-release.bpmn.transitrix.yaml');
+    const featurePath = join(repoRoot, 'tests', 'fixtures', 'notation-corpus', 'bpmn', 'feature-release.bpmn.transitrix.yaml');
     const yaml = await readFile(featurePath, 'utf8');
     const ir = parseYamlToIr(yaml);
     const layout = await layoutProcess(ir);
@@ -625,7 +625,7 @@ describe('layout', () => {
   it('TX-023 — R4 cross-lane gateway exit: gw-decision → task-pay exits BOTTOM', async () => {
     // ai-expense-approval: gw-decision (Manager lane) → task-pay (Finance lane, below)
     // R4 must assign BOTTOM exit so the path goes downward without detour.
-    const aePath = join(repoRoot, 'examples', 'bpmn', 'ai-expense-approval.bpmn.transitrix.yaml');
+    const aePath = join(repoRoot, 'tests', 'fixtures', 'notation-corpus', 'bpmn', 'ai-expense-approval.bpmn.transitrix.yaml');
     const yaml = await readFile(aePath, 'utf8');
     const ir = parseYamlToIr(yaml);
     const layout = await layoutProcess(ir);
@@ -655,7 +655,7 @@ describe('layout', () => {
     // ELK places them above and below the gateway center (delta ~50 px and ~82 px) so each gets
     // a distinct vertex: top for the upward flow, bottom for the downward flow.
     // The key invariant: no two outgoing same-lane flows share the same starting waypoint.
-    const path_ = join(repoRoot, 'examples', 'bpmn', 'simple-approval.bpmn.transitrix.yaml');
+    const path_ = join(repoRoot, 'tests', 'fixtures', 'notation-corpus', 'bpmn', 'simple-approval.bpmn.transitrix.yaml');
     const yaml = await readFile(path_, 'utf8');
     const ir = parseYamlToIr(yaml);
     const layout = await layoutProcess(ir);

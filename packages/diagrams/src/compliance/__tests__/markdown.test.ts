@@ -54,7 +54,7 @@ describe('renderComplianceMarkdown — gap', () => {
 
 // ── Conformance: build canon by ingesting the acme example files ────────────
 
-const examples = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../../../examples');
+const examples = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../../../tests/fixtures/notation-corpus');
 function ingestDir(canon: ComplianceCanon, dir: string): void {
   const full = path.join(examples, dir);
   for (const f of readdirSync(full)) {
