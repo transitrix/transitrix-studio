@@ -57,10 +57,26 @@ Open it in VS Code — the preview panel opens automatically and refreshes on ev
 
 ## CLI
 
+The `transitrix` CLI compiles, validates and serves notation files **outside VS
+Code** — for scripts and CI. It is **not yet on npm**, and the VS Code extension
+does not put a CLI on your `PATH`; install from a clone:
+
 ```bash
-cervin compile input.bpmn.transitrix.yaml output.bpmn
-cervin serve                         # local web UI at http://localhost:8765
+git clone https://github.com/transitrix/transitrix-studio
+cd transitrix-studio && npm install && npm run build
+npm link                             # puts `transitrix` on your PATH
 ```
+
+Then:
+
+```bash
+transitrix compile input.bpmn.transitrix.yaml output.bpmn
+transitrix validate input.bpmn.transitrix.yaml --json
+transitrix serve                     # local web UI at http://localhost:8765
+```
+
+`cervin` is a deprecated alias of `transitrix` (removed in 2.0.0). Full command
+reference and scripting/auto-detection notes: **[`docs/cli.md`](docs/cli.md)**.
 
 ## Repository layout
 
@@ -69,10 +85,10 @@ transitrix-studio/
   src/              — BPMN core pipeline (parser, layout, emitter, CLI)
   extension/        — VS Code extension
   packages/diagrams/ — shared renderers and validators (@transitrix/diagrams)
-  ui/               — Vite browser UI (cervin serve)
-  tests/            — Vitest suite
+  ui/               — Vite browser UI (transitrix serve)
+  tests/            — Vitest suite + notation corpus (tests/fixtures/)
   schemas/          — JSON Schema sources
-  examples/         — YAML demos per notation
+  organizations/    — worked example organization
   docs/             — Project documentation
 ```
 
