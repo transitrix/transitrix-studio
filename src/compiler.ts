@@ -5,7 +5,7 @@ import { parseYamlToIr } from './parser.js'
 import type { ProcessIr, LayoutIr } from './ir.js'
 import { validateProcess, validator } from './validator.js'
 import type { ValidationReport, ValidationFinding, ValidatorConfig } from './validator-types.js'
-import { loadCervinrc, assertNoCriticalRuleDowngrade, mergeConfigWithDefaults } from './cervinrc.js'
+import { loadTransitrixrc, assertNoCriticalRuleDowngrade, mergeConfigWithDefaults } from './cervinrc.js'
 import { BpmnModdle } from 'bpmn-moddle'
 
 export type { LayoutDiagramOptions } from './layout-options.js'
@@ -40,9 +40,9 @@ export async function compileCervinYamlWithLayout(
   const ir = parseYamlToIr(yamlText)
 
   // RD-097: Load and apply config overrides
-  const cervinrcConfig = loadCervinrc()
-  assertNoCriticalRuleDowngrade(validator.getRules(), cervinrcConfig)
-  const enabledRules = mergeConfigWithDefaults(validator.getRules(), cervinrcConfig)
+  const rcConfig = loadTransitrixrc()
+  assertNoCriticalRuleDowngrade(validator.getRules(), rcConfig)
+  const enabledRules = mergeConfigWithDefaults(validator.getRules(), rcConfig)
 
   // Validate with config applied
   const validatorConfig: ValidatorConfig = { enabledRules }

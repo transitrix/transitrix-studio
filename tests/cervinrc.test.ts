@@ -3,8 +3,10 @@ import { writeFileSync, unlinkSync, mkdirSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import {
   loadCervinrc,
+  loadTransitrixrc,
   assertNoCriticalRuleDowngrade,
   mergeConfigWithDefaults,
+  CERVINRC_DEPRECATION_NOTICE,
 } from '../src/cervinrc.js'
 import type { ValidationRule, CervinrcConfig, ConfigError } from '../src/validator-types.js'
 
@@ -210,5 +212,62 @@ describe('cervinrc config loader', () => {
 
     const enabled = mergeConfigWithDefaults(rules, config)
     expect(enabled.has('AP-GW-AS-TASK')).toBe(true)
+  })
+})
+
+describe('loadTransitrixrc (Cervin deprecation P4)', () => {
+  const testDir = '/tmp/transitrixrc-test'
+
+  beforeEach(() => {
+    mkdirSync(testDir, { recursive: true })
+  })
+
+  afterEach(() => {
+    rmSync(testDir, { recursive: true, force: true })
+  })
+
+  it('loads .transitrixrc when present', () => {
+    const config: CervinrcConfig = { rules: { 'AP-001': 'off' } }
+    writeFileSync(join(testDir, '.transitrixrc'), JSON.stringify(config))
+
+    const loaded = loadTransitrixrc(testDir)
+    expect(loaded.rules).toEqual(config.rules)
+  })
+
+  it('falls back to .cervinrc when .transitrixrc is absent', () => {
+    const config: CervinrcConfig = { rules: { 'AP-002': 'warn' } }
+    writeFileSync(join(testDir, '.cervinrc'), JSON.stringify(config))
+
+    const loaded = loadTransitrixrc(testDir)
+    expect(loaded.rules).toEqual(config.rules)
+  })
+
+  it('prefers .transitrixrc over a present .cervinrc', () => {
+    writeFileSync(join(testDir, '.transitrixrc'), JSON.stringify({ rules: { 'AP-001': 'off' } }))
+    writeFileSync(join(testDir, '.cervinrc'), JSON.stringify({ rules: { 'AP-002': 'warn' } }))
+
+    const loaded = loadTransitrixrc(testDir)
+    expect(loaded.rules).toEqual({ 'AP-001': 'off' })
+  })
+
+  it('returns empty config when neither file exists', () => {
+    expect(loadTransitrixrc(testDir)).toEqual({})
+  })
+
+  it('surfaces invalid JSON against the file actually read (.transitrixrc)', () => {
+    writeFileSync(join(testDir, '.transitrixrc'), '{ invalid json }')
+    expect(() => loadTransitrixrc(testDir)).toThrow(
+      expect.objectContaining({ message: expect.stringContaining('Invalid JSON in .transitrixrc') }),
+    )
+  })
+
+  it('loadCervinrc is an alias that still resolves .transitrixrc', () => {
+    writeFileSync(join(testDir, '.transitrixrc'), JSON.stringify({ rules: { 'AP-001': 'off' } }))
+    expect(loadCervinrc(testDir).rules).toEqual({ 'AP-001': 'off' })
+  })
+
+  it('exposes a deprecation notice naming .transitrixrc', () => {
+    expect(CERVINRC_DEPRECATION_NOTICE).toMatch(/\.transitrixrc/)
+    expect(CERVINRC_DEPRECATION_NOTICE).toMatch(/deprecated/i)
   })
 })
