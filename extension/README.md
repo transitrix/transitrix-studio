@@ -52,6 +52,20 @@ Transitrix and Mermaid are **complementary, not competing**. Use **Mermaid** for
 
 Recognised BPMN file suffixes are configurable in **Settings → Transitrix Studio**.
 
+## Settings
+
+Configure under **Settings → Transitrix Studio**. The canonical keys are `transitrix.*`.
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `transitrix.fileExtensions` | `[".cervin.yaml", ".bpmn.transitrix.yaml"]` | File suffixes recognised as Transitrix BPMN source files (leading dot required). |
+| `transitrix.exportEnabled` | `false` | Show the experimental BPMN/SVG/PNG export commands. |
+
+> **Deprecated:** the legacy `cervin.fileExtensions` and `cervin.exportEnabled` keys
+> are still read as a fallback when their `transitrix.*` counterpart is unset, but are
+> deprecated and will be removed in **2.0.0**. Rename them to `transitrix.*`. If a
+> legacy key is in effect you'll see a one-time migration notice on activation.
+
 ## Learn more
 
 - 🌐 **Site** — [transitrix.com](https://transitrix.com)

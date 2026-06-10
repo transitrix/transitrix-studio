@@ -24,6 +24,7 @@ import { CoverageMetricPreview } from './coverage-metric-preview.js';
 import { openComplianceFile } from './compliance-scan.js';
 import type { LayoutMetrics, ValidationReport } from './types.js';
 import {
+  checkCervinSettingsMigration,
   documentMatchesCervinSource,
   formatExtensionHint,
   getConfiguredExtensions,
@@ -131,6 +132,11 @@ function noteCervinCommandDeprecation(legacyId: string, canonicalId: string): vo
 }
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
+  // Cervin → Transitrix settings migration (P2): warn once if a user config
+  // still relies on a legacy `cervin.*` key while its `transitrix.*` counterpart
+  // is unset.
+  checkCervinSettingsMigration();
+
   // TX-R003: cache the in-flight Promise, not the resolved result. Two
   // concurrent calls during the brief window before `loadCompiler` resolves
   // would otherwise both pass the `if (!compileFn)` guard and run the loader
@@ -183,7 +189,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     const exts = getConfiguredExtensions();
     if (!doc || !documentMatchesCervinSource(doc)) {
       vscode.window.showWarningMessage(
-        `Open a file with one of these suffixes: ${formatExtensionHint(exts)} (configure with cervin.fileExtensions).`,
+        `Open a file with one of these suffixes: ${formatExtensionHint(exts)} (configure with transitrix.fileExtensions).`,
       );
       return;
     }

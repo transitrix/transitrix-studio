@@ -4,6 +4,7 @@
 
 ### Changed
 
+- **Settings renamed `cervin.*` → `transitrix.*`.** `transitrix.fileExtensions` and `transitrix.exportEnabled` are now the canonical keys. The legacy `cervin.fileExtensions` / `cervin.exportEnabled` keys are still read as a fallback when the new key is unset (so existing configs keep working), but are deprecated and will be removed in 2.0.0. A one-time migration notice is shown on activation when a legacy key is in effect.
 - **Commands renamed `cervin.*` → `transitrix.*`.** `transitrix.openPreview`, `transitrix.exportSvg`, `transitrix.exportPng` and `transitrix.exportBpmn` are now the canonical commands (the editor-title preview button uses `transitrix.openPreview`). The legacy `cervin.*` commands remain as deprecated aliases for one release so existing keybindings and macros keep working — they're hidden from the Command Palette and invoking one shows a one-time deprecation notice. Removal in 2.0.0.
 
 ## 1.4.0 — 2026-06-05
