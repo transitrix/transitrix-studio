@@ -9,7 +9,7 @@ import {
   invokedAsCervin,
   parseCliFileArgv,
 } from './cli-parse.js';
-import { compileCervinYamlWithLayout } from './compiler.js';
+import { compileTransitrixYamlWithLayout } from './compiler.js';
 import { computeLayoutMetrics } from './metrics.js';
 import type { ValidationReport, ValidationFinding } from './validator-types.js';
 import { parseYamlToIr } from './parser.js';
@@ -84,7 +84,7 @@ async function handleCompileCommand(argv: string[]): Promise<void> {
 
   try {
     const yaml = await readFile(src, 'utf8');
-    const result = await compileCervinYamlWithLayout(yaml);
+    const result = await compileTransitrixYamlWithLayout(yaml);
     writeFileSync(dst, result.xml);
 
     // RD-112: Print validation report
@@ -328,7 +328,7 @@ async function handleMetricsCommand(argv: string[]): Promise<void> {
 
   try {
     const yaml = await readFile(src, 'utf8');
-    const result = await compileCervinYamlWithLayout(yaml);
+    const result = await compileTransitrixYamlWithLayout(yaml);
     const metrics = computeLayoutMetrics(result.layout);
 
     if (useJson) {

@@ -7,7 +7,7 @@ import { BpmnModdle } from 'bpmn-moddle';
 import { describe, expect, it } from 'vitest';
 
 import { cervinPackageVersion } from '../src/package-version.js';
-import { compileCervinYaml } from '../src/compiler.js';
+import { compileTransitrixYaml } from '../src/compiler.js';
 import { layoutProcess } from '../src/layout.js';
 import { irFromValidatedDsl, parseYamlToIr, type YamlDocumentRoot } from '../src/parser.js';
 
@@ -685,7 +685,7 @@ describe('layout', () => {
 describe('compiler + bpmn-moddle', () => {
   it('emits XML that the BPMN 2.0 parser accepts', async () => {
     const yaml = readFileSync(sampleCervinPath, 'utf8');
-    const xml = await compileCervinYaml(yaml);
+    const xml = await compileTransitrixYaml(yaml);
     expect(xml).toContain(`exporterVersion="${cervinPackageVersion()}"`);
     expect(xml).toContain('<definitions');
     expect(xml).toContain('sequenceFlow');
@@ -745,7 +745,7 @@ process:
       from: no-task
       to: end
 `;
-    const xml = await compileCervinYaml(yaml);
+    const xml = await compileTransitrixYaml(yaml);
     expect(xml).toContain('name="yes"');
     expect(xml).toContain('name="no"');
     expect(xml).toContain('sourceRef="decision"');
@@ -798,7 +798,7 @@ process:
       from: rejected
       to: end
 `;
-    const xml = await compileCervinYaml(yaml);
+    const xml = await compileTransitrixYaml(yaml);
     const moddle = new BpmnModdle();
     const { rootElement, warnings } = await moddle.fromXML(xml, 'bpmn:Definitions');
     expect(rootElement).toBeDefined();

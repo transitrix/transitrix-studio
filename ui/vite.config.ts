@@ -30,7 +30,7 @@ function cervinCompileMiddleware() {
       const compilerHref = pathToFileURL(join(repoRoot, 'dist', 'compiler.js')).href;
       const metricsHref = pathToFileURL(join(repoRoot, 'dist', 'metrics.js')).href;
       const mod = (await import(compilerHref)) as {
-        compileCervinYamlWithLayout: (
+        compileTransitrixYamlWithLayout: (
           y: string,
           o?: { layout?: Partial<Record<string, number>> },
         ) => Promise<{ xml: string; layout: unknown; validation: unknown }>;
@@ -73,7 +73,7 @@ function cervinCompileMiddleware() {
       }
 
       try {
-        const result = await mod.compileCervinYamlWithLayout(yaml, layout ? { layout } : undefined);
+        const result = await mod.compileTransitrixYamlWithLayout(yaml, layout ? { layout } : undefined);
         const metrics = metricsMod.computeLayoutMetrics(result.layout);
         res.statusCode = 200;
         res.setHeader('Content-Type', 'application/json; charset=utf-8');

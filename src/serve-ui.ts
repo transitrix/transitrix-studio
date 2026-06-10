@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url'
 
 import type { IncomingMessage, ServerResponse } from 'node:http'
 
-import { compileCervinYamlWithLayout } from './compiler.js'
+import { compileTransitrixYamlWithLayout } from './compiler.js'
 import { computeLayoutMetrics } from './metrics.js'
 import { PayloadTooLargeError, readHttpBodyLimited } from './http-body-limit.js'
 import {
@@ -120,7 +120,7 @@ export async function handleCompile(req: IncomingMessage, res: ServerResponse): 
       yaml = raw.toString('utf8')
     }
 
-    const result = await compileCervinYamlWithLayout(yaml, layout ? { layout } : undefined)
+    const result = await compileTransitrixYamlWithLayout(yaml, layout ? { layout } : undefined)
     const metrics = computeLayoutMetrics(result.layout)
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' })
     res.end(

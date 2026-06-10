@@ -3,7 +3,7 @@ import { readFileSync } from 'fs'
 import fs from 'fs/promises'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import { compileCervinYamlWithLayout } from '../src/compiler.js'
+import { compileTransitrixYamlWithLayout } from '../src/compiler.js'
 import { computeLayoutMetrics } from '../src/metrics.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -41,7 +41,7 @@ describe('Layout Metrics Regression Tests', () => {
     it(`${filename} — crossing count should not increase`, async () => {
       const filepath = path.join(corpusDir, filename)
       const yaml = await fs.readFile(filepath, 'utf-8')
-      const { ir, layout } = await compileCervinYamlWithLayout(yaml)
+      const { ir, layout } = await compileTransitrixYamlWithLayout(yaml)
       const metrics = computeLayoutMetrics(layout)
 
       const baselineMetric = (baseline as any).metrics?.crossings ?? 0
@@ -52,7 +52,7 @@ describe('Layout Metrics Regression Tests', () => {
     it(`${filename} — bends count should not increase significantly`, async () => {
       const filepath = path.join(corpusDir, filename)
       const yaml = await fs.readFile(filepath, 'utf-8')
-      const { ir, layout } = await compileCervinYamlWithLayout(yaml)
+      const { ir, layout } = await compileTransitrixYamlWithLayout(yaml)
       const metrics = computeLayoutMetrics(layout)
 
       const baselineMetric = (baseline as any).metrics?.bends ?? 0
@@ -63,7 +63,7 @@ describe('Layout Metrics Regression Tests', () => {
     it(`${filename} — edge length should not increase significantly`, async () => {
       const filepath = path.join(corpusDir, filename)
       const yaml = await fs.readFile(filepath, 'utf-8')
-      const { ir, layout } = await compileCervinYamlWithLayout(yaml)
+      const { ir, layout } = await compileTransitrixYamlWithLayout(yaml)
       const metrics = computeLayoutMetrics(layout)
 
       const baselineMetric = (baseline as any).metrics?.edgeLength ?? 0
@@ -75,7 +75,7 @@ describe('Layout Metrics Regression Tests', () => {
     it(`${filename} — spine deviation should stay reasonable`, async () => {
       const filepath = path.join(corpusDir, filename)
       const yaml = await fs.readFile(filepath, 'utf-8')
-      const { ir, layout } = await compileCervinYamlWithLayout(yaml)
+      const { ir, layout } = await compileTransitrixYamlWithLayout(yaml)
       const metrics = computeLayoutMetrics(layout)
 
       // Spine deviation: allow up to baseline + 10 px tolerance.
@@ -87,7 +87,7 @@ describe('Layout Metrics Regression Tests', () => {
     it(`${filename} — empty area should not exceed baseline + soft margin`, async () => {
       const filepath = path.join(corpusDir, filename)
       const yaml = await fs.readFile(filepath, 'utf-8')
-      const { ir, layout } = await compileCervinYamlWithLayout(yaml)
+      const { ir, layout } = await compileTransitrixYamlWithLayout(yaml)
       const metrics = computeLayoutMetrics(layout)
 
       // Empty area is monitored as diagnostic (RD-055 variant C decision).
@@ -100,7 +100,7 @@ describe('Layout Metrics Regression Tests', () => {
     it(`${filename} — port violations should not exceed baseline`, async () => {
       const filepath = path.join(corpusDir, filename)
       const yaml = await fs.readFile(filepath, 'utf-8')
-      const { ir, layout } = await compileCervinYamlWithLayout(yaml)
+      const { ir, layout } = await compileTransitrixYamlWithLayout(yaml)
       const metrics = computeLayoutMetrics(layout)
 
       // Allow up to the baseline count; any increase is a regression.
@@ -120,7 +120,7 @@ describe('Metrics - RD-054 Acceptance Criteria', () => {
       it('should have zero port violations (criterion 2)', async () => {
         const filepath = path.join(corpusDir, filename)
         const yaml = await fs.readFile(filepath, 'utf-8')
-        const { ir, layout } = await compileCervinYamlWithLayout(yaml)
+        const { ir, layout } = await compileTransitrixYamlWithLayout(yaml)
         const metrics = computeLayoutMetrics(layout)
 
         expect(metrics.portViolations).toBe(0)
@@ -129,7 +129,7 @@ describe('Metrics - RD-054 Acceptance Criteria', () => {
       it('should not have excessive crossings (criterion 3)', async () => {
         const filepath = path.join(corpusDir, filename)
         const yaml = await fs.readFile(filepath, 'utf-8')
-        const { ir, layout } = await compileCervinYamlWithLayout(yaml)
+        const { ir, layout } = await compileTransitrixYamlWithLayout(yaml)
         const metrics = computeLayoutMetrics(layout)
 
         // For the corpus diagrams, crossings should be minimal
@@ -139,7 +139,7 @@ describe('Metrics - RD-054 Acceptance Criteria', () => {
       it('should not have excessive empty area (criterion related)', async () => {
         const filepath = path.join(corpusDir, filename)
         const yaml = await fs.readFile(filepath, 'utf-8')
-        const { ir, layout } = await compileCervinYamlWithLayout(yaml)
+        const { ir, layout } = await compileTransitrixYamlWithLayout(yaml)
         const metrics = computeLayoutMetrics(layout)
 
         // Multi-lane swimlane diagrams structurally produce 60–80% empty area;

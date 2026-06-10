@@ -90,19 +90,23 @@ export enum RuleCategory {
 }
 
 /**
- * RD-097: Configuration for rule overrides via .cervinrc file.
+ * RD-097: Configuration for rule overrides via the .transitrixrc file
+ * (legacy .cervinrc read as a fallback through 1.x).
  */
 
 /** Override value for a validation rule: 'off' to disable, 'warn' to demote to warning (only for warnings). */
 export type RuleOverride = 'off' | 'warn'
 
-/** Configuration file format for .cervinrc. */
-export interface CervinrcConfig {
+/** Configuration file format for .transitrixrc / .cervinrc. */
+export interface TransitrixrcConfig {
   /** Rule overrides: { ruleId: 'off' | 'warn' }. Errors cannot be downgraded. */
   rules?: Record<string, RuleOverride>
 }
 
-/** Error thrown when .cervinrc validation fails. */
+/** @deprecated Use {@link TransitrixrcConfig}. */
+export type CervinrcConfig = TransitrixrcConfig
+
+/** Error thrown when config validation fails. */
 export interface ConfigError extends Error {
   /** Detailed error messages from AJV validation. */
   errors?: string[]
