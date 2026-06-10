@@ -1,34 +1,30 @@
-# Compliance-impact view-config — NorthBay Retail EU regime (GDPR + NIS2).
-# Open in Transitrix Studio with the "Compliance Impact" command to see the
-# obligation × product matrix for the fictional NorthBay Retail demo scenario.
+# Compliance-impact example — retired stub.
 #
-# Files that feed this view:
-#   examples/compliance/requirements/REQUIREMENT-GDPR-*.yaml
-#   examples/compliance/requirements/REQUIREMENT-NIS2-*.yaml
-#   examples/compliance/assertions/ASSERTION-ECOMM-*.yaml
-#   examples/compliance/assertions/ASSERTION-SUPPORT-*.yaml
-#   examples/codex/external/EU/LAW-GDPR-1.yaml
-#   examples/codex/external/EU/LAW-NIS2-1.yaml
+# The canonical compliance-impact view for the demo now lives at:
+#   transitrix/methodology:
+#   organizations/acme_corp/canon/views/eu-compliance.compliance-impact.transitrix.yaml
+#
+# Open that file in Transitrix Studio to see the obligation x product matrix.
+#
+# Original NorthBay Retail version archived at:
+#   .archive/compliance-northbay-demo/compliance-impact/gdpr-nis2.compliance-impact.view.yaml
+
+notation: compliance-impact
+spec_version: "0.1"
 
 view:
-  id: COMPLIANCE_IMPACT-NORTHBAY-EU-1
-  name: "NorthBay Retail — EU Compliance Impact (GDPR + NIS2)"
+  id: COMPLIANCE_IMPACT-ACME-EU-1
+  name: "acme_corp — EU Compliance Impact (GDPR + NIS2)"
   description: >
-    Obligation × product matrix scoped to the EU jurisdiction (GDPR and NIS2).
-    Shows which regulatory requirements bind each product and the current
-    compliance status. Gaps (no assertion) appear as empty cells. Deadline
-    decorations indicate overdue or imminent remediation targets.
-  snapshot_at: "2026-06-01"
-
+    Demo stub — open the canonical view in transitrix/methodology/organizations/acme_corp/
+    for the full connected demo. This file exists only to keep the examples/ directory
+    consistent for Studio auto-detection.
   subjects:
     products:
-      - PRODUCT-ECOMM-1      # E-Commerce Platform
-      - PRODUCT-SUPPORT-1    # Customer Support Service
-
+      - PRODUCT-ECOMM-1
+      - PRODUCT-SUPPORT-1
   obligations:
     filter:
       derived_from_codex:
         - LAW-GDPR-1
         - LAW-NIS2-1
-
-  order_rows_by: id

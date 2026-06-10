@@ -6,11 +6,15 @@ import { TITLE_BLOCK_H, titleBlockSvg, todayIso } from './svg-title-block.js';
 import {
   validateProcessBlueprint,
   layoutProcessBlueprint,
+  type ComplianceLaneConfig,
+  type ComplianceLaneInput,
+  type LaneConfig,
   type ProcessBlueprintFile,
   type ProcessBlueprintLayout,
 } from '../../packages/diagrams/src/process-blueprint/index.js';
 import { coerceDatesToIsoStrings } from '../../packages/diagrams/src/yaml-normalize.js';
 import { savePngFromSvg, copyPngFromSvg } from './png-export.js';
+import { scanComplianceCanon, type ScannedCanon } from './compliance-scan.js';
 
 function escXml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -39,6 +43,40 @@ function textCellSvg(
     .map((ln, i) => `<tspan x="${x}" y="${first + i * lineHeight}">${escXml(ln)}</tspan>`)
     .join('');
   return `<text class="${cls}" dominant-baseline="central">${tspans}</text>`;
+}
+
+function complianceChipSvg(
+  chip: import('../../packages/diagrams/src/process-blueprint/types.js').ComplianceChip,
+  ox: number,
+  oy: number,
+): string {
+  const { x, y, width, height, lawId, decorations } = chip;
+  const ax = x + ox;
+  const ay = y + oy;
+  const hasNew = decorations.includes('new');
+  const hasGap = decorations.includes('gap');
+  const hasDeadline = decorations.includes('deadline');
+  let rectClass = 'diagram-node level-5 compliance-chip';
+  if (hasDeadline) rectClass += ' compliance-deadline';
+  else if (hasGap) rectClass += ' compliance-gap';
+  const strokeDash = hasNew ? ' stroke-dasharray="4 2"' : '';
+  const parts: string[] = [];
+  parts.push(
+    `<rect class="${rectClass}" x="${ax}" y="${ay}" width="${width}" height="${height}" rx="6"${strokeDash}/>`,
+  );
+  parts.push(
+    `<text class="text-pill" x="${ax + width / 2}" y="${ay + height / 2}" text-anchor="middle" dominant-baseline="central">${escXml(truncate(lawId, Math.floor(width / 8)))}</text>`,
+  );
+  if (hasDeadline) {
+    const br = 5;
+    const bx = ax + width - br - 3;
+    const by = ay + br + 3;
+    parts.push(`<circle class="compliance-badge" cx="${bx}" cy="${by}" r="${br}"/>`);
+    parts.push(
+      `<text class="compliance-badge-text" x="${bx}" y="${by}" text-anchor="middle" dominant-baseline="central">!</text>`,
+    );
+  }
+  return parts.join('\n');
 }
 
 function layoutToSvg(layout: ProcessBlueprintLayout, filename?: string, date?: string, version?: string): string {
@@ -115,11 +153,59 @@ function layoutToSvg(layout: ProcessBlueprintLayout, filename?: string, date?: s
     }
   }
 
+  // Compliance row (optional).
+  if (layout.complianceRow) {
+    const row = layout.complianceRow;
+    parts.push(
+      `<rect class="diagram-node level-5" x="${layout.legendColumnWidth + ox}" y="${row.y + oy}" width="${layout.bounds.width - layout.legendColumnWidth}" height="${row.height}" opacity="0.10"/>`,
+    );
+    for (let i = 1; i < layout.stageHeaders.length; i++) {
+      const x = layout.legendColumnWidth + i * layout.stageColumnWidth + ox;
+      parts.push(
+        `<line class="diagram-edge" x1="${x}" y1="${row.y + oy}" x2="${x}" y2="${row.y + row.height + oy}" opacity="0.3"/>`,
+      );
+    }
+    for (const chip of row.chips) {
+      parts.push(complianceChipSvg(chip, ox, oy));
+    }
+  }
+
   const titleSvg = showTitle ? titleBlockSvg('Process Blueprint', filename!, date!, pad, pad, version) : '';
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
 ${titleSvg}
 ${parts.join('\n')}
 </svg>`;
+}
+
+/** Extract compliance lane config from the blueprint's `lane_config:` block. */
+function resolveLaneConfig(lc: LaneConfig | undefined): ComplianceLaneConfig {
+  return {
+    enabled: lc?.compliance === true,
+    jurisdictions: Array.isArray(lc?.compliance_filter?.jurisdictions)
+      ? (lc!.compliance_filter!.jurisdictions as string[]).filter((x): x is string => typeof x === 'string')
+      : [],
+  };
+}
+
+/** Project scanned compliance canon into the minimal shape the layout needs. */
+function buildComplianceLaneInput(canon: ScannedCanon): ComplianceLaneInput {
+  const codexJurisdictions: Record<string, string> = {};
+  for (const c of canon.codex) {
+    if (c.jurisdiction) codexJurisdictions[c.id] = c.jurisdiction;
+  }
+  return {
+    assertions: canon.assertions.map(a => ({
+      about: a.about,
+      status: a.status,
+      realised_via: a.realised_via,
+    })),
+    requirements: canon.requirements.map(r => ({
+      id: r.id,
+      derived_from: r.derived_from,
+      deadline: r.deadline,
+    })),
+    codexJurisdictions,
+  };
 }
 
 export class ProcessBlueprintPreview {
@@ -156,10 +242,10 @@ export class ProcessBlueprintPreview {
 
   private async pushDocument(doc: vscode.TextDocument): Promise<void> {
     if (!this.panel) return;
-    this.panel.webview.html = this.buildHtml(doc.getText(), path.basename(doc.fileName));
+    this.panel.webview.html = await this.buildHtml(doc.getText(), path.basename(doc.fileName));
   }
 
-  private buildHtml(yamlText: string, filename: string): string {
+  private async buildHtml(yamlText: string, filename: string): Promise<string> {
     let svgContent = '';
     let errorMsg = '';
     let warnings: string[] = [];
@@ -177,7 +263,23 @@ export class ProcessBlueprintPreview {
         const pb = (file as unknown as { process_blueprint?: { version?: unknown; date?: unknown } }).process_blueprint ?? {};
         const docVersion = typeof pb.version === 'string' ? pb.version : undefined;
         const docDate = typeof pb.date === 'string' ? pb.date : todayIso();
-        const layout = layoutProcessBlueprint(file);
+
+        // Compliance lane — scan workspace when opt-in via lane_config.compliance: true.
+        const laneCfg = resolveLaneConfig(file.process_blueprint?.lane_config);
+        let complianceInput: ComplianceLaneInput | undefined;
+        if (laneCfg.enabled) {
+          try {
+            const canon = await scanComplianceCanon();
+            complianceInput = buildComplianceLaneInput(canon);
+          } catch {
+            // Non-fatal: render blueprint without compliance lane if scan fails.
+          }
+        }
+
+        const layout = layoutProcessBlueprint(file, {
+          complianceLane: laneCfg,
+          complianceInput,
+        });
         svgContent = layoutToSvg(layout, filename, docDate, docVersion);
       }
     } catch (e) {

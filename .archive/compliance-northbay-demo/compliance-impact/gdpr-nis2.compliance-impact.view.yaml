@@ -1,0 +1,15 @@
+# [ARCHIVED] NorthBay Retail compliance-impact view. Superseded by acme_corp.
+# See organizations/acme_corp/canon/views/eu-compliance.compliance-impact.transitrix.yaml
+
+view:
+  id: COMPLIANCE_IMPACT-NORTHBAY-EU-1
+  name: "NorthBay Retail — EU Compliance Impact (GDPR + NIS2)"
+  subjects:
+    products:
+      - PRODUCT-ECOMM-1
+      - PRODUCT-SUPPORT-1
+  obligations:
+    filter:
+      derived_from_codex:
+        - LAW-GDPR-1
+        - LAW-NIS2-1

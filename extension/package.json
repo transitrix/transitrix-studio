@@ -65,6 +65,7 @@
     "workspaceContains:**/*.activity-card.transitrix.yaml",
     "workspaceContains:**/*.compliance-impact.view.yaml",
     "workspaceContains:**/*.coverage-metric.transitrix.yaml",
+    "workspaceContains:**/*.compliance-impact.transitrix.yaml",
     "workspaceContains:**/ASSERTION-*.yaml",
     "workspaceContains:**/REQUIREMENT-*.yaml"
   ],
@@ -791,6 +792,11 @@
         {
           "when": "resourceFilename =~ /\\.process-blueprint\\.transitrix\\.yaml$/",
           "command": "transitrixStudio.previewProcessBlueprint",
+          "group": "navigation@-10"
+        },
+        {
+          "when": "resourceFilename =~ /\\.compliance-impact\\.transitrix\\.yaml$/",
+          "command": "transitrixStudio.previewComplianceImpact",
           "group": "navigation@-10"
         },
         {

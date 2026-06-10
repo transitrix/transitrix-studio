@@ -79,6 +79,11 @@ test-parse.mjs
 quick-build-extension.sh
 quick-start-util.sh
 
+# Per-user display preferences (lane toggles, decoration preferences).
+# The folder is tracked via .gitkeep; its contents stay local only.
+.transitrix/display-preferences/*
+!.transitrix/display-preferences/.gitkeep
+
 # Local environment / secrets
 .env
 .env.*

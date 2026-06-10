@@ -1,30 +1,26 @@
-# Coverage-metric view-config — NorthBay Retail EU regime.
-# Notation: coverage-metric (methodology notations/views/22-coverage-metric.md).
-# Status: Studio renderer planned; this file is valid per the notation spec and
-# feeds the coverage-metric preview once it is implemented.
+# Coverage-metric example — retired stub.
 #
-# The view measures what fraction of the requirements derived from each law
-# are covered by at least one compliant (or partial) assertion — surfacing
-# which regulatory areas still have open gaps.
+# The canonical coverage-metric view for the demo now lives at:
+#   transitrix/methodology:
+#   organizations/acme_corp/canon/views/eu-coverage.coverage-metric.transitrix.yaml
+#
+# Open that file in Transitrix Studio to see the coverage gauges.
+#
+# Original NorthBay Retail version archived at:
+#   .archive/compliance-northbay-demo/coverage-metric/eu-coverage.coverage-metric.transitrix.yaml
 
 notation: coverage-metric
 spec_version: "0.1"
 
 coverage_metric:
-  id: COVERAGE_METRIC-NORTHBAY-EU-1
-  name: "NorthBay Retail — EU Coverage Metric (GDPR + NIS2)"
+  id: COVERAGE_METRIC-ACME-EU-1
+  name: "acme_corp — EU Coverage Metric (GDPR + NIS2)"
   description: >
-    Measures assertion coverage per law for the NorthBay Retail EU compliance
-    scenario. Groups requirements by their source codex and shows the proportion
-    that are fully covered (compliant), partially covered (partial), under review,
-    non-compliant, or gap (no assertion).
-  date: "2026-06-01"
-  version: "0.1"
-  author: "v.korobeinikov"
-
+    Demo stub — open the canonical view in transitrix/methodology/organizations/acme_corp/
+    for the full connected demo.
   scope:
     jurisdictions:
-      - EU
+      - eu
     codex:
       - LAW-GDPR-1
       - LAW-NIS2-1
@@ -32,9 +28,7 @@ coverage_metric:
       products:
         - PRODUCT-ECOMM-1
         - PRODUCT-SUPPORT-1
-
-  # Coverage thresholds (informational — Studio will visualise as colour bands).
   thresholds:
-    green: 0.80    # >= 80% covered requirements → green
-    amber: 0.50    # >= 50% → amber
-    red: 0.00      # < 50% → red
+    green: 0.80
+    amber: 0.50
+    red: 0.00

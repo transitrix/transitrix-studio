@@ -21,7 +21,7 @@ import type { ScannedCanon } from './compliance-scan.js';
 // (Phase 2): this view derives impact at the coarsest grain (REQUIREMENT x
 // subject) from the canon ASSERTION artefacts, using an ImpactViewConfig.
 //
-// View config: looks for a workspace *.compliance-impact.view.yaml file.
+// View config: looks for a workspace *.compliance-impact.{view,transitrix}.yaml file.
 // If none found, subjects.products is auto-filled from the canon scan and all
 // other fields use the pinned defaults (consistent with COMPLIANCE_IMPACT_DEFAULTS
 // in the library -- CV-1). Kept inline so CV-2 is independent of the CV-1 PR.
@@ -190,7 +190,7 @@ function parseViewConfigRaw(raw: unknown): ImpactViewConfig | null {
 
 async function resolveViewConfig(canon: ScannedCanon): Promise<ImpactViewConfig> {
   const viewFiles = await vscode.workspace.findFiles(
-    '**/*.compliance-impact.view.yaml',
+    '**/*.compliance-impact.{view,transitrix}.yaml',
     '**/node_modules/**',
     5,
   );
@@ -212,7 +212,7 @@ async function resolveViewConfig(canon: ScannedCanon): Promise<ImpactViewConfig>
     description:
       'Auto-generated from canon scan on ' +
       todayIso() +
-      '. Add a *.compliance-impact.view.yaml to pin subjects and defaults.',
+      '. Add a *.compliance-impact.{view,transitrix}.yaml to pin subjects and defaults.',
     subjects: { products: productIds, processes: [] },
     obligations: {},
     status_display: { show: [...DEFAULT_STATUSES] },
@@ -429,7 +429,7 @@ export class ComplianceImpactPreview {
 
     const configLine =
       config.id === 'auto'
-        ? 'Auto-config (add *.compliance-impact.view.yaml to pin)'
+        ? 'Auto-config (add *.compliance-impact.{view,transitrix}.yaml to pin)'
         : 'View: <code>' + escXml(config.id) + '</code>';
 
     return (
@@ -516,7 +516,7 @@ export class ComplianceImpactPreview {
     if (matrix.rows.length === 0) {
       return '<div class="ci-empty"><p>No obligations found.</p><p>This view needs <code>notation: requirement</code> files in the workspace. None were found.</p></div>';
     }
-    return '<div class="ci-empty"><p>No subjects in scope.</p><p>Add a <code>*.compliance-impact.view.yaml</code> with <code>subjects.products</code>, or add <code>notation: product</code> files to the workspace.</p></div>';
+    return '<div class="ci-empty"><p>No subjects in scope.</p><p>Add a <code>*.compliance-impact.{view,transitrix}.yaml</code> with <code>subjects.products</code>, or add <code>notation: product</code> files to the workspace.</p></div>';
   }
 
   private gridHtml(
