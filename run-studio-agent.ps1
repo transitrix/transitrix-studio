@@ -23,18 +23,30 @@ $RepoPath  = "C:\GitHub\transitrix-studio"
 $ProjLabel = "proj:transitrix-studio"
 # -----------------------------------------------------------------------------
 
-$LogDir  = Join-Path $RepoPath "0. archive\agent-runs"
+$LogDir  = Join-Path $RepoPath ".archive\agent-runs"
 New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
 $LogFile = Join-Path $LogDir ("$($AgentName.ToLower())-agent-{0:yyyy-MM-dd-HHmmss}.log" -f (Get-Date))
 
 Set-Location $RepoPath
-# Self-heal: drop any stale git lock, then start each run from a clean, up-to-date main
+# Self-heal: drop any stale git lock, stash any dirty tree, then start from clean main
 # (so a failed/interrupted previous run can't leave junk or the wrong base branch).
 if (Test-Path '.git\index.lock') { Remove-Item '.git\index.lock' -Force -ErrorAction SilentlyContinue }
 # git writes normal status (e.g. "Reset branch 'main'") to stderr; under
 # $ErrorActionPreference='Stop' that aborts the script even though git succeeds.
 # Run the prep with Continue and gate on the real exit codes instead.
 $ErrorActionPreference = 'Continue'
+$stashNote = $null
+$gitDirty = git status --porcelain 2>$null
+if ($gitDirty) {
+    $stashMsg = "run-studio-agent auto-stash $AgentName $(Get-Date -Format o)"
+    git stash push -u -m $stashMsg 2>$null
+    $gitStashExit = $LASTEXITCODE
+    if ($gitStashExit -ne 0) {
+        $ErrorActionPreference = 'Stop'
+        throw "git stash failed (exit=$gitStashExit) — refusing checkout -f on dirty tree"
+    }
+    $stashNote = "stashed dirty tree before reset"
+}
 git fetch origin --quiet 2>$null
 $gitFetchExit = $LASTEXITCODE
 git checkout -f -B main origin/main 2>$null
@@ -51,7 +63,7 @@ There is no human at the keyboard - never wait for interactive input.
 Working repo: $RepoPath (you are already in it).
 
 1. Orient: read ./CLAUDE.md here, and STRATEGY.md in C:\GitHub\strategy.
-   Then read your bus inbox at ./0.\ archive/agent-bus/inbox.md - act on any
+   Then read your bus inbox at ./.archive/agent-bus/inbox.md - act on any
    answer/relay entries dated after your previous run - this is how the orchestrator
    replies to your questions and relays facts from sibling agents (local-only file).
 2. Pull YOUR open tasks only:
@@ -81,7 +93,7 @@ If canon settles it, follow canon and do NOT ask.
 
 IF YOU ARE BLOCKED, UNSURE, OR A DECISION IS NEEDED (and canon does NOT settle it):
    Do not stall and do not guess. Write your question to your bus OUTBOX - append an
-   entry to ./0.\ archive/agent-bus/outbox.md (format is in that file) with
+   entry to ./.archive/agent-bus/outbox.md (format is in that file) with
    enough context to answer, referencing the hub issue. Then set the signal label:
      gh issue edit <N> -R vkgeorgia/strategy --add-label needs:answer
    The label is the SIGNAL; your outbox carries the TEXT. The orchestrator reads your
@@ -107,7 +119,9 @@ $maxAttempts = 3
 # each attempt captures to a temp file, records exit + bytes, then appends - a 0-byte log is no
 # longer ambiguous. (A per-attempt timeout wrapper was tried and REVERTED 2026-06-06: it failed
 #  under Task Scheduler. Hang protection now relies on the task's 1h ExecutionTimeLimit.)
-"[runner] START $AgentName $(Get-Date -Format o)" | Out-File -FilePath $LogFile -Encoding utf8
+$startLine = "[runner] START $AgentName $(Get-Date -Format o)"
+if ($stashNote) { $startLine += " ($stashNote)" }
+$startLine | Out-File -FilePath $LogFile -Encoding utf8
 $claudeExit = $null
 $succeeded = $false
 for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
@@ -143,6 +157,7 @@ for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
     Add-Content -Path $LogFile -Value "[runner] gave up after $maxAttempts attempts (exit=$claudeExit)." -Encoding utf8
   }
 }
+# Propagate claude's non-zero exit; map exit=0 + empty output to 1 (not a silent success).
 $finalExit = if ($succeeded) { 0 } elseif ($null -ne $claudeExit -and $claudeExit -ne 0) { $claudeExit } else { 1 }
 "[runner] END $AgentName $(Get-Date -Format o) exit=$finalExit succeeded=$succeeded" | Add-Content -Path $LogFile -Encoding utf8
 
