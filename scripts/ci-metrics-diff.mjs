@@ -44,7 +44,7 @@ const TOLERANCES = {
 
 async function computeCurrentMetrics() {
   const { compilerMod, metricsMod } = await loadCompiler();
-  const { compileCervinYamlWithLayout } = compilerMod;
+  const { compileTransitrixYamlWithLayout } = compilerMod;
   const { computeLayoutMetrics } = metricsMod;
 
   // Mirror scripts/measure-baseline.mjs: BPMN corpus lives directly under
@@ -60,7 +60,7 @@ async function computeCurrentMetrics() {
     const yaml = await fs.readFile(filePath, 'utf8');
 
     try {
-      const result = await compileCervinYamlWithLayout(yaml);
+      const result = await compileTransitrixYamlWithLayout(yaml);
       const metrics = computeLayoutMetrics(result.layout);
 
       results[file] = {

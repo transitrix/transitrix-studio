@@ -11,7 +11,7 @@
 import fs from 'fs/promises'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import { compileCervinYamlWithLayout } from '../dist/compiler.js'
+import { compileTransitrixYamlWithLayout } from '../dist/compiler.js'
 import { computeLayoutMetrics } from '../dist/metrics.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -52,7 +52,7 @@ async function main() {
       const filename = path.basename(filepath)
       try {
         const yaml = await fs.readFile(filepath, 'utf-8')
-        const { ir, layout } = await compileCervinYamlWithLayout(yaml)
+        const { ir, layout } = await compileTransitrixYamlWithLayout(yaml)
 
         const metrics = computeLayoutMetrics(layout)
         const elementCount = ir.lanes.reduce((sum, l) => sum + l.elements.length, 0)

@@ -11,9 +11,12 @@ import { BpmnModdle } from 'bpmn-moddle'
 export type { LayoutDiagramOptions } from './layout-options.js'
 export { parseLayoutDiagramOptionsFromJson } from './layout-options.js'
 
-export interface CompileCervinOptions {
+export interface CompileTransitrixOptions {
   layout?: Partial<LayoutDiagramOptions>
 }
+
+/** @deprecated Use {@link CompileTransitrixOptions}. */
+export type CompileCervinOptions = CompileTransitrixOptions
 
 export interface CompileResult {
   ir: ProcessIr
@@ -22,20 +25,20 @@ export interface CompileResult {
   validation: ValidationReport
 }
 
-/** YAML (Cervin DSL) → BPMN 2.0 XML document string. */
-export async function compileCervinYaml(
+/** YAML (Transitrix DSL) → BPMN 2.0 XML document string. */
+export async function compileTransitrixYaml(
   yamlText: string,
-  options?: CompileCervinOptions,
+  options?: CompileTransitrixOptions,
 ): Promise<string> {
   const ir = parseYamlToIr(yamlText)
   const layout = await layoutProcess(ir, options?.layout)
   return emitBpmnXml(layout)
 }
 
-/** YAML (Cervin DSL) → IR + Layout + XML (for metrics/testing). */
-export async function compileCervinYamlWithLayout(
+/** YAML (Transitrix DSL) → IR + Layout + XML (for metrics/testing). */
+export async function compileTransitrixYamlWithLayout(
   yamlText: string,
-  options?: CompileCervinOptions,
+  options?: CompileTransitrixOptions,
 ): Promise<CompileResult> {
   const ir = parseYamlToIr(yamlText)
 
@@ -73,3 +76,13 @@ export async function compileCervinYamlWithLayout(
 
   return { ir, layout, xml, validation }
 }
+
+// Cervin → Transitrix internal API rename (CLAUDE.md §Cervin naming, P5).
+// Deprecated aliases kept for one minor so out-of-repo importers (and the
+// bundled extension compiler consumer) keep working; removed in 2.0.0.
+
+/** @deprecated Use {@link compileTransitrixYaml}. */
+export const compileCervinYaml = compileTransitrixYaml
+
+/** @deprecated Use {@link compileTransitrixYamlWithLayout}. */
+export const compileCervinYamlWithLayout = compileTransitrixYamlWithLayout
