@@ -49,6 +49,9 @@ jobs:
       - name: Verify extension packaging hygiene
         run: node scripts/verify-extension-packaging.mjs
 
+      - name: Guard against new .cervin.yaml files (P6)
+        run: npm run check:no-cervin-yaml
+
       - name: Run core + diagrams tests
         run: npm test
 

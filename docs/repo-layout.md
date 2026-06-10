@@ -69,7 +69,7 @@ Root config files (`package.json`, `tsconfig*.json`, `.vscode/`, `.github/workfl
 
 ### Where to put a new test
 
-- **Adding to or modifying the BPMN compiler / layout / CLI / HTTP server?** → `tests/`. Use the existing fixtures under `examples/bpmn/`.
+- **Adding to or modifying the BPMN compiler / layout / CLI / HTTP server?** → `tests/`. Use the existing fixtures under `tests/fixtures/notation-corpus/bpmn/` (canonical `*.bpmn.transitrix.yaml`; do not add new `*.cervin.yaml`).
 - **Adding or changing a notation module under `packages/diagrams/`?** → `packages/diagrams/src/<notation>/__tests__/`. Co-locate with the code being tested.
 - **Adding an example YAML file in `examples/<notation>/`?** → the per-notation `__tests__/validate.test.ts` files auto-scan their `examples/<notation>/` folder and validate every YAML — no extra test code needed.
 - **Cross-cutting integration (touching both BPMN core and a notation module)?** → root `tests/` is the right home.
