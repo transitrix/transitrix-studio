@@ -1,0 +1,30 @@
+# Compliance-impact example — retired stub.
+#
+# The canonical compliance-impact view for the demo now lives at:
+#   transitrix/methodology:
+#   organizations/acme_corp/canon/views/eu-compliance.compliance-impact.transitrix.yaml
+#
+# Open that file in Transitrix Studio to see the obligation x product matrix.
+#
+# Original NorthBay Retail version archived at:
+#   .archive/compliance-northbay-demo/compliance-impact/gdpr-nis2.compliance-impact.view.yaml
+
+notation: compliance-impact
+spec_version: "0.1"
+
+view:
+  id: COMPLIANCE_IMPACT-ACME-EU-1
+  name: "acme_corp — EU Compliance Impact (GDPR + NIS2)"
+  description: >
+    Demo stub — open the canonical view in transitrix/methodology/organizations/acme_corp/
+    for the full connected demo. This file exists only to keep the examples/ directory
+    consistent for Studio auto-detection.
+  subjects:
+    products:
+      - PRODUCT-ECOMM-1
+      - PRODUCT-SUPPORT-1
+  obligations:
+    filter:
+      derived_from_codex:
+        - LAW-GDPR-1
+        - LAW-NIS2-1
