@@ -57,21 +57,28 @@ function validateCervinrcDocument(data: unknown): asserts data is CervinrcConfig
   }
 }
 
+// Cervin → Transitrix config migration (CLAUDE.md §Cervin naming, P4). The
+// canonical project config is `.transitrixrc`; `.cervinrc` is read as a
+// fallback through the 1.x line and removed in 2.0.0.
+const TRANSITRIXRC_FILE = '.transitrixrc'
+const CERVINRC_FILE = '.cervinrc'
+
+export const CERVINRC_DEPRECATION_NOTICE =
+  '.cervinrc is deprecated and will be removed in 2.0.0 — rename it to .transitrixrc.'
+
+let cervinrcNoticeShown = false
+
+function noteCervinrcDeprecation(): void {
+  if (cervinrcNoticeShown) return
+  cervinrcNoticeShown = true
+  console.warn(CERVINRC_DEPRECATION_NOTICE)
+}
+
 /**
- * Load and parse .cervinrc config file from the given directory.
- * Returns empty config if file doesn't exist.
- *
- * @param startPath Directory to search for .cervinrc (default: current working directory)
- * @returns Validated CervinrcConfig, or empty config if file not found
- * @throws ConfigError if file exists but is invalid JSON or fails schema validation
+ * Read, JSON-parse and schema-validate a single rc file. `fileLabel` is the
+ * bare filename used in error messages so they name the file actually read.
  */
-export function loadCervinrc(startPath: string = process.cwd()): CervinrcConfig {
-  const rcPath = join(startPath, '.cervinrc')
-
-  if (!existsSync(rcPath)) {
-    return {} // Optional config file
-  }
-
+function loadRcFile(rcPath: string, fileLabel: string): CervinrcConfig {
   try {
     const content = readFileSync(rcPath, 'utf8')
     const parsed = JSON.parse(content) as unknown
@@ -79,15 +86,48 @@ export function loadCervinrc(startPath: string = process.cwd()): CervinrcConfig 
     return parsed
   } catch (e) {
     if (e instanceof SyntaxError) {
-      const err = new Error(`Invalid JSON in .cervinrc: ${e.message}`) as ConfigError
+      const err = new Error(`Invalid JSON in ${fileLabel}: ${e.message}`) as ConfigError
       throw err
     }
     if ((e as ConfigError).errors) {
       throw e // Re-throw validation errors
     }
     const err = e as Error
-    throw new Error(`Failed to load .cervinrc: ${err.message}`)
+    throw new Error(`Failed to load ${fileLabel}: ${err.message}`)
   }
+}
+
+/**
+ * Load and parse the project config from the given directory. Prefers
+ * `.transitrixrc`; falls back to the legacy `.cervinrc` (with a one-time
+ * deprecation notice) when `.transitrixrc` is absent. Returns an empty config
+ * when neither exists.
+ *
+ * @param startPath Directory to search (default: current working directory)
+ * @returns Validated config, or empty config if no file is found
+ * @throws ConfigError if a file exists but is invalid JSON or fails schema validation
+ */
+export function loadTransitrixrc(startPath: string = process.cwd()): CervinrcConfig {
+  const transitrixPath = join(startPath, TRANSITRIXRC_FILE)
+  if (existsSync(transitrixPath)) {
+    return loadRcFile(transitrixPath, TRANSITRIXRC_FILE)
+  }
+
+  const cervinPath = join(startPath, CERVINRC_FILE)
+  if (existsSync(cervinPath)) {
+    noteCervinrcDeprecation()
+    return loadRcFile(cervinPath, CERVINRC_FILE)
+  }
+
+  return {} // Optional config file
+}
+
+/**
+ * @deprecated Use {@link loadTransitrixrc}. Retained as a compatibility alias
+ * through the 1.x line; reads `.transitrixrc` then falls back to `.cervinrc`.
+ */
+export function loadCervinrc(startPath: string = process.cwd()): CervinrcConfig {
+  return loadTransitrixrc(startPath)
 }
 
 /**

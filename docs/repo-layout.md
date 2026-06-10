@@ -46,7 +46,7 @@ This document maps **top-level folders** to **roles** so you know where to look 
 | [`extension/webview/`](../extension/webview/) | Browser-side entry point for the BPMN viewer webview (`viewer.ts`). Bundled into `extension/media/viewer.js` by `scripts/build-webview.mjs`. |
 | [`ui/`](../ui/) | **Local browser UI** for `cervin serve`. Vite app: BPMN editor + viewer + nested-blocks tab. Proxies `/api/*` to the local Node server in dev (`vite.config.ts`). |
 | [`examples/`](../examples/) | **Sample YAML by notation**: `bpmn/`, `activities/`, `applications/`, `products/`, `scenarios/`, `process-map/`, `capability-map/`, `goals/`, `fgca/`, `fga/`, `blocks/`, `nested-blocks/` (legacy ASCII/Markdown samples for the browser UI tab), `compliance/`, … Each subfolder has a README where applicable. |
-| [`schemas/`](../schemas/) | **JSON Schemas for AJV**: `bpmn-dsl.schema.json` (DSL grammar), `cervinrc.schema.json` (config file). Copied into `extension/schemas/` by `extension:prep`. |
+| [`schemas/`](../schemas/) | **JSON Schemas for AJV**: `bpmn-dsl.schema.json` (DSL grammar), `transitrixrc.schema.json` (config file; legacy `cervinrc.schema.json` kept). Copied into `extension/schemas/` by `extension:prep`. |
 | [`tests/`](../tests/) | **Vitest root suite.** BPMN compiler tests, layout/routing, integration, metrics regression. See *Two-suite test strategy* below. |
 | [`scripts/`](../scripts/) | Build and dev tooling: `build-compiler-bundle.mjs`, `build-webview.mjs`, `build-extension-bundle.mjs`, `bump-extension-version.mjs`, `measure-baseline.mjs`, `ci-metrics-diff.mjs`. |
 | [`docs/`](../docs/) | **Project documentation**: this layout map, glossary, metrics baselines, validation notes. |

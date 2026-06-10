@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 ### Added
+- **`.transitrixrc` project config** — canonical replacement for `.cervinrc`. `loadTransitrixrc()` reads `.transitrixrc` first and falls back to `.cervinrc` (one-time deprecation notice) when absent; ships `transitrixrc.schema.json` (root + extension `schemas/`). `.cervinrc` keeps working through 1.x (removed in 2.0.0). Fourth phase of the Cervin → Transitrix rename (CLAUDE.md §Cervin naming, P4).
 - **`transitrix` CLI binary** — the primary command is now `transitrix`; it is added as a `bin` entry (and an `npm run transitrix` script) pointing at the same `dist/cli.js`. `--help` and usage text recommend `transitrix`.
 - **VS Code settings `transitrix.fileExtensions` / `transitrix.exportEnabled`** — canonical replacements for the legacy `cervin.*` keys, registered in the extension's `contributes.configuration`.
 - **VS Code commands `transitrix.openPreview` / `transitrix.exportSvg` / `transitrix.exportPng` / `transitrix.exportBpmn`** — canonical replacements for the `cervin.*` commands. The editor-title preview button now invokes `transitrix.openPreview`.
