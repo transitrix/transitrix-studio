@@ -8,7 +8,7 @@ import { computeLayoutMetrics } from '../src/metrics.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const projectRoot = path.dirname(__dirname)
-const corpusDir = path.join(projectRoot, 'examples', 'bpmn')
+const corpusDir = path.join(projectRoot, 'tests', 'fixtures', 'notation-corpus', 'bpmn')
 const snapshotsDir = path.join(__dirname, 'snapshots')
 const baselineFile = path.join(snapshotsDir, 'metrics-baseline.json')
 

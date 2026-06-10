@@ -4,7 +4,7 @@ import * as path from 'node:path';
 import yaml from 'js-yaml';
 import { validateCapabilityMap } from '../validate.js';
 
-const EXAMPLES_DIR = path.resolve(process.cwd(), '..', '..', 'examples', 'capability-map');
+const EXAMPLES_DIR = path.resolve(process.cwd(), '..', '..', 'tests', 'fixtures', 'notation-corpus', 'capability-map');
 
 const VALID_MAP = {
   notation: 'capability-map',
@@ -227,7 +227,7 @@ describe('capability-map examples (regression)', () => {
   const files = fs.readdirSync(EXAMPLES_DIR).filter(f => f.endsWith('.yaml'));
   expect(files.length).toBeGreaterThan(0);
   for (const file of files) {
-    it(`validates examples/capability-map/${file}`, () => {
+    it(`validates tests/fixtures/notation-corpus/capability-map/${file}`, () => {
       const text = fs.readFileSync(path.join(EXAMPLES_DIR, file), 'utf8');
       const parsed = yaml.load(text);
       const r = validateCapabilityMap(parsed);

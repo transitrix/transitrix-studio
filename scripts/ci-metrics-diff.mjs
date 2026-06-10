@@ -48,8 +48,8 @@ async function computeCurrentMetrics() {
   const { computeLayoutMetrics } = metricsMod;
 
   // Mirror scripts/measure-baseline.mjs: BPMN corpus lives directly under
-  // examples/bpmn/ (no nested corpus/ subfolder) and uses the .bpmn.transitrix.yaml suffix.
-  const corpusDir = path.join(projectRoot, 'examples', 'bpmn');
+  // tests/fixtures/notation-corpus/bpmn/ and uses the .bpmn.transitrix.yaml suffix.
+  const corpusDir = path.join(projectRoot, 'tests', 'fixtures', 'notation-corpus', 'bpmn');
   const files = await fs.readdir(corpusDir);
   const yamlFiles = files.filter(f => f.endsWith('.bpmn.transitrix.yaml'));
 

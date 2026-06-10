@@ -13,7 +13,7 @@ import { describe, expect, it } from 'vitest';
 
 import { api, render, type NotationKind } from '../entry.js';
 
-const EXAMPLES = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../../../examples');
+const EXAMPLES = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../../../tests/fixtures/notation-corpus');
 
 interface Fixture {
   kind: NotationKind;

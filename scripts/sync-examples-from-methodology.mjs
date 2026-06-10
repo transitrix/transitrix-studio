@@ -99,7 +99,7 @@ async function main() {
     args.from ?? path.join(STUDIO_ROOT, '..', 'methodology'),
   );
   const srcRoot = path.join(methodologyRoot, 'notations', 'examples');
-  const dstRoot = path.join(STUDIO_ROOT, 'examples');
+  const dstRoot = path.join(STUDIO_ROOT, 'tests', 'fixtures', 'notation-corpus');
 
   if (!(await exists(srcRoot))) {
     console.error(

@@ -4,7 +4,7 @@ import * as path from 'node:path';
 import yaml from 'js-yaml';
 import { validateNestedBlocks } from '../validate.js';
 
-const EXAMPLES_DIR = path.resolve(process.cwd(), '..', '..', 'examples', 'blocks');
+const EXAMPLES_DIR = path.resolve(process.cwd(), '..', '..', 'tests', 'fixtures', 'notation-corpus', 'blocks');
 
 const VALID_DOC = {
   notation: 'blocks',
@@ -249,7 +249,7 @@ describe('blocks examples (regression)', () => {
     : [];
   expect(files.length).toBeGreaterThan(0);
   for (const file of files) {
-    it(`validates examples/blocks/${file}`, () => {
+    it(`validates tests/fixtures/notation-corpus/blocks/${file}`, () => {
       const text = fs.readFileSync(path.join(EXAMPLES_DIR, file), 'utf8');
       const parsed = yaml.load(text);
       const r = validateNestedBlocks(parsed);

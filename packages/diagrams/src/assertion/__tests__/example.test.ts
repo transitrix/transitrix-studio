@@ -1,5 +1,5 @@
 // Conformance test for the shipped ASSERTION worked examples — the acme_corp
-// canon files mirrored under `examples/assertion/`. Pins the success signal of
+// canon files mirrored under `tests/fixtures/notation-corpus/assertion/`. Pins the success signal of
 // vkgeorgia/strategy#84 Phase 1: the library consumes the canonical example
 // files without error.
 
@@ -10,7 +10,7 @@ import path from 'node:path';
 import yaml from 'js-yaml';
 import { validateAssertion } from '../validate.js';
 
-const dir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../../../examples/assertion');
+const dir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../../../tests/fixtures/notation-corpus/assertion');
 const load = (f: string): unknown => yaml.load(readFileSync(path.join(dir, f), 'utf-8'));
 
 // Fixed reference date so the ASSERT-008 staleness check is deterministic; all

@@ -4,7 +4,7 @@ import * as path from 'node:path';
 import yaml from 'js-yaml';
 import { validateActivities } from '../validate.js';
 
-const EXAMPLES_DIR = path.resolve(process.cwd(), '..', '..', 'examples', 'activities');
+const EXAMPLES_DIR = path.resolve(process.cwd(), '..', '..', 'tests', 'fixtures', 'notation-corpus', 'activities');
 
 const minimalValid = {
   notation: 'activities',
@@ -398,7 +398,7 @@ describe('activities examples (regression)', () => {
   const files = fs.readdirSync(EXAMPLES_DIR).filter(f => f.endsWith('.yaml'));
   expect(files.length).toBeGreaterThan(0);
   for (const file of files) {
-    it(`validates examples/activities/${file}`, () => {
+    it(`validates tests/fixtures/notation-corpus/activities/${file}`, () => {
       const text = fs.readFileSync(path.join(EXAMPLES_DIR, file), 'utf8');
       const parsed = yaml.load(text);
       const r = validateActivities(parsed);

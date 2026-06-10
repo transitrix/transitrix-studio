@@ -1,5 +1,5 @@
 // Conformance test for the shipped REQUIREMENT worked examples — the
-// acme_corp canon files mirrored under `examples/requirement/`. Pins the
+// acme_corp canon files mirrored under `tests/fixtures/notation-corpus/requirement/`. Pins the
 // success signal of vkgeorgia/strategy#84 Phase 1: the library consumes the
 // canonical example files without error.
 
@@ -10,7 +10,7 @@ import path from 'node:path';
 import yaml from 'js-yaml';
 import { validateRequirement } from '../validate.js';
 
-const dir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../../../examples/requirement');
+const dir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../../../tests/fixtures/notation-corpus/requirement');
 const load = (f: string): unknown => yaml.load(readFileSync(path.join(dir, f), 'utf-8'));
 
 describe('requirement worked examples (acme_corp)', () => {
