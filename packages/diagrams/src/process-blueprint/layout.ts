@@ -27,6 +27,22 @@ const ASPECT_LABEL: Record<AspectCategory, string> = {
   information_entities: 'Information',
 };
 
+// The compliance lane is opt-in, so its two options have no meaningful default
+// (absent = lane disabled). Every other option is a sizing value that always
+// resolves to a number — keep those `Required`, but exclude the compliance pair
+// rather than forcing them to a non-optional type they can't satisfy.
+type SizingOptionKeys = Exclude<
+  keyof ProcessBlueprintLayoutOptions,
+  'complianceLane' | 'complianceInput'
+>;
+
+/**
+ * Options after defaults are applied: every sizing field is guaranteed present;
+ * the compliance lane fields stay optional (undefined = lane disabled).
+ */
+type ResolvedLayoutOptions = Required<Pick<ProcessBlueprintLayoutOptions, SizingOptionKeys>> &
+  Pick<ProcessBlueprintLayoutOptions, 'complianceLane' | 'complianceInput'>;
+
 const DEFAULTS = {
   legendColumnWidth: 140,
   stageColumnWidth: 220,
@@ -42,9 +58,7 @@ const DEFAULTS = {
   cellTextPadX: 10,
   cellTextPadY: 10,
   maxTextLines: 6,
-  complianceLane: undefined,
-  complianceInput: undefined,
-} satisfies Required<ProcessBlueprintLayoutOptions>;
+} satisfies Required<Pick<ProcessBlueprintLayoutOptions, SizingOptionKeys>>;
 
 interface RawPill {
   category: AspectCategory;
@@ -55,7 +69,7 @@ interface RawPill {
   endStageIndex: number;
 }
 
-function resolveOptions(options: ProcessBlueprintLayoutOptions | undefined): Required<ProcessBlueprintLayoutOptions> {
+function resolveOptions(options: ProcessBlueprintLayoutOptions | undefined): ResolvedLayoutOptions {
   return { ...DEFAULTS, ...(options ?? {}) };
 }
 
@@ -241,7 +255,7 @@ function deriveComplianceRow(
   stages: Stage[],
   stageIndexById: Map<string, number>,
   input: ComplianceLaneInput,
-  opts: Required<ProcessBlueprintLayoutOptions>,
+  opts: ResolvedLayoutOptions,
   yStart: number,
 ): ComplianceRow | undefined {
   const {

@@ -32,6 +32,11 @@ jobs:
       - name: Build project
         run: npm run build
 
+      - name: Type-check (core + extension)
+        run: |
+          npm run compile
+          npm run compile:extension
+
       - name: Prepare extension assets
         run: npm run extension:prep
 
