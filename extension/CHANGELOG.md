@@ -1,5 +1,11 @@
 # Transitrix Studio — changelog
 
+## Unreleased
+
+### Changed
+
+- **Settings renamed `cervin.*` → `transitrix.*`.** `transitrix.fileExtensions` and `transitrix.exportEnabled` are now the canonical keys. The legacy `cervin.fileExtensions` / `cervin.exportEnabled` keys are still read as a fallback when the new key is unset (so existing configs keep working), but are deprecated and will be removed in 2.0.0. A one-time migration notice is shown on activation when a legacy key is in effect.
+
 ## 1.4.0 — 2026-06-05
 
 Adds PDF export for the compliance views and fixes Process Blueprint cells clipping their text.

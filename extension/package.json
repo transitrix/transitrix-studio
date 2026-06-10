@@ -73,7 +73,7 @@
     "configuration": {
       "title": "Transitrix Studio",
       "properties": {
-        "cervin.fileExtensions": {
+        "transitrix.fileExtensions": {
           "type": "array",
           "items": {
             "type": "string"
@@ -84,10 +84,28 @@
           ],
           "description": "File suffixes recognized as Transitrix BPMN source files (must include the leading dot)."
         },
-        "cervin.exportEnabled": {
+        "transitrix.exportEnabled": {
           "type": "boolean",
           "default": false,
           "description": "Show experimental BPMN/SVG/PNG export commands (not finished yet)."
+        },
+        "cervin.fileExtensions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            ".cervin.yaml",
+            ".bpmn.transitrix.yaml"
+          ],
+          "description": "Deprecated — use transitrix.fileExtensions. Read as a fallback through 1.x; removed in 2.0.0.",
+          "deprecationMessage": "Deprecated: use transitrix.fileExtensions instead. This key is read as a fallback through the 1.x line and removed in 2.0.0."
+        },
+        "cervin.exportEnabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Deprecated — use transitrix.exportEnabled. Read as a fallback through 1.x; removed in 2.0.0.",
+          "deprecationMessage": "Deprecated: use transitrix.exportEnabled instead. This key is read as a fallback through the 1.x line and removed in 2.0.0."
         },
         "transitrix.theme": {
           "type": "string",
@@ -387,19 +405,19 @@
         "command": "cervin.exportSvg",
         "title": "Transitrix: Export as SVG",
         "category": "Transitrix",
-        "enablement": "config.cervin.exportEnabled"
+        "enablement": "config.transitrix.exportEnabled || config.cervin.exportEnabled"
       },
       {
         "command": "cervin.exportPng",
         "title": "Transitrix: Export as PNG",
         "category": "Transitrix",
-        "enablement": "config.cervin.exportEnabled"
+        "enablement": "config.transitrix.exportEnabled || config.cervin.exportEnabled"
       },
       {
         "command": "cervin.exportBpmn",
         "title": "Transitrix: Export as .bpmn",
         "category": "Transitrix",
-        "enablement": "config.cervin.exportEnabled"
+        "enablement": "config.transitrix.exportEnabled || config.cervin.exportEnabled"
       },
       {
         "command": "transitrixStudio.previewGoals",
