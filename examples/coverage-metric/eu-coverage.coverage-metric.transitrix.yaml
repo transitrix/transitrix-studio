@@ -1,0 +1,34 @@
+# Coverage-metric example — retired stub.
+#
+# The canonical coverage-metric view for the demo now lives at:
+#   transitrix/methodology:
+#   organizations/acme_corp/canon/views/eu-coverage.coverage-metric.transitrix.yaml
+#
+# Open that file in Transitrix Studio to see the coverage gauges.
+#
+# Original NorthBay Retail version archived at:
+#   .archive/compliance-northbay-demo/coverage-metric/eu-coverage.coverage-metric.transitrix.yaml
+
+notation: coverage-metric
+spec_version: "0.1"
+
+coverage_metric:
+  id: COVERAGE_METRIC-ACME-EU-1
+  name: "acme_corp — EU Coverage Metric (GDPR + NIS2)"
+  description: >
+    Demo stub — open the canonical view in transitrix/methodology/organizations/acme_corp/
+    for the full connected demo.
+  scope:
+    jurisdictions:
+      - eu
+    codex:
+      - LAW-GDPR-1
+      - LAW-NIS2-1
+    subjects:
+      products:
+        - PRODUCT-ECOMM-1
+        - PRODUCT-SUPPORT-1
+  thresholds:
+    green: 0.80
+    amber: 0.50
+    red: 0.00

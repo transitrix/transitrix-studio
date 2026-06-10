@@ -27,6 +27,20 @@ export {
   requirementToScoringElement,
   scoreComplianceView,
 } from './confidence.js';
+export {
+  parseCoverageMetricConfig,
+  buildCoverageMatrix,
+} from './coverage-metric.js';
+export type {
+  CoverageMetricConfig,
+  CoverageMetricScope,
+  CoverageMetricSubjects,
+  CoverageMetricThresholds,
+  CoverageMatrix,
+  CoverageRow,
+  ParseCoverageMetricResult,
+  RagStatus,
+} from './coverage-metric.js';
 export type {
   ComplianceIndex,
   ComplianceIndexInput,

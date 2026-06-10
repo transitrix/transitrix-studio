@@ -15,6 +15,9 @@ process_blueprint:
   process: PROCESS-ORD-FULFIL-1
   scenario: SCENARIO-2026-BASE-1
 
+  # Enable the compliance lane (strategy#177 — implementation pending).
+  # When the lane is rendered, Studio derives per-stage obligation chips from the
+  # assertions whose realised_via lists include each stage ID.
   lane_config:
     compliance: true
 

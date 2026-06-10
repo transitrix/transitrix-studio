@@ -206,7 +206,6 @@ function buildComplianceLaneInput(canon: ScannedCanon): ComplianceLaneInput {
     })),
     codexJurisdictions,
   };
-
 }
 
 export class ProcessBlueprintPreview {

@@ -1,0 +1,23 @@
+# [ARCHIVED] NorthBay Retail assertion. Superseded by acme_corp.
+
+notation: assertion
+id: ASSERTION-ECOMM-GDPR-ERASURE-1
+about: REQUIREMENT-GDPR-DATA-ERASURE-1
+subject: PRODUCT-ECOMM-1
+realised_via: [STAGE-1, STAGE-2, STAGE-3]
+status: non_compliant
+evidence:
+  - kind: note
+    text: "Archive only. See transitrix/methodology organizations/acme_corp/ for the canonical version."
+assessed_at: "2026-06-01"
+assessed_by: ROLE-DPO-1
+next_review_at: "2026-07-01"
+zone: canon
+admitted_at: "2026-06-01"
+admitted_by: "v.korobeinikov"
+gate_checks:
+  uniqueness: pass
+  consistency: pass
+  completeness: pass
+valid_from: "2026-06-01"
+valid_to: null

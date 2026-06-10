@@ -64,6 +64,8 @@
     "workspaceContains:**/*.process-blueprint.transitrix.yaml",
     "workspaceContains:**/*.activity-card.transitrix.yaml",
     "workspaceContains:**/*.compliance-impact.view.yaml",
+    "workspaceContains:**/*.coverage-metric.transitrix.yaml",
+    "workspaceContains:**/*.compliance-impact.transitrix.yaml",
     "workspaceContains:**/ASSERTION-*.yaml",
     "workspaceContains:**/REQUIREMENT-*.yaml"
   ],
@@ -666,6 +668,18 @@
         "title": "Transitrix: Open diagram scope (level/root) settings",
         "category": "Transitrix",
         "icon": "$(filter)"
+      },
+      {
+        "command": "transitrixStudio.previewCoverageMetric",
+        "title": "Transitrix: Preview coverage-metric view",
+        "category": "Transitrix",
+        "icon": "$(graph)"
+      },
+      {
+        "command": "transitrixStudio.refreshCoverageMetric",
+        "title": "Transitrix: Refresh coverage-metric view",
+        "category": "Transitrix",
+        "icon": "$(refresh)"
       }
     ],
     "menus": {
@@ -781,6 +795,11 @@
           "group": "navigation@-10"
         },
         {
+          "when": "resourceFilename =~ /\\.compliance-impact\\.transitrix\\.yaml$/",
+          "command": "transitrixStudio.previewComplianceImpact",
+          "group": "navigation@-10"
+        },
+        {
           "when": "resourceFilename =~ /\\.process-blueprint\\.transitrix\\.yaml$/",
           "command": "transitrixStudio.saveProcessBlueprintAsSvg",
           "group": "navigation@-9"
@@ -810,12 +829,22 @@
           "command": "transitrixStudio.previewSingleLaw",
           "group": "navigation@-10"
         },
-        {
-          "when": "resourceFilename =~ /^PRODUCT-.*\\.yaml$/",
-          "command": "transitrixStudio.previewSingleProduct",
-          "group": "navigation@-10"
-        }
-      ]
+      {
+        "when": "resourceFilename =~ /^PRODUCT-.*\\.yaml$/",
+        "command": "transitrixStudio.previewSingleProduct",
+        "group": "navigation@-10"
+      },
+      {
+        "when": "resourceFilename =~ /\\.coverage-metric\\.transitrix\\.yaml$/",
+        "command": "transitrixStudio.previewCoverageMetric",
+        "group": "navigation@-10"
+      },
+      {
+        "when": "activeWebviewPanelId == coverageMetricPreview",
+        "command": "transitrixStudio.refreshCoverageMetric",
+        "group": "navigation@-9"
+      }
+    ]
     }
   },
   "scripts": {
