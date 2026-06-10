@@ -1,0 +1,41 @@
+# Demo assertion — E-Commerce Platform vs GDPR right to erasure.
+# Status: non_compliant — demonstrates the gap decoration in the compliance lane.
+# Known gap: erasure pipeline does not cover the order-history archive store.
+# NorthBay Retail EU compliance demo scenario.
+
+notation: assertion
+id: ASSERTION-ECOMM-GDPR-ERASURE-1
+about: REQUIREMENT-GDPR-DATA-ERASURE-1
+subject: PRODUCT-ECOMM-1
+
+# Realised via the order-fulfilment stages where personal data is stored.
+realised_via:
+  - STAGE-1   # Receive order — captures personal data at intake
+  - STAGE-2   # Pick & pack — reads personal data for fulfilment
+  - STAGE-3   # Ship — transmits personal data to carrier
+
+status: non_compliant
+
+evidence:
+  - kind: note
+    text: >
+      Erasure requests are forwarded to the active-order database and the CRM within
+      the 30-day window. KNOWN GAP: the order-history archive (cold storage, 7-year
+      fiscal retention) is not covered by the erasure pipeline — archived records
+      are retained until manual batch purge. Remediation: ISSUE-ECOMM-ARCHIVE-PURGE-1,
+      target Q1 2026 (overdue). Re-assessment blocked until archive purge is deployed.
+
+assessed_at: "2026-05-15"
+assessed_by: ROLE-DPO-1
+next_review_at: "2026-07-15"
+
+zone: canon
+admitted_at: "2026-06-01"
+admitted_by: "v.korobeinikov"
+gate_checks:
+  uniqueness: pass
+  consistency: pass
+  completeness: pass
+
+valid_from: "2026-05-15"
+valid_to: null

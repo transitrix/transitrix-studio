@@ -1,0 +1,30 @@
+# Demo requirement — NIS2 Art. 23 incident reporting.
+# NorthBay Retail EU compliance demo scenario.
+
+notation: requirement
+id: REQUIREMENT-NIS2-INCIDENT-REPORT-1
+name: "Report significant cybersecurity incidents to authority within 24 hours"
+description: >
+  Entities in scope must notify the competent national authority of any significant
+  cybersecurity incident within 24 hours of becoming aware of it (early warning),
+  followed by a full incident notification within 72 hours and a final report within
+  one month. An incident is significant if it causes severe operational disruption
+  or financial loss.
+
+severity: high
+derived_from:
+  - LAW-NIS2-1
+
+# In-force deadline: the org must have the process in place by end of Q3 2026.
+deadline: "2026-09-01"
+
+zone: canon
+admitted_at: "2026-06-01"
+admitted_by: "v.korobeinikov"
+gate_checks:
+  uniqueness: pass
+  consistency: pass
+  completeness: pass
+
+valid_from: "2023-01-16"
+valid_to: null

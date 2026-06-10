@@ -20,6 +20,7 @@ import { ComplianceImpactPreview } from './compliance-impact-preview.js';
 import { SingleLawPreview } from './single-law-preview.js';
 import { SingleProductPreview } from './single-product-preview.js';
 import { GapDashboardPreview } from './gap-dashboard-preview.js';
+import { CoverageMetricPreview } from './coverage-metric-preview.js';
 import { openComplianceFile } from './compliance-scan.js';
 import type { LayoutMetrics, ValidationReport } from './types.js';
 import {
@@ -83,6 +84,10 @@ function isProcessBlueprintFile(doc: vscode.TextDocument): boolean {
 
 function isActivityCardFile(doc: vscode.TextDocument): boolean {
   return doc.fileName.endsWith('.activity-card.transitrix.yaml');
+}
+
+function isCoverageMetricFile(doc: vscode.TextDocument): boolean {
+  return doc.fileName.endsWith('.coverage-metric.transitrix.yaml');
 }
 
 async function loadCompiler(ext: vscode.ExtensionContext): Promise<CompileFn> {
@@ -157,6 +162,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const singleLawPreview = new SingleLawPreview(context.extensionUri);
   const singleProductPreview = new SingleProductPreview(context.extensionUri);
   const gapDashboardPreview = new GapDashboardPreview(context.extensionUri);
+  const coverageMetricPreview = new CoverageMetricPreview(context.extensionUri);
 
   context.subscriptions.push(
     vscode.commands.registerCommand('cervin.openPreview', async () => {
@@ -333,6 +339,19 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand('transitrixStudio.previewGapDashboard', () => gapDashboardPreview.showOrReveal()),
     vscode.commands.registerCommand('transitrixStudio.refreshGapDashboard', () => gapDashboardPreview.refresh()),
     vscode.commands.registerCommand('transitrixStudio.exportGapDashboardCsv', () => gapDashboardPreview.exportCsv()),
+    // Coverage-metric view (strategy#185) — file-driven, opens beside the YAML.
+    vscode.commands.registerCommand('transitrixStudio.previewCoverageMetric', async () => {
+      const doc = vscode.window.activeTextEditor?.document;
+      if (!doc || !isCoverageMetricFile(doc)) {
+        vscode.window.showWarningMessage('Open a *.coverage-metric.transitrix.yaml file first.');
+        return;
+      }
+      await coverageMetricPreview.showOrReveal(doc);
+    }),
+    vscode.commands.registerCommand('transitrixStudio.refreshCoverageMetric', async () => {
+      const doc = vscode.window.activeTextEditor?.document;
+      if (doc && isCoverageMetricFile(doc)) await coverageMetricPreview.showOrReveal(doc);
+    }),
     vscode.commands.registerCommand(OPEN_SPACING_SETTINGS_COMMAND, () =>
       vscode.commands.executeCommand('workbench.action.openSettings', SPACING_CONFIG_SECTION),
     ),
@@ -385,6 +404,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       if (isCapabilityMapFile(doc)) { void capabilityMapPreview.refreshSaved(doc); return; }
       if (isProcessBlueprintFile(doc)) { void processBlueprintPreview.refreshSaved(doc); return; }
       if (isActivityCardFile(doc)) { void activityCardPreview.refreshSaved(doc); return; }
+      if (isCoverageMetricFile(doc)) { void coverageMetricPreview.refreshSaved(doc); return; }
       if (!documentMatchesCervinSource(doc)) return;
       void preview.refreshSaved(doc);
     }),
@@ -401,6 +421,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       if (isCapabilityMapFile(doc)) { await capabilityMapPreview.showOrReveal(doc); return; }
       if (isProcessBlueprintFile(doc)) { await processBlueprintPreview.showOrReveal(doc); return; }
       if (isActivityCardFile(doc)) { await activityCardPreview.showOrReveal(doc); return; }
+      if (isCoverageMetricFile(doc)) { await coverageMetricPreview.showOrReveal(doc); return; }
     }),
   );
 }
