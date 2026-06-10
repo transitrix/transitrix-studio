@@ -276,7 +276,7 @@ The compiler runs four layers of validation on each input. Each layer can block 
 | 3. Semantic | `src/validator.ts` | BPMN 2.0 rules: SE/EE/ACT/SF/GW/CONN — errors block emit |
 | 4. XML conformance | `src/compiler.ts` (BpmnModdle round-trip) | Output XML must round-trip through `bpmn-moddle` without warnings |
 
-In addition, anti-pattern checks (warnings, not errors) flag suspicious-but-valid structures: floating elements, missing default flow, implicit join, gateway used as task. Warnings are configurable via the optional `.cervinrc` file at the repository root; errors are not configurable — they enforce BPMN-conformance and cannot be downgraded.
+In addition, anti-pattern checks (warnings, not errors) flag suspicious-but-valid structures: floating elements, missing default flow, implicit join, gateway used as task. Warnings are configurable via the optional `.transitrixrc` file at the repository root (legacy `.cervinrc` is still read as a fallback); errors are not configurable — they enforce BPMN-conformance and cannot be downgraded.
 
 ---
 

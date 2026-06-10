@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Transitrix Studio Config Schema",
+  "description": "Schema for .transitrixrc configuration file (legacy .cervinrc is read as a fallback through 1.x).",
+  "type": "object",
+  "properties": {
+    "rules": {
+      "type": "object",
+      "title": "Rule overrides",
+      "description": "Override validation rule severity levels. Errors cannot be downgraded.",
+      "patternProperties": {
+        "^[A-Z]+-[0-9-]+$": {
+          "type": "string",
+          "enum": ["off", "warn"],
+          "description": "Rule override value: 'off' to disable, 'warn' to report as warning"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "required": []
+}

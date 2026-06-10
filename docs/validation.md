@@ -621,9 +621,12 @@ Anti-pattern rules detect suspicious modeling practices that may indicate errors
   }
   ```
 
-### Configuring Anti-Pattern Rules via `.cervinrc`
+### Configuring Anti-Pattern Rules via `.transitrixrc`
 
-Anti-pattern severity and enabled state can be overridden in `.cervinrc`:
+> The canonical config file is **`.transitrixrc`**. The legacy **`.cervinrc`** is still
+> read as a fallback when `.transitrixrc` is absent (deprecated; removed in 2.0.0).
+
+Anti-pattern severity and enabled state can be overridden in `.transitrixrc`:
 
 ```yaml
 rules:
