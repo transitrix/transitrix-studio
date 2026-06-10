@@ -357,6 +357,13 @@ if (invokedAsCervin(process.argv[1])) {
 
 const subcommand = process.argv[2];
 
+// Top-level help: `transitrix --help` / `-h` / `help` print usage and exit 0,
+// rather than falling through to the "unknown command" branch.
+if (subcommand === '--help' || subcommand === '-h' || subcommand === 'help') {
+  printUsage();
+  process.exit(0);
+}
+
 // TX-R004: wrap the top-level dispatch in a try/catch so a logic bug inside
 // a handler doesn't surface as an unhandled rejection + stack trace. Each
 // handler already exits non-zero on its own expected errors; this is a
