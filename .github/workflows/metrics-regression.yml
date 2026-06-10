@@ -32,6 +32,17 @@ jobs:
       - name: Build project
         run: npm run build
 
+      - name: Type-check (core + extension)
+        # The extension is not a root workspace and ships no lockfile (TX-204),
+        # so its deps (e.g. @resvg/resvg-js used by raster.ts) aren't installed
+        # by the root `npm ci` — install them here so `compile:extension` can
+        # resolve them. This step guards against type-check regressions in the
+        # bundled @transitrix/diagrams sources (TX-192).
+        run: |
+          npm run compile
+          npm install --prefix extension --no-save --no-audit --no-fund
+          npm run compile:extension
+
       - name: Prepare extension assets
         run: npm run extension:prep
 

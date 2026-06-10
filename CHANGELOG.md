@@ -12,6 +12,9 @@
 - **`cervin.*` extension settings are deprecated, use `transitrix.*`.** The legacy `cervin.fileExtensions` / `cervin.exportEnabled` keys are read as a fallback when their `transitrix.*` counterpart is unset (existing configs keep working) and are marked deprecated in the settings UI; removal is slated for 2.0.0. A one-time migration notice is shown on activation when a legacy key is in effect. Second phase of the Cervin → Transitrix rename (CLAUDE.md §Cervin naming, P2).
 - **`cervin.*` extension commands are deprecated, use `transitrix.*`.** The four `cervin.*` commands are kept as aliases for one release so existing keybindings and macros survive; they are hidden from the Command Palette and labelled "(deprecated)", and invoking one logs a one-time deprecation notice before delegating to the canonical handler. Removal is slated for 2.0.0. Third phase of the Cervin → Transitrix rename (CLAUDE.md §Cervin naming, P3).
 
+### Fixed
+- **`npm run compile:extension` is green again** — `process-blueprint/layout.ts` no longer types its option defaults as `Required<ProcessBlueprintLayoutOptions>` (which forced the opt-in `complianceLane` / `complianceInput` fields to be non-`undefined`). A `ResolvedLayoutOptions` type keeps the sizing fields required while leaving the compliance pair optional. Type-only change — no layout behaviour change. CI now runs `compile` + `compile:extension` so the type-check regression (introduced with the compliance lane, #129) can't reappear silently.
+
 ## [1.4.1] — 2026-06-09
 
 ### Fixed
