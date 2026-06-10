@@ -147,7 +147,13 @@ ${levelRules}
 .maturity-2{fill:var(${cv.maturity2});}
 .maturity-3{fill:var(${cv.maturity3});}
 .maturity-4{fill:var(${cv.maturity4});}
-.maturity-5{fill:var(${cv.maturity5});}`;
+.maturity-5{fill:var(${cv.maturity5});}
+.compliance-gap{fill:var(${cv.statusWarningBg});stroke:var(${cv.statusWarningFg});}
+.compliance-gap text{fill:var(${cv.statusWarningFg});}
+.compliance-deadline{fill:var(${cv.statusErrorBg});stroke:var(${cv.statusErrorFg});}
+.compliance-deadline text{fill:var(${cv.statusErrorFg});}
+.compliance-badge{fill:var(${cv.statusErrorFg});}
+.compliance-badge-text{fill:var(${cv.textInverse});font-family:${t.fontFamily};font-size:8px;font-weight:700;}`;
 }
 
 /**
