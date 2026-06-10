@@ -1,0 +1,29 @@
+# Demo requirement — GDPR Art. 7 conditions for consent.
+# NorthBay Retail EU compliance demo scenario.
+
+notation: requirement
+id: REQUIREMENT-GDPR-CONSENT-1
+name: "Obtain and record explicit consent before processing personal data"
+description: >
+  The controller must obtain explicit, informed, and unambiguous consent before
+  processing personal data for marketing and profiling purposes. Consent records
+  must be kept and the data subject must be able to withdraw consent at any time
+  as easily as it was given.
+
+severity: high
+derived_from:
+  - LAW-GDPR-1
+
+# Upcoming deadline — remediation for the consent-withdrawal flow.
+deadline: "2026-09-30"
+
+zone: canon
+admitted_at: "2026-06-01"
+admitted_by: "v.korobeinikov"
+gate_checks:
+  uniqueness: pass
+  consistency: pass
+  completeness: pass
+
+valid_from: "2018-05-25"
+valid_to: null
