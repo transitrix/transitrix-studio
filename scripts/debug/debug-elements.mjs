@@ -3,13 +3,13 @@
 import fs from 'fs/promises'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import { compileCervinYamlWithLayout } from '../../dist/compiler.js'
+import { compileTransitrixYamlWithLayout } from '../../dist/compiler.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const projectRoot = path.resolve(__dirname, '../../')
 const inputFile = process.argv[2] || path.join(projectRoot, 'tests/fixtures/notation-corpus/bpmn/feature-release.cervin.yaml')
 const yaml = await fs.readFile(inputFile, 'utf-8')
-const { ir, layout } = await compileCervinYamlWithLayout(yaml)
+const { ir, layout } = await compileTransitrixYamlWithLayout(yaml)
 
 console.log('\n=== ELEMENT POSITIONS (sorted by X) ===\n')
 

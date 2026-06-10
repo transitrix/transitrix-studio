@@ -98,14 +98,14 @@ async function loadCompiler(ext: vscode.ExtensionContext): Promise<CompileFn> {
   const metricsHref = pathToFileURL(metricsPath).href;
 
   const compilerMod = (await import(compilerHref)) as {
-    compileCervinYamlWithLayout: (yaml: string, options?: unknown) => Promise<{ xml: string; layout: unknown; validation: ValidationReport }>;
+    compileTransitrixYamlWithLayout: (yaml: string, options?: unknown) => Promise<{ xml: string; layout: unknown; validation: ValidationReport }>;
   };
   const metricsMod = (await import(metricsHref)) as {
     computeLayoutMetrics: (layout: unknown) => LayoutMetrics;
   };
 
   return async (yaml: string): Promise<{ xml: string; metrics: LayoutMetrics; validation: ValidationReport }> => {
-    const result = await compilerMod.compileCervinYamlWithLayout(yaml);
+    const result = await compilerMod.compileTransitrixYamlWithLayout(yaml);
     const metrics = metricsMod.computeLayoutMetrics(result.layout);
     return { xml: result.xml, metrics, validation: result.validation };
   };

@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import { createRequire } from 'node:module'
 
 import type { ValidationRule } from './validator-types.js'
-import type { CervinrcConfig, ConfigError } from './validator-types.js'
+import type { TransitrixrcConfig, ConfigError } from './validator-types.js'
 
 const require = createRequire(import.meta.url)
 type AjvClass = typeof import('ajv').default
@@ -49,7 +49,7 @@ function formatAjvErrors(): string[] {
 /**
  * Validate raw data against .cervinrc schema.
  */
-function validateCervinrcDocument(data: unknown): asserts data is CervinrcConfig {
+function validateCervinrcDocument(data: unknown): asserts data is TransitrixrcConfig {
   if (!validateConfig(data)) {
     const err = new Error('Config validation failed') as ConfigError
     err.errors = formatAjvErrors()
@@ -78,7 +78,7 @@ function noteCervinrcDeprecation(): void {
  * Read, JSON-parse and schema-validate a single rc file. `fileLabel` is the
  * bare filename used in error messages so they name the file actually read.
  */
-function loadRcFile(rcPath: string, fileLabel: string): CervinrcConfig {
+function loadRcFile(rcPath: string, fileLabel: string): TransitrixrcConfig {
   try {
     const content = readFileSync(rcPath, 'utf8')
     const parsed = JSON.parse(content) as unknown
@@ -107,7 +107,7 @@ function loadRcFile(rcPath: string, fileLabel: string): CervinrcConfig {
  * @returns Validated config, or empty config if no file is found
  * @throws ConfigError if a file exists but is invalid JSON or fails schema validation
  */
-export function loadTransitrixrc(startPath: string = process.cwd()): CervinrcConfig {
+export function loadTransitrixrc(startPath: string = process.cwd()): TransitrixrcConfig {
   const transitrixPath = join(startPath, TRANSITRIXRC_FILE)
   if (existsSync(transitrixPath)) {
     return loadRcFile(transitrixPath, TRANSITRIXRC_FILE)
@@ -126,7 +126,7 @@ export function loadTransitrixrc(startPath: string = process.cwd()): CervinrcCon
  * @deprecated Use {@link loadTransitrixrc}. Retained as a compatibility alias
  * through the 1.x line; reads `.transitrixrc` then falls back to `.cervinrc`.
  */
-export function loadCervinrc(startPath: string = process.cwd()): CervinrcConfig {
+export function loadCervinrc(startPath: string = process.cwd()): TransitrixrcConfig {
   return loadTransitrixrc(startPath)
 }
 
@@ -138,7 +138,7 @@ export function loadCervinrc(startPath: string = process.cwd()): CervinrcConfig 
  */
 export function assertNoCriticalRuleDowngrade(
   registeredRules: Map<string, ValidationRule>,
-  config: CervinrcConfig,
+  config: TransitrixrcConfig,
 ): void {
   if (!config.rules) return
 
@@ -168,7 +168,7 @@ export function assertNoCriticalRuleDowngrade(
  */
 export function mergeConfigWithDefaults(
   registeredRules: Map<string, ValidationRule>,
-  config: CervinrcConfig,
+  config: TransitrixrcConfig,
 ): Set<string> {
   const enabledRules = new Set<string>()
 
