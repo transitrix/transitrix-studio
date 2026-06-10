@@ -58,3 +58,26 @@ export function inputMatchesExtension(filePath: string, exts: string[]): boolean
   const lowered = filePath.replace(/\\/g, '/').toLowerCase();
   return exts.some((e) => lowered.endsWith(e.toLowerCase()));
 }
+
+/**
+ * Cervin → Transitrix deprecation (CLAUDE.md §Cervin naming, P1). The `cervin`
+ * binary is a kept-for-compatibility alias of `transitrix`; both bin entries
+ * resolve to the same `dist/cli.js`. We surface a one-line deprecation notice
+ * when the tool was launched under the legacy name.
+ *
+ * Detection is best-effort from the invocation path (argv[1]): on POSIX, npm
+ * installs the bin as a symlink whose basename is the alias the user typed
+ * (`.../bin/cervin`), so this fires. On Windows the `.cmd` shim invokes node
+ * with the resolved `cli.js` path, so the legacy name is not observable there
+ * and no notice is shown — acceptable graceful degradation for a hint.
+ */
+export const CERVIN_DEPRECATION_NOTICE =
+  'cervin: the `cervin` command is deprecated and will be removed in 2.0.0 — use `transitrix` instead.';
+
+export function invokedAsCervin(argv1: string | undefined): boolean {
+  if (!argv1) return false;
+  const base = argv1.replace(/\\/g, '/').split('/').pop() ?? '';
+  // Strip a trailing extension (.js, .cmd, .exe) before matching the stem.
+  const stem = base.replace(/\.[^.]+$/, '').toLowerCase();
+  return stem === 'cervin';
+}

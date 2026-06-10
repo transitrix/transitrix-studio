@@ -3,8 +3,10 @@ import { writeFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 
 import {
+  CERVIN_DEPRECATION_NOTICE,
   DEFAULT_CERVIN_FILE_EXTENSIONS,
   inputMatchesExtension,
+  invokedAsCervin,
   parseCliFileArgv,
 } from './cli-parse.js';
 import { compileCervinYamlWithLayout } from './compiler.js';
@@ -16,14 +18,16 @@ import type { ProcessIr } from './ir.js';
 
 function printUsage(): void {
   console.error(`Transitrix Studio CLI — usage:
-       cervin serve [--port 8765] [--host 127.0.0.1]
-       cervin <input.yaml> <output.bpmn> [--no-metrics] [--no-validate]
-       cervin [--ext=.cervin.yaml,.bpmn.transitrix.yaml] <input.yaml> <output.bpmn> [--no-metrics] [--no-validate]
-       cervin metrics <input.yaml> [--json]
-       cervin metrics [--ext=.cervin.yaml,.bpmn.transitrix.yaml] <input.yaml> [--json]
-       cervin validate <input.yaml> [--json]
-       cervin validate [--ext=.cervin.yaml,.bpmn.transitrix.yaml] <input.yaml> [--json]
-       cervin export-compliance [--format md|pdf] [--scope law:<ID>|product:<ID>|gap] [--output <path>] [--root <dir>]
+       transitrix serve [--port 8765] [--host 127.0.0.1]
+       transitrix <input.yaml> <output.bpmn> [--no-metrics] [--no-validate]
+       transitrix [--ext=.cervin.yaml,.bpmn.transitrix.yaml] <input.yaml> <output.bpmn> [--no-metrics] [--no-validate]
+       transitrix metrics <input.yaml> [--json]
+       transitrix metrics [--ext=.cervin.yaml,.bpmn.transitrix.yaml] <input.yaml> [--json]
+       transitrix validate <input.yaml> [--json]
+       transitrix validate [--ext=.cervin.yaml,.bpmn.transitrix.yaml] <input.yaml> [--json]
+       transitrix export-compliance [--format md|pdf] [--scope law:<ID>|product:<ID>|gap] [--output <path>] [--root <dir>]
+
+  ('cervin' is a deprecated alias of 'transitrix'; both run the same CLI.)
 
   serve     — local web UI (run npm run ui:build once beforehand).
   <compile> — YAML → BPMN 2.0 XML with layout metrics.
@@ -38,11 +42,11 @@ function printUsage(): void {
   --no-validate suppress validation warnings (errors always run).
 
 Examples:
-  npm run cervin -- compile input.cervin.yaml output.bpmn
-  npm run cervin -- serve
-  npm run cervin -- metrics example.cervin.yaml --json
-  npm run cervin -- validate example.cervin.yaml
-  npm run cervin -- validate example.cervin.yaml --json
+  npm run transitrix -- compile input.cervin.yaml output.bpmn
+  npm run transitrix -- serve
+  npm run transitrix -- metrics example.cervin.yaml --json
+  npm run transitrix -- validate example.cervin.yaml
+  npm run transitrix -- validate example.cervin.yaml --json
 `);
 }
 
@@ -343,6 +347,12 @@ async function handleMetricsCommand(argv: string[]): Promise<void> {
     err.errors?.forEach((line) => console.error(`  • ${line}`));
     process.exit(1);
   }
+}
+
+// Cervin → Transitrix deprecation (P1): warn once when launched under the
+// legacy `cervin` bin name. Goes to stderr so it never pollutes --json output.
+if (invokedAsCervin(process.argv[1])) {
+  console.error(CERVIN_DEPRECATION_NOTICE);
 }
 
 const subcommand = process.argv[2];
