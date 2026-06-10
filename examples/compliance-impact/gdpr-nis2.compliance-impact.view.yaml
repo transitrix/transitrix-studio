@@ -1,0 +1,34 @@
+# Compliance-impact view-config — NorthBay Retail EU regime (GDPR + NIS2).
+# Open in Transitrix Studio with the "Compliance Impact" command to see the
+# obligation × product matrix for the fictional NorthBay Retail demo scenario.
+#
+# Files that feed this view:
+#   examples/compliance/requirements/REQUIREMENT-GDPR-*.yaml
+#   examples/compliance/requirements/REQUIREMENT-NIS2-*.yaml
+#   examples/compliance/assertions/ASSERTION-ECOMM-*.yaml
+#   examples/compliance/assertions/ASSERTION-SUPPORT-*.yaml
+#   examples/codex/external/EU/LAW-GDPR-1.yaml
+#   examples/codex/external/EU/LAW-NIS2-1.yaml
+
+view:
+  id: COMPLIANCE_IMPACT-NORTHBAY-EU-1
+  name: "NorthBay Retail — EU Compliance Impact (GDPR + NIS2)"
+  description: >
+    Obligation × product matrix scoped to the EU jurisdiction (GDPR and NIS2).
+    Shows which regulatory requirements bind each product and the current
+    compliance status. Gaps (no assertion) appear as empty cells. Deadline
+    decorations indicate overdue or imminent remediation targets.
+  snapshot_at: "2026-06-01"
+
+  subjects:
+    products:
+      - PRODUCT-ECOMM-1      # E-Commerce Platform
+      - PRODUCT-SUPPORT-1    # Customer Support Service
+
+  obligations:
+    filter:
+      derived_from_codex:
+        - LAW-GDPR-1
+        - LAW-NIS2-1
+
+  order_rows_by: id
