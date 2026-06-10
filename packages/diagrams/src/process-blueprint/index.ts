@@ -2,6 +2,7 @@ export type {
   AspectCategory,
   Stage,
   AspectEntry,
+  LaneConfig,
   ProcessBlueprintHeader,
   ProcessBlueprintFile,
   ProcessBlueprintLayoutOptions,
@@ -11,6 +12,13 @@ export type {
   AspectPill,
   AspectRow,
   ProcessBlueprintLayout,
+  ComplianceDecoration,
+  ComplianceChip,
+  ComplianceRow,
+  ComplianceLaneConfig,
+  ComplianceLaneAssertion,
+  ComplianceLaneRequirement,
+  ComplianceLaneInput,
 } from './types.js';
 
 export { validateProcessBlueprint } from './validate.js';

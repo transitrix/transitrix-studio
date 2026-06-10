@@ -11,6 +11,7 @@
  */
 import { layoutProcessBlueprint } from '../process-blueprint/layout.js';
 import type {
+  ComplianceChip,
   ProcessBlueprintFile,
   ProcessBlueprintLayout,
 } from '../process-blueprint/types.js';
@@ -42,6 +43,48 @@ function textCellSvg(
     .map((ln, i) => `<tspan x="${x}" y="${first + i * lineHeight}">${escXml(ln)}</tspan>`)
     .join('');
   return `<text class="${cls}" dominant-baseline="central">${tspans}</text>`;
+}
+
+/**
+ * Render a single compliance law chip.
+ *
+ * Three orthogonal decorations are expressed as SVG overrides:
+ * - `new`      — dashed stroke border  (`stroke-dasharray="4 2"`)
+ * - `gap`      — warning-level fill    (`class="…compliance-gap"`)
+ * - `deadline` — urgent fill override  (`class="…compliance-deadline"`) + a small
+ *                badge circle in the top-right corner
+ */
+function complianceChipSvg(chip: ComplianceChip, ox: number, oy: number): string {
+  const { x, y, width, height, lawId, decorations } = chip;
+  const ax = x + ox;
+  const ay = y + oy;
+  const rx = 6;
+  const hasNew = decorations.includes('new');
+  const hasGap = decorations.includes('gap');
+  const hasDeadline = decorations.includes('deadline');
+
+  let rectClass = 'diagram-node level-5 compliance-chip';
+  if (hasDeadline) rectClass += ' compliance-deadline';
+  else if (hasGap) rectClass += ' compliance-gap';
+
+  const strokeDash = hasNew ? ' stroke-dasharray="4 2"' : '';
+  const parts: string[] = [];
+  parts.push(
+    `<rect class="${rectClass}" x="${ax}" y="${ay}" width="${width}" height="${height}" rx="${rx}"${strokeDash}/>`,
+  );
+  parts.push(
+    `<text class="text-pill" x="${ax + width / 2}" y="${ay + height / 2}" text-anchor="middle" dominant-baseline="central">${escXml(truncate(lawId, Math.floor(width / 8)))}</text>`,
+  );
+  if (hasDeadline) {
+    const br = 5;
+    const bx = ax + width - br - 3;
+    const by = ay + br + 3;
+    parts.push(`<circle class="compliance-badge" cx="${bx}" cy="${by}" r="${br}"/>`);
+    parts.push(
+      `<text class="compliance-badge-text" x="${bx}" y="${by}" text-anchor="middle" dominant-baseline="central">!</text>`,
+    );
+  }
+  return parts.join('\n');
 }
 
 export interface RenderProcessBlueprintOptions {
@@ -128,6 +171,23 @@ export function renderProcessBlueprintSvg(
       parts.push(
         `<text class="text-pill" x="${p.x + ox + p.width / 2}" y="${p.y + oy + p.height / 2}" text-anchor="middle" dominant-baseline="central">${escXml(truncate(label, Math.floor(p.width / 8)))}</text>`,
       );
+    }
+  }
+
+  // Compliance row (optional).
+  if (layout.complianceRow) {
+    const row = layout.complianceRow;
+    parts.push(
+      `<rect class="diagram-node level-5" x="${layout.legendColumnWidth + ox}" y="${row.y + oy}" width="${layout.bounds.width - layout.legendColumnWidth}" height="${row.height}" opacity="0.10"/>`,
+    );
+    for (let i = 1; i < layout.stageHeaders.length; i++) {
+      const x = layout.legendColumnWidth + i * layout.stageColumnWidth + ox;
+      parts.push(
+        `<line class="diagram-edge" x1="${x}" y1="${row.y + oy}" x2="${x}" y2="${row.y + row.height + oy}" opacity="0.3"/>`,
+      );
+    }
+    for (const chip of row.chips) {
+      parts.push(complianceChipSvg(chip, ox, oy));
     }
   }
 
