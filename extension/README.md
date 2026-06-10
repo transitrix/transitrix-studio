@@ -2,7 +2,7 @@
 
 **Architecture-as-code for the modern enterprise.** Describe your organisation — goals, processes, capabilities, applications, BPMN flows — in plain YAML, and Transitrix Studio renders live diagrams inside VS Code. Review architectural changes like pull requests. Diff them. Version them. Hand them to an AI that actually reads YAML.
 
-![Process landscape preview — YAML on the left, rendered diagram on the right](docs/preview.png)
+![Process landscape preview — YAML on the left, rendered diagram on the right](https://raw.githubusercontent.com/transitrix/transitrix-studio/main/extension/docs/preview.png)
 
 ## Why text-native architecture?
 
@@ -15,7 +15,7 @@ Transitrix flips that:
 - **AI works with it natively** — your assistant can read, edit, and reason about the entire enterprise model without leaving the repo.
 - **Built on open standards** — ArchiMate 3.2, BPMN 2.0, CMM. Your investment survives any single tool.
 
-## 13 notations, one extension
+## 17 notations, one extension
 
 | Domain | Notation | Use it for |
 |---|---|---|
@@ -26,10 +26,15 @@ Transitrix flips that:
 | Process | **Process blueprint** | Stage-by-stage design with systems, actors, equipment, information |
 | Process | **BPMN** | Full BPMN 2.0 — YAML-authored, BPMN-rendered |
 | Schedule | **Activity network** | PSND / AoN diagrams + Gantt + critical path |
+| Schedule | **Activity card** | Single-project narrative: scope, motivation chain, milestones |
 | Risk | **Scenarios** | Scenario planning across factors |
 | Catalogue | **Applications** | Applications, integrations, platforms, data stores |
 | Catalogue | **Products** | Digital products, services, bundles |
 | Decomposition | **Nested blocks** | Recursive block tree |
+| Compliance | **Compliance impact** | Obligation × subject impact matrix |
+| Compliance | **Compliance matrix** | Products × requirements coverage view |
+| Compliance | **Coverage metric** | Law coverage stats with RAG status |
+| Compliance | **Gap dashboard** | Open gaps: unasserted requirements, stale assertions |
 
 Every preview ships with a toolbar: title toggle, discrete zoom (50–200%), save as SVG, save as PNG (2× for crisp output), and copy PNG to clipboard (Windows today; macOS / Linux planned).
 
