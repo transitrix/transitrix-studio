@@ -39,6 +39,7 @@
     "test:diagrams": "npm --workspace packages/diagrams test",
     "test:watch": "vitest",
     "metrics:baseline": "npm run build && node scripts/measure-baseline.mjs",
+    "transitrix": "tsx src/cli.ts",
     "cervin": "tsx src/cli.ts",
     "ui:dev": "vite dev --config ui/vite.config.ts",
     "ui:build": "vite build --config ui/vite.config.ts",
@@ -49,6 +50,7 @@
     "sync-examples": "node scripts/sync-examples-from-methodology.mjs"
   },
   "bin": {
+    "transitrix": "./dist/cli.js",
     "cervin": "./dist/cli.js"
   },
   "dependencies": {

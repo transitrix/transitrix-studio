@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  CERVIN_DEPRECATION_NOTICE,
   DEFAULT_CERVIN_FILE_EXTENSIONS,
+  invokedAsCervin,
   parseCliFileArgv,
   inputMatchesExtension,
 } from '../src/cli-parse.js';
@@ -47,5 +49,35 @@ describe('cli-parse', () => {
       ok: true,
       positional: ['models/x.cervin.yaml', 'out/generated.bpmn'],
     });
+  });
+});
+
+describe('invokedAsCervin (Cervin deprecation P1)', () => {
+  it('detects the legacy cervin bin on POSIX symlink paths', () => {
+    expect(invokedAsCervin('/usr/local/bin/cervin')).toBe(true);
+    expect(invokedAsCervin('/home/u/project/node_modules/.bin/cervin')).toBe(true);
+  });
+
+  it('detects cervin via a Windows path and extension stem', () => {
+    expect(invokedAsCervin('C:\\Users\\u\\AppData\\npm\\cervin')).toBe(true);
+    expect(invokedAsCervin('C:\\tools\\cervin.cmd')).toBe(true);
+    expect(invokedAsCervin('/path/cervin.js')).toBe(true);
+  });
+
+  it('is case-insensitive on the stem', () => {
+    expect(invokedAsCervin('/usr/bin/CERVIN')).toBe(true);
+  });
+
+  it('does not fire for transitrix or the bundled cli.js', () => {
+    expect(invokedAsCervin('/usr/local/bin/transitrix')).toBe(false);
+    expect(invokedAsCervin('/app/dist/cli.js')).toBe(false);
+    expect(invokedAsCervin('/path/cerviner')).toBe(false);
+    expect(invokedAsCervin(undefined)).toBe(false);
+    expect(invokedAsCervin('')).toBe(false);
+  });
+
+  it('exposes a deprecation notice that names transitrix', () => {
+    expect(CERVIN_DEPRECATION_NOTICE).toMatch(/transitrix/);
+    expect(CERVIN_DEPRECATION_NOTICE).toMatch(/deprecated/i);
   });
 });
