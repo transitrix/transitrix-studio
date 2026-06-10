@@ -129,12 +129,12 @@ describe('parseCanonicalGoals', () => {
 });
 
 describe('parseCanonicalGoals — example file regression', () => {
-  const EXAMPLES_DIR = path.resolve(process.cwd(), '..', '..', 'examples', 'goals');
+  const EXAMPLES_DIR = path.resolve(process.cwd(), '..', '..', 'tests', 'fixtures', 'notation-corpus', 'goals');
   const files = fs.existsSync(EXAMPLES_DIR)
     ? fs.readdirSync(EXAMPLES_DIR).filter((f) => f.endsWith('.transitrix.yaml'))
     : [];
   for (const file of files) {
-    it(`accepts examples/goals/${file}`, () => {
+    it(`accepts tests/fixtures/notation-corpus/goals/${file}`, () => {
       const text = fs.readFileSync(path.join(EXAMPLES_DIR, file), 'utf8');
       const parsedYaml = yaml.load(text);
       const r = parseCanonicalGoals(parsedYaml);

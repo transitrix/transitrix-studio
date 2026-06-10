@@ -4,7 +4,7 @@ import * as path from 'node:path';
 import yaml from 'js-yaml';
 import { validateProcessBlueprint } from '../validate.js';
 
-const EXAMPLES_DIR = path.resolve(process.cwd(), '..', '..', 'examples', 'process-blueprint');
+const EXAMPLES_DIR = path.resolve(process.cwd(), '..', '..', 'tests', 'fixtures', 'notation-corpus', 'process-blueprint');
 
 const VALID_BLUEPRINT = {
   notation: 'process-blueprint',
@@ -299,7 +299,7 @@ describe('process-blueprint examples (regression)', () => {
   const files = fs.readdirSync(EXAMPLES_DIR).filter(f => f.endsWith('.yaml'));
   expect(files.length).toBeGreaterThan(0);
   for (const file of files) {
-    it(`validates examples/process-blueprint/${file}`, () => {
+    it(`validates tests/fixtures/notation-corpus/process-blueprint/${file}`, () => {
       const text = fs.readFileSync(path.join(EXAMPLES_DIR, file), 'utf8');
       const parsed = yaml.load(text);
       const r = validateProcessBlueprint(parsed);

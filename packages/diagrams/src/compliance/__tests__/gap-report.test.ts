@@ -50,7 +50,7 @@ describe('buildGapReport', () => {
 
 // ── Conformance on the acme_corp worked examples ────────────────────────────
 
-const examples = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../../../examples');
+const examples = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../../../tests/fixtures/notation-corpus');
 function loadAll(dir: string): Record<string, unknown>[] {
   const full = path.join(examples, dir);
   return readdirSync(full).filter(f => f.endsWith('.yaml')).map(f => yaml.load(readFileSync(path.join(full, f), 'utf-8')) as Record<string, unknown>);

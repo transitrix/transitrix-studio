@@ -4,7 +4,7 @@ import * as path from 'node:path';
 import yaml from 'js-yaml';
 import { validateScenario } from '../validate.js';
 
-const EXAMPLES_DIR = path.resolve(process.cwd(), '..', '..', 'examples', 'scenarios');
+const EXAMPLES_DIR = path.resolve(process.cwd(), '..', '..', 'tests', 'fixtures', 'notation-corpus', 'scenarios');
 
 const VALID_SCENARIO = {
   notation: 'scenarios',
@@ -198,7 +198,7 @@ describe('scenarios examples (regression)', () => {
   const files = fs.readdirSync(EXAMPLES_DIR).filter(f => f.endsWith('.yaml'));
   expect(files.length).toBeGreaterThan(0);
   for (const file of files) {
-    it(`validates examples/scenarios/${file}`, () => {
+    it(`validates tests/fixtures/notation-corpus/scenarios/${file}`, () => {
       const text = fs.readFileSync(path.join(EXAMPLES_DIR, file), 'utf8');
       const parsed = yaml.load(text);
       const r = validateScenario(parsed);

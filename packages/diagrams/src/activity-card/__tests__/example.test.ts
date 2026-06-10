@@ -1,6 +1,6 @@
 // Conformance test for the shipped worked example. Exercises the full
 // validate → resolve → layout pipeline against the real co-located example
-// files under `examples/activity-card/`, so the success signal of #134 is
+// files under `tests/fixtures/notation-corpus/activity-card/`, so the success signal of #134 is
 // pinned and any drift in the example or the resolver is caught by CI.
 
 import { describe, it, expect } from 'vitest';
@@ -15,7 +15,7 @@ import type { ActivityCardDoc } from '../types.js';
 
 const dir = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
-  '../../../../../examples/activity-card',
+  '../../../../../tests/fixtures/notation-corpus/activity-card',
 );
 const load = (f: string): unknown => yaml.load(readFileSync(path.join(dir, f), 'utf-8'));
 

@@ -1,0 +1,182 @@
+notation: process-map
+spec_version: "0.1"
+title: NorthBay Retail — Enterprise Process Landscape
+description: 25-process landscape spanning operating, supporting, and management groups for a mid-size retailer.
+version: "2.0"
+date: "2026-05-12"
+
+process_map:
+  id: PROCESS_MAP-NB-RETAIL-1
+  name: NorthBay Retail — Enterprise Process Landscape
+  description: Top-level inventory of operating, supporting, and management processes. Capability references map to the NorthBay capability map.
+  version: "2.0"
+  updated_at: "2026-05-12"
+
+  groups:
+    - id: PROCESS_GROUP-OPERATING-1
+      name: Operating Processes
+      type: operating
+      description: Core value-delivering processes from sourcing through fulfilment.
+      processes:
+        - process_id: PROCESS-NB-SOURCE-1
+          name: Strategic Sourcing
+          owner_role: ROLE-SOURCING-001
+          capability: V2.1.1
+          maturity: 3
+          status: Active
+          description: Identify, evaluate, and onboard strategic suppliers.
+        - process_id: PROCESS-NB-PURCHASE-1
+          name: Purchase Order Processing
+          owner_role: ROLE-PROC-001
+          capability: V2.1
+          maturity: 4
+          status: Active
+        - process_id: PROCESS-NB-INV-FORECAST-1
+          name: Demand Forecasting
+          owner_role: ROLE-SUPPLY-001
+          capability: V2.2.1
+          maturity: 2
+          status: Active
+          bpmn_file: views/bpmn/DEMAND_FORECAST_process.bpmn.transitrix.yaml
+          description: AI-assisted SKU-level demand prediction.
+        - process_id: PROCESS-NB-INV-REPLEN-1
+          name: Store Replenishment
+          owner_role: ROLE-INV-001
+          capability: V2.2.2
+          maturity: 3
+          status: Active
+        - process_id: PROCESS-NB-RECEIVE-1
+          name: Inbound Receiving
+          owner_role: ROLE-WH-001
+          capability: V2.3.1
+          maturity: 4
+          status: Active
+        - process_id: PROCESS-NB-ORD-FULFILL-1
+          name: Online Order Fulfilment
+          owner_role: ROLE-FULFILL-001
+          capability: V1.2.2
+          maturity: 3
+          status: Active
+          bpmn_file: views/bpmn/ORDER_FULFILLMENT_process.bpmn.transitrix.yaml
+        - process_id: PROCESS-NB-DELIVERY-1
+          name: Last-mile Delivery
+          owner_role: ROLE-LOG-001
+          capability: V2.3.2
+          maturity: 2
+          status: Active
+          description: Self-operated and 3PL hybrid delivery to home and pickup points.
+        - process_id: PROCESS-NB-CUST-ONBOARD-1
+          name: Customer Onboarding & Account Creation
+          owner_role: ROLE-DIGITAL-001
+          capability: V1.2
+          maturity: 2
+          status: Active
+        - process_id: PROCESS-NB-RETURNS-1
+          name: Returns & Refunds Processing
+          owner_role: ROLE-CS-001
+          capability: V1.3.3
+          maturity: 3
+          status: Active
+        - process_id: PROCESS-NB-LOYALTY-1
+          name: Loyalty Programme Operations
+          owner_role: ROLE-LOYALTY-001
+          capability: V1.1.2
+          maturity: 3
+          status: Active
+
+    - id: PROCESS_GROUP-SUPPORTING-1
+      name: Supporting Processes
+      type: supporting
+      description: Enabling and shared services across the enterprise.
+      processes:
+        - process_id: PROCESS-NB-HR-RECRUIT-1
+          name: Recruitment
+          owner_role: ROLE-HR-001
+          maturity: 3
+          status: Active
+        - process_id: PROCESS-NB-HR-PAYROLL-1
+          name: Payroll Operations
+          owner_role: ROLE-PAYROLL-001
+          maturity: 4
+          status: Active
+        - process_id: PROCESS-NB-FIN-CLOSE-1
+          name: Monthly Financial Close
+          owner_role: ROLE-CONTROLLER-001
+          capability: V3.2
+          maturity: 4
+          status: Active
+        - process_id: PROCESS-NB-IT-INCIDENT-1
+          name: IT Incident Response
+          owner_role: ROLE-IT-001
+          capability: H2
+          maturity: 2
+          status: Active
+          description: 24/7 incident response with severity-based escalation.
+        - process_id: PROCESS-NB-MKT-CAMPAIGN-1
+          name: Marketing Campaign Management
+          owner_role: ROLE-MKTG-001
+          capability: V1.1.1
+          maturity: 2
+          status: Active
+        - process_id: PROCESS-NB-LEGAL-REVIEW-1
+          name: Contract Legal Review
+          owner_role: ROLE-LEGAL-001
+          maturity: 3
+          status: Active
+        - process_id: PROCESS-NB-VENDOR-MGT-1
+          name: Vendor Management
+          owner_role: ROLE-VENDOR-001
+          capability: V2.1.1
+          maturity: 3
+          status: Active
+        - process_id: PROCESS-NB-DATA-QUALITY-1
+          name: Master Data Quality Reviews
+          owner_role: ROLE-DATAGOV-001
+          capability: H1
+          maturity: 1
+          status: Draft
+          description: Quarterly product, customer, and supplier MDM audits.
+
+    - id: PROCESS_GROUP-MANAGEMENT-1
+      name: Management Processes
+      type: management
+      description: Governance, planning, and oversight.
+      processes:
+        - process_id: PROCESS-NB-STRAT-PLAN-1
+          name: Annual Strategy Planning
+          owner_role: ROLE-CEO-001
+          maturity: 3
+          status: Active
+        - process_id: PROCESS-NB-BUDGET-1
+          name: Annual Budget Cycle
+          owner_role: ROLE-FIN-001
+          capability: V3.3
+          maturity: 4
+          status: Active
+        - process_id: PROCESS-NB-RISK-1
+          name: Enterprise Risk Review
+          owner_role: ROLE-RISK-001
+          maturity: 2
+          status: Active
+        - process_id: PROCESS-NB-COMPLIANCE-1
+          name: Compliance Audit
+          owner_role: ROLE-LEGAL-001
+          capability: H3
+          maturity: 2
+          status: Active
+        - process_id: PROCESS-NB-PERF-REVIEW-1
+          name: Quarterly Business Performance Review
+          owner_role: ROLE-COO-001
+          maturity: 3
+          status: Active
+        - process_id: PROCESS-NB-BOARD-REPORT-1
+          name: Board Reporting
+          owner_role: ROLE-CEO-001
+          maturity: 4
+          status: Active
+        - process_id: PROCESS-NB-MA-PIPELINE-1
+          name: M&A Pipeline Review
+          owner_role: ROLE-CORPDEV-001
+          maturity: 1
+          status: Deprecated
+          description: Paused in 2026 — reactivation pending strategy refresh.

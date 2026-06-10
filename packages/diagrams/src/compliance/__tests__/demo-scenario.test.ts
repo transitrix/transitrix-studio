@@ -14,7 +14,7 @@ import { parseImpactViewConfig, buildImpactMatrix } from '../impact.js';
 import { emptyCanon, ingestComplianceDoc } from '../classify.js';
 import type { IndexAssertion, IndexRequirement, ComplianceIndex } from '../types.js';
 
-const EXAMPLES = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../../../examples');
+const EXAMPLES = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../../../tests/fixtures/notation-corpus');
 
 function loadYamlDir(dir: string): Record<string, unknown>[] {
   const full = path.join(EXAMPLES, dir);
@@ -251,7 +251,7 @@ describe('compliance-impact view-config — gdpr-nis2', () => {
 
 // ── Regression: existing worked examples unaffected ─────────────────────────
 
-describe('regression — existing examples/requirement + examples/assertion unchanged', () => {
+describe('regression — existing tests/fixtures/notation-corpus/requirement + tests/fixtures/notation-corpus/assertion unchanged', () => {
   const reqs: IndexRequirement[] = loadYamlDir('requirement').map(r => ({
     id: String(r.id),
     name: String(r.name),

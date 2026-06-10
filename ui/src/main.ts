@@ -5,10 +5,10 @@ import './style.css';
 import NavigatedViewer from 'bpmn-js/lib/NavigatedViewer.js';
 import yaml from 'js-yaml';
 
-import initialYaml from '../../examples/bpmn/order-fulfillment.cervin.yaml?raw';
-import nestedBlocksAscii from '../../examples/nested-blocks/nested.txt?raw';
-import blocksTablesMarkdown from '../../examples/nested-blocks/tables.md?raw';
-import initialGoalsYaml from '../../examples/goals/strategy-2026.goals.transitrix.yaml?raw';
+import initialYaml from '../../tests/fixtures/notation-corpus/bpmn/order-fulfillment.cervin.yaml?raw';
+import nestedBlocksAscii from '../../tests/fixtures/notation-corpus/nested-blocks/nested.txt?raw';
+import blocksTablesMarkdown from '../../tests/fixtures/notation-corpus/nested-blocks/tables.md?raw';
+import initialGoalsYaml from '../../tests/fixtures/notation-corpus/goals/strategy-2026.goals.transitrix.yaml?raw';
 
 import { validateGoalTree, layoutGoalTree } from '../../packages/diagrams/src/goals/index.js';
 import type { GoalTree, GoalTreeLayout, LaidOutNode, LaidOutEdge } from '../../packages/diagrams/src/goals/types.js';
@@ -173,7 +173,7 @@ ${renderLayoutDrawer().replace('<details class="layout-drawer"', '<details class
           <option value="markdown_tables">Markdown document (all tables)</option>
         </select>
       </label>
-      <p class="blocks-hint muted">Nested blocks render natively from structured YAML (<code>*.blocks.transitrix.yaml</code>). Samples: <code>examples/blocks/</code>. The ASCII and Markdown table modes below are legacy input shapes for this browser UI tab.</p>
+      <p class="blocks-hint muted">Nested blocks render natively from structured YAML (<code>*.blocks.transitrix.yaml</code>). Samples: <code>organizations/acme_corp/canon/views/blocks/</code>. The ASCII and Markdown table modes below are legacy input shapes for this browser UI tab.</p>
     </div>
     <div class="editor-wrap">
       <textarea id="yaml" spellcheck="false" aria-label="BPMN YAML source"></textarea>
