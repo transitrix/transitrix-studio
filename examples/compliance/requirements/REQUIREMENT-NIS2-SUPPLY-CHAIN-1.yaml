@@ -1,0 +1,29 @@
+# Demo requirement — NIS2 Art. 21 supply-chain risk management.
+# NorthBay Retail EU compliance demo scenario.
+
+notation: requirement
+id: REQUIREMENT-NIS2-SUPPLY-CHAIN-1
+name: "Assess and manage cybersecurity risks in the supply chain"
+description: >
+  Entities must implement measures to assess and manage cybersecurity risks arising
+  from relationships with suppliers and service providers. This includes contractual
+  security clauses, supplier risk assessments, and monitoring of critical third-party
+  dependencies. The policy must cover at least Tier-1 suppliers that can affect
+  service continuity.
+
+severity: medium
+derived_from:
+  - LAW-NIS2-1
+
+# No deadline — ongoing obligation, no specific remediation target set yet.
+
+zone: canon
+admitted_at: "2026-06-01"
+admitted_by: "v.korobeinikov"
+gate_checks:
+  uniqueness: pass
+  consistency: pass
+  completeness: pass
+
+valid_from: "2023-01-16"
+valid_to: null
