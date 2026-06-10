@@ -1,5 +1,11 @@
 # Transitrix Studio — changelog
 
+## Unreleased
+
+### Changed
+
+- **Commands renamed `cervin.*` → `transitrix.*`.** `transitrix.openPreview`, `transitrix.exportSvg`, `transitrix.exportPng` and `transitrix.exportBpmn` are now the canonical commands (the editor-title preview button uses `transitrix.openPreview`). The legacy `cervin.*` commands remain as deprecated aliases for one release so existing keybindings and macros keep working — they're hidden from the Command Palette and invoking one shows a one-time deprecation notice. Removal in 2.0.0.
+
 ## 1.4.0 — 2026-06-05
 
 Adds PDF export for the compliance views and fixes Process Blueprint cells clipping their text.

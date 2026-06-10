@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Added
+- **VS Code commands `transitrix.openPreview` / `transitrix.exportSvg` / `transitrix.exportPng` / `transitrix.exportBpmn`** — canonical replacements for the `cervin.*` commands. The editor-title preview button now invokes `transitrix.openPreview`.
+
+### Deprecated
+- **`cervin.*` extension commands are deprecated, use `transitrix.*`.** The four `cervin.*` commands are kept as aliases for one release so existing keybindings and macros survive; they are hidden from the Command Palette and labelled "(deprecated)", and invoking one logs a one-time deprecation notice before delegating to the canonical handler. Removal is slated for 2.0.0. Third phase of the Cervin → Transitrix rename (CLAUDE.md §Cervin naming, P3).
+
 ## [1.4.1] — 2026-06-09
 
 ### Fixed
