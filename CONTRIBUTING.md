@@ -16,7 +16,7 @@ See [`roadmap.md`](roadmap.md) for planned work IDs (`roadmap: RD-XXX`).
 
 ## Web UI vs "mandatory chrome" (`roadmap`: RD-043)
 
-The file-prep web app under **`ui/`** (served by `cervin serve`) is intentionally minimal: a header with actions, an optional layout drawer, a YAML pane, a BPMN preview, and a single **status** line in the footer. It does not implement a full status bar with user/DB/AI blocks, LED-style indicators, or dedicated system log. The footer is the only system feedback channel for compile/export state.
+The file-prep web app under **`ui/`** (served by `transitrix serve`) is intentionally minimal: a header with actions, an optional layout drawer, a YAML pane, a BPMN preview, and a single **status** line in the footer. It does not implement a full status bar with user/DB/AI blocks, LED-style indicators, or dedicated system log. The footer is the only system feedback channel for compile/export state.
 
 ## File naming (`roadmap`: RD-039)
 
@@ -34,11 +34,24 @@ Debug and analysis utilities are located in **`scripts/debug/`**:
 
 **Usage:**
 ```bash
-node scripts/debug/analyze-metrics.mjs examples/bpmn/feature-release.cervin.yaml
-node scripts/debug/debug-ports.mjs examples/bpmn/feature-release.cervin.yaml
+node scripts/debug/analyze-metrics.mjs tests/fixtures/notation-corpus/bpmn/feature-release.bpmn.transitrix.yaml
+node scripts/debug/debug-ports.mjs tests/fixtures/notation-corpus/bpmn/feature-release.bpmn.transitrix.yaml
 ```
 
 These are intended for development only. Not for end-user consumption.
+
+## Notation file suffixes — use the canonical `*.transitrix.yaml`
+
+New examples, fixtures, and corpus files **must** use the canonical Transitrix
+suffixes — BPMN sources are `*.bpmn.transitrix.yaml`, other notations follow the
+`*.<notation>.transitrix.yaml` pattern.
+
+The legacy **`.cervin.yaml`** suffix is still *accepted* by the compiler and editor
+for backward compatibility (see CLAUDE.md §Cervin naming), but is **deprecated** —
+do not add new `.cervin.yaml` files. A CI guard (`npm run check:no-cervin-yaml`,
+also run by the test workflow) fails the build if a new `*.cervin.yaml` file is
+committed. Existing `.cervin.yaml` fixtures, where any remain, are kept only for
+regression coverage and are not mass-renamed.
 
 ## Per-user display preferences
 
