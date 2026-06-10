@@ -117,6 +117,20 @@ function notYet(label: string): void {
   );
 }
 
+// Cervin → Transitrix command migration (CLAUDE.md §Cervin naming, P3). The
+// `cervin.*` commands are kept as deprecated aliases for one release so existing
+// keybindings and macros survive; invoking one warns once and delegates to the
+// canonical `transitrix.*` handler.
+const cervinCommandNoticeShown = new Set<string>();
+
+function noteCervinCommandDeprecation(legacyId: string, canonicalId: string): void {
+  if (cervinCommandNoticeShown.has(legacyId)) return;
+  cervinCommandNoticeShown.add(legacyId);
+  const msg = `Transitrix Studio: the '${legacyId}' command is deprecated and will be removed in 2.0.0 — use '${canonicalId}' instead.`;
+  console.warn(msg);
+  void vscode.window.showWarningMessage(msg);
+}
+
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   // Cervin → Transitrix settings migration (P2): warn once if a user config
   // still relies on a legacy `cervin.*` key while its `transitrix.*` counterpart
@@ -170,21 +184,35 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const gapDashboardPreview = new GapDashboardPreview(context.extensionUri);
   const coverageMetricPreview = new CoverageMetricPreview(context.extensionUri);
 
+  const openPreviewHandler = async (): Promise<void> => {
+    const doc = vscode.window.activeTextEditor?.document;
+    const exts = getConfiguredExtensions();
+    if (!doc || !documentMatchesCervinSource(doc)) {
+      vscode.window.showWarningMessage(
+        `Open a file with one of these suffixes: ${formatExtensionHint(exts)} (configure with transitrix.fileExtensions).`,
+      );
+      return;
+    }
+    await preview.showOrReveal(doc);
+  };
+
+  // Canonical transitrix.* commands (P3) plus deprecated cervin.* aliases that
+  // delegate to the same handler after a one-time deprecation notice.
+  const aliasOf = (legacyId: string, canonicalId: string, run: () => void | Promise<void>) =>
+    vscode.commands.registerCommand(legacyId, () => {
+      noteCervinCommandDeprecation(legacyId, canonicalId);
+      return run();
+    });
+
   context.subscriptions.push(
-    vscode.commands.registerCommand('cervin.openPreview', async () => {
-      const doc = vscode.window.activeTextEditor?.document;
-      const exts = getConfiguredExtensions();
-      if (!doc || !documentMatchesCervinSource(doc)) {
-        vscode.window.showWarningMessage(
-          `Open a file with one of these suffixes: ${formatExtensionHint(exts)} (configure with transitrix.fileExtensions).`,
-        );
-        return;
-      }
-      await preview.showOrReveal(doc);
-    }),
-    vscode.commands.registerCommand('cervin.exportSvg', () => notYet('SVG')),
-    vscode.commands.registerCommand('cervin.exportPng', () => notYet('PNG')),
-    vscode.commands.registerCommand('cervin.exportBpmn', () => notYet('.bpmn export')),
+    vscode.commands.registerCommand('transitrix.openPreview', openPreviewHandler),
+    vscode.commands.registerCommand('transitrix.exportSvg', () => notYet('SVG')),
+    vscode.commands.registerCommand('transitrix.exportPng', () => notYet('PNG')),
+    vscode.commands.registerCommand('transitrix.exportBpmn', () => notYet('.bpmn export')),
+    aliasOf('cervin.openPreview', 'transitrix.openPreview', openPreviewHandler),
+    aliasOf('cervin.exportSvg', 'transitrix.exportSvg', () => notYet('SVG')),
+    aliasOf('cervin.exportPng', 'transitrix.exportPng', () => notYet('PNG')),
+    aliasOf('cervin.exportBpmn', 'transitrix.exportBpmn', () => notYet('.bpmn export')),
     vscode.commands.registerCommand('transitrixStudio.previewGoals', async () => {
       const doc = vscode.window.activeTextEditor?.document;
       if (!doc || !isGoalsFile(doc)) {

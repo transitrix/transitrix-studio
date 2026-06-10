@@ -396,26 +396,50 @@
     ],
     "commands": [
       {
-        "command": "cervin.openPreview",
+        "command": "transitrix.openPreview",
         "title": "Transitrix: Open Preview",
         "category": "Transitrix",
         "icon": "$(graph)"
       },
       {
-        "command": "cervin.exportSvg",
+        "command": "transitrix.exportSvg",
         "title": "Transitrix: Export as SVG",
         "category": "Transitrix",
         "enablement": "config.transitrix.exportEnabled || config.cervin.exportEnabled"
       },
       {
-        "command": "cervin.exportPng",
+        "command": "transitrix.exportPng",
         "title": "Transitrix: Export as PNG",
         "category": "Transitrix",
         "enablement": "config.transitrix.exportEnabled || config.cervin.exportEnabled"
       },
       {
-        "command": "cervin.exportBpmn",
+        "command": "transitrix.exportBpmn",
         "title": "Transitrix: Export as .bpmn",
+        "category": "Transitrix",
+        "enablement": "config.transitrix.exportEnabled || config.cervin.exportEnabled"
+      },
+      {
+        "command": "cervin.openPreview",
+        "title": "Transitrix: Open Preview (deprecated, use transitrix.openPreview)",
+        "category": "Transitrix",
+        "icon": "$(graph)"
+      },
+      {
+        "command": "cervin.exportSvg",
+        "title": "Transitrix: Export as SVG (deprecated, use transitrix.exportSvg)",
+        "category": "Transitrix",
+        "enablement": "config.transitrix.exportEnabled || config.cervin.exportEnabled"
+      },
+      {
+        "command": "cervin.exportPng",
+        "title": "Transitrix: Export as PNG (deprecated, use transitrix.exportPng)",
+        "category": "Transitrix",
+        "enablement": "config.transitrix.exportEnabled || config.cervin.exportEnabled"
+      },
+      {
+        "command": "cervin.exportBpmn",
+        "title": "Transitrix: Export as .bpmn (deprecated, use transitrix.exportBpmn)",
         "category": "Transitrix",
         "enablement": "config.transitrix.exportEnabled || config.cervin.exportEnabled"
       },
@@ -701,10 +725,28 @@
       }
     ],
     "menus": {
+      "commandPalette": [
+        {
+          "command": "cervin.openPreview",
+          "when": "false"
+        },
+        {
+          "command": "cervin.exportSvg",
+          "when": "false"
+        },
+        {
+          "command": "cervin.exportPng",
+          "when": "false"
+        },
+        {
+          "command": "cervin.exportBpmn",
+          "when": "false"
+        }
+      ],
       "editor/title": [
         {
           "when": "resourceFilename =~ /\\.(cervin|bpmn)\\.yaml$/",
-          "command": "cervin.openPreview",
+          "command": "transitrix.openPreview",
           "group": "navigation@-10"
         },
         {
