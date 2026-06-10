@@ -206,6 +206,7 @@ function buildComplianceLaneInput(canon: ScannedCanon): ComplianceLaneInput {
     })),
     codexJurisdictions,
   };
+
 }
 
 export class ProcessBlueprintPreview {
@@ -258,8 +259,6 @@ export class ProcessBlueprintPreview {
         errorMsg = v.errors.map(e => `${e.code}: ${e.message}`).join('\n');
       } else {
         const file = parsed as ProcessBlueprintFile;
-        // Process Blueprint nests version/date under process_blueprint:, not
-        // top-level. Per orchestrator instruction, read the nested path.
         const pb = (file as unknown as { process_blueprint?: { version?: unknown; date?: unknown } }).process_blueprint ?? {};
         const docVersion = typeof pb.version === 'string' ? pb.version : undefined;
         const docDate = typeof pb.date === 'string' ? pb.date : todayIso();
@@ -293,7 +292,12 @@ export class ProcessBlueprintPreview {
       .get<ThemeId>('theme', 'transitrix');
 
     return buildDiagramFrame({
-      filename, notation: 'Process Blueprint', svgContent, errorMsg, warnings, themeId,
+      filename,
+      notation: 'Process Blueprint',
+      svgContent,
+      errorMsg,
+      warnings,
+      themeId,
       saveSvgCommand: 'transitrixStudio.saveProcessBlueprintAsSvg',
       savePngCommand: 'transitrixStudio.saveProcessBlueprintAsPng',
       copyPngCommand: 'transitrixStudio.copyProcessBlueprintAsPng',
