@@ -54,6 +54,71 @@ export function parseCliFileArgv(argv: string[]): ParseCliFileArgvResult {
   return { ok: true, positional, extList, wantsHelp };
 }
 
+export type ValidateScope = 'file' | 'repo';
+
+export type ParseValidateArgvResult =
+  | {
+      ok: true;
+      scope: ValidateScope;
+      root: string | undefined;
+      positional: string[];
+      extList: string[];
+      wantsHelp: boolean;
+    }
+  | { ok: false; error: '--ext_requires_value' | '--scope_requires_value' | '--root_requires_value' | 'bad_scope'; scope?: ValidateScope };
+
+/**
+ * Parse `validate` argv (#141). Recognises `--scope=file|repo` (and the spaced
+ * `--scope repo` form) and `--root <dir>` for repo-scope; everything else is
+ * delegated to {@link parseCliFileArgv}. Default scope is `file`, preserving the
+ * existing per-file `validate <input.yaml>` behaviour.
+ */
+export function parseValidateArgv(argv: string[]): ParseValidateArgvResult {
+  let scope: ValidateScope = 'file';
+  let root: string | undefined;
+  const rest: string[] = [];
+
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i];
+    if (a === '--scope') {
+      const v = argv[++i];
+      if (v === undefined) return { ok: false, error: '--scope_requires_value' };
+      if (v !== 'file' && v !== 'repo') return { ok: false, error: 'bad_scope' };
+      scope = v;
+      continue;
+    }
+    if (a.startsWith('--scope=')) {
+      const v = a.slice('--scope='.length);
+      if (v !== 'file' && v !== 'repo') return { ok: false, error: 'bad_scope' };
+      scope = v;
+      continue;
+    }
+    if (a === '--root') {
+      const v = argv[++i];
+      if (v === undefined) return { ok: false, error: '--root_requires_value' };
+      root = v;
+      continue;
+    }
+    if (a.startsWith('--root=')) {
+      root = a.slice('--root='.length);
+      continue;
+    }
+    rest.push(a);
+  }
+
+  const parsed = parseCliFileArgv(rest);
+  if (!parsed.ok) return { ok: false, error: '--ext_requires_value', scope };
+
+  return {
+    ok: true,
+    scope,
+    root,
+    positional: parsed.positional,
+    extList: parsed.extList,
+    wantsHelp: parsed.wantsHelp,
+  };
+}
+
 export function inputMatchesExtension(filePath: string, exts: string[]): boolean {
   const lowered = filePath.replace(/\\/g, '/').toLowerCase();
   return exts.some((e) => lowered.endsWith(e.toLowerCase()));
