@@ -16,6 +16,7 @@ export * from "./products/index";
 export * from "./repo-validate/index";
 export * from "./requirement/index";
 export * from "./scenarios/index";
+export { SCHEMA_VERSION } from "./schema-version";
 export * from "./theme/index";
 export * from "./typed-id";
 export * from "./validation-types";
