@@ -1,0 +1,19 @@
+# First-class activity_goal relation — the project serves the EU-market goal.
+# This is the canonical, time-aware home for an Activity→Goal link; the card
+# reads the project's goals from here, not from an inline `goals:` field.
+notation: relation
+id: REL-EU-PROGRAMME-GOAL-EU-MARKET-1
+type: activity_goal
+from: ACTIVITY-EU-PROGRAMME-1
+to: GOAL-EU-MARKET-1
+
+zone: canon
+admitted_at: "2026-05-28"
+admitted_by: "v.korobeinikov"
+gate_checks:
+  uniqueness: pass
+  consistency: pass
+  completeness: pass
+
+valid_from: "2026-04-01"
+valid_to: null

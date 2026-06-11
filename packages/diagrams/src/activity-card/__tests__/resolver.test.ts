@@ -15,47 +15,62 @@ const CARD: ActivityCardDoc = {
   },
 };
 
-const ACTIVITIES_DOC = {
-  notation: 'activities',
-  activities: [
-    {
-      id: 'ACTIVITY-EU-PROGRAMME-1',
-      name: 'EU MDR conformity programme',
-      activity_type: 'Project',
-      valid_from: '2026-04-01',
-      valid_to: null,
-      start_date: '2026-04-15',
-      end_date: '2027-03-15',
-      goals: ['GOAL-EU-MARKET-1'],
-      delivers_changes: ['CHANGE-EU-COMPLIANCE-1'],
-    },
-    {
-      id: 'ACTIVITY-EU-CHILD-1',
-      name: 'Notified-body engagement',
-      parent: 'ACTIVITY-EU-PROGRAMME-1',
-      start_date: '2026-05-01',
-      end_date: '2026-12-01',
-      owner: 'UNIT-REGULATORY',
-    },
-    { id: 'ACTIVITY-UNRELATED-1', name: 'Other', parent: 'ACTIVITY-SOMETHING-ELSE-1' },
-  ],
+// ── Canon element store (one element per object) ─────────────────────────────
+const PROJECT = {
+  notation: 'activity',
+  id: 'ACTIVITY-EU-PROGRAMME-1',
+  name: 'EU MDR conformity programme',
+  valid_from: '2026-04-01',
+  valid_to: null,
+  start_date: '2026-04-15',
+  end_date: '2027-03-15',
+  delivers_changes: ['CHANGE-EU-COMPLIANCE-1'],
+};
+const CHILD = {
+  notation: 'activity',
+  id: 'ACTIVITY-EU-CHILD-1',
+  name: 'Notified-body engagement',
+  parent: 'ACTIVITY-EU-PROGRAMME-1',
+  start_date: '2026-05-01',
+  end_date: '2026-12-01',
+  owner: 'ACTOR-REGULATORY-1',
+};
+const UNRELATED = {
+  notation: 'activity',
+  id: 'ACTIVITY-UNRELATED-1',
+  name: 'Other',
+  parent: 'ACTIVITY-SOMETHING-ELSE-1',
+};
+const FACTOR = { notation: 'factor', id: 'FACTOR-EU-MDR-1', name: 'EU MDR regulation' };
+const GOAL = { notation: 'goal', id: 'GOAL-EU-MARKET-1', name: 'Access EU market', factors: ['FACTOR-EU-MDR-1'] };
+const CHANGE = {
+  notation: 'change',
+  id: 'CHANGE-EU-COMPLIANCE-1',
+  name: 'Achieve MDR compliance',
+  goals: ['GOAL-EU-MARKET-1'],
 };
 
-const FGCA_DOC = {
-  notation: 'fgca',
-  id: 'FGCA-EU-1',
-  name: 'EU chain',
-  factors: [{ id: 'FACTOR-EU-MDR-1', name: 'EU MDR regulation' }],
-  goals: [{ id: 'GOAL-EU-MARKET-1', name: 'Access EU market', factors: ['FACTOR-EU-MDR-1'] }],
-  changes: [{ id: 'CHANGE-EU-COMPLIANCE-1', name: 'Achieve MDR compliance', goals: ['GOAL-EU-MARKET-1'] }],
+// ── Canon relation store ─────────────────────────────────────────────────────
+// The project's goal link is a first-class `activity_goal` relation, not an
+// inline `goals:` field on the activity element.
+const REL_GOAL = {
+  notation: 'relation',
+  id: 'REL-EU-PROGRAMME-GOAL-1',
+  type: 'activity_goal',
+  from: 'ACTIVITY-EU-PROGRAMME-1',
+  to: 'GOAL-EU-MARKET-1',
+  valid_from: '2026-04-01',
+  valid_to: null,
 };
 
-const sources = { activitiesDocs: [ACTIVITIES_DOC], fgcaDocs: [FGCA_DOC] };
+const elements = [PROJECT, CHILD, UNRELATED, FACTOR, GOAL, CHANGE];
+const relations = [REL_GOAL];
+const sources = { elements, relations };
 
 describe('resolveActivityCard', () => {
-  it('resolves a full card', () => {
+  it('resolves a full card from elements + relations', () => {
     const r = resolveActivityCard(CARD, sources);
-    expect(r.valid).toBe(true);
+    expect(r.valid, JSON.stringify(r.errors)).toBe(true);
     const c = r.resolved!;
     expect(c.project.name).toBe('EU MDR conformity programme');
     expect(c.project.valid_from).toBe('2026-04-01');
@@ -68,18 +83,27 @@ describe('resolveActivityCard', () => {
     expect(c.childActivities.map((a) => a.id)).toEqual(['ACTIVITY-EU-CHILD-1']);
   });
 
-  it('PC-001 when the project activity is absent', () => {
-    const r = resolveActivityCard(CARD, { activitiesDocs: [], fgcaDocs: [FGCA_DOC] });
+  it('falls back to the inline goals field when no activity_goal relation exists', () => {
+    const projectWithInline = { ...PROJECT, goals: ['GOAL-EU-MARKET-1'] };
+    const r = resolveActivityCard(CARD, {
+      elements: [projectWithInline, CHILD, FACTOR, GOAL, CHANGE],
+      relations: [],
+    });
+    expect(r.valid).toBe(true);
+    expect(r.resolved!.motivation.goals.map((g) => g.id)).toEqual(['GOAL-EU-MARKET-1']);
+  });
+
+  it('PC-001 when the project activity element is absent', () => {
+    const r = resolveActivityCard(CARD, { elements: [FACTOR, GOAL, CHANGE], relations });
     expect(r.valid).toBe(false);
     expect(r.errors.some((e) => e.code === 'PC-001')).toBe(true);
   });
 
-  it('PC-002 when the activity is not a Project', () => {
-    const acts = {
-      ...ACTIVITIES_DOC,
-      activities: [{ ...ACTIVITIES_DOC.activities[0], activity_type: 'Task' }],
-    };
-    const r = resolveActivityCard(CARD, { activitiesDocs: [acts], fgcaDocs: [FGCA_DOC] });
+  it('PC-002 when the activity carries an explicit non-project type', () => {
+    const r = resolveActivityCard(CARD, {
+      elements: [{ ...PROJECT, activity_type: 'Task' }, CHILD, FACTOR, GOAL, CHANGE],
+      relations,
+    });
     expect(r.errors.some((e) => e.code === 'PC-002')).toBe(true);
   });
 
@@ -96,44 +120,41 @@ describe('resolveActivityCard', () => {
   });
 
   it('PC-004 warns when a milestone falls outside the lifecycle window', () => {
-    const acts = {
-      ...ACTIVITIES_DOC,
-      activities: [{ ...ACTIVITIES_DOC.activities[0], valid_to: '2026-12-31' }],
-    };
-    const r = resolveActivityCard(CARD, { activitiesDocs: [acts], fgcaDocs: [FGCA_DOC] });
+    const r = resolveActivityCard(CARD, {
+      elements: [{ ...PROJECT, valid_to: '2026-12-31' }, CHILD, FACTOR, GOAL, CHANGE],
+      relations,
+    });
     expect(r.valid).toBe(true);
     expect(r.warnings.some((w) => w.code === 'PC-004')).toBe(true);
   });
 
   it('LIFECYCLE-001 when valid_from is missing', () => {
-    const acts = {
-      ...ACTIVITIES_DOC,
-      activities: [{ ...ACTIVITIES_DOC.activities[0], valid_from: undefined }],
-    };
-    const r = resolveActivityCard(CARD, { activitiesDocs: [acts], fgcaDocs: [FGCA_DOC] });
+    const r = resolveActivityCard(CARD, {
+      elements: [{ ...PROJECT, valid_from: undefined }, CHILD, FACTOR, GOAL, CHANGE],
+      relations,
+    });
     expect(r.errors.some((e) => e.code === 'LIFECYCLE-001')).toBe(true);
   });
 
   it('LIFECYCLE-003 when valid_to precedes valid_from', () => {
-    const acts = {
-      ...ACTIVITIES_DOC,
-      activities: [{ ...ACTIVITIES_DOC.activities[0], valid_to: '2025-01-01' }],
-    };
-    const r = resolveActivityCard(CARD, { activitiesDocs: [acts], fgcaDocs: [FGCA_DOC] });
+    const r = resolveActivityCard(CARD, {
+      elements: [{ ...PROJECT, valid_to: '2025-01-01' }, CHILD, FACTOR, GOAL, CHANGE],
+      relations,
+    });
     expect(r.errors.some((e) => e.code === 'LIFECYCLE-003')).toBe(true);
   });
 
-  it('warns and omits when a change is not found in any FGCA doc', () => {
-    const r = resolveActivityCard(CARD, { activitiesDocs: [ACTIVITIES_DOC], fgcaDocs: [] });
+  it('warns and omits when a change element is not found in canon', () => {
+    const r = resolveActivityCard(CARD, { elements: [PROJECT, CHILD, FACTOR, GOAL], relations });
     expect(r.valid).toBe(true);
     expect(r.resolved!.motivation.changes).toHaveLength(0);
     expect(r.warnings.some((w) => w.code === 'PC-001')).toBe(true);
   });
 
-  it('does not crash on malformed sibling docs', () => {
+  it('does not crash on malformed element/relation docs', () => {
     const r = resolveActivityCard(CARD, {
-      activitiesDocs: [null, 'x', { activities: [null, 42, ACTIVITIES_DOC.activities[0]] }],
-      fgcaDocs: [null, { goals: [null] }],
+      elements: [null, 'x', PROJECT, 42, { notation: 'goal', id: null }],
+      relations: [null, 'x', { notation: 'relation' }],
     });
     expect(r.valid).toBe(true);
   });

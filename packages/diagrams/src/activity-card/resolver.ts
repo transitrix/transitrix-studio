@@ -2,20 +2,26 @@
 //
 // Unlike every other Studio preview, the Activity Card is assembled from
 // MULTIPLE documents. The card YAML names a project Activity; the resolver
-// pulls the rest of the card's content by reference from sibling documents
-// in the same view directory:
+// pulls the rest of the card's content BY REFERENCE from the canonical
+// ELEMENT and RELATION store — never from other view documents (view-purity:
+// a view is a projection over elements + relations, methodology
+// ELEMENT_PRIMITIVES.md §1):
 //
-//   *.activities.transitrix.yaml  → the project Activity (name, lifecycle +
-//                                    schedule dates, goals[], delivers_changes[])
-//                                    and child activities (parent = project id)
-//   *.fgca.transitrix.yaml        → expand the project's goals[] /
-//                                    delivers_changes[] into Factor / Goal /
-//                                    Change definitions and the F→G→C edges
+//   canon/elements/**  → one element per file. The project ACTIVITY (name,
+//                        lifecycle + schedule dates, delivers_changes[],
+//                        parent) and its child ACTIVITY elements (parent =
+//                        project id); the FACTOR / GOAL / CHANGE elements that
+//                        the motivation chain expands (goal.factors,
+//                        change.goals carried inline on the elements).
+//   canon/relations/** → `notation: relation` files. The project's goals come
+//                        from the first-class `activity_goal` REL (from =
+//                        project id), preferred over the activity element's
+//                        transitional inline `goals[]` when present
+//                        (07-activities.md §"Time-aware relations").
 //
-// Resolution scope is the SINGLE view directory (exact-dir, non-recursive):
-// the extension globs the card file's own directory and hands the parsed
-// sibling docs in here. This resolver is filesystem-free and pure so it stays
-// unit-testable.
+// The extension reads + parses the element and relation files (walking the
+// org's `canon/elements` and `canon/relations` trees) and hands the parsed
+// docs in. This resolver is filesystem-free and pure so it stays unit-testable.
 //
 // Cross-document validation lives here (the rules that need the sibling docs):
 //   PC-001   project does not resolve to an admitted Activity
@@ -75,47 +81,45 @@ function isIsoDate(v: unknown): v is string {
   return new Date(t).toISOString().slice(0, 10) === v;
 }
 
-/** Flatten every `activities[]` entry across all sibling activities docs. */
-function collectActivities(docs: unknown[]): Map<string, Record<string, unknown>> {
+/**
+ * Index canon element documents of one `notation` by their `id`. Each element
+ * is its own single-element file (`notation: activity|factor|goal|change|…`
+ * with a top-level `id`); first definition wins.
+ */
+function collectByNotation(
+  docs: unknown[],
+  notation: string,
+): Map<string, Record<string, unknown>> {
   const out = new Map<string, Record<string, unknown>>();
   for (const doc of docs) {
     if (!isObject(doc)) continue;
-    const arr = doc['activities'];
-    if (!Array.isArray(arr)) continue;
-    for (const el of arr) {
-      if (!isObject(el)) continue;
-      const id = str(el['id']);
-      if (!id) continue;
-      if (!out.has(id)) out.set(id, el); // first definition wins
-    }
+    if (str(doc['notation']) !== notation) continue;
+    const id = str(doc['id']);
+    if (!id) continue;
+    if (!out.has(id)) out.set(id, doc); // first definition wins
   }
   return out;
 }
 
-/** Collect canonical FGCA factors/goals/changes (string-ID form) across docs. */
-function collectFgca(docs: unknown[]): {
-  factors: Map<string, Record<string, unknown>>;
-  goals: Map<string, Record<string, unknown>>;
-  changes: Map<string, Record<string, unknown>>;
-} {
-  const factors = new Map<string, Record<string, unknown>>();
-  const goals = new Map<string, Record<string, unknown>>();
-  const changes = new Map<string, Record<string, unknown>>();
-  const ingest = (arr: unknown, into: Map<string, Record<string, unknown>>) => {
-    if (!Array.isArray(arr)) return;
-    for (const el of arr) {
-      if (!isObject(el)) continue;
-      const id = str(el['id']);
-      if (id && !into.has(id)) into.set(id, el);
-    }
-  };
-  for (const doc of docs) {
+/**
+ * GOAL ids reached by an *active* `activity_goal` relation originating at
+ * `fromId`. A relation with a non-null `valid_to` has ended (the activity was
+ * re-aimed) and is excluded — the card shows the currently-served goals.
+ */
+function activeActivityGoals(relations: unknown[], fromId: string): string[] {
+  const out: string[] = [];
+  for (const doc of relations) {
     if (!isObject(doc)) continue;
-    ingest(doc['factors'], factors);
-    ingest(doc['goals'], goals);
-    ingest(doc['changes'], changes);
+    if (str(doc['notation']) !== 'relation') continue;
+    if (str(doc['type']) !== 'activity_goal') continue;
+    if (str(doc['from']) !== fromId) continue;
+    const to = str(doc['to']);
+    if (!to) continue;
+    const validTo = doc['valid_to'];
+    if (validTo !== undefined && validTo !== null) continue; // ended relation
+    if (!out.includes(to)) out.push(to);
   }
-  return { factors, goals, changes };
+  return out;
 }
 
 export function resolveActivityCard(
@@ -133,24 +137,29 @@ export function resolveActivityCard(
     return { valid: false, errors, warnings };
   }
 
-  const activities = collectActivities(sources.activitiesDocs);
+  const activities = collectByNotation(sources.elements, 'activity');
   const projectRec = activities.get(projectId);
 
-  // PC-001 — project must resolve to an admitted Activity.
+  // PC-001 — project must resolve to an admitted ACTIVITY element in canon.
   if (!projectRec) {
     errors.push({
       code: 'PC-001',
-      message: `activity_card.project "${projectId}" does not resolve to an Activity in any sibling *.activities.* document`,
+      message: `activity_card.project "${projectId}" does not resolve to an ACTIVITY element in the canon element store`,
     });
     return { valid: false, errors, warnings };
   }
 
-  // PC-002 — resolved Activity must be a Project.
+  // PC-002 — the resolved Activity should be the project scale. In the element
+  // model all activity scales (initiative / programme / project / task) share
+  // one ACTIVITY TYPE and `activity_type` references an ActivityType element,
+  // so a missing/non-literal value is acceptable; only an explicit, clearly
+  // non-project marker is flagged. (Canonical project-identification semantics
+  // are tracked as a follow-up — see win-claude/tasks.md.)
   const activityType = str(projectRec['activity_type']);
-  if (activityType !== 'Project') {
+  if (activityType !== undefined && activityType !== 'Project' && activityType !== 'project') {
     errors.push({
       code: 'PC-002',
-      message: `Activity "${projectId}" has activity_type "${activityType ?? '(unset)'}", expected "Project"`,
+      message: `Activity "${projectId}" has activity_type "${activityType}", expected the project scale`,
     });
   }
 
@@ -191,7 +200,12 @@ export function resolveActivityCard(
   // A failed lifecycle/PC-001 stops us producing a card view-model, but we still
   // return every error collected so the panel lists them all at once.
   const projectChanges = new Set(strArray(projectRec['delivers_changes']));
-  const projectGoalIds = strArray(projectRec['goals']);
+  // Project goals: prefer the first-class `activity_goal` relations (the
+  // canonical, time-aware home for an Activity→Goal link); fall back to the
+  // activity element's transitional inline `goals[]` when no relation exists
+  // (07-activities.md §"Time-aware relations").
+  const relGoalIds = activeActivityGoals(sources.relations, projectId);
+  const projectGoalIds = relGoalIds.length > 0 ? relGoalIds : strArray(projectRec['goals']);
 
   // PC-003 — each milestone change must be a subset of the project's changes.
   const rawMilestones = Array.isArray(card.milestones) ? card.milestones : [];
@@ -239,16 +253,18 @@ export function resolveActivityCard(
     return { valid: false, errors, warnings };
   }
 
-  // ── Motivation chain — expand against sibling FGCA docs ─────────────────────
-  const fgca = collectFgca(sources.fgcaDocs);
+  // ── Motivation chain — expand against canon FACTOR / GOAL / CHANGE elements ──
+  const factorElems = collectByNotation(sources.elements, 'factor');
+  const goalElems = collectByNotation(sources.elements, 'goal');
+  const changeElems = collectByNotation(sources.elements, 'change');
 
   const changes: ResolvedChange[] = [];
   for (const cid of projectChanges) {
-    const rec = fgca.changes.get(cid);
+    const rec = changeElems.get(cid);
     if (!rec) {
       warnings.push({
         code: 'PC-001',
-        message: `Project change "${cid}" not found in any sibling *.fgca.* document; omitted from the motivation chain`,
+        message: `Project change "${cid}" not found as a CHANGE element in canon; omitted from the motivation chain`,
       });
       continue;
     }
@@ -262,11 +278,11 @@ export function resolveActivityCard(
 
   const goals: ResolvedGoal[] = [];
   for (const gid of goalIdSet) {
-    const rec = fgca.goals.get(gid);
+    const rec = goalElems.get(gid);
     if (!rec) {
       warnings.push({
         code: 'PC-001',
-        message: `Goal "${gid}" not found in any sibling *.fgca.* document; omitted from the motivation chain`,
+        message: `Goal "${gid}" not found as a GOAL element in canon; omitted from the motivation chain`,
       });
       continue;
     }
@@ -279,7 +295,7 @@ export function resolveActivityCard(
 
   const factors: ResolvedFactor[] = [];
   for (const fid of factorIdSet) {
-    const rec = fgca.factors.get(fid);
+    const rec = factorElems.get(fid);
     factors.push({ id: fid, name: rec ? str(rec['name']) ?? fid : fid });
   }
 

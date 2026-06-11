@@ -1,0 +1,15 @@
+notation: factor
+id: FACTOR-EU-MDR-1
+name: "EU Medical Device Regulation in force"
+type: external
+
+zone: canon
+admitted_at: "2026-05-28"
+admitted_by: "v.korobeinikov"
+gate_checks:
+  uniqueness: pass
+  consistency: pass
+  completeness: pass
+
+valid_from: "2026-04-01"
+valid_to: null
