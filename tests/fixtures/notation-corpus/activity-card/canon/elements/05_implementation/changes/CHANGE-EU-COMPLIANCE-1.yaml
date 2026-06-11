@@ -1,0 +1,18 @@
+notation: change
+id: CHANGE-EU-COMPLIANCE-1
+name: "Achieve & certify MDR compliance"
+goals: [GOAL-EU-MARKET-1]
+description: >
+  The delta required to operate the first product line under the EU Medical
+  Device Regulation, certified by a notified body.
+
+zone: canon
+admitted_at: "2026-05-28"
+admitted_by: "v.korobeinikov"
+gate_checks:
+  uniqueness: pass
+  consistency: pass
+  completeness: pass
+
+valid_from: "2026-04-01"
+valid_to: null

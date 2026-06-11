@@ -1,0 +1,21 @@
+notation: activity
+id: ACTIVITY-EU-NB-AUDIT-1
+name: "Notified-body conformity audit"
+parent: ACTIVITY-EU-PROGRAMME-1
+duration: 90
+predecessors: [ACTIVITY-EU-TECH-FILE-1]
+start_date: "2026-08-07"
+end_date: "2026-12-11"
+owner: ACTOR-REGULATORY-1
+delivers_changes: [CHANGE-EU-COMPLIANCE-1]
+
+zone: canon
+admitted_at: "2026-05-28"
+admitted_by: "v.korobeinikov"
+gate_checks:
+  uniqueness: pass
+  consistency: pass
+  completeness: pass
+
+valid_from: "2026-04-01"
+valid_to: null
