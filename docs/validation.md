@@ -12,6 +12,42 @@ The Transitrix Studio validator provides **3 layers of validation**:
 
 Validation is **non-blocking**: findings are surfaced in the API, CLI, and web UI, but do not prevent compilation.
 
+## Validation scope (file vs repo)
+
+Validation runs on one execution axis — **`scope`** (methodology ADR
+`2026-06-11-validation-two-axis-model.md`; Studio referencing ADR
+[`decisions/2026-06-11-validation-runtime-convergence.md`](decisions/2026-06-11-validation-runtime-convergence.md)):
+
+| Scope | Command | Coverage |
+|-------|---------|----------|
+| **file** (default) | `transitrix validate <input.yaml>` | A single notation file: the BPMN structural/semantic rules documented below. |
+| **repo** | `transitrix validate --scope=repo [--root <dir>]` | The whole loaded `canon/` model: referential integrity, atomicity, id uniqueness, policy. |
+
+`--scope=repo` ports the whole-repo checks previously owned by the methodology's
+Python `.validators/lint.py` onto the shared `@transitrix/diagrams` model
+(`packages/diagrams/src/repo-validate/`), so there is a single validation
+runtime. It scans `<root>/canon/elements/**` (elements) and
+`<root>/canon/relations/**` (relations), then reports findings shaped
+`{ scope, id, message }`. Any finding exits non-zero — the CI gate.
+
+Repo-scope checks (parity reference: the `acme_corp` worked example, which
+passes with zero findings):
+
+- **YAML syntax** — an unparseable canon file is reported and graph checks are skipped.
+- **ID uniqueness** — the same `id` defined in more than one file.
+- **Atomicity** — an element file carrying an inline `relations:` section (relations belong in `canon/relations/`).
+- **Referential integrity** — a relation endpoint (`from`/`to`, or the legacy `source`/`target`) that does not resolve to a known element.
+- **Policy** — an element marked `Active`/`Production` (`metadata.status`) with no `metadata.owner`.
+- **ArchiMate layer-semantics** — *deferred* (lint.py ships this as a no-op stub; ported faithfully as a no-op until the methodology defines the rules).
+
+```
+$ transitrix validate --scope=repo --root organizations/acme_corp
+✓ organizations/acme_corp — repo-scope validation passed
+```
+
+The richer `target`/`category` finding taxonomy is intentionally **not** adopted
+yet (deferred per the ADR until a consumer needs it).
+
 ## Rule Categories
 
 Rules are organized by element category using stable ID prefixes:

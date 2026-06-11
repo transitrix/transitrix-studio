@@ -64,6 +64,7 @@ transitrix <input.yaml> <output.bpmn> [--no-metrics] [--no-validate]
 transitrix serve [--port 8765] [--host 127.0.0.1]
 transitrix metrics <input.yaml> [--json]
 transitrix validate <input.yaml> [--json]
+transitrix validate --scope=repo [--root <dir>] [--json]
 transitrix export-compliance [--format md|pdf] [--scope law:<ID>|product:<ID>|gap] [--output <path>] [--root <dir>]
 ```
 
@@ -72,7 +73,7 @@ transitrix export-compliance [--format md|pdf] [--scope law:<ID>|product:<ID>|ga
 | *(default)* / `compile` | YAML → BPMN 2.0 XML with computed layout; prints layout-quality metrics and validation findings. Exit 1 on validation errors. |
 | `serve` | Local web UI (run `npm run ui:build` once beforehand). |
 | `metrics` | Layout-quality metrics only (`--json` for CI). |
-| `validate` | Validation only, no XML output (`--json` for CI). Exit 1 on errors. |
+| `validate` | Validation only, no XML output (`--json` for CI). Exit 1 on errors. Default scope is a single file; `--scope=repo` runs whole-`canon/` checks (referential integrity, atomicity, id uniqueness, policy) over `--root` (default cwd) — see [validation.md](validation.md#validation-scope-file-vs-repo). |
 | `export-compliance` | Markdown or PDF report of the compliance views (matrix by default; `law:` / `product:` / `gap` scopes). Scans `--root` (default cwd). PDF needs WeasyPrint on PATH (`pipx install weasyprint`). |
 
 Flags: `--no-metrics` suppresses the metrics report on compile; `--no-validate`
@@ -85,6 +86,7 @@ pass `--ext=.suffix1,.suffix2`.
 ```bash
 transitrix compile order.bpmn.transitrix.yaml order.bpmn
 transitrix validate order.bpmn.transitrix.yaml --json
+transitrix validate --scope=repo --root organizations/acme_corp
 transitrix metrics order.bpmn.transitrix.yaml --json
 transitrix export-compliance --format md --scope gap --output gaps.md
 transitrix serve --port 9000

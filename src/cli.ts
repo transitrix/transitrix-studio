@@ -8,6 +8,7 @@ import {
   inputMatchesExtension,
   invokedAsCervin,
   parseCliFileArgv,
+  parseValidateArgv,
 } from './cli-parse.js';
 import { compileTransitrixYamlWithLayout } from './compiler.js';
 import { computeLayoutMetrics } from './metrics.js';
@@ -25,6 +26,7 @@ function printUsage(): void {
        transitrix metrics [--ext=.cervin.yaml,.bpmn.transitrix.yaml] <input.yaml> [--json]
        transitrix validate <input.yaml> [--json]
        transitrix validate [--ext=.cervin.yaml,.bpmn.transitrix.yaml] <input.yaml> [--json]
+       transitrix validate --scope=repo [--root <dir>] [--json]
        transitrix export-compliance [--format md|pdf] [--scope law:<ID>|product:<ID>|gap] [--output <path>] [--root <dir>]
 
   ('cervin' is a deprecated alias of 'transitrix'; both run the same CLI.)
@@ -32,7 +34,9 @@ function printUsage(): void {
   serve     — local web UI (run npm run ui:build once beforehand).
   <compile> — YAML → BPMN 2.0 XML with layout metrics.
   metrics   — layout quality metrics (with --json for CI).
-  validate  — BPMN validation only (no XML output; exit 1 on errors).
+  validate  — validation only (no XML output; exit 1 on errors). Default scope
+              is a single file; --scope=repo runs whole-canon checks
+              (referential integrity, atomicity, id uniqueness, policy).
   export-compliance — Markdown or PDF report of the compliance views (matrix by
               default; law:/product:/gap scopes). Scans --root (default cwd) for
               requirement/assertion/product/codex canon. PDF rendering requires
@@ -183,25 +187,55 @@ function printValidationReport(src: string, validation: ValidationReport, suppre
 }
 
 async function handleValidateCommand(argv: string[]): Promise<void> {
-  const parsed = parseCliFileArgv(argv);
+  const parsed = parseValidateArgv(argv);
   if (!parsed.ok) {
-    console.error('cervin: --ext requires a comma-separated list of suffixes.');
+    if (parsed.error === 'bad_scope') {
+      console.error('cervin validate: --scope must be "file" or "repo".');
+    } else if (parsed.error === '--scope_requires_value') {
+      console.error('cervin validate: --scope requires a value (file|repo).');
+    } else if (parsed.error === '--root_requires_value') {
+      console.error('cervin validate: --root requires a directory path.');
+    } else {
+      console.error('cervin: --ext requires a comma-separated list of suffixes.');
+    }
     process.exit(1);
   }
 
-  const { positional, extList, wantsHelp } = parsed;
+  const { scope, root, positional, extList, wantsHelp } = parsed;
   const exts = extList.length > 0 ? extList : DEFAULT_CERVIN_FILE_EXTENSIONS;
   const useJson = argv.includes('--json');
 
   if (wantsHelp) {
-    console.error(`usage: cervin validate <input.yaml> [--json]`);
+    console.error(`usage: transitrix validate <input.yaml> [--json]                 (file scope, default)`);
+    console.error(`       transitrix validate --scope=repo [--root <dir>] [--json]`);
     console.error('');
-    console.error('Run BPMN validation without compilation.');
-    console.error('Validator checks for structural and semantic errors.');
-    console.error('Exits with code 1 if any errors found (warnings do not block).');
+    console.error('file scope — single-file structural/semantic validation (default).');
+    console.error('repo scope — whole-canon checks (referential integrity, atomicity,');
+    console.error('             id uniqueness, policy) over <root> (default: cwd).');
+    console.error('Exits with code 1 if any findings.');
     process.exit(0);
   }
 
+  // Repo scope (#141): whole-canon checks on the @transitrix/diagrams model.
+  if (scope === 'repo') {
+    const repoRoot = root ?? process.cwd();
+    // Lazy import keeps the @transitrix/diagrams source out of the
+    // rootDir-restricted emit build (see repo-validate.ts header).
+    const repoModule = './repo-validate.js';
+    type RepoFinding = { scope: 'repo'; id: string; message: string };
+    const { runRepoValidate, reportRepoFindings } = (await import(repoModule)) as {
+      runRepoValidate: (root: string) => RepoFinding[];
+      reportRepoFindings: (root: string, findings: RepoFinding[], useJson: boolean) => void;
+    };
+    const findings = runRepoValidate(repoRoot);
+    reportRepoFindings(repoRoot, findings, useJson);
+    if (findings.length > 0) {
+      process.exit(1);
+    }
+    return;
+  }
+
+  // ----- file scope (existing behaviour) -----
   const [src] = positional;
   if (!src) {
     console.error('cervin validate: missing input file');

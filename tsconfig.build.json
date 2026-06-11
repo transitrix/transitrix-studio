@@ -7,6 +7,6 @@
     "sourceMap": true
   },
   "include": ["src/**/*.ts"],
-  "_comment_export_compliance": "src/export-compliance.ts is excluded here: it imports @transitrix/diagrams source, which cannot be emitted under rootDir:src. It is type-checked by `npm run compile` and loaded by cli.ts via a runtime dynamic import (tsx transpiles it).",
-  "exclude": ["extension", "src/export-compliance.ts"]
+  "_comment_export_compliance": "src/export-compliance.ts and src/repo-validate.ts are excluded here: they import @transitrix/diagrams source, which cannot be emitted under rootDir:src. They are type-checked by `npm run compile` and loaded by cli.ts via a runtime dynamic import (tsx transpiles them).",
+  "exclude": ["extension", "src/export-compliance.ts", "src/repo-validate.ts"]
 }

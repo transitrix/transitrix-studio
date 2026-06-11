@@ -5,6 +5,7 @@ import {
   DEFAULT_CERVIN_FILE_EXTENSIONS,
   invokedAsCervin,
   parseCliFileArgv,
+  parseValidateArgv,
   inputMatchesExtension,
 } from '../src/cli-parse.js';
 
@@ -49,6 +50,42 @@ describe('cli-parse', () => {
       ok: true,
       positional: ['models/x.cervin.yaml', 'out/generated.bpmn'],
     });
+  });
+});
+
+describe('parseValidateArgv (#141 — validate scope)', () => {
+  it('defaults to file scope, preserving per-file back-compat', () => {
+    const r = parseValidateArgv(['model.cervin.yaml', '--json']);
+    expect(r).toMatchObject({ ok: true, scope: 'file', root: undefined });
+    if (r.ok) expect(r.positional).toContain('model.cervin.yaml');
+  });
+
+  it('parses --scope=repo with --root (equals and spaced forms)', () => {
+    expect(parseValidateArgv(['--scope=repo', '--root=./org'])).toMatchObject({ ok: true, scope: 'repo', root: './org' });
+    expect(parseValidateArgv(['--scope', 'repo', '--root', './org'])).toMatchObject({ ok: true, scope: 'repo', root: './org' });
+  });
+
+  it('repo scope without --root leaves root undefined (caller defaults to cwd)', () => {
+    expect(parseValidateArgv(['--scope=repo'])).toMatchObject({ ok: true, scope: 'repo', root: undefined });
+  });
+
+  it('rejects an unknown scope', () => {
+    expect(parseValidateArgv(['--scope=bogus'])).toEqual({ ok: false, error: 'bad_scope' });
+  });
+
+  it('signals --scope / --root without a value', () => {
+    expect(parseValidateArgv(['--scope'])).toEqual({ ok: false, error: '--scope_requires_value' });
+    expect(parseValidateArgv(['--root'])).toEqual({ ok: false, error: '--root_requires_value' });
+  });
+
+  it('still surfaces --ext parsing through to file scope', () => {
+    const r = parseValidateArgv(['--ext=.foo', 'x.foo']);
+    expect(r).toMatchObject({ ok: true, scope: 'file' });
+    if (r.ok) expect(r.extList).toEqual(['.foo']);
+  });
+
+  it('passes --help through as wantsHelp', () => {
+    expect(parseValidateArgv(['--scope=repo', '--help'])).toMatchObject({ ok: true, wantsHelp: true });
   });
 });
 
