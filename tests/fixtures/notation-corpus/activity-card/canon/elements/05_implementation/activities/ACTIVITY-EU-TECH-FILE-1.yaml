@@ -1,0 +1,20 @@
+notation: activity
+id: ACTIVITY-EU-TECH-FILE-1
+name: "Technical file compilation"
+parent: ACTIVITY-EU-PROGRAMME-1
+duration: 60
+predecessors: [ACTIVITY-EU-GAP-ANALYSIS-1]
+start_date: "2026-05-14"
+end_date: "2026-08-06"
+owner: ACTOR-QUALITY-1
+
+zone: canon
+admitted_at: "2026-05-28"
+admitted_by: "v.korobeinikov"
+gate_checks:
+  uniqueness: pass
+  consistency: pass
+  completeness: pass
+
+valid_from: "2026-04-01"
+valid_to: null

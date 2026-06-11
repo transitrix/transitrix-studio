@@ -7,8 +7,11 @@
 // YAML itself holds only `id`, `project` (an Activity ID), `description`,
 // and `milestones[]`. Everything painted on the card — the project name,
 // dates, motivation chain (Factors → Goals → Changes), and child activities
-// — is pulled BY REFERENCE at view time from sibling `*.activities.*` and
-// `*.fgca.*` documents in the same view directory. See `resolver.ts`.
+// — is pulled BY REFERENCE at view time from the canonical ELEMENT and
+// RELATION store (`canon/elements/**`, `canon/relations/**`), never from
+// other view documents. This honours the view-purity invariant: a view is a
+// projection over elements + relations (methodology ELEMENT_PRIMITIVES.md §1).
+// See `resolver.ts`.
 //
 // This file declares two model layers:
 //   1. the RAW card document (what the YAML parses into), and
@@ -53,19 +56,27 @@ export interface ActivityCardDoc {
   activity_card: ActivityCardBlock;
 }
 
-// ── Sibling documents consumed by the resolver ──────────────────────────────
+// ── Canon sources consumed by the resolver ──────────────────────────────────
 //
-// The resolver is filesystem-free: the extension reads + parses the sibling
-// `*.activities.*` / `*.fgca.*` files and hands the parsed objects in. We
-// model them as `unknown[]` at the boundary and narrow defensively inside the
-// resolver, so a malformed sibling degrades to a resolution error rather than
-// a crash.
+// View-purity invariant (methodology ELEMENT_PRIMITIVES.md §1): a view is a
+// projection over the canonical ELEMENTS + RELATIONS, never over other view
+// documents. The Activity Card therefore resolves its project, child
+// activities, and motivation chain from the canon element store
+// (`canon/elements/**` — one ACTIVITY / FACTOR / GOAL / CHANGE element per
+// file, each a `notation: <type>` document carrying its own `id`) and the
+// relation store (`canon/relations/**` — `notation: relation` files), NOT from
+// sibling `*.activities.*` / `*.fgca.*` view documents.
+//
+// The resolver is filesystem-free: the extension reads + parses the element and
+// relation files and hands the parsed objects in. We model them as `unknown[]`
+// at the boundary and narrow defensively inside the resolver, so a malformed
+// element / relation degrades to a resolution error rather than a crash.
 
 export interface ActivityCardSources {
-  /** Parsed `*.activities.transitrix.yaml` documents from the view directory. */
-  activitiesDocs: unknown[];
-  /** Parsed `*.fgca.transitrix.yaml` documents from the view directory. */
-  fgcaDocs: unknown[];
+  /** Parsed canon element documents — one element per file (`notation: activity|factor|goal|change|…`). */
+  elements: unknown[];
+  /** Parsed canon relation documents (`notation: relation`). */
+  relations: unknown[];
 }
 
 // ── Assembled card view-model (resolver output → layout input) ───────────────

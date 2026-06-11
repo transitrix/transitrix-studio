@@ -1,0 +1,19 @@
+notation: activity
+id: ACTIVITY-EU-GAP-ANALYSIS-1
+name: "MDR gap analysis"
+parent: ACTIVITY-EU-PROGRAMME-1
+duration: 20
+start_date: "2026-04-15"
+end_date: "2026-05-13"
+owner: ACTOR-REGULATORY-1
+
+zone: canon
+admitted_at: "2026-05-28"
+admitted_by: "v.korobeinikov"
+gate_checks:
+  uniqueness: pass
+  consistency: pass
+  completeness: pass
+
+valid_from: "2026-04-01"
+valid_to: null

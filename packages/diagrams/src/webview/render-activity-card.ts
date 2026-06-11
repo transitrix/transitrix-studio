@@ -13,10 +13,11 @@
  * The Activity Card is the only MULTI-DOCUMENT Studio notation: the card YAML
  * names a project Activity, and the project's name, dates, motivation chain
  * (Factors → Goals → Changes) and child activities are pulled BY REFERENCE from
- * sibling `*.activities.*` / `*.fgca.*` documents in the same directory (see
- * `../activity-card/resolver.ts`). That resolution requires reading those
- * sibling files from disk, which is NOT available inside the JCEF host. We
- * therefore resolve from the single in-memory card document ONLY: we synthesise
+ * the canonical element + relation store (`canon/elements/**`,
+ * `canon/relations/**`; see `../activity-card/resolver.ts`). That resolution
+ * requires reading those files from disk, which is NOT available inside the
+ * JCEF host. We therefore resolve from the single in-memory card document
+ * ONLY: we synthesise
  * a minimal `ResolvedActivityCard` whose project carries just the referenced
  * project id (no resolved name/dates), whose milestones come straight from the
  * card's own `milestones[]`, and whose motivation chain + child activities are
@@ -51,8 +52,8 @@ function truncate(text: string, maxChars: number): string {
  * Build a single-document resolution of the card: everything that can be read
  * straight off the card YAML, with the cross-document fields left empty. This
  * mirrors what `resolveActivityCard` produces, minus the parts that need the
- * sibling `*.activities.*` / `*.fgca.*` documents (project name/dates,
- * motivation chain, child activities).
+ * canon element + relation store (project name/dates, motivation chain, child
+ * activities).
  */
 function resolveSingleDoc(doc: ActivityCardDoc): ResolvedActivityCard {
   const card = doc.activity_card;

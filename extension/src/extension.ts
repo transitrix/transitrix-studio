@@ -413,8 +413,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       void activitiesPreview.refreshConfig();
     }),
     vscode.workspace.onDidSaveTextDocument((doc) => {
-      // Multi-document: an open Activity Card re-resolves when one of its
-      // sibling *.activities.* / *.fgca.* documents is saved. Runs before the
+      // Multi-document: an open Activity Card re-resolves when any canon
+      // element/relation document under its canon/ root is saved (the card is
+      // a projection over canon/elements + canon/relations). Runs before the
       // per-type routing below (which early-returns on a match).
       void activityCardPreview.refreshIfSiblingSaved(doc);
       // Compliance views are repo-wide: re-scan the open ones whenever a canon

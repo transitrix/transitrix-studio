@@ -4,7 +4,7 @@
 // pinned and any drift in the example or the resolver is caught by CI.
 
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import yaml from 'js-yaml';
@@ -19,16 +19,28 @@ const dir = path.resolve(
 );
 const load = (f: string): unknown => yaml.load(readFileSync(path.join(dir, f), 'utf-8'));
 
+/** Recursively load every `*.yaml` doc under a canon subtree (mirrors the
+ *  extension's element/relation walk). */
+function loadYamlTree(root: string): unknown[] {
+  const out: unknown[] = [];
+  for (const entry of readdirSync(root, { withFileTypes: true })) {
+    const full = path.join(root, entry.name);
+    if (entry.isDirectory()) out.push(...loadYamlTree(full));
+    else if (entry.name.endsWith('.yaml')) out.push(yaml.load(readFileSync(full, 'utf-8')));
+  }
+  return out;
+}
+
 describe('activity-card worked example (eu-programme)', () => {
   it('validates, resolves, and lays out the success-signal card', () => {
     const card = load('eu-programme.activity-card.transitrix.yaml');
-    const activitiesDocs = [load('eu-programme.activities.transitrix.yaml')];
-    const fgcaDocs = [load('eu-programme.fgca.transitrix.yaml')];
+    const elements = loadYamlTree(path.join(dir, 'canon', 'elements'));
+    const relations = loadYamlTree(path.join(dir, 'canon', 'relations'));
 
     const v = validateActivityCard(card);
     expect(v.valid, JSON.stringify(v.errors)).toBe(true);
 
-    const r = resolveActivityCard(card as ActivityCardDoc, { activitiesDocs, fgcaDocs });
+    const r = resolveActivityCard(card as ActivityCardDoc, { elements, relations });
     expect(r.valid, JSON.stringify(r.errors)).toBe(true);
     expect(r.warnings, JSON.stringify(r.warnings)).toHaveLength(0);
 

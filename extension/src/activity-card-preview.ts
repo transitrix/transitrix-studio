@@ -15,13 +15,14 @@ import { savePngFromSvg, copyPngFromSvg } from './png-export.js';
 
 // The Activity Card is the first MULTI-DOCUMENT Studio preview. The card YAML
 // names a project Activity; the project's name/dates, the motivation chain,
-// and the child activities are pulled by reference from sibling
-// `*.activities.*` / `*.fgca.*` documents in the SAME directory. This preview
-// owns the filesystem half of that resolution (read + parse the siblings); the
-// pure resolver in `@transitrix/diagrams` does the rest.
+// and the child activities are pulled BY REFERENCE from the canonical ELEMENT
+// and RELATION store — never from other view documents (view-purity: a view is
+// a projection over elements + relations, methodology ELEMENT_PRIMITIVES.md
+// §1). This preview owns the filesystem half of that resolution: it locates the
+// org's `canon/` root above the card and reads every `canon/elements/**` and
+// `canon/relations/**` document; the pure resolver in `@transitrix/diagrams`
+// does the rest.
 
-const ACTIVITIES_SUFFIX = '.activities.transitrix.yaml';
-const FGCA_SUFFIX = '.fgca.transitrix.yaml';
 const CARD_SUFFIX = '.activity-card.transitrix.yaml';
 
 function escXml(s: string): string {
@@ -33,44 +34,69 @@ function truncate(text: string, maxChars: number): string {
   return text.slice(0, Math.max(0, maxChars - 1)) + '…';
 }
 
-interface SiblingDocs {
-  activitiesDocs: unknown[];
-  fgcaDocs: unknown[];
+interface CanonDocs {
+  elements: unknown[];
+  relations: unknown[];
   warnings: string[];
 }
 
-/** Read + parse every sibling `*.activities.*` / `*.fgca.*` doc in `dirUri`. */
-async function readSiblingDocs(dirUri: vscode.Uri): Promise<SiblingDocs> {
-  const activitiesDocs: unknown[] = [];
-  const fgcaDocs: unknown[] = [];
-  const warnings: string[] = [];
+/**
+ * Walk up from the card file to the nearest ancestor directory literally named
+ * `canon` (the canon-zone root that holds `elements/` and `relations/`).
+ */
+function findCanonRoot(cardUri: vscode.Uri): vscode.Uri | undefined {
+  let dir = path.dirname(cardUri.fsPath);
+  for (let i = 0; i < 16; i++) {
+    if (path.basename(dir) === 'canon') return vscode.Uri.file(dir);
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return undefined;
+}
 
+/** Recursively read + parse every `*.yaml` document under `root` into `out`. */
+async function readYamlDocsUnder(root: vscode.Uri, out: unknown[], warnings: string[]): Promise<void> {
   let entries: [string, vscode.FileType][];
   try {
-    entries = await vscode.workspace.fs.readDirectory(dirUri);
+    entries = await vscode.workspace.fs.readDirectory(root);
   } catch {
-    return { activitiesDocs, fgcaDocs, warnings: ['Could not read the card directory to resolve sibling documents.'] };
+    return; // missing subtree (e.g. no relations/) is not an error
   }
-
   for (const [name, type] of entries) {
-    if (type !== vscode.FileType.File) continue;
-    const isActivities = name.endsWith(ACTIVITIES_SUFFIX);
-    const isFgca = name.endsWith(FGCA_SUFFIX);
-    if (!isActivities && !isFgca) continue;
-    try {
-      const bytes = await vscode.workspace.fs.readFile(vscode.Uri.joinPath(dirUri, name));
-      const parsed = coerceDatesToIsoStrings(yaml.load(Buffer.from(bytes).toString('utf-8')) as unknown);
-      if (isActivities) activitiesDocs.push(parsed);
-      else fgcaDocs.push(parsed);
-    } catch (e) {
-      warnings.push(`Skipped sibling ${name}: ${(e as Error).message ?? 'parse error'}`);
+    const child = vscode.Uri.joinPath(root, name);
+    if (type === vscode.FileType.Directory) {
+      await readYamlDocsUnder(child, out, warnings);
+    } else if (type === vscode.FileType.File && name.endsWith('.yaml')) {
+      try {
+        const bytes = await vscode.workspace.fs.readFile(child);
+        out.push(coerceDatesToIsoStrings(yaml.load(Buffer.from(bytes).toString('utf-8')) as unknown));
+      } catch (e) {
+        warnings.push(`Skipped ${name}: ${(e as Error).message ?? 'parse error'}`);
+      }
     }
   }
+}
 
-  if (activitiesDocs.length === 0) {
-    warnings.push(`No sibling ${ACTIVITIES_SUFFIX} document found — project + child activities cannot resolve.`);
+/** Read the canon element + relation store for the org owning this card. */
+async function readCanonSources(cardUri: vscode.Uri): Promise<CanonDocs> {
+  const elements: unknown[] = [];
+  const relations: unknown[] = [];
+  const warnings: string[] = [];
+
+  const canonRoot = findCanonRoot(cardUri);
+  if (!canonRoot) {
+    warnings.push('Could not locate a canon/ root above this card — project, motivation chain, and child activities cannot resolve.');
+    return { elements, relations, warnings };
   }
-  return { activitiesDocs, fgcaDocs, warnings };
+
+  await readYamlDocsUnder(vscode.Uri.joinPath(canonRoot, 'elements'), elements, warnings);
+  await readYamlDocsUnder(vscode.Uri.joinPath(canonRoot, 'relations'), relations, warnings);
+
+  if (elements.length === 0) {
+    warnings.push('No element documents found under canon/elements — project + child activities cannot resolve.');
+  }
+  return { elements, relations, warnings };
 }
 
 const ARROW_DEF = `<defs><marker id="ac-arrow" markerWidth="8" markerHeight="8" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" class="arrow-fill"/></marker></defs>`;
@@ -229,30 +255,36 @@ export class ActivityCardPreview {
   }
 
   /**
-   * Multi-document refresh: when a sibling `*.activities.*` / `*.fgca.*` doc in
-   * the same directory as the tracked card is saved, re-resolve and re-render.
+   * Multi-document refresh: when a canon element/relation document under the
+   * same `canon/` root as the tracked card is saved, re-resolve and re-render.
+   * (Method name kept for the extension router; sources are now the canon
+   * element + relation store, not sibling view docs.)
    */
   async refreshIfSiblingSaved(doc: vscode.TextDocument): Promise<void> {
     if (!this.panel || !this.trackedUri) return;
-    const name = path.basename(doc.fileName);
-    if (!name.endsWith(ACTIVITIES_SUFFIX) && !name.endsWith(FGCA_SUFFIX)) return;
+    if (!doc.fileName.endsWith('.yaml')) return;
     const cardUri = vscode.Uri.parse(this.trackedUri);
-    if (path.dirname(doc.uri.fsPath) !== path.dirname(cardUri.fsPath)) return;
+    const canonRoot = findCanonRoot(cardUri);
+    if (!canonRoot) return;
+    // Only re-render for saves inside this card's canon element/relation store.
+    const savedDir = path.dirname(doc.uri.fsPath);
+    const elementsRoot = path.join(canonRoot.fsPath, 'elements');
+    const relationsRoot = path.join(canonRoot.fsPath, 'relations');
+    if (!savedDir.startsWith(elementsRoot) && !savedDir.startsWith(relationsRoot)) return;
     const cardDoc = await vscode.workspace.openTextDocument(cardUri);
     await this.pushDocument(cardDoc);
   }
 
   private async pushDocument(doc: vscode.TextDocument): Promise<void> {
     if (!this.panel) return;
-    const dirUri = vscode.Uri.file(path.dirname(doc.uri.fsPath));
-    const siblings = await readSiblingDocs(dirUri);
-    this.panel.webview.html = this.buildHtml(doc.getText(), path.basename(doc.fileName), siblings);
+    const sources = await readCanonSources(doc.uri);
+    this.panel.webview.html = this.buildHtml(doc.getText(), path.basename(doc.fileName), sources);
   }
 
-  private buildHtml(yamlText: string, filename: string, siblings: SiblingDocs): string {
+  private buildHtml(yamlText: string, filename: string, sources: CanonDocs): string {
     let svgContent = '';
     let errorMsg = '';
-    const warnings: string[] = [...siblings.warnings];
+    const warnings: string[] = [...sources.warnings];
 
     try {
       const parsed = coerceDatesToIsoStrings(yaml.load(yamlText) as unknown);
@@ -263,8 +295,8 @@ export class ActivityCardPreview {
       } else {
         const cardDoc = parsed as ActivityCardDoc;
         const r = resolveActivityCard(cardDoc, {
-          activitiesDocs: siblings.activitiesDocs,
-          fgcaDocs: siblings.fgcaDocs,
+          elements: sources.elements,
+          relations: sources.relations,
         });
         warnings.push(...r.warnings.map((w) => `${w.code}: ${w.message}`));
         if (!r.valid || !r.resolved) {

@@ -1,0 +1,20 @@
+notation: activity
+id: ACTIVITY-EU-MARKET-PREP-1
+name: "EU market-launch preparation"
+parent: ACTIVITY-EU-PROGRAMME-1
+duration: 30
+predecessors: [ACTIVITY-EU-NB-AUDIT-1]
+start_date: "2027-02-01"
+end_date: "2027-03-15"
+owner: ACTOR-COMMERCIAL-1
+
+zone: canon
+admitted_at: "2026-05-28"
+admitted_by: "v.korobeinikov"
+gate_checks:
+  uniqueness: pass
+  consistency: pass
+  completeness: pass
+
+valid_from: "2026-04-01"
+valid_to: null

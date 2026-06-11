@@ -8,10 +8,12 @@ spec_version: "0.1"
 # The card binds to an existing project Activity (ACTIVITY-EU-PROGRAMME-1)
 # and adds two narrative milestones for the certification gate and the
 # market-launch follow-on. The project name, dates, motivation chain, and
-# child activities are pulled BY REFERENCE from the sibling documents in
-# this same directory — they are not duplicated here:
-#   eu-programme.activities.transitrix.yaml  → project + child activities
-#   eu-programme.fgca.transitrix.yaml        → Factors → Goals → Changes
+# child activities are pulled BY REFERENCE from the canon element + relation
+# store (a view is a projection over elements + relations) — they are not
+# duplicated here:
+#   canon/elements/**   → the ACTIVITY (project + children), CHANGE, GOAL,
+#                         FACTOR elements
+#   canon/relations/**  → the activity_goal relation carrying project → goal
 
 activity_card:
   id: ACTIVITY_CARD-EU-PROGRAMME-1
