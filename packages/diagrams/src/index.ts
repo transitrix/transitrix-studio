@@ -13,6 +13,7 @@ export * from "./goals/index";
 export * from "./process-blueprint/index";
 export * from "./process-map/index";
 export * from "./products/index";
+export * from "./repo-validate/index";
 export * from "./requirement/index";
 export * from "./scenarios/index";
 export * from "./theme/index";
