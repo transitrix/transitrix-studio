@@ -63,6 +63,11 @@ CLAUDE.md
 *ai-agent-rules*.md
 **/*ai-agent-rules*.md
 
+# Local agent-runner launchers (internal — never publish; canonical copies
+# live in the private strategy hub at win-claude/runners/)
+run-*-agent.ps1
+**/run-*-agent.ps1
+
 # Maintainer-local roadmap (internal planning, not part of the published surface)
 roadmap.md
 
