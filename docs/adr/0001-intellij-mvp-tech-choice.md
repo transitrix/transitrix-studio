@@ -118,6 +118,34 @@ The IntelliJ MVP plugin is built as follows.
   is worse: JCEF is shipped by the IDE, so the plugin only contributes the JS,
   not the browser.
 
+## Build sequencing — depends on epic #28 M2
+
+The **decision** above is unblocked and recorded now. The **build** is not: the
+JCEF bundle consumes `@transitrix/diagrams`, so the plugin build is sequenced
+**after epic [vkgeorgia/strategy#28](https://github.com/vkgeorgia/strategy/issues/28)
+M2** — the milestone that makes `@transitrix/diagrams` a consumable, published
+package. Until M2 lands:
+
+- No build/consume work starts (only this ADR and, when ratified, the scaffold
+  spike below).
+- For an early spike, an **interim path / git dependency** on the in-repo
+  `packages/diagrams/` is acceptable to prove the JCEF wire end-to-end; it is
+  replaced by the published dependency once M2 ships. The interim path is a
+  spike convenience, not the shipped MVP dependency.
+
+## MVP scope — read-only previews, content-parity with the VS Code static previews
+
+The IntelliJ MVP renders **read-only previews only** (no editing, no mutation).
+Its content-parity target is the VS Code extension's **static previews** — the
+ones hosted with `enableScripts: false` that render a diagram (and inline
+validation badges / error panel) without interactive scripting. "Parity of
+content" means the IDEA preview shows the *same rendered diagram and the same
+validation outcome* for the same source file as the corresponding VS Code static
+preview; it does **not** imply parity with the interactive (scripted) previews,
+which are out of scope for the MVP. Because the renderer is the shared
+`@transitrix/diagrams` bundle, this content parity is structural, not a
+re-implementation to keep in sync.
+
 ## Implementation plan (out of scope for this ADR PR)
 
 This ADR PR records the decision only. Subsequent PRs, each in its own
@@ -142,6 +170,8 @@ gates every merge.
 ## References
 
 - Epic [vkgeorgia/strategy#135](https://github.com/vkgeorgia/strategy/issues/135).
+- Rendering-approach ADR task [vkgeorgia/strategy#204](https://github.com/vkgeorgia/strategy/issues/204).
+- `@transitrix/diagrams` publish milestone: epic [vkgeorgia/strategy#28](https://github.com/vkgeorgia/strategy/issues/28) M2.
 - Shared rendering library: `packages/diagrams/`.
 - VS Code preview infrastructure for cross-reference: `extension/src/` and `extension/package.json` `activationEvents`.
 - Packaging trade-off precedent (native binaries vs. universal artifact): `docs/packaging.md`.
