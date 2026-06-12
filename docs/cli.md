@@ -12,7 +12,8 @@ deprecated alias of the same binary and will be removed in 2.0.0.
 > The CLI is **not yet published to npm** (`npm install -g transitrix` /
 > `@transitrix/cli` will 404). The VS Code extension bundles the rendering
 > library for previews — it does **not** put a runnable CLI on your `PATH`.
-> Until a published package lands, install from a clone:
+> Until a published package lands, install from a clone (the publish
+> procedure itself is tracked in [`docs/release-runbook.md`](release-runbook.md)):
 
 ```bash
 git clone https://github.com/transitrix/transitrix-studio
