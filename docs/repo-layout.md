@@ -51,7 +51,7 @@ This document maps **top-level folders** to **roles** so you know where to look 
 | [`scripts/`](../scripts/) | Build and dev tooling: `build-compiler-bundle.mjs`, `build-webview.mjs`, `build-extension-bundle.mjs`, `bump-extension-version.mjs`, `measure-baseline.mjs`, `ci-metrics-diff.mjs`. |
 | [`docs/`](../docs/) | **Project documentation**: this layout map, [`cli.md`](cli.md) (CLI usage outside VS Code), glossary, metrics baselines, validation notes. |
 | [`output/`](../output/) | **Build output** for `build-extension.bat` — packaged `.vsix` files. Gitignored. |
-| [`.archive/`](../.archive/) | **Superseded trees, agent-bus, agent-run logs, accepted-task records.** Gitignored. Canonical archive root — use this in all new prompts, scripts, and docs. Move content here instead of deleting. |
+| [`.archive/`](../.archive/) | **Superseded trees, maintainer tooling state, run logs, and accepted-task records.** Gitignored. Canonical archive root — use this in all new prompts, scripts, and docs. Move content here instead of deleting. |
 | `0. archive/` *(legacy)* | Former archive root (leading space in the folder name). Still gitignored and still works if content remains there; migrate to `.archive/` when convenient. |
 | [`intellij/`](../intellij/) | **IntelliJ plugin** packaging and install docs (optional IDE surface; separate from the VS Code extension). |
 
