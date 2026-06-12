@@ -130,7 +130,7 @@ the steady-state shape.
   a "from source" subsection.
 - **Update strategy hub issue `#199`** with the published versions and a link
   to the npm pages; close when the acceptance criteria are met.
-- **Notify downstream consumer skills** (e.g. win-claude's compliance
+- **Notify downstream consumers** (e.g. the maintainer's compliance
   renderer) that they can switch from the clone+`npm link` recipe to
   `npm i -g @transitrix/cli`.
 
