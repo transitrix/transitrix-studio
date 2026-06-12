@@ -53,6 +53,20 @@ also run by the test workflow) fails the build if a new `*.cervin.yaml` file is
 committed. Existing `.cervin.yaml` fixtures, where any remain, are kept only for
 regression coverage and are not mass-renamed.
 
+## Project config — use the canonical `.transitrixrc`
+
+Project-level rule overrides (enabling/disabling validation rules) are read from a
+**`.transitrixrc`** file at the project root. Its shape is the published JSON schema
+[`schemas/transitrixrc.schema.json`](schemas/transitrixrc.schema.json); the rule-override
+format is documented in [`docs/validation.md`](docs/validation.md).
+
+The legacy **`.cervinrc`** filename is still read as a *fallback* when `.transitrixrc`
+is absent (see CLAUDE.md §Cervin naming, P4), but is **deprecated** — `loadTransitrixrc()`
+prints a one-time deprecation notice when it falls back, and `.cervinrc` support is slated
+for removal in 2.0.0. Use `.transitrixrc` in new repos and **rename** any existing
+`.cervinrc`; do not add new `.cervinrc` files. The legacy `schemas/cervinrc.schema.json`
+is kept only for backward compatibility.
+
 ## Per-user display preferences
 
 The `.transitrix/display-preferences/` folder is the designated home for **per-user,
