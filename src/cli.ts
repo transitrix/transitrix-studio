@@ -57,7 +57,7 @@ Examples:
 async function handleCompileCommand(argv: string[]): Promise<void> {
   const parsed = parseCliFileArgv(argv);
   if (!parsed.ok) {
-    console.error('cervin: --ext requires a comma-separated list of suffixes.');
+    console.error('transitrix: --ext requires a comma-separated list of suffixes.');
     process.exit(1);
   }
 
@@ -71,14 +71,14 @@ async function handleCompileCommand(argv: string[]): Promise<void> {
 
   const [src, dst] = positional;
   if (!src || !dst) {
-    console.error('cervin compile: missing input or output file');
-    console.error(`usage: cervin compile <input.yaml> <output.bpmn>`);
+    console.error('transitrix compile: missing input or output file');
+    console.error(`usage: transitrix compile <input.yaml> <output.bpmn>`);
     process.exit(1);
   }
 
   if (!inputMatchesExtension(src, exts)) {
     console.error(
-      `cervin: input file must end with one of: ${exts.join(', ')} (or pass --ext)`,
+      `transitrix: input file must end with one of: ${exts.join(', ')} (or pass --ext)`,
     );
     process.exit(1);
   }
@@ -190,13 +190,13 @@ async function handleValidateCommand(argv: string[]): Promise<void> {
   const parsed = parseValidateArgv(argv);
   if (!parsed.ok) {
     if (parsed.error === 'bad_scope') {
-      console.error('cervin validate: --scope must be "file" or "repo".');
+      console.error('transitrix validate: --scope must be "file" or "repo".');
     } else if (parsed.error === '--scope_requires_value') {
-      console.error('cervin validate: --scope requires a value (file|repo).');
+      console.error('transitrix validate: --scope requires a value (file|repo).');
     } else if (parsed.error === '--root_requires_value') {
-      console.error('cervin validate: --root requires a directory path.');
+      console.error('transitrix validate: --root requires a directory path.');
     } else {
-      console.error('cervin: --ext requires a comma-separated list of suffixes.');
+      console.error('transitrix: --ext requires a comma-separated list of suffixes.');
     }
     process.exit(1);
   }
@@ -238,14 +238,14 @@ async function handleValidateCommand(argv: string[]): Promise<void> {
   // ----- file scope (existing behaviour) -----
   const [src] = positional;
   if (!src) {
-    console.error('cervin validate: missing input file');
-    console.error(`usage: cervin validate <input.yaml> [--json]`);
+    console.error('transitrix validate: missing input file');
+    console.error(`usage: transitrix validate <input.yaml> [--json]`);
     process.exit(1);
   }
 
   if (!inputMatchesExtension(src, exts)) {
     console.error(
-      `cervin: input file must end with one of: ${exts.join(', ')} (or pass --ext)`,
+      `transitrix: input file must end with one of: ${exts.join(', ')} (or pass --ext)`,
     );
     process.exit(1);
   }
@@ -333,7 +333,7 @@ async function handleValidateCommand(argv: string[]): Promise<void> {
 async function handleMetricsCommand(argv: string[]): Promise<void> {
   const parsed = parseCliFileArgv(argv);
   if (!parsed.ok) {
-    console.error('cervin: --ext requires a comma-separated list of suffixes.');
+    console.error('transitrix: --ext requires a comma-separated list of suffixes.');
     process.exit(1);
   }
 
@@ -348,14 +348,14 @@ async function handleMetricsCommand(argv: string[]): Promise<void> {
 
   const [src] = positional;
   if (!src) {
-    console.error('cervin metrics: missing input file');
-    console.error(`usage: cervin metrics <input.yaml> [--json]`);
+    console.error('transitrix metrics: missing input file');
+    console.error(`usage: transitrix metrics <input.yaml> [--json]`);
     process.exit(1);
   }
 
   if (!inputMatchesExtension(src, exts)) {
     console.error(
-      `cervin: input file must end with one of: ${exts.join(', ')} (or pass --ext)`,
+      `transitrix: input file must end with one of: ${exts.join(', ')} (or pass --ext)`,
     );
     process.exit(1);
   }
@@ -435,12 +435,12 @@ try {
       : process.argv.slice(2);
     await handleCompileCommand(compileArgv);
   } else {
-    console.error(`cervin: unknown command '${subcommand}'`);
+    console.error(`transitrix: unknown command '${subcommand}'`);
     printUsage();
     process.exit(1);
   }
 } catch (e) {
   const err = e as Error;
-  console.error(`cervin: unexpected error: ${err.message ?? String(e)}`);
+  console.error(`transitrix: unexpected error: ${err.message ?? String(e)}`);
   process.exit(1);
 }

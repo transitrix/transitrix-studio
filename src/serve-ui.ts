@@ -196,7 +196,7 @@ export async function runUiServer(opts: ServeUiOptions): Promise<void> {
       res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' })
       res.end('404 Not Found')
     } catch (e) {
-      console.error('cervin serve: unhandled error', e)
+      console.error('transitrix serve: unhandled error', e)
       res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' })
       res.end('Internal server error')
     }
@@ -214,7 +214,7 @@ export async function runUiServer(opts: ServeUiOptions): Promise<void> {
   console.error(`Transitrix Studio UI → ${url}  (static root: "${rootName}")`)
 }
 
-/** `cervin serve [--port 8765] [--host 127.0.0.1]` — keeps running after start. */
+/** `transitrix serve [--port 8765] [--host 127.0.0.1]` — keeps running after start. */
 export async function cliServeArgv(argv: string[]): Promise<void> {
   let port = 8765
   let host = '127.0.0.1'
@@ -226,7 +226,7 @@ export async function cliServeArgv(argv: string[]): Promise<void> {
       if (v) {
         const parsed = Number.parseInt(v, 10)
         if (!Number.isFinite(parsed)) {
-          console.error(`cervin serve: --port requires a numeric value, got: ${v}`)
+          console.error(`transitrix serve: --port requires a numeric value, got: ${v}`)
           process.exitCode = 1
           process.exit(1)
         }
@@ -238,7 +238,7 @@ export async function cliServeArgv(argv: string[]): Promise<void> {
       const v = a.slice('--port='.length)
       const parsed = Number.parseInt(v, 10)
       if (!Number.isFinite(parsed)) {
-        console.error(`cervin serve: --port requires a numeric value, got: ${v}`)
+        console.error(`transitrix serve: --port requires a numeric value, got: ${v}`)
         process.exitCode = 1
         process.exit(1)
       }
@@ -252,7 +252,7 @@ export async function cliServeArgv(argv: string[]): Promise<void> {
     }
     if (a === '--help' || a === '-h') {
       // eslint-disable-next-line no-console
-      console.error(`usage: cervin serve [--port 8765] [--host 127.0.0.1]
+      console.error(`usage: transitrix serve [--port 8765] [--host 127.0.0.1]
 
 Local web UI: YAML on the left, BPMN preview on the right.
 Compiles through the server (same pipeline as the CLI / VS Code extension for BPMN).
@@ -267,7 +267,7 @@ Before first run:
 
   if (!Number.isFinite(port) || port < 1 || port > 65535) {
     // eslint-disable-next-line no-console
-    console.error('cervin serve: invalid --port')
+    console.error('transitrix serve: invalid --port')
     process.exitCode = 1
     process.exit(1)
   }
