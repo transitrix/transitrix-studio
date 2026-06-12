@@ -10,6 +10,7 @@
 
 ### Docs
 - **CLI usage outside VS Code** — new [`docs/cli.md`](docs/cli.md) and a rewritten README CLI section explain how to get the `transitrix` CLI on `PATH` from a clone (`npm install && npm run build && npm link`), how to run it without a global install, and how a script/skill should auto-detect it. Clarifies the CLI is not yet on npm and the VS Code extension does not ship a PATH binary (unblocks scripted/CI/skill use — strategy #187).
+- **npm release runbook** — new [`docs/release-runbook.md`](docs/release-runbook.md) codifies the manual `npm publish` procedure for `@transitrix/diagrams` (first) and `@transitrix/cli` (second), per the 2026-06-10 publish decisions on strategy #199. Prerequisites, pre-flight checklist, per-package publish steps with `--access public` + 2FA, post-publish verification, tagging, and the unpublish/deprecate guidance. CI publish-on-tag automation is a deferred follow-up.
 
 ### Deprecated
 - **`cervin` CLI is deprecated, use `transitrix`.** The `cervin` bin is kept as a compatibility alias (no removal in this release; slated for 2.0.0). Invoking the tool under the `cervin` name prints a one-line deprecation notice to stderr. First phase of the Cervin → Transitrix CLI rename (CLAUDE.md §Cervin naming, P1).
