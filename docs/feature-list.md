@@ -1,7 +1,7 @@
 ---
 title: "Transitrix Feature List"
 doc_type: living-design-doc
-established_by: "Win-Claude"
+established_by: "Valerii Korobeinikov"
 last_updated: "2026-06-10"
 scope: "transitrix-methodology, transitrix-studio"
 ---
