@@ -154,7 +154,7 @@ export function resolveActivityCard(
   // one ACTIVITY TYPE and `activity_type` references an ActivityType element,
   // so a missing/non-literal value is acceptable; only an explicit, clearly
   // non-project marker is flagged. (Canonical project-identification semantics
-  // are tracked as a follow-up — see win-claude/tasks.md.)
+  // are tracked as a follow-up internally.)
   const activityType = str(projectRec['activity_type']);
   if (activityType !== undefined && activityType !== 'Project' && activityType !== 'project') {
     errors.push({
