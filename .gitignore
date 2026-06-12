@@ -92,3 +92,7 @@ quick-start-util.sh
 .env.*.local
 *.pem
 *.key
+
+# Local agent-runner launchers (internal — never publish)
+run-*-agent.ps1
+**/run-*-agent.ps1
