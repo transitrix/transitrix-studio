@@ -46,11 +46,13 @@ Transitrix and Mermaid are **complementary, not competing**. Use **Mermaid** for
 
 ## Get started in 60 seconds
 
-1. **Install this extension** from the Marketplace.
+1. **Install this extension** — search for **Transitrix Studio** in the Extensions panel of VS Code, Cursor, VSCodium, or Windsurf.
 2. **Clone the starter repo:** `git clone https://github.com/transitrix/methodology`
 3. **Open any `.transitrix.yaml` file** under `notations/examples/` — preview opens automatically.
 
 Recognised BPMN file suffixes are configurable in **Settings → Transitrix Studio**.
+
+> **Editors:** the extension ships to the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=transitrix.transitrix-studio) (VS Code) and to the [Open VSX Registry](https://open-vsx.org/extension/transitrix/transitrix-studio) (Cursor, VSCodium, Windsurf). The artefact is identical; pick whichever Extensions panel ships with your editor. A separate IntelliJ IDEA plugin is in development.
 
 ## Settings
 

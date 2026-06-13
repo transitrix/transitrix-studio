@@ -5,7 +5,10 @@ agreed in strategy hub issue `vkgeorgia/strategy#199`; CI publish-on-tag
 automation is a deferred follow-up.
 
 The VS Code extension `.vsix` flow is a separate pipeline — see
-[`docs/packaging.md`](packaging.md).
+[`docs/packaging.md`](packaging.md) for the per-platform build, and
+[`docs/openvsx-publish-runbook.md`](openvsx-publish-runbook.md) for the
+Open VSX (Cursor / VSCodium / Windsurf) publish hop after each
+Marketplace release.
 
 ## Packages
 
