@@ -87,25 +87,33 @@ Run from a clean checkout of the tag/commit being released:
 ## Publishing `@transitrix/cli`
 
 The slim CLI package is *assembled* — it owns its `package.json`, `bin`, and
-`files` allowlist, ships `dist/cli.js` + runtime deps only, and does **not**
-include the rest of the monorepo. The exact assembly script is tracked under
-issue `#199` and will be filled in here as it lands; the procedure below is
-the steady-state shape.
+`files` allowlist, ships bundled `dist/` + `schemas/` only, and does **not**
+include the rest of the monorepo. The assembly script is
+`scripts/build-cli-package.mjs`; the workspace's `prepack` runs it
+automatically for `npm pack` and `npm publish`.
 
-1. **Prepare the publishable directory.** Build the slim package per its
-   `prepublishOnly` (or equivalent) script: `dist/cli.js` is emitted from the
-   root `npm run build`; the slim `package.json` declares `bin: { transitrix:
-   "./dist/cli.js" }`, the runtime `dependencies` (no `devDependencies`), and
-   `engines.node >= 20`. No `cervin` bin alias — see the per-package table above.
+1. **Prepare the publishable directory.** From the repo root, run
+   `npm run build:cli-package` (or rely on the workspace's `prepack` to do
+   it). The script esbuild-bundles `src/cli.ts`, `src/repo-validate.ts`, and
+   `src/export-compliance.ts` into `packages/cli/dist/`, externalising the
+   runtime npm deps (`ajv`, `ajv-formats`, `bpmn-moddle`, `elkjs`, `js-yaml`,
+   `xmlbuilder2`) and copying the JSON Schemas next to `dist/` (the runtime
+   resolves `dist/../schemas/bpmn-dsl.schema.json`, see
+   `src/schema-path.ts`). The slim `package.json` declares
+   `bin: { transitrix: "./dist/cli.js" }`, the runtime `dependencies` only
+   (no `devDependencies`), and `engines.node >= 20`. No `cervin` bin alias —
+   see the per-package table above.
 2. **Confirm the dependency on `@transitrix/diagrams`** in the slim
    `package.json` points at a version range that includes the version just
    published in the previous step (e.g. `"^1.0.0"`).
 3. **Dry-run:**
    ```bash
-   npm pack --dry-run --workspace packages/cli   # path subject to change
+   npm pack --dry-run --workspace packages/cli
    ```
-   Confirm the tarball contains exactly `dist/cli.js` (+ any auxiliaries it
-   loads), the slim `package.json`, `README.md`, `LICENSE` — and nothing else.
+   Confirm the tarball contains `dist/cli.js`, `dist/repo-validate.js`,
+   `dist/export-compliance.js`, `schemas/*.json`, the slim `package.json`,
+   `README.md`, `LICENSE` — and nothing else. The packed tarball is
+   ~40 kB / 9 files at `1.0.0`.
 4. **Publish:**
    ```bash
    npm publish --access public --workspace packages/cli
