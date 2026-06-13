@@ -8,6 +8,9 @@
 - **VS Code settings `transitrix.fileExtensions` / `transitrix.exportEnabled`** — canonical replacements for the legacy `cervin.*` keys, registered in the extension's `contributes.configuration`.
 - **VS Code commands `transitrix.openPreview` / `transitrix.exportSvg` / `transitrix.exportPng` / `transitrix.exportBpmn`** — canonical replacements for the `cervin.*` commands. The editor-title preview button now invokes `transitrix.openPreview`.
 
+### Changed
+- **`@transitrix/diagrams` prepared for first npm publish (1.0.0)** — `packages/diagrams/package.json` drops `private: true`, bumps to `1.0.0`, and adds `homepage`, `bugs`, and `repository` (with `directory`) fields per the release runbook prep step. Package now ships a `README.md` and `LICENSE` so the npm tarball is complete. No source or API change. Package is consumed only as a workspace inside this repo, so the version bump has no downstream effect; the actual `npm publish` is a manual maintainer action gated on the `transitrix` npm organisation (strategy #199).
+
 ### Docs
 - **CLI usage outside VS Code** — new [`docs/cli.md`](docs/cli.md) and a rewritten README CLI section explain how to get the `transitrix` CLI on `PATH` from a clone (`npm install && npm run build && npm link`), how to run it without a global install, and how a script/skill should auto-detect it. Clarifies the CLI is not yet on npm and the VS Code extension does not ship a PATH binary (unblocks scripted/CI/skill use — strategy #187).
 - **npm release runbook** — new [`docs/release-runbook.md`](docs/release-runbook.md) codifies the manual `npm publish` procedure for `@transitrix/diagrams` (first) and `@transitrix/cli` (second), per the 2026-06-10 publish decisions on strategy #199. Prerequisites, pre-flight checklist, per-package publish steps with `--access public` + 2FA, post-publish verification, tagging, and the unpublish/deprecate guidance. CI publish-on-tag automation is a deferred follow-up.
