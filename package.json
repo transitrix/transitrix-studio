@@ -51,6 +51,7 @@
     "verify-extension-packaging": "node scripts/verify-extension-packaging.mjs",
     "check:no-cervin-yaml": "node scripts/check-no-cervin-yaml.mjs",
     "package-extension": "npm run extension:prep && npm run verify-extension-packaging && npm run bump-extension-version && cd extension && vsce package --out ../output/",
+    "build:cli-package": "node scripts/build-cli-package.mjs",
     "sync-examples": "node scripts/sync-examples-from-methodology.mjs"
   },
   "bin": {

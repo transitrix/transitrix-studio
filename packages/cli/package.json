@@ -1,0 +1,48 @@
+{
+  "name": "@transitrix/cli",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Transitrix CLI — compile, validate, and report on Transitrix diagrams (BPMN, Goals, FGCA, …) from any shell or CI pipeline.",
+  "license": "MIT",
+  "homepage": "https://github.com/transitrix/transitrix-studio/tree/main/packages/cli#readme",
+  "bugs": {
+    "url": "https://github.com/transitrix/transitrix-studio/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/transitrix/transitrix-studio.git",
+    "directory": "packages/cli"
+  },
+  "keywords": [
+    "bpmn",
+    "transitrix",
+    "diagrams",
+    "cli",
+    "enterprise-architecture"
+  ],
+  "bin": {
+    "transitrix": "./dist/cli.js"
+  },
+  "main": "./dist/cli.js",
+  "files": [
+    "dist",
+    "schemas",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "node ../../scripts/build-cli-package.mjs",
+    "prepack": "node ../../scripts/build-cli-package.mjs"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "bpmn-moddle": "^10.0.0",
+    "elkjs": "^0.9.3",
+    "js-yaml": "^4.1.0",
+    "xmlbuilder2": "^3.1.1"
+  }
+}
