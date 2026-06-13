@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Docs
+
+- **Cursor / VSCodium / Windsurf install path.** The README now lists the [Open VSX Registry](https://open-vsx.org/extension/transitrix/transitrix-studio) alongside the VS Code Marketplace — the same VSIX ships to both. No code change; the artefact is identical.
+
 ### Changed
 
 - **Settings renamed `cervin.*` → `transitrix.*`.** `transitrix.fileExtensions` and `transitrix.exportEnabled` are now the canonical keys. The legacy `cervin.fileExtensions` / `cervin.exportEnabled` keys are still read as a fallback when the new key is unset (so existing configs keep working), but are deprecated and will be removed in 2.0.0. A one-time migration notice is shown on activation when a legacy key is in effect.

@@ -14,13 +14,20 @@ Studio previews the full Transitrix notation kit — **13 diagram notations** pl
 
 ## Install
 
-**From VS Code Marketplace:**
+**From the VS Code Marketplace (VS Code):**
 
 Search for **Transitrix Studio** in the Extensions panel, or install via CLI:
 
 ```bash
 code --install-extension transitrix.transitrix-studio
 ```
+
+**From the Open VSX Registry (Cursor, VSCodium, Windsurf):**
+
+Search for **Transitrix Studio** in the Extensions panel of your editor. The
+same artefact is published to [Open VSX](https://open-vsx.org/extension/transitrix/transitrix-studio),
+which Cursor and other VS Code derivatives read by default. No
+per-editor build — the VSIX is identical to the Marketplace listing.
 
 **From GitHub Releases:**
 
@@ -29,6 +36,8 @@ Download the `.vsix` file from [GitHub Releases](https://github.com/transitrix/t
 ```bash
 code --install-extension transitrix-studio-1.0.0.vsix
 ```
+
+A separate IntelliJ IDEA plugin is in development (see [`intellij/`](intellij/)).
 
 ## Quick start — BPMN
 

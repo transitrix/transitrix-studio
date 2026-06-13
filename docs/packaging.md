@@ -60,3 +60,11 @@ accepts the same `--target` flag.
 > claims universal compatibility while carrying only the build machine's
 > binary — avoid it for Marketplace publishing now that a native dependency
 > is in play.
+
+## Publishing to Open VSX (Cursor, VSCodium, Windsurf)
+
+Cursor and other VS Code derivatives read the [Open VSX Registry](https://open-vsx.org),
+not the VS Code Marketplace. The same per-platform VSIXs above publish to
+Open VSX with `ovsx publish <vsix>` — see [`openvsx-publish-runbook.md`](openvsx-publish-runbook.md)
+for the registry-specific prerequisites (namespace claim, `OVSX_PAT`) and
+the per-release procedure.
