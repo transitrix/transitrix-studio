@@ -29,7 +29,3 @@ Open Transitrix Studio in VS Code, then open any of these files from
 | Compliance-impact view | `eu-compliance.compliance-impact.transitrix.yaml` |
 | Coverage-metric view | `eu-coverage.coverage-metric.transitrix.yaml` |
 | Process blueprint lane | Order-fulfilment blueprint with `lane_config.compliance: true` |
-
----
-
-Original NorthBay Retail demo files archived at `.archive/compliance-northbay-demo/`.
