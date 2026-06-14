@@ -1,0 +1,79 @@
+name: Open VSX — multi-platform publish
+
+# Triggered on every GitHub Release to publish platform-specific VSIXs to the
+# Open VSX Registry (the registry Cursor, VSCodium, and Windsurf read).
+#
+# A workflow_dispatch trigger is available for manual re-runs or to publish a
+# specific branch/tag without creating a new release.
+#
+# Prerequisites (one-time maintainer setup — see docs/openvsx-publish-runbook.md):
+#   - OVSX_PAT repo Actions secret set to an Open VSX personal access token
+#     issued for the `transitrix` namespace.
+#   - The `ubuntu-24.04-arm` runner requires a GitHub-hosted ARM64 runner seat
+#     (available on Team / Enterprise plans, or via GitHub's larger runners).
+#
+# win32-arm64 is not in the matrix: no GA GitHub-hosted Windows ARM runner
+# exists at time of writing. Add it when one becomes available.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Publish (${{ matrix.target }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            target: linux-x64
+          - runner: ubuntu-24.04-arm
+            target: linux-arm64
+          - runner: macos-13
+            target: darwin-x64
+          - runner: macos-latest
+            target: darwin-arm64
+          - runner: windows-latest
+            target: win32-x64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Build extension bundle
+        # extension:prep installs the extension runtime deps (including the
+        # platform-specific @resvg/resvg-js-* binary) into a clean temp dir,
+        # then moves node_modules into extension/. Each runner therefore picks
+        # up the correct native binary for its OS/arch.
+        run: npm run extension:prep
+
+      - name: Verify extension packaging
+        run: npm run verify-extension-packaging
+
+      - name: Package VSIX (${{ matrix.target }})
+        working-directory: extension
+        run: npx vsce package --target ${{ matrix.target }} --out ../output/
+
+      - name: Publish to Open VSX
+        shell: bash
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+        run: |
+          vsix=$(ls output/*.vsix | head -n 1)
+          echo "Publishing: $vsix"
+          npx ovsx publish "$vsix" --pat "$OVSX_PAT"

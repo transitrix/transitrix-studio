@@ -131,19 +131,46 @@ verification step needed beyond a spot check.
 ## Keeping Open VSX in sync on future releases
 
 The Open VSX publish is a **second hop** after every VS Code
-Marketplace release. The steady-state procedure is:
+Marketplace release.
 
-1. Publish to the Marketplace per [`packaging.md`](packaging.md) and
-   the existing release process.
-2. From the same runners (or rebuilt VSIXs on matching OS/arch), run
-   `ovsx publish <vsix>` for each target — see above.
-3. Confirm the Open VSX version field matches the Marketplace listing
-   before announcing the release.
+### CI path (recommended)
 
-When CI publish-on-tag automation lands, the same matrix that runs
-`vsce publish` should run `ovsx publish` next to it with `OVSX_PAT`
-injected from the repo Actions secret. Until then, both hops are
-manual.
+The `.github/workflows/openvsx-publish.yml` workflow runs automatically
+on every GitHub Release (`release: types: [published]`) and publishes
+five platform VSIXs in parallel:
+
+| Runner | Target |
+|--------|--------|
+| `ubuntu-latest` | `linux-x64` |
+| `ubuntu-24.04-arm` | `linux-arm64` |
+| `macos-13` | `darwin-x64` |
+| `macos-latest` | `darwin-arm64` |
+| `windows-latest` | `win32-x64` |
+
+The workflow reads `OVSX_PAT` from the repo Actions secret. Each runner
+installs the platform-specific `@resvg/resvg-js-*` native binary during
+`npm run extension:prep`, so every VSIX carries the correct binary for
+its target.
+
+`win32-arm64` is not yet in the matrix — no GA GitHub-hosted Windows
+ARM runner is available at time of writing. Add it to the matrix when
+one becomes available.
+
+### Manual fallback
+
+To publish a single target by hand (e.g. to fill a CI gap or re-publish
+a failed job), follow the steps in the **Publishing** section above with
+a matching local build environment. You can also trigger the full matrix
+manually via the **workflow_dispatch** button in the Actions tab.
+
+After every publish (CI or manual):
+
+1. Confirm the Open VSX version field matches the Marketplace listing:
+   ```bash
+   curl -s https://open-vsx.org/api/transitrix/transitrix-studio | jq '.version'
+   ```
+2. Spot-check the listing in Cursor's Extensions panel before announcing
+   the release.
 
 ## Unpublish / yank
 
