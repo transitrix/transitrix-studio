@@ -1,5 +1,5 @@
 <idea-plugin>
-    <id>com.transitrix.intellij</id>
+    <id>com.transitrix.studio</id>
     <name>Transitrix Studio</name>
     <vendor url="https://github.com/transitrix/transitrix-studio">Transitrix</vendor>
 
