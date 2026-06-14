@@ -11,6 +11,7 @@ import {
   parseValidateArgv,
 } from './cli-parse.js';
 import { compileTransitrixYamlWithLayout } from './compiler.js';
+import { handleMigrateCommand } from './migrate.js';
 import { computeLayoutMetrics } from './metrics.js';
 import type { ValidationReport, ValidationFinding } from './validator-types.js';
 import { parseYamlToIr } from './parser.js';
@@ -28,6 +29,7 @@ function printUsage(): void {
        transitrix validate [--ext=.cervin.yaml,.bpmn.transitrix.yaml] <input.yaml> [--json]
        transitrix validate --scope=repo [--root <dir>] [--json]
        transitrix export-compliance [--format md|pdf] [--scope law:<ID>|product:<ID>|gap] [--output <path>] [--root <dir>]
+       transitrix migrate [--from X.Y] [--to X.Y] [--dry-run] [--recipes <dir>] [target-dir]
 
   ('cervin' is a deprecated alias of 'transitrix'; both run the same CLI.)
 
@@ -41,6 +43,10 @@ function printUsage(): void {
               default; law:/product:/gap scopes). Scans --root (default cwd) for
               requirement/assertion/product/codex canon. PDF rendering requires
               WeasyPrint on PATH (pipx install weasyprint).
+  migrate   — migrate an adopter repo to a newer methodology version by running
+              the ordered recipes from the methodology repo. Reads the current
+              version from transitrix.yaml (or --from X.Y); --dry-run previews
+              without writing; --recipes <dir> overrides the recipe source.
 
   --no-metrics  suppress quality metrics report on compile.
   --no-validate suppress validation warnings (errors always run).
@@ -51,6 +57,8 @@ Examples:
   npm run transitrix -- metrics example.cervin.yaml --json
   npm run transitrix -- validate example.cervin.yaml
   npm run transitrix -- validate example.cervin.yaml --json
+  npm run transitrix -- migrate --dry-run
+  npm run transitrix -- migrate --from 0.5 --to 0.6 /path/to/adopter-repo
 `);
 }
 
@@ -428,6 +436,8 @@ try {
       handleExportComplianceCommand: (argv: string[]) => Promise<void>;
     };
     await handleExportComplianceCommand(process.argv.slice(3));
+  } else if (subcommand === 'migrate') {
+    await handleMigrateCommand(process.argv.slice(3));
   } else if (!subcommand || subcommand === 'compile') {
     // Default: compile
     const compileArgv = subcommand === 'compile'
