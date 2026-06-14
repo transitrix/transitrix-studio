@@ -8,7 +8,7 @@
 
         Renders the same diagrams the VS Code extension produces — goals, FGCA,
         FGA, activities, blocks, applications, products, process maps, scenarios,
-        capability maps, process blueprints, activity cards, issues, BPMN — by
+        capability maps, process blueprints, activity cards — by
         bundling the shared <code>@transitrix/diagrams</code> library and loading
         it into a JCEF webview.
 
