@@ -1,6 +1,6 @@
 # Demo assertion — Customer Support Service vs GDPR right to erasure.
 # Status: compliant — support ticketing system is wired into the central purge workflow.
-# NorthBay Retail EU compliance demo scenario.
+# Acme Corp EU compliance demo scenario.
 
 notation: assertion
 id: ASSERTION-SUPPORT-GDPR-ERASURE-1
