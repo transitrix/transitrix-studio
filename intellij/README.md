@@ -1,4 +1,4 @@
-# Transitrix Studio — IntelliJ IDEA plugin (MVP)
+# Transitrix Studio — IntelliJ IDEA plugin
 
 Read-only previews of Transitrix notations inside IntelliJ IDEA, parallel to
 the existing VS Code extension under [`../extension/`](../extension/).
@@ -110,12 +110,15 @@ deliberately touches only the VS Code side).
 
 ## Status
 
-MVP packaging is complete. Out of scope for this MVP (deferred per the epic):
+Available on the **JetBrains Marketplace** — install via **Settings → Plugins →
+Marketplace** and search for *Transitrix Studio*. The from-disk `.zip` above
+stays available for local builds and pre-release testing.
+
+Still deferred (tracked under the epic):
 
 - Editor-title parity with the VS Code extension.
 - Auto-refresh on save outside the active preview.
-- JetBrains Marketplace publication, signing, multi-IDE `verifyPlugin`.
 - PNG export (resvg-js native binary path).
 
 Follow epic [`vkgeorgia/strategy#135`](https://github.com/vkgeorgia/strategy/issues/135)
-for any post-MVP work.
+for any post-release work.

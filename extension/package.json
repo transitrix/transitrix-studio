@@ -3,7 +3,7 @@
   "displayName": "Transitrix Studio",
   "publisher": "transitrix",
   "version": "1.4.3",
-  "description": "Architecture-as-code for the modern enterprise. Author 13 notations — goals, processes, capabilities, BPMN, applications, more — as plain YAML, get live diagrams in VS Code. Diffable in git. AI-friendly. Open source. Built on ArchiMate 3.2 and BPMN 2.0.",
+  "description": "Architecture-as-code for the modern enterprise. Author 17 notations — goals, processes, capabilities, BPMN, applications, more — as plain YAML, get live diagrams in VS Code. Diffable in git. AI-friendly. Open source. Built on ArchiMate 3.2 and BPMN 2.0.",
   "license": "MIT",
   "icon": "icon.png",
   "homepage": "https://github.com/transitrix/transitrix-studio#readme",
@@ -88,24 +88,6 @@
           "type": "boolean",
           "default": false,
           "description": "Show experimental BPMN/SVG/PNG export commands (not finished yet)."
-        },
-        "cervin.fileExtensions": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "default": [
-            ".cervin.yaml",
-            ".bpmn.transitrix.yaml"
-          ],
-          "description": "Deprecated — use transitrix.fileExtensions. Read as a fallback through 1.x; removed in 2.0.0.",
-          "deprecationMessage": "Deprecated: use transitrix.fileExtensions instead. This key is read as a fallback through the 1.x line and removed in 2.0.0."
-        },
-        "cervin.exportEnabled": {
-          "type": "boolean",
-          "default": false,
-          "description": "Deprecated — use transitrix.exportEnabled. Read as a fallback through 1.x; removed in 2.0.0.",
-          "deprecationMessage": "Deprecated: use transitrix.exportEnabled instead. This key is read as a fallback through the 1.x line and removed in 2.0.0."
         },
         "transitrix.theme": {
           "type": "string",
