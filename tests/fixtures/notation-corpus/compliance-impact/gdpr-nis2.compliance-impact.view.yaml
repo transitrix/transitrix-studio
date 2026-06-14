@@ -5,9 +5,6 @@
 #   organizations/acme_corp/canon/views/eu-compliance.compliance-impact.transitrix.yaml
 #
 # Open that file in Transitrix Studio to see the obligation x product matrix.
-#
-# Original NorthBay Retail version archived at:
-#   .archive/compliance-northbay-demo/compliance-impact/gdpr-nis2.compliance-impact.view.yaml
 
 notation: compliance-impact
 spec_version: "0.1"
