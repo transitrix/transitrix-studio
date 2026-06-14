@@ -52,7 +52,7 @@ Transitrix and Mermaid are **complementary, not competing**. Use **Mermaid** for
 
 Recognised BPMN file suffixes are configurable in **Settings → Transitrix Studio**.
 
-> **Editors:** the extension ships to the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=transitrix.transitrix-studio) (VS Code) and to the [Open VSX Registry](https://open-vsx.org/extension/transitrix/transitrix-studio) (Cursor, VSCodium, Windsurf). The artefact is identical; pick whichever Extensions panel ships with your editor. A separate IntelliJ IDEA plugin is in development.
+> **Editors:** the extension ships to the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=transitrix.transitrix-studio) (VS Code) and to the [Open VSX Registry](https://open-vsx.org/extension/transitrix/transitrix-studio) (Cursor, VSCodium, Windsurf). The artefact is identical; pick whichever Extensions panel ships with your editor. **JetBrains IDEs** (IntelliJ IDEA and the rest) have a companion **Transitrix Studio** plugin — install it from **Settings → Plugins → Marketplace** and search for *Transitrix Studio*.
 
 ## Settings
 
@@ -60,13 +60,8 @@ Configure under **Settings → Transitrix Studio**. The canonical keys are `tran
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `transitrix.fileExtensions` | `[".cervin.yaml", ".bpmn.transitrix.yaml"]` | File suffixes recognised as Transitrix BPMN source files (leading dot required). |
+| `transitrix.fileExtensions` | `[".bpmn.transitrix.yaml"]` | File suffixes recognised as Transitrix BPMN source files (leading dot required). |
 | `transitrix.exportEnabled` | `false` | Show the experimental BPMN/SVG/PNG export commands. |
-
-> **Deprecated:** the legacy `cervin.fileExtensions` and `cervin.exportEnabled` keys
-> are still read as a fallback when their `transitrix.*` counterpart is unset, but are
-> deprecated and will be removed in **2.0.0**. Rename them to `transitrix.*`. If a
-> legacy key is in effect you'll see a one-time migration notice on activation.
 
 ## Learn more
 

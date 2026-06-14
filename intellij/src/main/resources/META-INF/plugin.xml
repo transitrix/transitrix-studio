@@ -4,19 +4,24 @@
     <vendor url="https://github.com/transitrix/transitrix-studio">Transitrix</vendor>
 
     <description><![CDATA[
-        Read-only previews for Transitrix notations inside IntelliJ IDEA.
+        <p><b>Architecture-as-code for the modern enterprise</b> — live notation
+        previews inside IntelliJ IDEA and the other JetBrains IDEs.</p>
 
-        Renders the same diagrams the VS Code extension produces — goals, FGCA,
-        FGA, activities, blocks, applications, products, process maps, scenarios,
-        capability maps, process blueprints, activity cards, issues, BPMN — by
-        bundling the shared <code>@transitrix/diagrams</code> library and loading
-        it into a JCEF webview.
+        <p>Describe your organisation in plain YAML and Transitrix Studio renders
+        the diagram right in the editor: goals trees, FGCA / FGA chains, activity
+        networks, nested blocks, applications, products, process maps, scenarios,
+        capability maps, process blueprints, activity cards, and full BPMN 2.0.
+        These are the same diagrams the
+        <a href="https://marketplace.visualstudio.com/items?itemName=transitrix.transitrix-studio">VS Code extension</a>
+        produces, rendered through the shared <code>@transitrix/diagrams</code>
+        engine in a JCEF webview.</p>
 
-        MVP: read-only previews + SVG export. Editing, marketplace publication,
-        and PNG export are out of scope.
+        <p>Open any <code>*.transitrix.yaml</code> file, or right-click and choose
+        <b>Transitrix: Preview Notation</b>. Your architecture lives in text —
+        diff it, version it, and review it like code. Previews are read-only;
+        you author in YAML.</p>
 
-        See <code>docs/adr/0001-intellij-mvp-tech-choice.md</code> for the
-        rendering and validation technology decision.
+        <p>Built on ArchiMate 3.2 and BPMN 2.0. Open source, MIT licensed.</p>
     ]]></description>
 
     <depends>com.intellij.modules.platform</depends>

@@ -37,7 +37,7 @@ Download the `.vsix` file from [GitHub Releases](https://github.com/transitrix/t
 code --install-extension transitrix-studio-1.0.0.vsix
 ```
 
-A separate IntelliJ IDEA plugin is in development (see [`intellij/`](intellij/)).
+A companion IntelliJ IDEA plugin is available on the JetBrains Marketplace — install it from **Settings → Plugins → Marketplace** and search for *Transitrix Studio* (source under [`intellij/`](intellij/)).
 
 ## Quick start — BPMN
 
