@@ -15,3 +15,4 @@ implementation PRs follow) · **superseded** (replaced by a later ADR).
 | Date | Decision | Status | Scope |
 |---|---|---|---|
 | 2026-06-11 | [Validation runtime convergence (Studio side)](2026-06-11-validation-runtime-convergence.md) | accepted | transitrix-studio |
+| 2026-06-14 | [Migrate CLI: recipe-source transport](2026-06-14-migrate-recipe-source.md) | accepted | hub #201 |
