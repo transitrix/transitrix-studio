@@ -33,6 +33,31 @@ intellijPlatform {
             untilBuild = providers.gradleProperty("pluginUntilBuild")
         }
     }
+
+    // Plugin signing — reads PEM material from the environment so no secrets
+    // live in the repo. Generate the certificate with openssl (see
+    // intellij/README.md § Publishing). Unset env vars are fine until the
+    // signPlugin/publishPlugin tasks actually run.
+    signing {
+        certificateChain = providers.environmentVariable("CERTIFICATE_CHAIN")
+        privateKey = providers.environmentVariable("PRIVATE_KEY")
+        password = providers.environmentVariable("PRIVATE_KEY_PASSWORD")
+    }
+
+    // Marketplace publishing — permanent token from plugins.jetbrains.com.
+    // NOTE: the first version of a NEW plugin must be uploaded manually via the
+    // website; this automates updates (0.1.1+).
+    publishing {
+        token = providers.environmentVariable("PUBLISH_TOKEN")
+    }
+
+    // Compatibility verification against the JetBrains-recommended IDE set
+    // (`./gradlew verifyPlugin`).
+    pluginVerification {
+        ides {
+            recommended()
+        }
+    }
 }
 
 kotlin {
