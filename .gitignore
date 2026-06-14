@@ -1,7 +1,8 @@
 node_modules/
 
-# Local-only trees (never commit; see contributor orientation)
-.archive/
+# Archive trees â€” never commit. Canonical `.archive/` and legacy `0. archive/`
+# (leading space) are both ignored at ANY depth.
+**/.archive/
 **/0. archive/
 
 dist/
@@ -98,6 +99,6 @@ quick-start-util.sh
 *.pem
 *.key
 
-# Local agent-runner launchers (internal — never publish)
+# Local agent-runner launchers (internal ï¿½ never publish)
 run-*-agent.ps1
 **/run-*-agent.ps1
