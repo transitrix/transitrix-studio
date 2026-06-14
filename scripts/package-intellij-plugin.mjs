@@ -57,10 +57,16 @@ if (argv.includes('-h') || argv.includes('--help')) {
 const skipBundle = argv.includes('--skip-bundle');
 
 function run(command, args, options = {}) {
+  // Windows: spawning a `.bat`/`.cmd` (e.g. gradlew.bat) requires `shell: true`.
+  // Since Node 18.20.2 / 20.12.0 (CVE-2024-27980) a direct `spawn` of a batch
+  // file throws `EINVAL`. Route only batch commands through the shell, and quote
+  // the command so a repo path containing spaces survives — other commands
+  // (node via process.execPath, itself a spaced path) keep spawning directly.
+  const isBatch = process.platform === 'win32' && /\.(bat|cmd)$/i.test(command);
   return new Promise((resolve, reject) => {
-    const child = spawn(command, args, {
+    const child = spawn(isBatch ? `"${command}"` : command, args, {
       stdio: 'inherit',
-      shell: false,
+      shell: isBatch,
       ...options,
     });
     child.on('error', reject);

@@ -19,6 +19,10 @@ dependencies {
     intellijPlatform {
         intellijIdeaCommunity(providers.gradleProperty("platformVersion"))
         testFramework(TestFrameworkType.Platform)
+        // Required by the IntelliJ Platform Gradle Plugin v2 for the
+        // `instrumentCode` task (form/NotNull bytecode instrumentation);
+        // without it the build fails with "No Java Compiler dependency found".
+        instrumentationTools()
     }
 }
 
@@ -32,7 +36,10 @@ intellijPlatform {
 }
 
 kotlin {
-    jvmToolchain(17)
+    // IntelliJ Platform 2024.2 (platformVersion) runs on JBR 21 and requires
+    // sourceCompatibility 21; building against an older toolchain fails
+    // instrumentCode. Keep this in lockstep with platformVersion in gradle.properties.
+    jvmToolchain(21)
 }
 
 // Pull the browser-safe `@transitrix/diagrams` bundle produced by
@@ -44,12 +51,18 @@ kotlin {
 val webviewBundleDir = rootProject.layout.projectDirectory
     .dir("../packages/diagrams/dist/webview")
 
+// Dedicated output dir for the synced bundle. Kept OUT of build/generated —
+// the IntelliJ Platform plugin's compileJava/instrumentation also writes under
+// build/generated, and sharing it makes processResources consume compileJava's
+// output without a declared dependency (Gradle 8.x validation error).
+val webviewResourcesDir = layout.buildDirectory.dir("webview-resources")
+
 val syncWebviewBundle by tasks.registering(Copy::class) {
     description = "Copy the @transitrix/diagrams webview bundle into the plugin resources."
     from(webviewBundleDir) {
         include("transitrix-render.js", "transitrix-render.css")
     }
-    into(layout.buildDirectory.dir("generated/webview"))
+    into(webviewResourcesDir.map { it.dir("webview") })
     // Fail loudly if the bundle hasn't been built yet — the Node side owns
     // the build (node scripts/build-webview-bundle.mjs) and Gradle simply
     // packages the outputs. Surfacing the cause beats a silent empty jar.
@@ -69,7 +82,7 @@ val syncWebviewBundle by tasks.registering(Copy::class) {
 sourceSets {
     named("main") {
         resources {
-            srcDir(layout.buildDirectory.dir("generated"))
+            srcDir(webviewResourcesDir)
         }
     }
 }
