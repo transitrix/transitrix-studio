@@ -1,6 +1,6 @@
 # Demo assertion — E-Commerce Platform vs GDPR consent requirement.
 # Status: partial — consent capture is in place; withdrawal flow has a gap.
-# NorthBay Retail EU compliance demo scenario.
+# Acme Corp EU compliance demo scenario.
 
 notation: assertion
 id: ASSERTION-ECOMM-GDPR-CONSENT-1
@@ -14,8 +14,8 @@ status: partial
 
 evidence:
   - kind: external_doc
-    title: "Consent management audit — NorthBay E-Commerce 2026-Q1"
-    url: "https://internal.northbay.example/compliance/consent-audit-2026-q1.pdf"
+    title: "Consent management audit — Acme Corp E-Commerce 2026-Q1"
+    url: "https://internal.acme.example/compliance/consent-audit-2026-q1.pdf"
   - kind: note
     text: >
       Consent is captured at checkout with explicit opt-in for marketing and profiling.
