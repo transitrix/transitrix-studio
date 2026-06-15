@@ -95,7 +95,12 @@ await fs.rm(extNodeModules, { recursive: true, force: true });
 // unreliable — npm 11's --no-workspaces still hits workspace filter logic
 // and silently produces an empty install. The temp-dir approach is
 // workspace-blind, so it works regardless of root configuration.
-const tempInstall = await fs.mkdtemp(resolve(os.tmpdir(), 'tx-ext-install-'));
+//
+// Use RUNNER_TEMP when available (GitHub-hosted Windows runners put it on the
+// same drive as the workspace, avoiding EXDEV on the rename below). Falls back
+// to os.tmpdir() for local development where a single device is the norm.
+const tempBase = process.env.RUNNER_TEMP ?? os.tmpdir();
+const tempInstall = await fs.mkdtemp(resolve(tempBase, 'tx-ext-install-'));
 await fs.copyFile(
   resolve(extensionRoot, 'package.json'),
   resolve(tempInstall, 'package.json'),
