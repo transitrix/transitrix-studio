@@ -155,6 +155,21 @@ const FIX_PROMPT_CSS = `
 }
 `;
 
+// Collapsible error strip (vkgeorgia/strategy view-testing idea). Mirrors the
+// `.tx-ctl` controls panel look so the preview reads consistently: a native
+// <details>/<summary> with the same arrow marker. Native <details> needs no
+// script, so the strip collapses in static (enableScripts: false) previews too.
+// Open by default — a hard error must never be silently folded away; the user
+// can collapse it once read to get the diagram canvas back.
+const ERROR_BLOCK_CSS = `
+.tx-err{margin:8px 16px;border:1px solid var(--vscode-inputValidation-errorBorder,var(--vscode-errorForeground,#b91c1c));border-radius:6px;}
+.tx-err > summary{cursor:pointer;user-select:none;list-style:none;padding:6px 10px;font-size:12px;font-weight:600;color:var(--vscode-errorForeground,#b91c1c);}
+.tx-err > summary::-webkit-details-marker{display:none;}
+.tx-err > summary::before{content:"\\25B8\\00a0";}
+.tx-err[open] > summary::before{content:"\\25BE\\00a0";}
+.tx-err > pre{margin:0;color:var(--vscode-errorForeground,#b91c1c);white-space:pre-wrap;padding:2px 16px 12px;}
+`;
+
 const FRAME_HEADER_CSS = `
 .frame-header{padding:16px 20px 20px;}
 .frame-title{font-size:18px;font-weight:700;color:var(--ts-text,#0f172a);margin-bottom:4px;}
@@ -312,8 +327,15 @@ export function buildDiagramFrame(opts: DiagramFrameOpts): string {
 
   const canvasContent = bodyContent ?? svgContent;
 
+  // Each validation error is one `CODE: message` line (see the previews'
+  // `v.errors.map(...).join('\n')`); a bare parse failure is a single line.
+  // Counting non-empty lines gives a meaningful summary count for both.
+  const errCount = errorMsg ? errorMsg.split('\n').filter(l => l.trim() !== '').length : 0;
   const errBlock = errorMsg
-    ? `<pre style="color:var(--vscode-errorForeground,#b91c1c);white-space:pre-wrap;padding:12px 16px;">${escXml(errorMsg)}</pre>`
+    ? `<details class="tx-err" open>
+  <summary>⚠ ${errCount === 1 ? '1 error' : `${errCount} errors`}</summary>
+  <pre>${escXml(errorMsg)}</pre>
+</details>`
     : '';
 
   const fixPromptBlock = fixPrompt
@@ -420,6 +442,7 @@ export function buildDiagramFrame(opts: DiagramFrameOpts): string {
   <style>
 ${generateWebviewCss(themeId)}
 ${FIX_PROMPT_CSS}
+${ERROR_BLOCK_CSS}
 ${FRAME_HEADER_CSS}
 ${TITLE_TOGGLE_CSS}
 ${ZOOM_CONTROL_CSS}
