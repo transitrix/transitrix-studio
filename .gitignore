@@ -73,8 +73,11 @@ CLAUDE.md
 roadmap.md
 
 # Claude Code worktrees and per-agent state
-.claude/
-**/.claude/
+# (commands/*.md skill definitions are tracked — see exceptions below)
+.claude/**
+**/.claude/**
+!.claude/commands/
+!.claude/commands/*.md
 
 # Internal / scratch files (not for public repo)
 stakeholders.md
