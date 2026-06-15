@@ -2,6 +2,8 @@
 import { writeFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 
+import jsyaml from 'js-yaml';
+
 import {
   CERVIN_DEPRECATION_NOTICE,
   DEFAULT_CERVIN_FILE_EXTENSIONS,
@@ -37,8 +39,11 @@ function printUsage(): void {
   <compile> — YAML → BPMN 2.0 XML with layout metrics.
   metrics   — layout quality metrics (with --json for CI).
   validate  — validation only (no XML output; exit 1 on errors). Default scope
-              is a single file; --scope=repo runs whole-canon checks
-              (referential integrity, atomicity, id uniqueness, policy).
+              is a single file: BPMN, or a diagram notation (goals, fgca, fga,
+              activities, activity-card, process-blueprint, blocks) routed by its
+              notation: field — the same checks the Studio preview shows.
+              --scope=repo runs whole-canon checks (referential integrity,
+              atomicity, id uniqueness, policy).
   export-compliance — Markdown or PDF report of the compliance views (matrix by
               default; law:/product:/gap scopes). Scans --root (default cwd) for
               requirement/assertion/product/codex canon. PDF rendering requires
@@ -194,6 +199,56 @@ function printValidationReport(src: string, validation: ValidationReport, suppre
   console.log();
 }
 
+/** Cheap probe of a document's `notation:` field, used to route diagram
+ *  notations to their own validator before the BPMN/IR path. Returns undefined
+ *  for non-object YAML, a missing/non-string notation, or a syntax error — in
+ *  every case the chosen downstream path reports the real problem. */
+function probeNotation(text: string): string | undefined {
+  try {
+    const doc = jsyaml.load(text);
+    if (doc && typeof doc === 'object' && !Array.isArray(doc)) {
+      const n = (doc as Record<string, unknown>).notation;
+      if (typeof n === 'string') return n;
+    }
+  } catch {
+    /* malformed YAML — surfaced by parseYamlToIr / loadNotationYaml below */
+  }
+  return undefined;
+}
+
+/** Emit a file-scope ValidationReport as JSON (for CI/agents) or coloured text.
+ *  Shared by the BPMN path and the per-notation path so both speak one schema.
+ *  `notation` is added to the JSON only for diagram-notation validation. */
+function emitFileReport(
+  src: string,
+  report: ValidationReport,
+  useJson: boolean,
+  notation?: string,
+): void {
+  if (useJson) {
+    const output: Record<string, unknown> = {
+      valid: report.isValid,
+      findings: report.findings.map((f: ValidationFinding) => ({
+        ruleId: f.ruleId,
+        severity: f.severity,
+        message: f.message,
+        elementId: f.elementId || null,
+        hint: f.hint || null,
+      })),
+      summary: report.summary,
+    };
+    if (notation) output.notation = notation;
+    console.log(JSON.stringify(output, null, 2));
+    return;
+  }
+  if (report.findings.length === 0) {
+    console.log(`✓ ${src} — valid`);
+    console.log();
+    return;
+  }
+  printValidationReport(src, report, false);
+}
+
 async function handleValidateCommand(argv: string[]): Promise<void> {
   const parsed = parseValidateArgv(argv);
   if (!parsed.ok) {
@@ -218,6 +273,9 @@ async function handleValidateCommand(argv: string[]): Promise<void> {
     console.error(`       transitrix validate --scope=repo [--root <dir>] [--json]`);
     console.error('');
     console.error('file scope — single-file structural/semantic validation (default).');
+    console.error('             BPMN, or a diagram notation routed by its notation: field');
+    console.error('             (goals, fgca, fga, activities, activity-card,');
+    console.error('             process-blueprint, blocks) — same checks as the preview.');
     console.error('repo scope — whole-canon checks (referential integrity, atomicity,');
     console.error('             id uniqueness, policy) over <root> (default: cwd).');
     console.error('Exits with code 1 if any findings.');
@@ -243,7 +301,7 @@ async function handleValidateCommand(argv: string[]): Promise<void> {
     return;
   }
 
-  // ----- file scope (existing behaviour) -----
+  // ----- file scope -----
   const [src] = positional;
   if (!src) {
     console.error('transitrix validate: missing input file');
@@ -251,19 +309,14 @@ async function handleValidateCommand(argv: string[]): Promise<void> {
     process.exit(1);
   }
 
-  if (!inputMatchesExtension(src, exts)) {
-    console.error(
-      `transitrix: input file must end with one of: ${exts.join(', ')} (or pass --ext)`,
-    );
-    process.exit(1);
-  }
-
-  // Read and parse YAML. TX-R004 — file read was outside the try block, so a
-  // missing file surfaced as an unhandled rejection / stack trace instead of
-  // a clean exit-1.
-  let yaml: string;
+  // Read first, so we can probe the `notation:` field before the extension gate:
+  // diagram-notation files (*.goals.transitrix.yaml, …) don't match the default
+  // BPMN/Cervin extension list, and their notation field — not the filename — is
+  // the authoritative signal. TX-R004 — keep the read inside try so a missing
+  // file exits 1 cleanly instead of throwing.
+  let fileText: string;
   try {
-    yaml = await readFile(src, 'utf8');
+    fileText = await readFile(src, 'utf8');
   } catch (e) {
     const err = e as NodeJS.ErrnoException;
     if (useJson) {
@@ -277,9 +330,81 @@ async function handleValidateCommand(argv: string[]): Promise<void> {
     process.exit(1);
   }
 
+  // Diagram-notation routing (vkgeorgia/strategy#258): validate via the same
+  // per-notation validator the VS Code preview uses, so the CLI emits the same
+  // findings the preview shows in red. BPMN / no-notation files fall through to
+  // the IR path below.
+  const probedNotation = probeNotation(fileText);
+  if (probedNotation && probedNotation !== 'bpmn') {
+    // Hand-typed dynamic import (not `typeof import(...)`) so this @transitrix/
+    // diagrams-importing module stays out of the rootDir-restricted emit build —
+    // same pattern as the repo-scope handler above.
+    const nvModule = './validate-notation.js';
+    const nv = (await import(nvModule)) as {
+      isFileValidatableNotation: (notation: string) => boolean;
+      loadNotationYaml: (text: string) => unknown;
+      validateNotationDoc: (notation: string, data: unknown) => ValidationReport;
+    };
+    if (nv.isFileValidatableNotation(probedNotation)) {
+      let data: unknown;
+      try {
+        data = nv.loadNotationYaml(fileText);
+      } catch (e) {
+        const err = e as Error;
+        if (useJson) {
+          console.log(
+            JSON.stringify(
+              { valid: false, notation: probedNotation, message: err.message },
+              null,
+              2,
+            ),
+          );
+        } else {
+          console.error(`✗ ${src}`);
+          console.error();
+          console.error(`Parse error: ${err.message}`);
+          console.error();
+        }
+        process.exit(1);
+      }
+      const report = nv.validateNotationDoc(probedNotation, data);
+      emitFileReport(src, report, useJson, probedNotation);
+      if (!report.isValid) {
+        process.exit(1);
+      }
+      return;
+    }
+    // Recognised notation, but no file-scope CLI validator yet (Group B inline
+    // validators, or non-diagram views like compliance-impact). Be honest: don't
+    // claim valid and don't mis-run the BPMN path — say so and exit 0 (the file
+    // itself isn't in error), so an agent loop isn't blocked on it.
+    const notice =
+      `notation "${probedNotation}" is not yet validated by the CLI — check it in ` +
+      `the Transitrix Studio preview, or run whole-canon checks with --scope=repo.`;
+    if (useJson) {
+      console.log(
+        JSON.stringify({ valid: null, notation: probedNotation, covered: false, message: notice }, null, 2),
+      );
+    } else {
+      console.error(`• ${src}: ${notice}`);
+      console.error();
+    }
+    return;
+  }
+
+  // ----- BPMN / no-notation path -----
+  // The extension gate only applies here; diagram notations are routed above by
+  // their notation field regardless of filename.
+  if (!inputMatchesExtension(src, exts)) {
+    console.error(
+      `transitrix: input file must end with one of: ${exts.join(', ')} (or pass --ext)`,
+    );
+    process.exit(1);
+  }
+
   let ir: ProcessIr;
   try {
-    ir = parseYamlToIr(yaml);
+    ir = parseYamlToIr(fileText);
   } catch (e) {
     const err = e as Error & { errors?: string[] };
     if (useJson) {
@@ -305,34 +430,8 @@ async function handleValidateCommand(argv: string[]): Promise<void> {
     process.exit(1);
   }
 
-  // Run validator
   const report = validateProcess(ir);
-
-  if (useJson) {
-    // JSON output for CI
-    const output = {
-      valid: report.isValid,
-      findings: report.findings.map((f: ValidationFinding) => ({
-        ruleId: f.ruleId,
-        severity: f.severity,
-        message: f.message,
-        elementId: f.elementId || null,
-        hint: f.hint || null,
-      })),
-      summary: report.summary,
-    };
-    console.log(JSON.stringify(output, null, 2));
-  } else {
-    // Human-readable output
-    if (report.findings.length === 0) {
-      console.log(`✓ ${src} — valid`);
-      console.log();
-    } else {
-      printValidationReport(src, report, false);
-    }
-  }
-
-  // Exit with appropriate code
+  emitFileReport(src, report, useJson);
   if (!report.isValid) {
     process.exit(1);
   }

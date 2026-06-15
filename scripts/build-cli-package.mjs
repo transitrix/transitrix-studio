@@ -7,13 +7,14 @@
  *   packages/cli/dist/cli.js                 — bundled entry (shebang preserved)
  *   packages/cli/dist/repo-validate.js       — bundled `validate --scope=repo` handler
  *   packages/cli/dist/export-compliance.js   — bundled `export-compliance` handler
+ *   packages/cli/dist/validate-notation.js   — bundled per-notation `validate <file>` dispatch
  *   packages/cli/schemas/bpmn-dsl.schema.json — copied from root schemas/
  *
  * Runtime npm dependencies are kept external; they are declared in
  * packages/cli/package.json and resolved by npm at install time. The
- * Transitrix diagrams *source* (imported by repo-validate.ts and
- * export-compliance.ts) is bundled in — the slim package does not list
- * @transitrix/diagrams as a runtime dependency.
+ * Transitrix diagrams *source* (imported by repo-validate.ts,
+ * export-compliance.ts and validate-notation.ts) is bundled in — the slim
+ * package does not list @transitrix/diagrams as a runtime dependency.
  */
 import esbuild from 'esbuild';
 import fs from 'node:fs/promises';
@@ -82,6 +83,12 @@ await esbuild.build({
 await esbuild.build({
   ...sharedBuildOptions,
   entryPoints: { 'export-compliance': resolve(root, 'src', 'export-compliance.ts') },
+  outdir: distOut,
+});
+
+await esbuild.build({
+  ...sharedBuildOptions,
+  entryPoints: { 'validate-notation': resolve(root, 'src', 'validate-notation.ts') },
   outdir: distOut,
 });
 
