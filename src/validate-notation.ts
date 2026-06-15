@@ -1,4 +1,4 @@
-// File-scope validation for diagram notations (vkgeorgia/strategy#258, Phase A).
+// File-scope validation for diagram notations (vkgeorgia/strategy#258).
 //
 // The VS Code preview renders its red error block from per-notation validators
 // in @transitrix/diagrams. This module exposes those same validators to the CLI
@@ -12,13 +12,14 @@
 // loaded by cli.ts via a runtime dynamic import (tsx in dev), and bundled into
 // the slim CLI package by scripts/build-cli-package.mjs.
 //
-// Scope — "Group A": notations whose validator already lives in the shared
-// package AND is the one the preview calls, so parity is exact by construction.
-// Group B (applications, capability-map, products, scenarios, process-map) keep
-// an inline validator copy in the extension; folding those in needs a dedup
-// first and is deferred. activity-card runs only its single-file structural
-// stage here — cross-document resolution (resolveActivityCard) needs the whole
-// canon and belongs to repo scope.
+// Group A: notations whose validator already lived in the shared package AND was
+// the one the preview called — parity by construction from Phase A.
+// Group B (applications, capability-map, products, scenarios, process-map):
+// previously kept inline copies in the extension preview files. Phase B deduped
+// them — the extension now imports the package validator — so CLI parity is
+// guaranteed for all notations listed here.
+// activity-card runs only its single-file structural stage here — cross-document
+// resolution (resolveActivityCard) needs the whole canon and belongs to repo scope.
 
 import yaml from 'js-yaml';
 import type { ValidationReport, ValidationFinding } from './validator-types.js';
@@ -32,8 +33,13 @@ import { validateActivities } from '../packages/diagrams/src/activities/validate
 import { validateActivityCard } from '../packages/diagrams/src/activity-card/validate.js';
 import { validateProcessBlueprint } from '../packages/diagrams/src/process-blueprint/validate.js';
 import { validateNestedBlocks } from '../packages/diagrams/src/blocks/validate.js';
+import { validateApplicationsCatalogue } from '../packages/diagrams/src/applications/validate.js';
+import { validateCapabilityMap } from '../packages/diagrams/src/capability-map/validate.js';
+import { validateProductsCatalogue } from '../packages/diagrams/src/products/validate.js';
+import { validateScenario } from '../packages/diagrams/src/scenarios/validate.js';
+import { validateProcessMap } from '../packages/diagrams/src/process-map/validate.js';
 
-/** The shape every Group A validator returns: code/message findings split into
+/** The shape every notation validator returns: code/message findings split into
  *  blocking errors and advisory warnings. The concrete result types carry extra
  *  fields (parsed model, etc.) — structurally assignable to this. */
 interface NotationValidationResult {
@@ -47,6 +53,7 @@ type NotationValidator = (input: unknown) => NotationValidationResult;
 // Keyed by the document's `notation:` field value — see the corpus under
 // tests/fixtures/notation-corpus/<notation>/.
 const VALIDATORS: Record<string, NotationValidator> = {
+  // Group A — validator lives in the shared package and is the one the preview calls.
   goals: parseCanonicalGoals,
   fgca: parseCanonicalFGCA,
   fga: parseCanonicalFGA,
@@ -54,9 +61,15 @@ const VALIDATORS: Record<string, NotationValidator> = {
   'activity-card': validateActivityCard,
   'process-blueprint': validateProcessBlueprint,
   blocks: validateNestedBlocks,
+  // Group B — deduped from inline preview copies in Phase B; package is now canonical.
+  applications: validateApplicationsCatalogue,
+  'capability-map': validateCapabilityMap,
+  products: validateProductsCatalogue,
+  scenarios: validateScenario,
+  'process-map': validateProcessMap,
 };
 
-/** Notation field values the CLI can validate per file (Group A). */
+/** Notation field values the CLI can validate per file. */
 export const FILE_VALIDATABLE_NOTATIONS = Object.keys(VALIDATORS);
 
 /** True when `transitrix validate <file>` has a per-notation validator for this

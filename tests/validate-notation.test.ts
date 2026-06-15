@@ -14,10 +14,15 @@ import {
 // Imported directly to prove the CLI dispatch mirrors the validator the VS Code
 // preview uses — same findings, no drift (vkgeorgia/strategy#258).
 import { parseCanonicalGoals } from '../packages/diagrams/src/goals/parse-canonical.js';
+import { validateApplicationsCatalogue } from '../packages/diagrams/src/applications/validate.js';
+import { validateCapabilityMap } from '../packages/diagrams/src/capability-map/validate.js';
+import { validateProductsCatalogue } from '../packages/diagrams/src/products/validate.js';
+import { validateScenario } from '../packages/diagrams/src/scenarios/validate.js';
+import { validateProcessMap } from '../packages/diagrams/src/process-map/validate.js';
 
 const corpusRoot = join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'notation-corpus');
 
-// Group A — notations the CLI validates per file by routing on the notation field.
+// Group A — shared package validators already used by the preview before Phase B.
 const GROUP_A = [
   'goals',
   'fgca',
@@ -28,6 +33,17 @@ const GROUP_A = [
   'blocks',
 ];
 
+// Group B — deduped from extension inline copies in Phase B; package is now canonical.
+const GROUP_B = [
+  'applications',
+  'capability-map',
+  'products',
+  'scenarios',
+  'process-map',
+];
+
+const ALL_NOTATIONS = [...GROUP_A, ...GROUP_B];
+
 function fixtures(notation: string): string[] {
   return readdirSync(join(corpusRoot, notation))
     .filter((f) => f.endsWith('.transitrix.yaml'))
@@ -35,22 +51,13 @@ function fixtures(notation: string): string[] {
 }
 
 describe('validate-notation — dispatch (#258)', () => {
-  it('recognises exactly the Group A notations', () => {
-    for (const n of GROUP_A) expect(isFileValidatableNotation(n)).toBe(true);
-    expect([...FILE_VALIDATABLE_NOTATIONS].sort()).toEqual([...GROUP_A].sort());
+  it('recognises all Group A and Group B notations', () => {
+    for (const n of ALL_NOTATIONS) expect(isFileValidatableNotation(n)).toBe(true);
+    expect([...FILE_VALIDATABLE_NOTATIONS].sort()).toEqual([...ALL_NOTATIONS].sort());
   });
 
-  it('does not claim BPMN, Group B, or unknown notations', () => {
-    for (const n of [
-      'bpmn',
-      'applications',
-      'capability-map',
-      'products',
-      'scenarios',
-      'process-map',
-      'compliance-impact',
-      'nonsense',
-    ]) {
+  it('does not claim BPMN, non-diagram views, or unknown notations', () => {
+    for (const n of ['bpmn', 'compliance-impact', 'coverage-metric', 'nonsense']) {
       expect(isFileValidatableNotation(n)).toBe(false);
     }
   });
@@ -65,7 +72,7 @@ describe('validate-notation — dispatch (#258)', () => {
 });
 
 describe('validate-notation — the notation corpus validates clean (#258)', () => {
-  for (const notation of GROUP_A) {
+  for (const notation of ALL_NOTATIONS) {
     for (const file of fixtures(notation)) {
       const name = file.slice(corpusRoot.length + 1).replace(/\\/g, '/');
       it(`${name} → valid`, () => {
@@ -106,5 +113,56 @@ describe('validate-notation — parity with the preview validator (#258)', () =>
       .filter((f) => f.severity === 'warning')
       .map((f) => f.ruleId);
     expect(warningCodes).toEqual(raw.warnings.map((w) => w.code));
+  });
+
+  // Group B parity — CLI dispatch calls the same package function the extension now imports.
+  it('applications: CLI findings mirror validateApplicationsCatalogue exactly', () => {
+    const broken = { notation: 'applications' };
+    const raw = validateApplicationsCatalogue(broken);
+    const report = validateNotationDoc('applications', broken);
+    expect(report.isValid).toBe(raw.valid);
+    expect(report.isValid).toBe(false);
+    expect(report.findings.filter((f) => f.severity === 'error').map((f) => f.ruleId))
+      .toEqual(raw.errors.map((e) => e.code));
+  });
+
+  it('capability-map: CLI findings mirror validateCapabilityMap exactly', () => {
+    const broken = { notation: 'capability-map' };
+    const raw = validateCapabilityMap(broken);
+    const report = validateNotationDoc('capability-map', broken);
+    expect(report.isValid).toBe(raw.valid);
+    expect(report.isValid).toBe(false);
+    expect(report.findings.filter((f) => f.severity === 'error').map((f) => f.ruleId))
+      .toEqual(raw.errors.map((e) => e.code));
+  });
+
+  it('products: CLI findings mirror validateProductsCatalogue exactly', () => {
+    const broken = { notation: 'products' };
+    const raw = validateProductsCatalogue(broken);
+    const report = validateNotationDoc('products', broken);
+    expect(report.isValid).toBe(raw.valid);
+    expect(report.isValid).toBe(false);
+    expect(report.findings.filter((f) => f.severity === 'error').map((f) => f.ruleId))
+      .toEqual(raw.errors.map((e) => e.code));
+  });
+
+  it('scenarios: CLI findings mirror validateScenario exactly', () => {
+    const broken = { notation: 'scenarios' };
+    const raw = validateScenario(broken);
+    const report = validateNotationDoc('scenarios', broken);
+    expect(report.isValid).toBe(raw.valid);
+    expect(report.isValid).toBe(false);
+    expect(report.findings.filter((f) => f.severity === 'error').map((f) => f.ruleId))
+      .toEqual(raw.errors.map((e) => e.code));
+  });
+
+  it('process-map: CLI findings mirror validateProcessMap exactly', () => {
+    const broken = { notation: 'process-map' };
+    const raw = validateProcessMap(broken);
+    const report = validateNotationDoc('process-map', broken);
+    expect(report.isValid).toBe(raw.valid);
+    expect(report.isValid).toBe(false);
+    expect(report.findings.filter((f) => f.severity === 'error').map((f) => f.ruleId))
+      .toEqual(raw.errors.map((e) => e.code));
   });
 });
