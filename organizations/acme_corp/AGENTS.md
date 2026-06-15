@@ -171,6 +171,16 @@ Every notation file is validated before commit. Two sanctioned paths:
 - **Transitrix Studio (VS Code extension)** — install from the Marketplace (`transitrix.transitrix-studio`). The extension validates on save and shows error annotations in the editor.
 - **Transitrix CLI** — `npx @transitrix/cli validate path/to/your.fgca.transitrix.yaml`. Use in CI or when working without VS Code.
 
+**The agent validates files itself — it does not wait for a human to read the preview.** The CLI's `validate <file>` routes on the document's `notation:` field to the same per-notation checks the Studio preview runs, so the agent gets the identical findings as structured output. Run the closed loop on every file it touches:
+
+```sh
+# --json → machine-readable findings; exit 1 when any error-level finding exists.
+npx @transitrix/cli validate canon/views/goals/eu-strategy.goals.transitrix.yaml --json
+# parse findings → fix the YAML → re-run until exit 0
+```
+
+Diagram notations covered per file: `goals`, `fgca`, `fga`, `activities`, `activity-card`, `process-blueprint`, `blocks`. For the remaining notations (e.g. `applications`, `capability-map`, `products`, `scenarios`, `process-map`), the CLI reports the file as not-yet-covered — validate those in the Studio preview, and run `validate --scope=repo` for whole-canon cross-reference checks.
+
 The agent does **not** commit files with `error`-level validation findings. `warning`-level findings are surfaced to the adopter and committed only with explicit acknowledgement. The agent does not auto-suppress validation rules.
 
 Every notation spec carries its own validation-codes table (e.g. `FGCA-001..015`, `GOALS-001..013`, `BL-001..009`, `ISS-001..006`). When surfacing a validation error to the adopter, the agent includes the canonical code so the rule is traceable to the spec.
