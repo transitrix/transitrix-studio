@@ -18,6 +18,7 @@ import type {
   ChainNode,
   ChildActivityRow,
   DateField,
+  InfoRow,
   MilestoneMarker,
   ResolvedActivityCard,
   SectionHeader,
@@ -40,6 +41,64 @@ const MILESTONE_H = 64;
 const MILESTONE_GAP = 16;
 const CHAIN_NODE_H = 46;
 const CHILD_ROW_H = 42;
+
+// Info-row metrics (Description / Project goal / Stakeholders). The label sits
+// at row-relative y=22, the first value line at y=44, each further line +18.
+// The renderers paint at those same fixed offsets, so INFO_ROW_H must keep all
+// value lines inside the box.
+const INFO_LINE_H = 18;
+const INFO_ROW_BASE_H = 38; // label band (22) + bottom padding past last line (16)
+/** Approx px per character for the value font; sets the wrap budget. */
+const INFO_CHAR_W = 7;
+
+/**
+ * Greedy word-wrap to a max characters-per-line budget. Over-long words are
+ * hard-split; output beyond `maxLines` is dropped with an ellipsis so one long
+ * field can't grow the card unbounded. (Local copy — the card layout is a
+ * standalone module; cf. process-blueprint's `wrapText`.)
+ */
+function wrapText(text: string, maxChars: number, maxLines: number): string[] {
+  const trimmed = (text ?? '').trim();
+  if (trimmed.length === 0) return [];
+  const budget = Math.max(1, maxChars);
+  const words = trimmed.split(/\s+/);
+  const lines: string[] = [];
+  let cur = '';
+  const flush = (): void => {
+    if (cur.length > 0) {
+      lines.push(cur);
+      cur = '';
+    }
+  };
+  for (const word of words) {
+    if (word.length > budget) {
+      flush();
+      let rest = word;
+      while (rest.length > budget) {
+        lines.push(rest.slice(0, budget));
+        rest = rest.slice(budget);
+      }
+      cur = rest;
+      continue;
+    }
+    const candidate = cur.length > 0 ? `${cur} ${word}` : word;
+    if (candidate.length > budget) {
+      flush();
+      cur = word;
+    } else {
+      cur = candidate;
+    }
+  }
+  flush();
+  if (lines.length > maxLines) {
+    const capped = lines.slice(0, maxLines);
+    const last = capped[maxLines - 1];
+    const clipped = last.length > budget - 1 ? last.slice(0, budget - 1) : last;
+    capped[maxLines - 1] = `${clipped.replace(/…$/, '')}…`;
+    return capped;
+  }
+  return lines;
+}
 
 /** ArchiMate class per §5.1 — derived from element TYPE, never stored. */
 export const ARCHIMATE_CLASS = {
@@ -78,6 +137,25 @@ export function layoutActivityCard(
     height: DATES_H,
   }));
   cursorY += DATES_H + SECTION_GAP;
+
+  // 2b. Info rows — Description, Project goal, Stakeholders (full-width).
+  // Project goal and Stakeholders are ALWAYS shown (with a "—" placeholder when
+  // empty); Description appears only when the card carries one.
+  const infoRows: InfoRow[] = [];
+  const maxChars = Math.max(8, Math.floor(contentW / INFO_CHAR_W));
+  const pushInfoRow = (label: string, raw: string, maxLines: number): void => {
+    const valueLines = wrapText(raw, maxChars, maxLines);
+    const lines = valueLines.length > 0 ? valueLines : ['—'];
+    const height = INFO_ROW_BASE_H + lines.length * INFO_LINE_H;
+    infoRows.push({ label, valueLines: lines, x: contentX, y: cursorY, width: contentW, height });
+    cursorY += height + opts.rowGap;
+  };
+  const description = (card.cardDescription ?? '').trim();
+  if (description.length > 0) pushInfoRow('Description', description, 5);
+  pushInfoRow('Project goal', (card.goalNames ?? []).join(' · '), 3);
+  pushInfoRow('Stakeholders', (card.stakeholders ?? []).map((s) => s.name).join(' · '), 3);
+  // Convert the trailing row gap into a section gap before the next section.
+  if (infoRows.length > 0) cursorY += SECTION_GAP - opts.rowGap;
 
   const sectionHeaders: SectionHeader[] = [];
   const pushHeader = (label: string): void => {
@@ -185,6 +263,7 @@ export function layoutActivityCard(
     bounds: { x: 0, y: 0, width: opts.cardWidth, height: Math.max(totalHeight, PAD * 2 + TITLE_H) },
     title,
     dateFields,
+    infoRows,
     sectionHeaders,
     milestones,
     chainColumns: { factors: factorsCol, goals: goalsCol, changes: changesCol },
