@@ -3,8 +3,9 @@ import * as vscode from 'vscode';
 import yaml from 'js-yaml';
 import { buildDiagramFrame, CATALOGUE_STYLES, type ThemeId } from './diagram-frame.js';
 import { coerceDatesToIsoStrings } from '../../packages/diagrams/src/yaml-normalize.js';
+import { validateProductsCatalogue } from '../../packages/diagrams/src/products/validate.js';
 
-// ── Inline types (mirror packages/diagrams/src/products/types.ts) ─────────────
+// ── Types (used by render helpers) ───────────────────────────────────────────
 
 type ProductType = 'digital_product' | 'service' | 'platform' | 'bundle';
 type ProductStatus = 'Draft' | 'Active' | 'Deprecated';
@@ -30,81 +31,6 @@ interface ProductsCatalogueHeader {
   version?: string;
   updated_at: string;
   products: Product[];
-}
-
-interface ValidationError { code: string; message: string; }
-interface ValidationResult { valid: boolean; errors: ValidationError[]; warnings: Array<{ code: string; message: string }> }
-
-// ── Inline validation (mirrors packages/diagrams/src/products/validate.ts) ────
-
-const VALID_TYPES = new Set<string>(['digital_product', 'service', 'platform', 'bundle']);
-const VALID_STATUSES = new Set<string>(['Draft', 'Active', 'Deprecated']);
-const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-
-function validateProductsCatalogue(input: unknown): ValidationResult {
-  const errors: ValidationError[] = [];
-  const warnings: Array<{ code: string; message: string }> = [];
-
-  if (!input || typeof input !== 'object') {
-    return { valid: false, errors: [{ code: 'PROD-001', message: 'Input must be an object' }], warnings };
-  }
-  const raw = input as Record<string, unknown>;
-
-  if (!('notation' in raw)) {
-    errors.push({ code: 'PROD-001', message: 'Missing required field: notation' });
-  } else if (raw['notation'] !== 'products') {
-    errors.push({ code: 'PROD-001', message: `notation must be "products", got "${raw['notation']}"` });
-  }
-  if (errors.length > 0) return { valid: false, errors, warnings };
-
-  const cat = (raw['products_catalogue'] ?? {}) as Record<string, unknown>;
-  if (!raw['products_catalogue'] || typeof raw['products_catalogue'] !== 'object') {
-    errors.push({ code: 'PROD-002', message: 'Missing required field: products_catalogue' });
-    return { valid: false, errors, warnings };
-  }
-  if (!cat['id'] || typeof cat['id'] !== 'string' || !(cat['id'] as string).trim())
-    errors.push({ code: 'PROD-002', message: 'products_catalogue.id is required' });
-  if (!cat['name'] || typeof cat['name'] !== 'string' || !(cat['name'] as string).trim())
-    errors.push({ code: 'PROD-002', message: 'products_catalogue.name is required' });
-  if (!cat['updated_at'] || typeof cat['updated_at'] !== 'string')
-    errors.push({ code: 'PROD-002', message: 'products_catalogue.updated_at is required' });
-  if (errors.length > 0) return { valid: false, errors, warnings };
-
-  if (!DATE_RE.test(cat['updated_at'] as string))
-    errors.push({ code: 'PROD-007', message: `products_catalogue.updated_at must be YYYY-MM-DD, got "${cat['updated_at']}"` });
-
-  const products = cat['products'];
-  if (!Array.isArray(products)) {
-    errors.push({ code: 'PROD-002', message: 'products_catalogue.products must be an array' });
-    return { valid: false, errors, warnings };
-  }
-
-  const seenIds = new Set<string>();
-  for (let i = 0; i < products.length; i++) {
-    const p = products[i] as Record<string, unknown>;
-    const idx = `products[${i}]`;
-    if (!p['product_id'] || typeof p['product_id'] !== 'string' || !(p['product_id'] as string).trim()) {
-      errors.push({ code: 'PROD-003', message: `${idx}: product_id is required` });
-    } else {
-      const pid = p['product_id'] as string;
-      if (seenIds.has(pid)) errors.push({ code: 'PROD-008', message: `Duplicate product_id: "${pid}"` });
-      seenIds.add(pid);
-    }
-    if (!p['name'] || typeof p['name'] !== 'string' || !(p['name'] as string).trim())
-      errors.push({ code: 'PROD-003', message: `${idx}: name is required` });
-    if (!p['type']) errors.push({ code: 'PROD-003', message: `${idx}: type is required` });
-    if (!p['status']) errors.push({ code: 'PROD-003', message: `${idx}: status is required` });
-    if (p['type'] && !VALID_TYPES.has(p['type'] as string))
-      errors.push({ code: 'PROD-004', message: `${idx}: type "${p['type']}" must be one of: digital_product, service, platform, bundle` });
-    if (p['status'] && !VALID_STATUSES.has(p['status'] as string))
-      errors.push({ code: 'PROD-005', message: `${idx}: status "${p['status']}" must be one of: Draft, Active, Deprecated` });
-    if (p['maturity'] !== undefined) {
-      const m = p['maturity'];
-      if (typeof m !== 'number' || !Number.isInteger(m) || m < 1 || m > 5)
-        errors.push({ code: 'PROD-006', message: `${idx}: maturity must be an integer 1–5, got "${m}"` });
-    }
-  }
-  return { valid: errors.length === 0, errors, warnings };
 }
 
 // ── HTML table render helpers ─────────────────────────────────────────────────
