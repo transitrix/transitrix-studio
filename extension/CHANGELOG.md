@@ -1,5 +1,15 @@
 # Transitrix Studio — changelog
 
+## Unreleased
+
+### Changed
+
+- **Validation warnings now collapse.** The preview's non-fatal warning advisories (e.g. ACT-011 "no duration", ACT-019 "Gantt view will not render") are grouped into one collapsible strip with a count ("N warnings") and start **collapsed**, so they no longer crowd the diagram. Click the summary to expand. Folds with no scripting, like the error strip.
+
+### Fixed
+
+- **Error strip collapses in static previews.** The red "N errors" strip now folds when its summary is clicked in every notation preview; it previously stayed open in the `enableScripts: false` (static) previews because it relied on a native `<details>`.
+
 ## 1.5.0 — 2026-06-16
 
 Sharper in-editor validation, a tidier error strip, and the Cervin → Transitrix settings/command rename.
