@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [1.5.2] — 2026-06-16
+
+### Added
+- **`transitrix.entryCurvature.<notation>` settings** — independent control over the arrow curvature at the point it enters a target node (`goals`, `fgca`, `fga`, `activities`). Previously the single `curvature` multiplier was applied symmetrically to both the exit and entry control handles; at low `curvature` values this caused the arrival curve to look cramped, especially on edges with large vertical spans. Setting `entryCurvature` higher than `curvature` (e.g. `curvature: 0.4`, `entryCurvature: 1.2`) gives a gentle exit while keeping the arrival smooth. Defaults to `1`; when equal to `curvature`, behaviour is identical to the previous release.
+
 ## [1.5.0] — 2026-06-16
 
 ### Added

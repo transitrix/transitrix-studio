@@ -34,6 +34,7 @@ import {
   SPACING_CONFIG_SECTION,
   OPEN_CURVATURE_SETTINGS_COMMAND,
   CURVATURE_CONFIG_SECTION,
+  ENTRY_CURVATURE_CONFIG_SECTION,
   OPEN_SCOPE_SETTINGS_COMMAND,
   SCOPE_CONFIG_SECTION,
   VIEW_CONFIG_SECTION,
@@ -404,6 +405,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       if (
         !e.affectsConfiguration(SPACING_CONFIG_SECTION) &&
         !e.affectsConfiguration(CURVATURE_CONFIG_SECTION) &&
+        !e.affectsConfiguration(ENTRY_CURVATURE_CONFIG_SECTION) &&
         !e.affectsConfiguration(SCOPE_CONFIG_SECTION) &&
         !e.affectsConfiguration(VIEW_CONFIG_SECTION)
       ) return;

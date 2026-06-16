@@ -24,10 +24,14 @@ export const DEFAULT_EDGE_CURVATURE = 1;
  * Builds the SVG `d` for a horizontal-tangent cubic Bézier from (sx,sy) to
  * (tx,ty).
  *
- * `curvature` scales the control-handle length:
- *   - 0   → control points collapse onto the endpoints ⇒ a straight line.
+ * `curvature` scales the exit control-handle (departure from source).
+ * `entryCurvature` scales the entry control-handle (arrival at target);
+ * defaults to `curvature` when omitted so callers that pass one value get
+ * symmetric handles (the historical behaviour).
+ *
+ *   - 0   → handle collapses onto its endpoint ⇒ straight at that end.
  *   - 1   → the historical curve (no visual change from before #76).
- *   - >1  → progressively stronger arc.
+ *   - >1  → progressively stronger arc at that end.
  */
 export function horizontalCubicEdgePath(
   sx: number,
@@ -35,10 +39,12 @@ export function horizontalCubicEdgePath(
   tx: number,
   ty: number,
   curvature: number = DEFAULT_EDGE_CURVATURE,
+  entryCurvature?: number,
 ): string {
   const dx = tx - sx;
   const dy = ty - sy;
   const baseHandle = Math.max(EDGE_MIN_HANDLE, Math.abs(dx) * DX_FACTOR, Math.abs(dy) * DY_FACTOR);
-  const handle = baseHandle * curvature;
-  return `M${sx},${sy} C${sx + handle},${sy} ${tx - handle},${ty} ${tx},${ty}`;
+  const exitHandle = baseHandle * curvature;
+  const entryHandle = baseHandle * (entryCurvature ?? curvature);
+  return `M${sx},${sy} C${sx + exitHandle},${sy} ${tx - entryHandle},${ty} ${tx},${ty}`;
 }

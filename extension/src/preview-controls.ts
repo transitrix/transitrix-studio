@@ -64,7 +64,7 @@ export interface ControlsModel {
 /** Message posted from the webview to the host on every control change. */
 export interface ControlMessage {
   type: 'transitrix:control';
-  control: 'spacing' | 'curvature' | 'scope' | 'view';
+  control: 'spacing' | 'curvature' | 'entryCurvature' | 'scope' | 'view';
   /** spacing: 'horizontalGap'|'verticalGap'; scope: 'rootId'|'maxLevel'|'reset'; view: 'tree'|'table'; absent for curvature. */
   field?: 'horizontalGap' | 'verticalGap' | 'rootId' | 'maxLevel' | 'reset' | 'tree' | 'table';
   /** Numeric for spacing/curvature/maxLevel; string for rootId; absent for reset/view. */

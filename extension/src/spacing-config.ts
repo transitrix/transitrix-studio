@@ -54,6 +54,17 @@ export const CURVATURE_CONFIG_SECTION = 'transitrix.curvature';
 /** Command that opens Settings filtered to the curvature controls. */
 export const OPEN_CURVATURE_SETTINGS_COMMAND = 'transitrixStudio.openCurvatureSettings';
 
+// Must match DEFAULT_EDGE_CURVATURE so an unconfigured preview is visually unchanged.
+const DEFAULT_ENTRY_CURVATURE = 1;
+
+/** Reads the user's configured entry curvature for a notation (default 1 = same as exit). */
+export function readEntryCurvature(notation: CurvatureNotation): number {
+  return vscode.workspace.getConfiguration('transitrix').get<number>(`entryCurvature.${notation}`, DEFAULT_ENTRY_CURVATURE);
+}
+
+/** Config section that, when changed, re-renders curvature-aware previews. */
+export const ENTRY_CURVATURE_CONFIG_SECTION = 'transitrix.entryCurvature';
+
 // ── Scope filter (vkgeorgia/strategy#77) ────────────────────────────────────
 //
 // Trim a preview to a subtree root or a level cap. Same PR1 persistence
@@ -132,6 +143,10 @@ export async function applyControlMessage(notation: SpacingNotation, msg: Contro
   }
   if (msg.control === 'curvature') {
     await cfg.update(`curvature.${notation}`, clamp(Number(msg.value), 0, 3), target);
+    return;
+  }
+  if (msg.control === 'entryCurvature') {
+    await cfg.update(`entryCurvature.${notation}`, clamp(Number(msg.value), 0, 3), target);
     return;
   }
   if (msg.control === 'view' && (notation === 'fgca' || notation === 'fga')) {
