@@ -1,15 +1,42 @@
 # Transitrix Studio — changelog
 
-## Unreleased
+## 1.5.0 — 2026-06-16
+
+Sharper in-editor validation, a tidier error strip, and the Cervin → Transitrix settings/command rename.
+
+### Added
+
+- **Notation-aware inline validation.** Every diagram notation now surfaces in the preview the same errors the `transitrix validate` CLI reports — one validator per notation, shared between the editor and the command line, so the red strip shows exactly what an agent or CI run gets.
+- **Per-element validators** for CHANGE / ACTOR / STAKEHOLDER / FACTOR / TARGET_STATE — clearer, element-specific messages when a canon element is malformed.
+- **`.transitrixrc` project config** — canonical replacement for `.cervinrc`; `.cervinrc` is still read as a fallback through 1.x.
+
+### Changed
+
+- **The red error strip in previews is now collapsible** — fold it away once you've read it instead of having it sit on top of the diagram.
+- **Settings renamed `cervin.*` → `transitrix.*`.** `transitrix.fileExtensions` and `transitrix.exportEnabled` are now the canonical keys. The legacy `cervin.fileExtensions` / `cervin.exportEnabled` keys are still read as a fallback when the new key is unset (so existing configs keep working), but are deprecated and will be removed in 2.0.0. A one-time migration notice is shown on activation when a legacy key is in effect.
+- **Commands renamed `cervin.*` → `transitrix.*`.** `transitrix.openPreview`, `transitrix.exportSvg`, `transitrix.exportPng` and `transitrix.exportBpmn` are now the canonical commands (the editor-title preview button uses `transitrix.openPreview`). The legacy `cervin.*` commands remain as deprecated aliases for one release so existing keybindings and macros keep working — they're hidden from the Command Palette and invoking one shows a one-time deprecation notice. Removal in 2.0.0.
 
 ### Docs
 
 - **Cursor / VSCodium / Windsurf install path.** The README now lists the [Open VSX Registry](https://open-vsx.org/extension/transitrix/transitrix-studio) alongside the VS Code Marketplace — the same VSIX ships to both. No code change; the artefact is identical.
 
-### Changed
+## 1.4.3 — 2026-06-13
 
-- **Settings renamed `cervin.*` → `transitrix.*`.** `transitrix.fileExtensions` and `transitrix.exportEnabled` are now the canonical keys. The legacy `cervin.fileExtensions` / `cervin.exportEnabled` keys are still read as a fallback when the new key is unset (so existing configs keep working), but are deprecated and will be removed in 2.0.0. A one-time migration notice is shown on activation when a legacy key is in effect.
-- **Commands renamed `cervin.*` → `transitrix.*`.** `transitrix.openPreview`, `transitrix.exportSvg`, `transitrix.exportPng` and `transitrix.exportBpmn` are now the canonical commands (the editor-title preview button uses `transitrix.openPreview`). The legacy `cervin.*` commands remain as deprecated aliases for one release so existing keybindings and macros keep working — they're hidden from the Command Palette and invoking one shows a one-time deprecation notice. Removal in 2.0.0.
+Fixes the broken listing preview image on the Marketplace and Open VSX.
+
+### Fixed
+
+- **Listing preview image renders again** — it showed as a tiny broken-image icon in 1.4.2 because the packaged README pointed at a relative path the publisher rewrote into a 404. The README now uses an absolute image URL that packaging leaves intact.
+
+## 1.4.1 — 2026-06-09
+
+### Removed
+
+- **Issues register notation retired.** The `*.issues.transitrix.yaml` notation (preview, commands, menus, example) is removed, following the methodology decision to model architectural problems and risks as `ASSESSMENT` and track team work as Work Items.
+
+### Fixed
+
+- **VSIX packaging** — a retired preview source no longer slips into the published artifact; a packaging-verification gate guards against it reappearing.
 
 ## 1.4.0 — 2026-06-05
 
