@@ -184,7 +184,7 @@ npx @transitrix/cli validate --scope=repo --json
 
 `--scope=repo` runs the per-notation validators over every file under `canon/views/**` (BPMN via the IR pipeline) **and** the canon cross-reference checks (referential integrity, id uniqueness, atomicity, policy) in a single invocation — the fastest way for the agent to find everything to fix.
 
-Diagram notations covered per file: `goals`, `fgca`, `fga`, `activities`, `activity-card`, `process-blueprint`, `blocks`, and `bpmn`. The remaining notations (e.g. `applications`, `capability-map`, `products`, `scenarios`, `process-map`) are reported as `skipped` (not silently passed) — validate those in the Studio preview for now.
+Diagram notations covered per file: `goals`, `fgca`, `fga`, `activities`, `activity-card`, `process-blueprint`, `blocks`, `applications`, `capability-map`, `products`, `scenarios`, `process-map`, and `bpmn`. Aggregate views that have no single-file validator (`compliance-impact`, `coverage-metric`) are reported as `skipped` (not silently passed) — validate those in the Studio preview for now.
 
 The agent does **not** commit files with `error`-level validation findings. `warning`-level findings are surfaced to the adopter and committed only with explicit acknowledgement. The agent does not auto-suppress validation rules.
 
