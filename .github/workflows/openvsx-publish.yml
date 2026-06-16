@@ -14,6 +14,12 @@ name: Open VSX — multi-platform publish
 #
 # win32-arm64 is not in the matrix: no GA GitHub-hosted Windows ARM runner
 # exists at time of writing. Add it when one becomes available.
+#
+# darwin-x64 (Intel macOS) is intentionally NOT in the matrix: the macos-13
+# (Intel) hosted runner is chronically unschedulable on this account (jobs sat
+# queued for ~18h), and Apple Silicon (darwin-arm64) covers current Macs. Intel
+# Mac is a shrinking segment; if it ever needs coverage, re-add a `macos-13`
+# entry or publish that target manually. Tracked on strategy #184.
 
 on:
   release:
@@ -35,8 +41,6 @@ jobs:
             target: linux-x64
           - runner: ubuntu-24.04-arm
             target: linux-arm64
-          - runner: macos-13
-            target: darwin-x64
           - runner: macos-latest
             target: darwin-arm64
           - runner: windows-latest
