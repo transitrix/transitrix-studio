@@ -61,6 +61,14 @@ accepts the same `--target` flag.
 > binary — avoid it for Marketplace publishing now that a native dependency
 > is in play.
 
+## Publishing to the VS Code Marketplace
+
+Publishing a GitHub Release triggers `.github/workflows/vscode-marketplace-publish.yml`,
+which runs `vsce publish` across the platform matrix automatically. The one-time
+prerequisite (an Azure DevOps PAT saved as the `VSCE_PAT` Actions secret) and the
+post-publish verification steps are documented in
+[`vscode-marketplace-publish-runbook.md`](vscode-marketplace-publish-runbook.md).
+
 ## Publishing to Open VSX (Cursor, VSCodium, Windsurf)
 
 Cursor and other VS Code derivatives read the [Open VSX Registry](https://open-vsx.org),

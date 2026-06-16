@@ -1,0 +1,95 @@
+name: VS Code Marketplace — multi-platform publish
+
+# Triggered on every GitHub Release to publish platform-specific VSIXs to the
+# VS Code Marketplace via `vsce publish`.
+#
+# A workflow_dispatch trigger is available for manual re-runs or to re-publish
+# a specific tag without creating a new release.
+#
+# Prerequisites (one-time maintainer setup — see docs/vscode-marketplace-publish-runbook.md):
+#   - VSCE_PAT repo Actions secret set to an Azure DevOps personal access token
+#     for the `transitrix` publisher on the Visual Studio Marketplace.
+#   - Azure DevOps PATs expire (max 1 year). Rotate before expiry — see the
+#     runbook § PAT rotation. An expired token causes all matrix jobs to fail
+#     at the explicit PAT-check step rather than silently skipping.
+#
+# darwin-x64 (Intel macOS) is intentionally NOT in the matrix: the macos-13
+# (Intel) hosted runner is chronically unschedulable on this account, and
+# Apple Silicon (darwin-arm64) covers current Macs. Intel Mac is a shrinking
+# segment; re-add if it ever needs coverage.
+#
+# win32-arm64 is not in the matrix: no GA GitHub-hosted Windows ARM runner
+# exists at time of writing. Add it when one becomes available.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Publish to Marketplace (${{ matrix.target }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            target: linux-x64
+          - runner: ubuntu-24.04-arm
+            target: linux-arm64
+          - runner: macos-latest
+            target: darwin-arm64
+          - runner: windows-latest
+            target: win32-x64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Verify VSCE_PAT is set
+        shell: bash
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: |
+          if [ -z "$VSCE_PAT" ]; then
+            echo "::error::VSCE_PAT Actions secret is not set or has expired."
+            echo "::error::Obtain an Azure DevOps PAT for the 'transitrix' publisher and save it as a repo Actions secret named VSCE_PAT."
+            echo "::error::See docs/vscode-marketplace-publish-runbook.md for setup and rotation steps."
+            exit 1
+          fi
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Build extension bundle
+        # extension:prep installs the extension runtime deps (including the
+        # platform-specific @resvg/resvg-js-* binary) into a clean temp dir,
+        # then moves node_modules into extension/. Each runner therefore picks
+        # up the correct native binary for its OS/arch.
+        run: npm run extension:prep
+
+      - name: Verify extension packaging
+        run: npm run verify-extension-packaging
+
+      - name: Package VSIX (${{ matrix.target }})
+        working-directory: extension
+        run: npx vsce package --target ${{ matrix.target }} --out ../output/
+
+      - name: Publish to VS Code Marketplace
+        shell: bash
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: |
+          vsix=$(ls output/*.vsix | head -n 1)
+          echo "Publishing: $vsix"
+          npx vsce publish --pat "$VSCE_PAT" --packagePath "$vsix"
