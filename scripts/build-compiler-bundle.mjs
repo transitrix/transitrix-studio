@@ -159,4 +159,4 @@ if (!hasResvgBinary) {
   );
 }
 
-console.log('Compiler bundle → extension/compiler/  |  schemas → extension/schemas/  |  backends → extension/backends/  |  runtime deps → extension/node_modules/');
+console.log('Compiler bundle → extension/compiler/  |  schemas → extension/schemas/  |  runtime deps → extension/node_modules/');
