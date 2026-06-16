@@ -1,6 +1,8 @@
 # Transitrix Studio — changelog
 
-## Unreleased
+## 1.5.1 — 2026-06-16
+
+Tidier preview strips: validation warnings now collapse, and the error strip folds in static previews too.
 
 ### Changed
 
