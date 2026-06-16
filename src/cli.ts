@@ -289,13 +289,28 @@ async function handleValidateCommand(argv: string[]): Promise<void> {
     // rootDir-restricted emit build (see repo-validate.ts header).
     const repoModule = './repo-validate.js';
     type RepoFinding = { scope: 'repo'; id: string; message: string };
-    const { runRepoValidate, reportRepoFindings } = (await import(repoModule)) as {
-      runRepoValidate: (root: string) => RepoFinding[];
-      reportRepoFindings: (root: string, findings: RepoFinding[], useJson: boolean) => void;
+    type ViewFinding = {
+      file: string;
+      notation: string;
+      ruleId: string;
+      severity: 'error' | 'warning';
+      message: string;
     };
-    const findings = runRepoValidate(repoRoot);
-    reportRepoFindings(repoRoot, findings, useJson);
-    if (findings.length > 0) {
+    type RepoScopeResult = {
+      canon: RepoFinding[];
+      views: ViewFinding[];
+      skipped: Array<{ file: string; notation: string }>;
+    };
+    const { runRepoValidate, reportRepoFindings, repoScopeHasErrors } = (await import(
+      repoModule
+    )) as {
+      runRepoValidate: (root: string) => RepoScopeResult;
+      reportRepoFindings: (root: string, result: RepoScopeResult, useJson: boolean) => void;
+      repoScopeHasErrors: (result: RepoScopeResult) => boolean;
+    };
+    const result = runRepoValidate(repoRoot);
+    reportRepoFindings(repoRoot, result, useJson);
+    if (repoScopeHasErrors(result)) {
       process.exit(1);
     }
     return;

@@ -174,12 +174,17 @@ Every notation file is validated before commit. Two sanctioned paths:
 **The agent validates files itself — it does not wait for a human to read the preview.** The CLI's `validate <file>` routes on the document's `notation:` field to the same per-notation checks the Studio preview runs, so the agent gets the identical findings as structured output. Run the closed loop on every file it touches:
 
 ```sh
-# --json → machine-readable findings; exit 1 when any error-level finding exists.
+# Per file — --json → machine-readable findings; exit 1 on any error-level finding.
 npx @transitrix/cli validate canon/views/goals/eu-strategy.goals.transitrix.yaml --json
 # parse findings → fix the YAML → re-run until exit 0
+
+# Whole repo — one sweep over canon/views/** plus canon cross-reference checks.
+npx @transitrix/cli validate --scope=repo --json
 ```
 
-Diagram notations covered per file: `goals`, `fgca`, `fga`, `activities`, `activity-card`, `process-blueprint`, `blocks`. For the remaining notations (e.g. `applications`, `capability-map`, `products`, `scenarios`, `process-map`), the CLI reports the file as not-yet-covered — validate those in the Studio preview, and run `validate --scope=repo` for whole-canon cross-reference checks.
+`--scope=repo` runs the per-notation validators over every file under `canon/views/**` (BPMN via the IR pipeline) **and** the canon cross-reference checks (referential integrity, id uniqueness, atomicity, policy) in a single invocation — the fastest way for the agent to find everything to fix.
+
+Diagram notations covered per file: `goals`, `fgca`, `fga`, `activities`, `activity-card`, `process-blueprint`, `blocks`, and `bpmn`. The remaining notations (e.g. `applications`, `capability-map`, `products`, `scenarios`, `process-map`) are reported as `skipped` (not silently passed) — validate those in the Studio preview for now.
 
 The agent does **not** commit files with `error`-level validation findings. `warning`-level findings are surfaced to the adopter and committed only with explicit acknowledgement. The agent does not auto-suppress validation rules.
 
