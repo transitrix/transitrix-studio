@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.5.0] — 2026-06-16
+
 ### Added
 - **Open VSX CI publish workflow** — `.github/workflows/openvsx-publish.yml` runs on every GitHub Release and publishes per-platform VSIXs to Open VSX in parallel across five runners (`linux-x64`, `linux-arm64`, `darwin-x64`, `darwin-arm64`, `win32-x64`). Each runner installs the platform-specific `@resvg/resvg-js-*` native binary during `npm run extension:prep`, so every VSIX carries the correct binary for its target. `OVSX_PAT` is read from the repo Actions secret. A `workflow_dispatch` trigger allows manual re-runs. `win32-arm64` not yet in matrix (no GA GitHub-hosted Windows ARM runner). Runbook `docs/openvsx-publish-runbook.md` updated to document the CI path as the recommended sync procedure (strategy #184).
 - **`.transitrixrc` project config** — canonical replacement for `.cervinrc`. `loadTransitrixrc()` reads `.transitrixrc` first and falls back to `.cervinrc` (one-time deprecation notice) when absent; ships `transitrixrc.schema.json` (root + extension `schemas/`). `.cervinrc` keeps working through 1.x (removed in 2.0.0). Fourth phase of the Cervin → Transitrix rename (CLAUDE.md §Cervin naming, P4).
