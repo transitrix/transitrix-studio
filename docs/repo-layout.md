@@ -48,9 +48,9 @@ This document maps **top-level folders** to **roles** so you know where to look 
 | [`examples/`](../examples/) | **Sample YAML by notation**: `bpmn/`, `activities/`, `applications/`, `products/`, `scenarios/`, `process-map/`, `capability-map/`, `goals/`, `fgca/`, `fga/`, `blocks/`, `nested-blocks/` (legacy ASCII/Markdown samples for the browser UI tab), `compliance/`, … Each subfolder has a README where applicable. |
 | [`schemas/`](../schemas/) | **JSON Schemas for AJV**: `bpmn-dsl.schema.json` (DSL grammar), `transitrixrc.schema.json` (config file; legacy `cervinrc.schema.json` kept). Copied into `extension/schemas/` by `extension:prep`. |
 | [`tests/`](../tests/) | **Vitest root suite.** BPMN compiler tests, layout/routing, integration, metrics regression. See *Two-suite test strategy* below. |
-| [`scripts/`](../scripts/) | Build and dev tooling: `build-compiler-bundle.mjs`, `build-webview.mjs`, `build-extension-bundle.mjs`, `bump-extension-version.mjs`, `measure-baseline.mjs`, `ci-metrics-diff.mjs`. |
+| [`scripts/`](../scripts/) | Build and dev tooling: `build-compiler-bundle.mjs`, `build-webview.mjs`, `build-extension-bundle.mjs`, `package-extension.mjs`, `bump-extension-version.mjs`, `measure-baseline.mjs`, `ci-metrics-diff.mjs`. |
 | [`docs/`](../docs/) | **Project documentation**: this layout map, [`cli.md`](cli.md) (CLI usage outside VS Code), glossary, metrics baselines, validation notes. |
-| [`output/`](../output/) | **Build output** for `build-extension.bat` — packaged `.vsix` files. Gitignored. |
+| [`output/`](../output/) | **Build output** — packaged `.vsix` files produced by `npm run package-extension`. Gitignored. |
 | [`.archive/`](../.archive/) | **Superseded trees, maintainer tooling state, run logs, and accepted-task records.** Gitignored. Canonical archive root — use this in all new prompts, scripts, and docs. Move content here instead of deleting. |
 | `0. archive/` *(legacy)* | Former archive root (leading space in the folder name). Still gitignored and still works if content remains there; migrate to `.archive/` when convenient. |
 | [`intellij/`](../intellij/) | **IntelliJ plugin** packaging and install docs (optional IDE surface; separate from the VS Code extension). |
@@ -108,7 +108,7 @@ Both suites are required to pass — CI (`.github/workflows/metrics-regression.y
 | `extension/out/` | `extension/src/` (esbuild) | Bundled extension entry (`extension.js`) |
 | `extension/media/` | `extension/webview/viewer.ts` + bpmn-js assets | Browser-side webview bundle and stylesheets |
 | `dist/` | `src/` (tsc) | Compiled JS for the CLI binary (`bin/cervin`) |
-| `output/` | `build-extension.bat` | Packaged `.vsix` files for distribution |
+| `output/` | `npm run package-extension` | Packaged `.vsix` files for distribution |
 
 ---
 

@@ -26,7 +26,7 @@ built on** — installing it elsewhere makes PNG export fail at runtime
 ## Packaging hygiene
 
 Only runtime assets may live under `extension/`. Before every
-`build-extension.bat` / `build-extension.sh` `vsce package` step,
+`scripts/package-extension.mjs` `vsce package` step,
 `node scripts/verify-extension-packaging.mjs` fails the build if forbidden
 non-runtime paths appear there (`extension/.vscodeignore` is a second line of
 defence).

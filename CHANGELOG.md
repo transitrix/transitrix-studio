@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Removed
+- **`build-extension.bat` and `build-extension.sh`** — replaced by `scripts/package-extension.mjs`, a cross-platform Node.js script with identical `--bump` / `--target` flags. Run via `npm run package-extension` (no flags = universal local-install VSIX, same default as before) or directly with `node scripts/package-extension.mjs --help`. The `package-extension` npm script no longer auto-bumps the version; pass `--bump` explicitly when a version increment is wanted.
+
 ## [1.5.2] — 2026-06-16
 
 ### Added
