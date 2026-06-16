@@ -37,10 +37,14 @@ export interface RenderFgcaOptions {
   variant?: 'fgca' | 'fga';
   /** Optional heading rendered as a left-anchored `text-header` line. */
   title?: string;
+  /** Exit edge curvature; 1 = default, 0 = straight, higher = stronger arc. */
+  curvature?: number;
+  /** Entry curvature at the target node; defaults to `curvature` when omitted. */
+  entryCurvature?: number;
 }
 
 export function renderFgcaSvg(doc: FGCADoc, options: RenderFgcaOptions = {}): string {
-  const { variant = 'fgca', title = '' } = options;
+  const { variant = 'fgca', title = '', curvature = DEFAULT_EDGE_CURVATURE, entryCurvature } = options;
   const hideChanges = variant === 'fga';
 
   const { nodes, edges, columns, width, height } = layoutFGCAPreview(doc, { hideChanges });
@@ -58,13 +62,10 @@ export function renderFgcaSvg(doc: FGCADoc, options: RenderFgcaOptions = {}): st
     )
     .join('\n');
 
-  // Cubic bezier with horizontal control handles (shared geometry in
-  // @transitrix/diagrams). Uses the package default curvature — the
-  // interactive curvature control is a VS Code-only concern.
   const edgeSvg = edges
     .map(
       (e) =>
-        `<path d="${horizontalCubicEdgePath(e.sx, e.sy, e.tx, e.ty, DEFAULT_EDGE_CURVATURE)}" class="diagram-edge" marker-end="url(#arrow)"/>`,
+        `<path d="${horizontalCubicEdgePath(e.sx, e.sy, e.tx, e.ty, curvature, entryCurvature)}" class="diagram-edge" marker-end="url(#arrow)"/>`,
     )
     .join('\n');
 

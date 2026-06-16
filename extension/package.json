@@ -2,7 +2,7 @@
   "name": "transitrix-studio",
   "displayName": "Transitrix Studio",
   "publisher": "transitrix",
-  "version": "1.5.1",
+  "version": "1.5.2",
   "description": "Architecture-as-code for the modern enterprise. Author 17 notations — goals, processes, capabilities, BPMN, applications, more — as plain YAML, get live diagrams in VS Code. Diffable in git. AI-friendly. Open source. Built on ArchiMate 3.2 and BPMN 2.0.",
   "license": "MIT",
   "icon": "icon.png",
@@ -187,6 +187,34 @@
           "maximum": 3,
           "default": 1,
           "description": "Activities preview: CPM dependency-arrow curvature. 0 = straight lines, 1 = default, higher = stronger arc."
+        },
+        "transitrix.entryCurvature.goals": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 3,
+          "default": 1,
+          "description": "Goals preview: curvature of the arrow at the point it enters a node. Defaults to transitrix.curvature.goals when equal to 1."
+        },
+        "transitrix.entryCurvature.fgca": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 3,
+          "default": 1,
+          "description": "FGCA preview: curvature of the arrow at the point it enters a node. Defaults to transitrix.curvature.fgca when equal to 1."
+        },
+        "transitrix.entryCurvature.fga": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 3,
+          "default": 1,
+          "description": "FGA preview: curvature of the arrow at the point it enters a node. Defaults to transitrix.curvature.fga when equal to 1."
+        },
+        "transitrix.entryCurvature.activities": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 3,
+          "default": 1,
+          "description": "Activities preview: curvature of the dependency arrow at the point it enters an activity node. Defaults to transitrix.curvature.activities when equal to 1."
         },
         "transitrix.scope.goals.rootId": {
           "type": "string",

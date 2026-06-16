@@ -43,4 +43,16 @@ describe('horizontalCubicEdgePath', () => {
     const d = horizontalCubicEdgePath(0, 0, 0, 200, 1);
     expect(d).toBe('M0,0 C160,0 -160,200 0,200');
   });
+
+  it('entryCurvature independently scales the arrival handle', () => {
+    // exit handle = max(64,20,0)*1 = 64; entry handle = max(64,20,0)*2 = 128.
+    const d = horizontalCubicEdgePath(0, 0, 40, 0, 1, 2);
+    expect(d).toBe(`M0,0 C${EDGE_MIN_HANDLE},0 ${40 - EDGE_MIN_HANDLE * 2},0 40,0`);
+  });
+
+  it('omitting entryCurvature gives symmetric handles (historical behaviour)', () => {
+    expect(horizontalCubicEdgePath(0, 0, 40, 0, 0.5)).toBe(
+      horizontalCubicEdgePath(0, 0, 40, 0, 0.5, 0.5),
+    );
+  });
 });

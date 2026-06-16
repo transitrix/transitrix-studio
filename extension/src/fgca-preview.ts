@@ -18,7 +18,7 @@ import { buildChainTable, type ChainTable, type ChainColumn } from '../../packag
 import { coerceDatesToIsoStrings } from '../../packages/diagrams/src/yaml-normalize.js';
 import { checkScopeRoot, type Scope } from '../../packages/diagrams/src/scope.js';
 import { savePngFromSvg, copyPngFromSvg } from './png-export.js';
-import { readSpacing, readCurvature, readScope, readView, applyControlMessage, OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND, OPEN_SCOPE_SETTINGS_COMMAND } from './spacing-config.js';
+import { readSpacing, readCurvature, readEntryCurvature, readScope, readView, applyControlMessage, OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND, OPEN_SCOPE_SETTINGS_COMMAND } from './spacing-config.js';
 import { genNonce, buildControlsPanel, buildControlsScript, buildViewToggle, type ControlsModel, type ScopeGoalOption } from './preview-controls.js';
 
 // ── Inline render types ─────────────────────────────────────────────────────
@@ -190,6 +190,7 @@ function renderChainPreview(
   const gaps = readSpacing(p.viewNotation, spacingDefaults);
   const scope = readScope(p.viewNotation);
   const curvature = readCurvature(p.viewNotation);
+  const entryCurvature = readEntryCurvature(p.viewNotation);
   const warnings = [...baseWarnings];
   let svg = '';
   let goalOptions: ScopeGoalOption[] = [];
@@ -198,7 +199,7 @@ function renderChainPreview(
     ({ goals: goalOptions, maxLevelPresent } = scopeInputsFromDoc(parsedDoc));
     const scopeWarning = checkScopeRoot(scope, parsedDoc.goals.map(g => g.id));
     if (scopeWarning) warnings.push(`${scopeWarning.code}: ${scopeWarning.message}`);
-    svg = buildSvg(parsedDoc, p.hideChanges, { colGap: gaps.horizontalGap, rowGap: gaps.verticalGap, curvature, scope }, p.heading, filename, docDate, docVersion);
+    svg = buildSvg(parsedDoc, p.hideChanges, { colGap: gaps.horizontalGap, rowGap: gaps.verticalGap, curvature, entryCurvature, scope }, p.heading, filename, docDate, docVersion);
   }
   const model = fgcaControlsModel(gaps, spacingDefaults, curvature, scope, goalOptions, maxLevelPresent);
   const html = buildDiagramFrame({
@@ -217,13 +218,14 @@ function renderChainPreview(
 function buildSvg(
   doc: FGCADoc,
   hideChanges = false,
-  opts: { colGap?: number; rowGap?: number; curvature?: number; scope?: Scope } = {},
+  opts: { colGap?: number; rowGap?: number; curvature?: number; entryCurvature?: number; scope?: Scope } = {},
   heading?: string,
   filename?: string,
   date?: string,
   version?: string,
 ): string {
   const curvature = opts.curvature ?? DEFAULT_EDGE_CURVATURE;
+  const entryCurvature = opts.entryCurvature;
   const { nodes, edges, columns, width, height } = layoutFGCAPreview(doc, {
     hideChanges,
     colGap: opts.colGap,
@@ -244,7 +246,7 @@ function buildSvg(
   // @transitrix/diagrams). `curvature` scales the handle length: 1 = default,
   // 0 = straight, higher = stronger arc (vkgeorgia/strategy#76).
   const edgeSvg = edges.map(e =>
-    `<path d="${horizontalCubicEdgePath(e.sx, e.sy, e.tx, e.ty, curvature)}" class="diagram-edge" marker-end="url(#arrow)"/>`
+    `<path d="${horizontalCubicEdgePath(e.sx, e.sy, e.tx, e.ty, curvature, entryCurvature)}" class="diagram-edge" marker-end="url(#arrow)"/>`
   ).join('\n');
 
   const nodeSvg = nodes.map(n => {

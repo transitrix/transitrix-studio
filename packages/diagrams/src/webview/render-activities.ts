@@ -48,8 +48,10 @@ export interface RenderActivitiesOptions {
   title?: string;
   /** Network column / row gaps. Defaults match `layoutActivities`. */
   gaps?: ActivitiesLayoutOptions;
-  /** Edge curvature; 1 = default, 0 = straight, higher = stronger arc. */
+  /** Exit edge curvature; 1 = default, 0 = straight, higher = stronger arc. */
   curvature?: number;
+  /** Entry curvature at the target node; defaults to `curvature` when omitted. */
+  entryCurvature?: number;
 }
 
 /**
@@ -67,7 +69,7 @@ export interface RenderActivitiesOptions {
  * than short-circuiting.
  */
 export function renderActivitiesSvg(doc: ActivityDoc, options: RenderActivitiesOptions = {}): string {
-  const { title = '', gaps = {}, curvature = DEFAULT_EDGE_CURVATURE } = options;
+  const { title = '', gaps = {}, curvature = DEFAULT_EDGE_CURVATURE, entryCurvature } = options;
 
   const layout: ActivitiesLayout = layoutActivities(doc, gaps);
 
@@ -105,7 +107,7 @@ export function renderActivitiesSvg(doc: ActivityDoc, options: RenderActivitiesO
       const ty = t.y + oy + t.height / 2;
       const cls = e.isCritical ? 'diagram-edge critical-edge' : 'diagram-edge';
       const marker = `url(#${e.isCritical ? 'arrow-crit' : 'arrow'})`;
-      return `<path d="${horizontalCubicEdgePath(sx, sy, tx, ty, curvature)}" class="${cls}" marker-end="${marker}"/>`;
+      return `<path d="${horizontalCubicEdgePath(sx, sy, tx, ty, curvature, entryCurvature)}" class="${cls}" marker-end="${marker}"/>`;
     })
     .join('\n');
 

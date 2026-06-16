@@ -34,10 +34,11 @@ function escXml(s: string): string {
 export interface RenderGoalsOptions {
   treeName?: string;
   curvature?: number;
+  entryCurvature?: number;
 }
 
 export function renderGoalsSvg(tree: GoalTree, options: RenderGoalsOptions = {}): string {
-  const { treeName = '', curvature = DEFAULT_EDGE_CURVATURE } = options;
+  const { treeName = '', curvature = DEFAULT_EDGE_CURVATURE, entryCurvature } = options;
 
   const layout: GoalTreeLayout = layoutGoalTree(tree, {
     nodeWidth: NODE_W,
@@ -65,7 +66,7 @@ export function renderGoalsSvg(tree: GoalTree, options: RenderGoalsOptions = {})
     const sy = s.y + oy + s.height / 2;
     const tx = t.x + ox;
     const ty = t.y + oy + t.height / 2;
-    return horizontalCubicEdgePath(sx, sy, tx, ty, curvature);
+    return horizontalCubicEdgePath(sx, sy, tx, ty, curvature, entryCurvature);
   }
 
   const edgeSvg = layout.edges

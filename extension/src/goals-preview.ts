@@ -13,7 +13,7 @@ import { parseCanonicalGoals } from '../../packages/diagrams/src/goals/parse-can
 import { coerceDatesToIsoStrings } from '../../packages/diagrams/src/yaml-normalize.js';
 import { horizontalCubicEdgePath, DEFAULT_EDGE_CURVATURE } from '../../packages/diagrams/src/edge-path.js';
 import { checkScopeRoot } from '../../packages/diagrams/src/scope.js';
-import { readSpacing, readCurvature, readScope, applyControlMessage, OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND, OPEN_SCOPE_SETTINGS_COMMAND } from './spacing-config.js';
+import { readSpacing, readCurvature, readEntryCurvature, readScope, applyControlMessage, OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND, OPEN_SCOPE_SETTINGS_COMMAND } from './spacing-config.js';
 import { genNonce, buildControlsPanel, buildControlsScript, type ControlsModel, type ScopeGoalOption } from './preview-controls.js';
 
 // ── SVG renderer ─────────────────────────────────────────────────────────────
@@ -33,7 +33,7 @@ function escXml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-function layoutToSvg(layout: GoalTreeLayout, treeName: string, filename?: string, date?: string, version?: string, curvature: number = DEFAULT_EDGE_CURVATURE): string {
+function layoutToSvg(layout: GoalTreeLayout, treeName: string, filename?: string, date?: string, version?: string, curvature: number = DEFAULT_EDGE_CURVATURE, entryCurvature?: number): string {
   const pad = 24;
   const showTitle = filename != null && date != null;
   const titleH = showTitle ? TITLE_BLOCK_H : 0;
@@ -55,7 +55,7 @@ function layoutToSvg(layout: GoalTreeLayout, treeName: string, filename?: string
     const sy = s.y + oy + s.height / 2;
     const tx = t.x + ox;
     const ty = t.y + oy + t.height / 2;
-    return horizontalCubicEdgePath(sx, sy, tx, ty, curvature);
+    return horizontalCubicEdgePath(sx, sy, tx, ty, curvature, entryCurvature);
   }
 
   const edgeSvg = layout.edges.map(e =>
@@ -156,6 +156,7 @@ export class GoalsPreview {
     const gaps = readSpacing('goals', spacingDefaults);
     const scope = readScope('goals');
     const curvature = readCurvature('goals');
+    const entryCurvature = readEntryCurvature('goals');
     // Populated on a successful parse — feeds the scope root-picker dropdown
     // and the level-cap upper bound in the interactive control panel.
     let goalOptions: ScopeGoalOption[] = [];
@@ -183,7 +184,7 @@ export class GoalsPreview {
           nodeSep: gaps.verticalGap,
           scope,
         });
-        svgContent = layoutToSvg(layout, treeName, filename, docDate, docVersion, curvature);
+        svgContent = layoutToSvg(layout, treeName, filename, docDate, docVersion, curvature, entryCurvature);
       }
     } catch (e) {
       errorMsg = (e as Error).message ?? 'Parse error';

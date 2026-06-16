@@ -18,7 +18,7 @@ import {
 import { coerceDatesToIsoStrings } from '../../packages/diagrams/src/yaml-normalize.js';
 import { horizontalCubicEdgePath, DEFAULT_EDGE_CURVATURE } from '../../packages/diagrams/src/edge-path.js';
 import { savePngFromSvg, copyPngFromSvg } from './png-export.js';
-import { readSpacing, readCurvature, applyControlMessage, OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND } from './spacing-config.js';
+import { readSpacing, readCurvature, readEntryCurvature, applyControlMessage, OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND } from './spacing-config.js';
 import { genNonce, buildControlsPanel, buildControlsScript } from './preview-controls.js';
 
 // Default network (PSND) gaps — must match the layoutActivities defaults
@@ -45,7 +45,7 @@ const N_NODE_W = 200;
 const N_NODE_H = 80;
 const N_PAD = 24;
 
-function networkSvg(doc: ActivityDoc, gaps: ActivitiesLayoutOptions = {}, curvature: number = DEFAULT_EDGE_CURVATURE, heading?: string, filename?: string, date?: string, version?: string): string {
+function networkSvg(doc: ActivityDoc, gaps: ActivitiesLayoutOptions = {}, curvature: number = DEFAULT_EDGE_CURVATURE, entryCurvature?: number, heading?: string, filename?: string, date?: string, version?: string): string {
   const layout: ActivitiesLayout = layoutActivities(doc, gaps);
   if (layout.nodes.length === 0) {
     return '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="60"><text class="text-primary" x="10" y="40">No activities</text></svg>';
@@ -82,7 +82,7 @@ function networkSvg(doc: ActivityDoc, gaps: ActivitiesLayoutOptions = {}, curvat
     const ty = t.y + oy + t.height / 2;
     const cls = e.isCritical ? 'diagram-edge critical-edge' : 'diagram-edge';
     const marker = `url(#${e.isCritical ? 'arrow-crit' : 'arrow'})`;
-    return `<path d="${horizontalCubicEdgePath(sx, sy, tx, ty, curvature)}" class="${cls}" marker-end="${marker}"/>`;
+    return `<path d="${horizontalCubicEdgePath(sx, sy, tx, ty, curvature, entryCurvature)}" class="${cls}" marker-end="${marker}"/>`;
   }).join('\n');
 
   const nodeSvg = layout.nodes.map(n => {
@@ -424,9 +424,9 @@ interface ActivityViews {
   ganttSvg: string;
 }
 
-function buildActivityViews(doc: ActivityDoc, gaps: ActivitiesLayoutOptions, curvature: number, filename: string, date: string, version?: string): ActivityViews {
+function buildActivityViews(doc: ActivityDoc, gaps: ActivitiesLayoutOptions, curvature: number, entryCurvature: number | undefined, filename: string, date: string, version?: string): ActivityViews {
   const networkHeading = 'Network view — Project Schedule Network Diagram (PSND)';
-  const networkSvgStr = networkSvg(doc, gaps, curvature, networkHeading, filename, date, version);
+  const networkSvgStr = networkSvg(doc, gaps, curvature, entryCurvature, networkHeading, filename, date, version);
   const gantt: GanttResult = computeGanttLayout(doc);
 
   // Mirror titleBlockSvg's date line: `v{version} · {date}` when version is set.
@@ -612,6 +612,7 @@ export class ActivitiesPreview {
     const spacingDefaults = { horizontalGap: ACTIVITIES_DEFAULT_H_GAP, verticalGap: ACTIVITIES_DEFAULT_V_GAP };
     const spacing = readSpacing('activities', spacingDefaults);
     const curvature = readCurvature('activities');
+    const entryCurvature = readEntryCurvature('activities');
 
     try {
       const parsed = coerceDatesToIsoStrings(yaml.load(yamlText) as unknown);
@@ -627,7 +628,7 @@ export class ActivitiesPreview {
       if (!v.valid) {
         errorMsg = v.errors.map(e => `${e.code}: ${e.message}`).join('\n');
       } else {
-        const views = buildActivityViews(parsed as ActivityDoc, { horizontalGap: spacing.horizontalGap, verticalGap: spacing.verticalGap }, curvature, filename, docDate, docVersion);
+        const views = buildActivityViews(parsed as ActivityDoc, { horizontalGap: spacing.horizontalGap, verticalGap: spacing.verticalGap }, curvature, entryCurvature, filename, docDate, docVersion);
         bodyContent = buildCanvasContent(views);
         this.lastNetworkSvg = views.networkSvg;
         this.lastGanttSvg = views.ganttSvg;
