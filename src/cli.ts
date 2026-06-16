@@ -389,10 +389,11 @@ async function handleValidateCommand(argv: string[]): Promise<void> {
       }
       return;
     }
-    // Recognised notation, but no file-scope CLI validator yet (Group B inline
-    // validators, or non-diagram views like compliance-impact). Be honest: don't
-    // claim valid and don't mis-run the BPMN path — say so and exit 0 (the file
-    // itself isn't in error), so an agent loop isn't blocked on it.
+    // Recognised notation, but no file-scope CLI validator yet — aggregate views
+    // like compliance-impact / coverage-metric that derive from other docs rather
+    // than validating standalone. Be honest: don't claim valid and don't mis-run
+    // the BPMN path — say so and exit 0 (the file itself isn't in error), so an
+    // agent loop isn't blocked on it.
     const notice =
       `notation "${probedNotation}" is not yet validated by the CLI — check it in ` +
       `the Transitrix Studio preview, or run whole-canon checks with --scope=repo.`;
