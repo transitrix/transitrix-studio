@@ -108,6 +108,23 @@ function buildBody(layout: ActivityCardLayout, ox: number, oy: number): string {
     );
   }
 
+  // Info rows — Description, Project goal, Stakeholders (label + value lines).
+  // Offsets (label y=22, first value y=44, step 18) match the layout's
+  // INFO_ROW_BASE_H / INFO_LINE_H budget so every line stays inside the box.
+  for (const r of layout.infoRows) {
+    parts.push(
+      `<rect class="diagram-node level-2" x="${r.x + ox}" y="${r.y + oy}" width="${r.width}" height="${r.height}" rx="6"/>`,
+    );
+    parts.push(
+      `<text class="text-secondary" x="${r.x + ox + 12}" y="${r.y + oy + 22}" dominant-baseline="central">${escXml(r.label)}</text>`,
+    );
+    r.valueLines.forEach((line, i) => {
+      parts.push(
+        `<text class="text-primary" x="${r.x + ox + 12}" y="${r.y + oy + 44 + i * 18}" dominant-baseline="central">${escXml(line)}</text>`,
+      );
+    });
+  }
+
   // Section headers.
   for (const s of layout.sectionHeaders) {
     parts.push(

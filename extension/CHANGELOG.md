@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Added
+
+- **Activity Card now shows Project goal, Stakeholders and Description.** The card preview paints three full-width fields under the dates band: the project's **Description** (the card's own summary), **Project goal** (the names of the goals the project directly serves, via `activity_goal` relations), and **Stakeholders** (resolved from `activity_stakeholder` relations in the canon relation store). Project goal and Stakeholders are always shown — they render a "—" placeholder when nothing is linked.
+
 ### Docs
 
 - **Cursor / VSCodium / Windsurf install path.** The README now lists the [Open VSX Registry](https://open-vsx.org/extension/transitrix/transitrix-studio) alongside the VS Code Marketplace — the same VSIX ships to both. No code change; the artefact is identical.

@@ -50,6 +50,15 @@ const CHANGE = {
   goals: ['GOAL-EU-MARKET-1'],
 };
 
+const STAKEHOLDER = {
+  notation: 'stakeholder',
+  id: 'STAKEHOLDER-OPS-1',
+  name: 'Operations',
+  type: 'internal',
+  interest: 'high',
+  influence: 'medium',
+};
+
 // ── Canon relation store ─────────────────────────────────────────────────────
 // The project's goal link is a first-class `activity_goal` relation, not an
 // inline `goals:` field on the activity element.
@@ -62,9 +71,18 @@ const REL_GOAL = {
   valid_from: '2026-04-01',
   valid_to: null,
 };
+const REL_STAKEHOLDER = {
+  notation: 'relation',
+  id: 'REL-EU-PROGRAMME-STAKE-OPS-1',
+  type: 'activity_stakeholder',
+  from: 'ACTIVITY-EU-PROGRAMME-1',
+  to: 'STAKEHOLDER-OPS-1',
+  valid_from: '2026-04-01',
+  valid_to: null,
+};
 
-const elements = [PROJECT, CHILD, UNRELATED, FACTOR, GOAL, CHANGE];
-const relations = [REL_GOAL];
+const elements = [PROJECT, CHILD, UNRELATED, FACTOR, GOAL, CHANGE, STAKEHOLDER];
+const relations = [REL_GOAL, REL_STAKEHOLDER];
 const sources = { elements, relations };
 
 describe('resolveActivityCard', () => {
@@ -81,6 +99,35 @@ describe('resolveActivityCard', () => {
     expect(c.motivation.changes.map((ch) => ch.id)).toEqual(['CHANGE-EU-COMPLIANCE-1']);
     // only the activity whose parent = the project
     expect(c.childActivities.map((a) => a.id)).toEqual(['ACTIVITY-EU-CHILD-1']);
+    // project goal text field = the directly-served goal name
+    expect(c.goalNames).toEqual(['Access EU market']);
+    // stakeholders resolved from the activity_stakeholder relation
+    expect(c.stakeholders).toEqual([
+      { id: 'STAKEHOLDER-OPS-1', name: 'Operations', type: 'internal', interest: 'high', influence: 'medium' },
+    ]);
+  });
+
+  it('resolves no stakeholders (empty list) when none are linked', () => {
+    const r = resolveActivityCard(CARD, { elements, relations: [REL_GOAL] });
+    expect(r.valid).toBe(true);
+    expect(r.resolved!.stakeholders).toEqual([]);
+    expect(r.warnings.some((w) => w.code === 'PC-001')).toBe(false);
+  });
+
+  it('ignores an ended (valid_to set) activity_stakeholder relation', () => {
+    const ended = { ...REL_STAKEHOLDER, valid_to: '2026-12-31' };
+    const r = resolveActivityCard(CARD, { elements, relations: [REL_GOAL, ended] });
+    expect(r.resolved!.stakeholders).toEqual([]);
+  });
+
+  it('warns but still lists a stakeholder whose element is missing from canon', () => {
+    const r = resolveActivityCard(CARD, {
+      elements: [PROJECT, CHILD, FACTOR, GOAL, CHANGE],
+      relations: [REL_GOAL, REL_STAKEHOLDER],
+    });
+    expect(r.valid).toBe(true);
+    expect(r.resolved!.stakeholders).toEqual([{ id: 'STAKEHOLDER-OPS-1', name: 'STAKEHOLDER-OPS-1' }]);
+    expect(r.warnings.some((w) => w.code === 'PC-001')).toBe(true);
   });
 
   it('falls back to the inline goals field when no activity_goal relation exists', () => {

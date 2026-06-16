@@ -139,6 +139,16 @@ export interface ResolvedChildActivity {
   owner?: string;
 }
 
+/** A STAKEHOLDER element linked to the project (via `activity_stakeholder`). */
+export interface ResolvedStakeholder {
+  id: string;
+  name: string;
+  /** internal | external (STAKEHOLDER `type`). */
+  type?: string;
+  interest?: string;
+  influence?: string;
+}
+
 export interface ResolvedActivityCard {
   cardId: string;
   /** The card's own executive-summary description (distinct from the project's). */
@@ -149,6 +159,18 @@ export interface ResolvedActivityCard {
   motivation: ResolvedMotivation;
   /** Activities whose `parent` = the project Activity id. */
   childActivities: ResolvedChildActivity[];
+  /**
+   * Names of the GOALs the project DIRECTLY serves (the `activity_goal`
+   * targets, not the wider motivation chain) — painted as the "Project goal"
+   * text field. Empty when the project serves no goal.
+   */
+  goalNames?: string[];
+  /**
+   * Stakeholders linked to the project via active `activity_stakeholder`
+   * relations. Empty when none are linked (the card still shows the field
+   * with a "—" placeholder).
+   */
+  stakeholders?: ResolvedStakeholder[];
 }
 
 // ── Layout geometry (pure; the preview turns this into SVG) ───────────────────
@@ -215,6 +237,20 @@ export interface SectionHeader {
   height: number;
 }
 
+/**
+ * A labeled, full-width text row: a label (e.g. "Project goal") over one or
+ * more wrapped value lines. Used for the project Description, Project goal, and
+ * Stakeholders fields. `valueLines` is `['—']` when the field is empty.
+ */
+export interface InfoRow {
+  label: string;
+  valueLines: string[];
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 export interface ActivityCardLayoutOptions {
   /** Outer card width (px). */
   cardWidth?: number;
@@ -228,6 +264,8 @@ export interface ActivityCardLayout {
   bounds: LayoutBounds;
   title: { name: string; x: number; y: number };
   dateFields: DateField[];
+  /** Description, Project goal, Stakeholders — full-width labeled text rows. */
+  infoRows: InfoRow[];
   sectionHeaders: SectionHeader[];
   milestones: MilestoneMarker[];
   /** Three columns of the motivation chain, in F→G→C order. */

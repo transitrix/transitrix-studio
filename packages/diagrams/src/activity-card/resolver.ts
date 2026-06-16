@@ -49,6 +49,7 @@ import type {
   ResolvedGoal,
   ResolvedMilestone,
   ResolvedProject,
+  ResolvedStakeholder,
 } from './types.js';
 import type { ValidationError, ValidationWarning, ValidationResult } from '../validation-types.js';
 
@@ -112,6 +113,28 @@ function activeActivityGoals(relations: unknown[], fromId: string): string[] {
     if (!isObject(doc)) continue;
     if (str(doc['notation']) !== 'relation') continue;
     if (str(doc['type']) !== 'activity_goal') continue;
+    if (str(doc['from']) !== fromId) continue;
+    const to = str(doc['to']);
+    if (!to) continue;
+    const validTo = doc['valid_to'];
+    if (validTo !== undefined && validTo !== null) continue; // ended relation
+    if (!out.includes(to)) out.push(to);
+  }
+  return out;
+}
+
+/**
+ * STAKEHOLDER ids reached by an *active* `activity_stakeholder` relation
+ * originating at `fromId`. Mirrors `activeActivityGoals`: a relation with a
+ * non-null `valid_to` has ended and is excluded, so the card shows the
+ * project's currently-engaged stakeholders.
+ */
+function activeActivityStakeholders(relations: unknown[], fromId: string): string[] {
+  const out: string[] = [];
+  for (const doc of relations) {
+    if (!isObject(doc)) continue;
+    if (str(doc['notation']) !== 'relation') continue;
+    if (str(doc['type']) !== 'activity_stakeholder') continue;
     if (str(doc['from']) !== fromId) continue;
     const to = str(doc['to']);
     if (!to) continue;
@@ -314,6 +337,35 @@ export function resolveActivityCard(
   }
   childActivities.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
 
+  // ── Project goal text field — names of the DIRECTLY-served goals ────────────
+  // The "Project goal" field shows the goals the project itself serves (the
+  // `activity_goal` targets), not the wider F→G→C chain (which also pulls in
+  // goals referenced only by in-scope changes). Resolve each id to its GOAL
+  // element name, falling back to the id when the element is absent.
+  const goalNames = projectGoalIds.map((gid) => str(goalElems.get(gid)?.['name']) ?? gid);
+
+  // ── Stakeholders — active `activity_stakeholder` relations from the project ──
+  const stakeholderElems = collectByNotation(sources.elements, 'stakeholder');
+  const stakeholders: ResolvedStakeholder[] = [];
+  for (const sid of activeActivityStakeholders(sources.relations, projectId)) {
+    const rec = stakeholderElems.get(sid);
+    if (!rec) {
+      warnings.push({
+        code: 'PC-001',
+        message: `Stakeholder "${sid}" not found as a STAKEHOLDER element in canon; shown by id`,
+      });
+      stakeholders.push({ id: sid, name: sid });
+      continue;
+    }
+    stakeholders.push({
+      id: sid,
+      name: str(rec['name']) ?? sid,
+      type: str(rec['type']),
+      interest: str(rec['interest']),
+      influence: str(rec['influence']),
+    });
+  }
+
   const project: ResolvedProject = {
     id: projectId,
     name: str(projectRec['name']) ?? projectId,
@@ -331,6 +383,8 @@ export function resolveActivityCard(
     milestones,
     motivation: { factors, goals, changes },
     childActivities,
+    goalNames,
+    stakeholders,
   };
 
   return { valid: true, errors, warnings, resolved };

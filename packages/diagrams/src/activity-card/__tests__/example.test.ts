@@ -57,9 +57,15 @@ describe('activity-card worked example (eu-programme)', () => {
     expect(c.motivation.goals.map((g) => g.id)).toEqual(['GOAL-EU-MARKET-1']);
     expect(c.motivation.changes.map((x) => x.id)).toEqual(['CHANGE-EU-COMPLIANCE-1']);
     expect(c.childActivities).toHaveLength(4);
+    // Project goal text field resolves to the directly-served goal name; the
+    // example links no stakeholders, so the card shows the field empty.
+    expect(c.goalNames).toEqual(['Maintain EU market access under MDR']);
+    expect(c.stakeholders).toEqual([]);
 
     const layout = layoutActivityCard(c);
     expect(layout.bounds.height).toBeGreaterThan(0);
+    expect(layout.infoRows.map((r) => r.label)).toEqual(['Description', 'Project goal', 'Stakeholders']);
+    expect(layout.infoRows[2].valueLines).toEqual(['—']);
     expect(layout.chainEdges).toContainEqual({ sourceId: 'FACTOR-EU-MDR-1', targetId: 'GOAL-EU-MARKET-1' });
     expect(layout.chainEdges).toContainEqual({ sourceId: 'GOAL-EU-MARKET-1', targetId: 'CHANGE-EU-COMPLIANCE-1' });
   });

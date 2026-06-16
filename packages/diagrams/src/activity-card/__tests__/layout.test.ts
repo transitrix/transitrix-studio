@@ -23,6 +23,8 @@ const RESOLVED: ResolvedActivityCard = {
   childActivities: [
     { id: 'ACTIVITY-EU-CHILD-1', name: 'Notified-body engagement', start_date: '2026-05-01', end_date: '2026-12-01', owner: 'UNIT-REGULATORY' },
   ],
+  goalNames: ['Access EU market'],
+  stakeholders: [{ id: 'STAKEHOLDER-OPS-1', name: 'Operations' }],
 };
 
 describe('layoutActivityCard', () => {
@@ -36,6 +38,25 @@ describe('layoutActivityCard', () => {
     expect(l.milestones).toHaveLength(1);
     expect(l.milestones[0].archimateClass).toBe(ARCHIMATE_CLASS.MILESTONE);
     expect(l.childActivities[0].archimateClass).toBe(ARCHIMATE_CLASS.ACTIVITY);
+  });
+
+  it('lays out Description, Project goal and Stakeholders info rows', () => {
+    const l = layoutActivityCard(RESOLVED);
+    expect(l.infoRows.map((r) => r.label)).toEqual(['Description', 'Project goal', 'Stakeholders']);
+    expect(l.infoRows[1].valueLines).toEqual(['Access EU market']);
+    expect(l.infoRows[2].valueLines).toEqual(['Operations']);
+    // Each value line stays inside its box (label band + lines fit the height).
+    for (const r of l.infoRows) {
+      expect(r.height).toBeGreaterThanOrEqual(44 + (r.valueLines.length - 1) * 18 + 8);
+    }
+  });
+
+  it('always shows Project goal / Stakeholders with a "—" placeholder when empty', () => {
+    const l = layoutActivityCard({ ...RESOLVED, cardDescription: undefined, goalNames: [], stakeholders: [] });
+    // Description is dropped when absent; the other two persist with a dash.
+    expect(l.infoRows.map((r) => r.label)).toEqual(['Project goal', 'Stakeholders']);
+    expect(l.infoRows[0].valueLines).toEqual(['—']);
+    expect(l.infoRows[1].valueLines).toEqual(['—']);
   });
 
   it('builds F→G and G→C edges', () => {
