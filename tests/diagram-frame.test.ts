@@ -39,3 +39,39 @@ describe('buildDiagramFrame error strip', () => {
     expect(html).not.toContain('<div class="tx-err">');
   });
 });
+
+describe('buildDiagramFrame warnings strip', () => {
+  it('renders warnings in a collapsible strip, collapsed by default', () => {
+    const html = buildDiagramFrame({
+      ...base,
+      svgContent: '<svg/>',
+      warnings: ['ACT-011: no duration', 'ACT-019: Gantt will not render'],
+    });
+    // Same checkbox+label mechanism as the error strip — but `checked` so the
+    // strip starts collapsed (advisories shouldn't crowd the canvas).
+    expect(html).toContain('<input type="checkbox" id="ts-warn-toggle" class="tx-warn-toggle-cb" checked>');
+    expect(html).toContain('<label for="ts-warn-toggle" class="tx-warn-summary">');
+    expect(html).toContain('.tx-warn-toggle-cb:checked ~ .tx-warn .tx-warn-body{display:none;}');
+    // Each warning is an item inside the collapsible body, count in the summary.
+    expect(html).toContain('2 warnings');
+    expect(html).toContain('<div class="tx-warn-item">ACT-011: no duration</div>');
+    // The old flat, un-collapsible inline-styled divs are gone.
+    expect(html).not.toContain('style="color:#c07030');
+  });
+
+  it('counts a single warning as "1 warning"', () => {
+    const html = buildDiagramFrame({ ...base, svgContent: '<svg/>', warnings: ['only one'] });
+    expect(html).toContain('1 warning<');
+  });
+
+  it('emits no warnings control when there are no warnings', () => {
+    const html = buildDiagramFrame({ ...base, svgContent: '<svg/>' });
+    expect(html).not.toContain('ts-warn-toggle');
+    expect(html).not.toContain('<div class="tx-warn">');
+  });
+
+  it('escapes warning text', () => {
+    const html = buildDiagramFrame({ ...base, svgContent: '<svg/>', warnings: ['<script>x</script>'] });
+    expect(html).toContain('&lt;script&gt;x&lt;/script&gt;');
+  });
+});

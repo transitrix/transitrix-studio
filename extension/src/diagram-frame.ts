@@ -180,6 +180,24 @@ const ERROR_BLOCK_CSS = `
 .tx-err-toggle-cb:checked ~ .tx-err .tx-err-body{display:none;}
 `;
 
+// Collapsible warnings strip. Same script-free checkbox+label+`:checked ~`
+// mechanism as the error strip, in the warning colour. Non-fatal advisories
+// (e.g. ACT-011 "no duration", ACT-019 "Gantt view will not render") can pile
+// up and crowd the canvas, so — unlike the error strip — this one is COLLAPSED
+// by default (checkbox starts `checked`); the count stays visible in the
+// summary and the user expands to read.
+const WARN_BLOCK_CSS = `
+.tx-warn-toggle-cb{position:absolute;left:-9999px;width:1px;height:1px;opacity:0;}
+.tx-warn{margin:8px 16px;border:1px solid var(--vscode-editorWarning-foreground,#c07030);border-radius:6px;}
+.tx-warn-summary{display:block;cursor:pointer;user-select:none;padding:6px 10px;font-size:12px;font-weight:600;color:var(--vscode-editorWarning-foreground,#c07030);}
+.tx-warn-summary::before{content:"\\25BE\\00a0";}
+.tx-warn-toggle-cb:checked ~ .tx-warn .tx-warn-summary::before{content:"\\25B8\\00a0";}
+.tx-warn-toggle-cb:focus-visible ~ .tx-warn .tx-warn-summary{outline:1px dashed var(--vscode-editorWarning-foreground,#c07030);outline-offset:2px;}
+.tx-warn-body{padding:0 6px 8px;}
+.tx-warn-item{color:var(--vscode-editorWarning-foreground,#c07030);font-size:11px;padding:2px 12px;}
+.tx-warn-toggle-cb:checked ~ .tx-warn .tx-warn-body{display:none;}
+`;
+
 const FRAME_HEADER_CSS = `
 .frame-header{padding:16px 20px 20px;}
 .frame-title{font-size:18px;font-weight:700;color:var(--ts-text,#0f172a);margin-bottom:4px;}
@@ -360,10 +378,16 @@ export function buildDiagramFrame(opts: DiagramFrameOpts): string {
 </div>`
     : '';
 
+  // Warnings collapse via the same hidden-checkbox mechanism, but start
+  // COLLAPSED (checkbox `checked`) — advisories shouldn't crowd the canvas.
+  const warnToggleInput = warnings.length > 0
+    ? `<input type="checkbox" id="ts-warn-toggle" class="tx-warn-toggle-cb" checked>`
+    : '';
   const warnBlock = warnings.length > 0
-    ? warnings.map(w =>
-        `<div style="color:#c07030;font-size:11px;padding:2px 12px;">${escXml(w)}</div>`
-      ).join('')
+    ? `<div class="tx-warn">
+  <label for="ts-warn-toggle" class="tx-warn-summary">⚠ ${warnings.length === 1 ? '1 warning' : `${warnings.length} warnings`}</label>
+  <div class="tx-warn-body">${warnings.map(w => `<div class="tx-warn-item">${escXml(w)}</div>`).join('')}</div>
+</div>`
     : '';
 
   const metaParts = [version ? `v${escXml(version)}` : null, date ? escXml(date) : null].filter(Boolean);
@@ -458,6 +482,7 @@ export function buildDiagramFrame(opts: DiagramFrameOpts): string {
 ${generateWebviewCss(themeId)}
 ${FIX_PROMPT_CSS}
 ${ERROR_BLOCK_CSS}
+${WARN_BLOCK_CSS}
 ${FRAME_HEADER_CSS}
 ${TITLE_TOGGLE_CSS}
 ${ZOOM_CONTROL_CSS}
@@ -469,6 +494,7 @@ ${extraStyles}
   ${toggleInput}
   ${zoomInputs}
   ${errToggleInput}
+  ${warnToggleInput}
   <div id="toolbar"><span class="toolbar-label">${escXml(notation)}: ${escXml(filename)}</span>${toolbarRight}</div>
   ${controlsPanel}
   ${errBlock}${fixPromptBlock}${warnBlock}
