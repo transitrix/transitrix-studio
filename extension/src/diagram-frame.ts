@@ -156,18 +156,28 @@ const FIX_PROMPT_CSS = `
 `;
 
 // Collapsible error strip (vkgeorgia/strategy view-testing idea). Mirrors the
-// `.tx-ctl` controls panel look so the preview reads consistently: a native
-// <details>/<summary> with the same arrow marker. Native <details> needs no
-// script, so the strip collapses in static (enableScripts: false) previews too.
-// Open by default — a hard error must never be silently folded away; the user
-// can collapse it once read to get the diagram canvas back.
+// `.tx-ctl` controls panel look so the preview reads consistently.
+//
+// Collapse is driven by a hidden checkbox + a <label> summary + a `:checked ~`
+// sibling selector — the SAME CSS-only mechanism the Title toggle and Zoom
+// control use (see TITLE_TOGGLE_CSS / ZOOM_CONTROL_CSS). A previous revision
+// used a native <details>/<summary>, but that did not collapse in the static
+// (`enableScripts: false`) previews where the strip most often appears, so the
+// strip is wired the same script-free way as every other preview affordance.
+//
+// Expanded by default — a hard error must never be silently folded away; the
+// user clicks the summary to fold it once read and reclaim the canvas. The
+// checkbox sits at the top of <body> (off-screen but focusable) so the general
+// sibling combinator reaches the strip wherever it renders.
 const ERROR_BLOCK_CSS = `
+.tx-err-toggle-cb{position:absolute;left:-9999px;width:1px;height:1px;opacity:0;}
 .tx-err{margin:8px 16px;border:1px solid var(--vscode-inputValidation-errorBorder,var(--vscode-errorForeground,#b91c1c));border-radius:6px;}
-.tx-err > summary{cursor:pointer;user-select:none;list-style:none;padding:6px 10px;font-size:12px;font-weight:600;color:var(--vscode-errorForeground,#b91c1c);}
-.tx-err > summary::-webkit-details-marker{display:none;}
-.tx-err > summary::before{content:"\\25B8\\00a0";}
-.tx-err[open] > summary::before{content:"\\25BE\\00a0";}
-.tx-err > pre{margin:0;color:var(--vscode-errorForeground,#b91c1c);white-space:pre-wrap;padding:2px 16px 12px;}
+.tx-err-summary{display:block;cursor:pointer;user-select:none;padding:6px 10px;font-size:12px;font-weight:600;color:var(--vscode-errorForeground,#b91c1c);}
+.tx-err-summary::before{content:"\\25BE\\00a0";}
+.tx-err-toggle-cb:checked ~ .tx-err .tx-err-summary::before{content:"\\25B8\\00a0";}
+.tx-err-toggle-cb:focus-visible ~ .tx-err .tx-err-summary{outline:1px dashed var(--vscode-errorForeground,#b91c1c);outline-offset:2px;}
+.tx-err-body{margin:0;color:var(--vscode-errorForeground,#b91c1c);white-space:pre-wrap;padding:2px 16px 12px;}
+.tx-err-toggle-cb:checked ~ .tx-err .tx-err-body{display:none;}
 `;
 
 const FRAME_HEADER_CSS = `
@@ -331,11 +341,16 @@ export function buildDiagramFrame(opts: DiagramFrameOpts): string {
   // `v.errors.map(...).join('\n')`); a bare parse failure is a single line.
   // Counting non-empty lines gives a meaningful summary count for both.
   const errCount = errorMsg ? errorMsg.split('\n').filter(l => l.trim() !== '').length : 0;
+  // Hidden checkbox drives the CSS-only collapse (see ERROR_BLOCK_CSS); only
+  // emitted alongside an actual error so there's no orphan control.
+  const errToggleInput = errorMsg
+    ? `<input type="checkbox" id="ts-err-toggle" class="tx-err-toggle-cb">`
+    : '';
   const errBlock = errorMsg
-    ? `<details class="tx-err" open>
-  <summary>⚠ ${errCount === 1 ? '1 error' : `${errCount} errors`}</summary>
-  <pre>${escXml(errorMsg)}</pre>
-</details>`
+    ? `<div class="tx-err">
+  <label for="ts-err-toggle" class="tx-err-summary">⚠ ${errCount === 1 ? '1 error' : `${errCount} errors`}</label>
+  <pre class="tx-err-body">${escXml(errorMsg)}</pre>
+</div>`
     : '';
 
   const fixPromptBlock = fixPrompt
@@ -453,6 +468,7 @@ ${extraStyles}
 <body data-theme="${escXml(themeId)}">
   ${toggleInput}
   ${zoomInputs}
+  ${errToggleInput}
   <div id="toolbar"><span class="toolbar-label">${escXml(notation)}: ${escXml(filename)}</span>${toolbarRight}</div>
   ${controlsPanel}
   ${errBlock}${fixPromptBlock}${warnBlock}
