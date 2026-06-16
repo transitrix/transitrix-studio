@@ -105,7 +105,8 @@ export interface ViewFinding {
 
 /** Combined repo-scope result: canon cross-reference findings plus per-file
  *  notation findings from canon/views/**, and the view files skipped because
- *  their notation has no file-scope CLI validator yet (Group B / non-diagram). */
+ *  their notation has no single-file validator (aggregate views like
+ *  compliance-impact / coverage-metric). */
 export interface RepoScopeResult {
   canon: RepoFinding[];
   views: ViewFinding[];
