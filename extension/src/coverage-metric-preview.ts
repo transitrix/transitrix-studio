@@ -10,7 +10,7 @@ import {
 } from '../../packages/diagrams/src/compliance/coverage-metric.js';
 import { scanComplianceCanon, openComplianceFile } from './compliance-scan.js';
 import type { ScannedCanon } from './compliance-scan.js';
-import { WARN_BLOCK_CSS, buildWarnHtml } from './diagram-frame.js';
+import { WARN_BLOCK_CSS, buildWarnHtml, ERROR_BLOCK_CSS, buildErrorHtml } from './diagram-frame.js';
 
 // Coverage-metric view preview — strategy#185.
 //
@@ -132,7 +132,6 @@ body { padding: 0; margin: 0; font-family: var(--vscode-font-family, sans-serif)
 .cm-thresholds { margin-top: 10px; font-size: 11px; color: var(--ts-text-muted, #64748b); }
 .cm-empty { padding: 40px 24px; color: var(--ts-text-muted, #64748b); }
 .cm-empty code { background: var(--ts-bg-subtle, #f1f5f9); padding: 1px 4px; border-radius: 3px; }
-.cm-error { padding: 16px; color: var(--vscode-errorForeground, #b91c1c); white-space: pre-wrap; font-size: 12px; }
 `;
 
 export class CoverageMetricPreview {
@@ -186,12 +185,14 @@ export class CoverageMetricPreview {
     let titleLine: string;
     let subtitleLine = '';
     let warnings: string[] = [];
+    let errorMsg = '';
 
     try {
       const parsed = yaml.load(yamlText) as unknown;
       const r = parseCoverageMetricConfig(parsed);
       if (!r.ok) {
-        bodyHtml = `<div class="cm-error">Parse errors:\n${r.errors.join('\n')}</div>`;
+        errorMsg = 'Parse errors:\n' + r.errors.join('\n');
+        bodyHtml = '';
         titleLine = 'Coverage Metric — parse error';
       } else {
         const config = r.config;
@@ -203,10 +204,12 @@ export class CoverageMetricPreview {
         bodyHtml = buildTableHtml(matrix);
       }
     } catch (e) {
-      bodyHtml = `<div class="cm-error">${escXml((e as Error).message ?? 'Unknown error')}</div>`;
+      errorMsg = (e as Error).message ?? 'Unknown error';
+      bodyHtml = '';
       titleLine = 'Coverage Metric — error';
     }
 
+    const { input: errInput, block: errBlock } = buildErrorHtml(errorMsg);
     const { input: warnInput, block: warnBlock } = buildWarnHtml(warnings);
 
     return (
@@ -221,16 +224,20 @@ export class CoverageMetricPreview {
       '\n' +
       COVERAGE_CSS +
       '\n' +
+      ERROR_BLOCK_CSS +
+      '\n' +
       WARN_BLOCK_CSS +
       '\n  </style>\n' +
       '</head>\n' +
       '<body>\n' +
+      errInput +
       warnInput +
       '  <div id="cm-toolbar">\n' +
       `    <div class="cm-title">${titleLine}</div>\n` +
       (subtitleLine ? `    <div class="cm-subtitle">${subtitleLine}</div>\n` : '') +
       `    <a href="command:${REFRESH_COMMAND}" class="cm-btn" title="Re-scan the workspace and reload">Refresh</a>\n` +
       '  </div>\n' +
+      errBlock +
       warnBlock +
       bodyHtml +
       '</body>\n</html>'

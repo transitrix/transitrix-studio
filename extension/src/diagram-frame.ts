@@ -169,7 +169,7 @@ const FIX_PROMPT_CSS = `
 // user clicks the summary to fold it once read and reclaim the canvas. The
 // checkbox sits at the top of <body> (off-screen but focusable) so the general
 // sibling combinator reaches the strip wherever it renders.
-const ERROR_BLOCK_CSS = `
+export const ERROR_BLOCK_CSS = `
 .tx-err-toggle-cb{position:absolute;left:-9999px;width:1px;height:1px;opacity:0;}
 .tx-err{margin:8px 16px;border:1px solid var(--vscode-inputValidation-errorBorder,var(--vscode-errorForeground,#b91c1c));border-radius:6px;}
 .tx-err-summary{display:block;cursor:pointer;user-select:none;padding:6px 10px;font-size:12px;font-weight:600;color:var(--vscode-errorForeground,#b91c1c);}
@@ -210,6 +210,19 @@ export function buildWarnHtml(warnings: string[]): { input: string; block: strin
   return {
     input: '<input type="checkbox" id="ts-warn-toggle" class="tx-warn-toggle-cb" checked>',
     block: `<div class="tx-warn">\n  <label for="ts-warn-toggle" class="tx-warn-summary">⚠ ${label}</label>\n  <div class="tx-warn-body">${items}</div>\n</div>`,
+  };
+}
+
+/**
+ * Builds the HTML for a collapsible error block (starts expanded).
+ * Requires `ERROR_BLOCK_CSS` to be included in the page stylesheet.
+ * Returns empty strings when `errorMsg` is empty.
+ */
+export function buildErrorHtml(errorMsg: string): { input: string; block: string } {
+  if (!errorMsg) return { input: '', block: '' };
+  return {
+    input: '<input type="checkbox" id="ts-err-toggle" class="tx-err-toggle-cb">',
+    block: `<div class="tx-err">\n  <label for="ts-err-toggle" class="tx-err-summary">✕ Error</label>\n  <pre class="tx-err-body">${escXml(errorMsg)}</pre>\n</div>`,
   };
 }
 

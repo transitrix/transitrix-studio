@@ -2,6 +2,7 @@ import { generateWebviewCss, type ThemeId } from '../../packages/diagrams/src/th
 import type { AssertionStatus } from '../../packages/diagrams/src/assertion/types.js';
 import type { ViewScore } from '../../packages/diagrams/src/confidence/index.js';
 import { computeDeadlineStatus } from '../../packages/diagrams/src/compliance/impact.js';
+import { ERROR_BLOCK_CSS, buildErrorHtml, WARN_BLOCK_CSS, buildWarnHtml } from './diagram-frame.js';
 
 // Shared HTML rendering for the script-less compliance views — the single-law
 // tree and single-product view (vkgeorgia/strategy#84 Phase 3). These previews
@@ -71,6 +72,7 @@ body { padding: 0; }
 .cmp-non_compliant { background: var(--ts-status-error-bg, #fee2e2); color: var(--ts-status-error-fg, #991b1b); }
 .cmp-under_review { background: var(--ts-status-info-bg, #e0f2fe); color: var(--ts-status-info-fg, #0c4a6e); }
 .cmp-n_a { background: var(--ts-bg-subtle, #f1f5f9); color: var(--ts-text-muted, #64748b); }
+.cmp-pending_owner { background: #f3e8ff; color: #6b21a8; }
 
 /* Tree (single-law) */
 .cmp-req { margin: 0 0 14px; border: 1px solid var(--ts-border, #cbd5e1); border-radius: 6px; overflow: hidden; }
@@ -124,6 +126,10 @@ export interface ComplianceShellOptions {
    * composite to suppress the line entirely.
    */
   confidence?: ViewScore;
+  /** Non-fatal advisory messages. Rendered as a collapsible warnings block below the toolbar. */
+  warnings?: string[];
+  /** Hard error message. Rendered as a collapsible error block below the toolbar. */
+  errorMsg?: string;
 }
 
 /**
@@ -144,6 +150,8 @@ export function confidenceLineHtml(view: ViewScore): string {
 
 /** Full webview document for a script-less compliance view (static CSP). */
 export function complianceShell(opts: ComplianceShellOptions): string {
+  const { input: errInput, block: errBlock } = buildErrorHtml(opts.errorMsg ?? '');
+  const { input: warnInput, block: warnBlock } = buildWarnHtml(opts.warnings ?? []);
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -152,15 +160,19 @@ export function complianceShell(opts: ComplianceShellOptions): string {
   <style>
 ${generateWebviewCss(opts.themeId)}
 ${COMPLIANCE_CSS}
+${ERROR_BLOCK_CSS}
+${WARN_BLOCK_CSS}
   </style>
 </head>
 <body data-theme="${escXml(opts.themeId)}">
+  ${errInput}${warnInput}
   <div id="cmp-toolbar">
     <span class="cmp-title">${escXml(opts.title)}</span>
     ${opts.subtitle ? `<span class="cmp-subtitle">${escXml(opts.subtitle)}</span>` : ''}
     <span class="cmp-toolbar-actions">${(opts.extraButtons ?? []).map(b => `<a href="command:${b.command}" class="cmp-btn" title="${escXml(b.title)}">${escXml(b.label)}</a>`).join('')}<a href="command:${opts.refreshCommand}" class="cmp-btn" title="Re-scan the workspace">Refresh</a></span>
     ${opts.confidence ? confidenceLineHtml(opts.confidence) : ''}
   </div>
+  ${errBlock}${warnBlock}
   <div id="cmp-body">
     ${opts.bodyHtml}
   </div>
