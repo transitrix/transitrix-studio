@@ -33,7 +33,8 @@ export {
 } from './coverage-metric.js';
 export type {
   CoverageMetricConfig,
-  CoverageMetricScope,
+  CoverageMetricRegimes,
+  CoverageMetricRegimesFilter,
   CoverageMetricSubjects,
   CoverageMetricThresholds,
   CoverageMatrix,

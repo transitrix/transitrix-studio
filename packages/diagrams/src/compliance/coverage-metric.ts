@@ -12,14 +12,25 @@ import type { IndexAssertion } from './types.js';
 
 // ── Config types ─────────────────────────────────────────────────────────────
 
-export interface CoverageMetricSubjects {
-  products?: string[];
+/** Declarative filter resolved at build time from the canon's codex catalogue. */
+export interface CoverageMetricRegimesFilter {
+  jurisdiction?: string[];
+  codex_type?: string[];
 }
 
-export interface CoverageMetricScope {
-  jurisdictions?: string[];
-  codex?: string[];
-  subjects?: CoverageMetricSubjects;
+/**
+ * Regime (codex) selection for the coverage view.
+ * - `include`: explicit list of codex IDs — takes precedence over `filter`.
+ * - `filter`: resolved against the workspace canon at render time.
+ * - Omit entirely → all codex artefacts in the canon become regime columns.
+ */
+export interface CoverageMetricRegimes {
+  include?: string[];
+  filter?: CoverageMetricRegimesFilter;
+}
+
+export interface CoverageMetricSubjects {
+  products?: string[];
 }
 
 export interface CoverageMetricThresholds {
@@ -35,8 +46,13 @@ export interface CoverageMetricConfig {
   description?: string;
   date?: string;
   version?: string;
-  scope: CoverageMetricScope;
+  /** Regime (codex) selection. Absent = all canon codex entries. */
+  regimes?: CoverageMetricRegimes;
+  /** Products to scope assertions to. Absent = all products. */
+  subjects?: CoverageMetricSubjects;
   thresholds: CoverageMetricThresholds;
+  /** Non-fatal parse warnings (e.g. deprecated keys). */
+  warnings?: string[];
 }
 
 export type ParseCoverageMetricResult =
@@ -77,10 +93,59 @@ export interface CoverageMatrix {
 
 // ── Parser ───────────────────────────────────────────────────────────────────
 
+function parseRegimes(raw: Record<string, unknown>): { regimes?: CoverageMetricRegimes; warnings: string[] } {
+  const warnings: string[] = [];
+  const rawR = raw.regimes;
+  if (!rawR || typeof rawR !== 'object' || Array.isArray(rawR)) {
+    return { regimes: undefined, warnings };
+  }
+  const r = rawR as Record<string, unknown>;
+
+  const include = Array.isArray(r.include)
+    ? (r.include as unknown[]).filter((x): x is string => typeof x === 'string')
+    : undefined;
+
+  const rawF = r.filter;
+  const filter =
+    rawF && typeof rawF === 'object' && !Array.isArray(rawF)
+      ? (() => {
+          const f = rawF as Record<string, unknown>;
+          return {
+            jurisdiction: Array.isArray(f.jurisdiction)
+              ? (f.jurisdiction as unknown[]).filter((x): x is string => typeof x === 'string')
+              : undefined,
+            codex_type: Array.isArray(f.codex_type)
+              ? (f.codex_type as unknown[]).filter((x): x is string => typeof x === 'string')
+              : undefined,
+          };
+        })()
+      : undefined;
+
+  if (include?.length && filter) {
+    warnings.push('COVMET-007: both regimes.include and regimes.filter are set; include takes precedence');
+  }
+
+  return { regimes: { include, filter }, warnings };
+}
+
+function parseSubjects(raw: Record<string, unknown>): CoverageMetricSubjects | undefined {
+  const s = raw.subjects;
+  if (!s || typeof s !== 'object' || Array.isArray(s)) return undefined;
+  const obj = s as Record<string, unknown>;
+  return {
+    products: Array.isArray(obj.products)
+      ? (obj.products as unknown[]).filter((x): x is string => typeof x === 'string')
+      : undefined,
+  };
+}
+
 /**
- * Validate and normalise a raw (YAML-parsed) document into a
- * `CoverageMetricConfig`. Accepts both the bare top-level object and the
- * wrapped form (`{ coverage_metric: { … } }`).
+ * Parse and validate a raw (YAML-parsed) document into a `CoverageMetricConfig`.
+ *
+ * Accepts:
+ * - `{ view: { id, name, regimes, subjects, thresholds } }` — canonical (new spec)
+ * - `{ coverage_metric: { … } }` — deprecated; `scope.codex` → `regimes.include`
+ * - Bare top-level object — same as deprecated wrapper, no wrapper warning
  */
 export function parseCoverageMetricConfig(raw: unknown): ParseCoverageMetricResult {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
@@ -88,31 +153,49 @@ export function parseCoverageMetricConfig(raw: unknown): ParseCoverageMetricResu
   }
   const top = raw as Record<string, unknown>;
 
-  // Unwrap optional `coverage_metric:` wrapper.
-  const v: Record<string, unknown> =
+  const errors: string[] = [];
+  const warnings: string[] = [];
+  let v: Record<string, unknown>;
+  let regimes: CoverageMetricRegimes | undefined;
+  let subjects: CoverageMetricSubjects | undefined;
+
+  if ('view' in top && top.view && typeof top.view === 'object' && !Array.isArray(top.view)) {
+    // Canonical format: view: { id, name, regimes, subjects, thresholds }
+    v = top.view as Record<string, unknown>;
+    const parsed = parseRegimes(v);
+    regimes = parsed.regimes;
+    warnings.push(...parsed.warnings);
+    subjects = parseSubjects(v);
+
+  } else if (
     'coverage_metric' in top &&
     top.coverage_metric &&
     typeof top.coverage_metric === 'object' &&
     !Array.isArray(top.coverage_metric)
-      ? (top.coverage_metric as Record<string, unknown>)
-      : top;
+  ) {
+    // Deprecated wrapper: coverage_metric: { scope: { codex, jurisdictions, subjects }, … }
+    v = top.coverage_metric as Record<string, unknown>;
+    warnings.push('COVMET-DEPRECATED: coverage_metric: wrapper is deprecated; migrate to view:');
+    const r = migrateLegacyScope(v);
+    regimes = r.regimes;
+    subjects = r.subjects;
 
-  const errors: string[] = [];
+  } else {
+    // Bare object — accept as deprecated shape without extra warning
+    v = top;
+    const r = migrateLegacyScope(v);
+    regimes = r.regimes;
+    subjects = r.subjects;
+  }
+
   if (!v.id || typeof v.id !== 'string') errors.push('coverage_metric.id: required string');
   if (!v.name || typeof v.name !== 'string') errors.push('coverage_metric.name: required string');
   if (errors.length) return { ok: false, errors };
 
-  const rawScope =
-    v.scope && typeof v.scope === 'object' && !Array.isArray(v.scope)
-      ? (v.scope as Record<string, unknown>)
-      : {};
-  const rawSubjects =
-    rawScope.subjects && typeof rawScope.subjects === 'object' && !Array.isArray(rawScope.subjects)
-      ? (rawScope.subjects as Record<string, unknown>)
-      : {};
+  const rawT = v.thresholds;
   const rawThresholds =
-    v.thresholds && typeof v.thresholds === 'object' && !Array.isArray(v.thresholds)
-      ? (v.thresholds as Record<string, unknown>)
+    rawT && typeof rawT === 'object' && !Array.isArray(rawT)
+      ? (rawT as Record<string, unknown>)
       : {};
 
   const greenRaw = typeof rawThresholds.green === 'number' ? rawThresholds.green : 0.8;
@@ -124,26 +207,53 @@ export function parseCoverageMetricConfig(raw: unknown): ParseCoverageMetricResu
     description: typeof v.description === 'string' ? v.description : undefined,
     date: typeof v.date === 'string' ? v.date : undefined,
     version: typeof v.version === 'string' ? v.version : undefined,
-    scope: {
-      jurisdictions: Array.isArray(rawScope.jurisdictions)
-        ? (rawScope.jurisdictions as unknown[]).filter((x): x is string => typeof x === 'string')
-        : undefined,
-      codex: Array.isArray(rawScope.codex)
-        ? (rawScope.codex as unknown[]).filter((x): x is string => typeof x === 'string')
-        : undefined,
-      subjects: {
-        products: Array.isArray(rawSubjects.products)
-          ? (rawSubjects.products as unknown[]).filter((x): x is string => typeof x === 'string')
-          : undefined,
-      },
-    },
+    regimes,
+    subjects,
     thresholds: {
       green: Math.max(0, Math.min(1, greenRaw)),
       amber: Math.max(0, Math.min(1, amberRaw)),
     },
+    warnings: warnings.length > 0 ? warnings : undefined,
   };
 
   return { ok: true, config };
+}
+
+/** Translate old `scope.codex` / `scope.jurisdictions` / `scope.subjects` to new shape. */
+function migrateLegacyScope(v: Record<string, unknown>): {
+  regimes: CoverageMetricRegimes | undefined;
+  subjects: CoverageMetricSubjects | undefined;
+} {
+  const rawScope =
+    v.scope && typeof v.scope === 'object' && !Array.isArray(v.scope)
+      ? (v.scope as Record<string, unknown>)
+      : {};
+
+  const codexList = Array.isArray(rawScope.codex)
+    ? (rawScope.codex as unknown[]).filter((x): x is string => typeof x === 'string')
+    : undefined;
+  const jurisdictionList = Array.isArray(rawScope.jurisdictions)
+    ? (rawScope.jurisdictions as unknown[]).filter((x): x is string => typeof x === 'string')
+    : undefined;
+
+  let regimes: CoverageMetricRegimes | undefined;
+  if (codexList && codexList.length > 0) {
+    regimes = { include: codexList };
+  } else if (jurisdictionList && jurisdictionList.length > 0) {
+    regimes = { filter: { jurisdiction: jurisdictionList } };
+  }
+
+  const rawSubjectsObj =
+    rawScope.subjects && typeof rawScope.subjects === 'object' && !Array.isArray(rawScope.subjects)
+      ? (rawScope.subjects as Record<string, unknown>)
+      : {};
+  const subjects: CoverageMetricSubjects = {
+    products: Array.isArray(rawSubjectsObj.products)
+      ? (rawSubjectsObj.products as unknown[]).filter((x): x is string => typeof x === 'string')
+      : undefined,
+  };
+
+  return { regimes, subjects };
 }
 
 // ── Builder ───────────────────────────────────────────────────────────────────
@@ -175,11 +285,34 @@ function ragFromPct(pct: number, thresholds: CoverageMetricThresholds, hasData: 
 }
 
 /**
+ * Resolve the ordered list of codex IDs from the config's `regimes` field:
+ * - `regimes.include` — explicit list, takes precedence.
+ * - `regimes.filter` — resolved against the canon's codex catalogue.
+ * - No `regimes` — all codex entries in the canon.
+ */
+function resolveCodexList(regimes: CoverageMetricRegimes | undefined, canon: ComplianceCanon): string[] {
+  if (regimes?.include && regimes.include.length > 0) return regimes.include;
+  if (regimes?.filter) {
+    let docs = [...canon.codex];
+    if (regimes.filter.jurisdiction?.length) {
+      const jurs = regimes.filter.jurisdiction;
+      docs = docs.filter(c => c.jurisdiction != null && jurs.includes(c.jurisdiction));
+    }
+    if (regimes.filter.codex_type?.length) {
+      const types = regimes.filter.codex_type;
+      docs = docs.filter(c => c.type != null && types.includes(c.type));
+    }
+    return docs.map(c => c.id);
+  }
+  return canon.codex.map(c => c.id);
+}
+
+/**
  * Compute per-codex coverage statistics.
  *
- * For each law (codex ID) in `config.scope.codex`:
+ * For each law (codex ID) resolved from `config.regimes`:
  *  - Collect requirements whose `derived_from` includes that law.
- *  - Optionally restrict to assertions for `config.scope.subjects.products`.
+ *  - Optionally restrict to assertions for `config.subjects.products`.
  *  - Compute compliant / partial / non_compliant / under_review / gap counts.
  *  - Compute coverage % = (compliant + partial) / total and apply RAG.
  */
@@ -192,8 +325,8 @@ export function buildCoverageMatrix(
     assertions: canon.assertions,
   });
 
-  const codexList = config.scope.codex ?? [];
-  const productList = config.scope.subjects?.products ?? [];
+  const codexList = resolveCodexList(config.regimes, canon);
+  const productList = config.subjects?.products ?? [];
 
   const rows: CoverageRow[] = [];
 
@@ -213,9 +346,8 @@ export function buildCoverageMatrix(
 
       // Filter to admitted statuses, then optionally to scoped products.
       const admitted = allAssertions.filter(a => ADMITTED.has(a.status));
-      const scoped = productList.length > 0
-        ? admitted.filter(a => productList.includes(a.subject))
-        : admitted;
+      const scoped =
+        productList.length > 0 ? admitted.filter(a => productList.includes(a.subject)) : admitted;
 
       // Exclude pure n_a assertions from counting as coverage.
       const active = scoped.filter(a => a.status !== 'n_a');
