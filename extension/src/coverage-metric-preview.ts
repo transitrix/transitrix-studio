@@ -84,7 +84,7 @@ function buildTableHtml(matrix: CoverageMatrix): string {
     '<th class="cm-under_review" title="Requirements under review">Under review</th>' +
     '<th class="cm-gap" title="Requirements with no assertion for scoped products">Gap</th>' +
     '<th>Coverage</th>' +
-    '<th>RAG</th>' +
+    '<th title="Coverage status against configured thresholds (green / amber / red)">Coverage Status</th>' +
     '</tr></thead>' +
     '<tbody>' +
     rows +
