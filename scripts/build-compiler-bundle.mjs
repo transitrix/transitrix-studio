@@ -15,6 +15,7 @@ import os from 'node:os';
 import { execSync } from 'node:child_process';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { NODE_BUILTIN_EXTERNALS, REQUIRE_BANNER, COMPILER_RUNTIME_EXTERNALS } from './esbuild-helpers.mjs';
 
 const root = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const compilerOut = resolve(root, 'extension', 'compiler');
@@ -25,29 +26,11 @@ const extensionRoot = resolve(root, 'extension');
 await fs.rm(compilerOut, { recursive: true, force: true });
 await fs.mkdir(compilerOut, { recursive: true });
 
-const NODE_BUILTIN_EXTERNALS = [
-  'vscode',
-  'node:path', 'node:url', 'node:fs', 'node:fs/promises',
-  'node:child_process', 'node:os', 'node:http', 'node:https',
-  'node:stream', 'node:util', 'node:events', 'node:buffer',
-  'node:crypto', 'node:worker_threads', 'node:module',
-  'path', 'url', 'fs', 'os', 'child_process', 'crypto',
-  'http', 'https', 'stream', 'util', 'events', 'buffer',
-  'worker_threads',
-];
-
 // Runtime npm deps declared in extension/package.json — kept external so the
 // installed extension can resolve them via node_modules at runtime. Some
 // (notably ajv) have dynamic require patterns that esbuild cannot inline
 // reliably; shipping the real packages avoids fighting the bundler.
-const RUNTIME_DEPS_EXTERNAL = [
-  'ajv',
-  'ajv-formats',
-  'elkjs',
-  'js-yaml',
-  'xmlbuilder2',
-  'bpmn-moddle',
-];
+const RUNTIME_DEPS_EXTERNAL = COMPILER_RUNTIME_EXTERNALS;
 
 await esbuild.build({
   entryPoints: [
@@ -56,17 +39,13 @@ await esbuild.build({
   ],
   bundle: true,
   outdir: compilerOut,
-  external: [...NODE_BUILTIN_EXTERNALS, ...RUNTIME_DEPS_EXTERNAL],
+  external: ['vscode', ...NODE_BUILTIN_EXTERNALS, ...RUNTIME_DEPS_EXTERNAL],
   platform: 'node',
   format: 'esm',
   target: 'node18',
   sourcemap: false,
   logLevel: 'info',
-  // Inject createRequire so bundled CJS deps' dynamic `require(...)` calls
-  // resolve via Node's real module resolver instead of esbuild's stub.
-  banner: {
-    js: "import { createRequire as __createRequire__ } from 'node:module'; const require = __createRequire__(import.meta.url);",
-  },
+  banner: REQUIRE_BANNER,
 });
 
 // Sync schemas

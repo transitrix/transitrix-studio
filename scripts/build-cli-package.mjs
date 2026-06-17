@@ -20,6 +20,7 @@ import esbuild from 'esbuild';
 import fs from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { NODE_BUILTIN_EXTERNALS, REQUIRE_BANNER, COMPILER_RUNTIME_EXTERNALS } from './esbuild-helpers.mjs';
 
 const root = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const pkgRoot = resolve(root, 'packages', 'cli');
@@ -31,27 +32,10 @@ await fs.mkdir(distOut, { recursive: true });
 await fs.rm(schemaOut, { recursive: true, force: true });
 await fs.mkdir(schemaOut, { recursive: true });
 
-const NODE_BUILTIN_EXTERNALS = [
-  'node:path', 'node:url', 'node:fs', 'node:fs/promises',
-  'node:child_process', 'node:os', 'node:http', 'node:https',
-  'node:stream', 'node:util', 'node:events', 'node:buffer',
-  'node:crypto', 'node:worker_threads', 'node:module', 'node:process',
-  'path', 'url', 'fs', 'os', 'child_process', 'crypto',
-  'http', 'https', 'stream', 'util', 'events', 'buffer',
-  'worker_threads', 'process',
-];
-
 // Mirrors packages/cli/package.json "dependencies". Kept external so npm
 // resolves them at install time (ajv has dynamic require patterns that
 // esbuild cannot reliably inline).
-const RUNTIME_DEPS_EXTERNAL = [
-  'ajv',
-  'ajv-formats',
-  'bpmn-moddle',
-  'elkjs',
-  'js-yaml',
-  'xmlbuilder2',
-];
+const RUNTIME_DEPS_EXTERNAL = COMPILER_RUNTIME_EXTERNALS;
 
 const sharedBuildOptions = {
   bundle: true,
@@ -61,11 +45,7 @@ const sharedBuildOptions = {
   sourcemap: false,
   logLevel: 'info',
   external: [...NODE_BUILTIN_EXTERNALS, ...RUNTIME_DEPS_EXTERNAL],
-  // Inject createRequire so bundled CJS deps' dynamic `require(...)` calls
-  // resolve via Node's real module resolver instead of esbuild's stub.
-  banner: {
-    js: "import { createRequire as __createRequire__ } from 'node:module'; const require = __createRequire__(import.meta.url);",
-  },
+  banner: REQUIRE_BANNER,
 };
 
 await esbuild.build({
