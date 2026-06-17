@@ -22,6 +22,7 @@ const STATUS_LABELS: Record<AssertionStatus, string> = {
   partial: 'Partial',
   non_compliant: 'Non-compliant',
   under_review: 'Under review',
+  pending_owner: 'Pending owner',
   n_a: 'N/A',
 };
 
@@ -73,6 +74,7 @@ code, .cmp-id { font-family: "Menlo", "Consolas", monospace; font-size: 9pt; col
 .cmp-partial { background: #fef9c3; color: #854d0e; }
 .cmp-non_compliant { background: #fee2e2; color: #991b1b; }
 .cmp-under_review { background: #e0f2fe; color: #0c4a6e; }
+.cmp-pending_owner { background: #f3e8ff; color: #6b21a8; }
 .cmp-n_a { background: #f1f5f9; color: #64748b; }
 .cmp-cell-gap { color: #94a3b8; text-align: center; }
 .cmp-req { border: 0.5pt solid #cbd5e1; border-radius: 3pt; margin-bottom: 8pt; page-break-inside: avoid; }
@@ -240,7 +242,7 @@ export interface ImpactMatrixHtmlOptions {
 export function renderImpactMatrixHtml(matrix: ImpactMatrix, options: ImpactMatrixHtmlOptions = {}): string {
   const STATUS_GLYPH: Partial<Record<string, string>> = {
     compliant: 'OK', partial: 'PARTIAL', non_compliant: 'FAIL',
-    under_review: 'REVIEW', n_a: 'N/A',
+    under_review: 'REVIEW', pending_owner: 'PENDING', n_a: 'N/A',
   };
   const statusClass = (s: string | null) => s ?? 'gap';
 
@@ -269,6 +271,7 @@ td.cmp-row-label { text-align: left; font-size: 8.5pt; max-width: 180pt; white-s
 .cmp-partial { background: #fef9c3; color: #854d0e; font-weight: 700; }
 .cmp-non_compliant { background: #fee2e2; color: #991b1b; font-weight: 700; }
 .cmp-under_review { background: #e0f2fe; color: #0c4a6e; }
+.cmp-pending_owner { background: #f3e8ff; color: #6b21a8; }
 .cmp-gap { background: #f8fafc; color: #94a3b8; font-size: 8pt; }
 .cmp-na { background: #f1f5f9; color: #94a3b8; font-size: 8pt; }
 .cmp-dl { color: #b45309; font-size: 8pt; }`;

@@ -233,6 +233,15 @@ describe('buildCoverageMatrix', () => {
     expect(matrix.rows[0].coveredCount).toBe(2);
   });
 
+  it('counts pending_owner separately and does not include it in coveredCount', () => {
+    const canon = makeCanon();
+    ingestComplianceDoc(canon, { notation: 'assertion', id: 'ASSERTION-PO', about: 'REQ-3', subject: 'PRODUCT-1', status: 'pending_owner', owner_to_confirm: 'alice' });
+    const matrix = buildCoverageMatrix(canon, makeConfig());
+    expect(matrix.rows[0].pending_owner).toBe(1);
+    expect(matrix.rows[0].gap).toBe(0);
+    expect(matrix.rows[0].coveredCount).toBe(2);
+  });
+
   // ── regimes.filter ───────────────────────────────────────────────────────────
 
   it('resolves codex via regimes.filter.jurisdiction', () => {

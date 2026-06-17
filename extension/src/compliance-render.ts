@@ -14,6 +14,7 @@ export const STATUS_LABELS: Record<AssertionStatus, string> = {
   partial: 'Partial',
   non_compliant: 'Non-compliant',
   under_review: 'Under review',
+  pending_owner: 'Pending owner',
   n_a: 'N/A',
 };
 

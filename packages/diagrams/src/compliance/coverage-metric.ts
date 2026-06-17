@@ -72,6 +72,8 @@ export interface CoverageRow {
   partial: number;
   non_compliant: number;
   under_review: number;
+  /** Requirements with at least one pending-owner assertion and no stronger binding. */
+  pending_owner: number;
   /** Requirements with no admitted assertion for the scoped products. */
   gap: number;
   /** compliant + partial. */
@@ -258,20 +260,24 @@ function migrateLegacyScope(v: Record<string, unknown>): {
 
 // ── Builder ───────────────────────────────────────────────────────────────────
 
-const ADMITTED: Set<AssertionStatus> = new Set(['compliant', 'partial', 'non_compliant', 'under_review', 'n_a']);
+const ADMITTED: Set<AssertionStatus> = new Set(['compliant', 'partial', 'non_compliant', 'under_review', 'pending_owner', 'n_a']);
 
-/** Worst-case aggregate across multiple assertions (excludes n_a when others exist). */
+/** Worst-case aggregate across multiple assertions (excludes n_a when others exist).
+ *  Precedence: non_compliant > partial > pending_owner > under_review > compliant > n_a. */
 function aggregateStatus(assertions: IndexAssertion[]): AssertionStatus {
   let sawPartial = false;
+  let sawPendingOwner = false;
   let sawUnderReview = false;
   let sawCompliant = false;
   for (const a of assertions) {
     if (a.status === 'non_compliant') return 'non_compliant';
     if (a.status === 'partial') sawPartial = true;
+    else if (a.status === 'pending_owner') sawPendingOwner = true;
     else if (a.status === 'under_review') sawUnderReview = true;
     else if (a.status === 'compliant') sawCompliant = true;
   }
   if (sawPartial) return 'partial';
+  if (sawPendingOwner) return 'pending_owner';
   if (sawUnderReview) return 'under_review';
   if (sawCompliant) return 'compliant';
   return 'n_a';
@@ -339,6 +345,7 @@ export function buildCoverageMatrix(
     let partial = 0;
     let non_compliant = 0;
     let under_review = 0;
+    let pending_owner = 0;
     let gap = 0;
 
     for (const req of reqs) {
@@ -361,6 +368,7 @@ export function buildCoverageMatrix(
       else if (status === 'partial') partial++;
       else if (status === 'non_compliant') non_compliant++;
       else if (status === 'under_review') under_review++;
+      else if (status === 'pending_owner') pending_owner++;
       else gap++;
     }
 
@@ -376,6 +384,7 @@ export function buildCoverageMatrix(
       partial,
       non_compliant,
       under_review,
+      pending_owner,
       gap,
       coveredCount,
       coveragePct,

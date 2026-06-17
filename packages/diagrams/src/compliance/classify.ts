@@ -88,6 +88,7 @@ export function ingestComplianceDoc(canon: ComplianceCanon, doc: unknown): strin
       evidenceCount: Array.isArray(d.evidence) ? d.evidence.length : 0,
       admitted_at: str(d.admitted_at),
       realised_via: strArray(d.realised_via),
+      owner_to_confirm: str(d.owner_to_confirm),
     });
     return id;
   }

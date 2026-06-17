@@ -29,7 +29,7 @@ export interface ComplianceLaneAssertion {
   /** Requirement ID this assertion is about. */
   about: string;
   /** Compliance realisation status. */
-  status: 'compliant' | 'partial' | 'non_compliant' | 'under_review' | 'n_a';
+  status: 'compliant' | 'partial' | 'non_compliant' | 'under_review' | 'pending_owner' | 'n_a';
   /**
    * Typed IDs of stages / process steps where the requirement is realised.
    * When empty/absent, the assertion covers the entire subject, not a specific stage.

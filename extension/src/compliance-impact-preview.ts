@@ -41,8 +41,8 @@ const DEFAULT_ORDER_ROWS_BY = 'id' as const;
 const DEFAULT_NO_OBLIGATION_LABEL = 'No mapped obligation (current model)';
 const DEFAULT_NO_OBLIGATION_APPLIES_LABEL = 'No obligation applies';
 
-const ADMITTED_STATUSES = new Set<string>(['compliant', 'partial', 'non_compliant', 'under_review', 'n_a']);
-const ALL_STATUSES: AssertionStatus[] = ['compliant', 'partial', 'non_compliant', 'under_review', 'n_a'];
+const ADMITTED_STATUSES = new Set<string>(['compliant', 'partial', 'non_compliant', 'under_review', 'pending_owner', 'n_a']);
+const ALL_STATUSES: AssertionStatus[] = ['compliant', 'partial', 'non_compliant', 'under_review', 'pending_owner', 'n_a'];
 const ALL_SEVERITIES = ['high', 'medium', 'low'];
 
 const STATUS_LABELS: Record<AssertionStatus, string> = {
@@ -50,6 +50,7 @@ const STATUS_LABELS: Record<AssertionStatus, string> = {
   partial: 'Partial',
   non_compliant: 'Non-compliant',
   under_review: 'Under review',
+  pending_owner: 'Pending owner',
   n_a: 'N/A',
 };
 
@@ -660,8 +661,10 @@ export class ComplianceImpactPreview {
 
             const firstAssertion = cell.assertions[0];
             const fsPath = firstAssertion ? this.canon?.pathById.get(firstAssertion.id) : undefined;
+            const ownerToConfirm = cell.assertions.find(a => a.owner_to_confirm)?.owner_to_confirm;
             const metaParts = [
               STATUS_LABELS[status],
+              ownerToConfirm ? 'owner to confirm: ' + ownerToConfirm : null,
               firstAssertion?.assessed_at ? 'assessed ' + firstAssertion.assessed_at : null,
               firstAssertion?.next_review_at ? 'review by ' + firstAssertion.next_review_at : null,
               cell.assertions.length > 1 ? '+' + (cell.assertions.length - 1) + ' more' : null,
@@ -752,6 +755,8 @@ body { padding: 0; }
 .ci-badge-non_compliant { color: var(--ts-status-error-fg, #991b1b); background: var(--ts-status-error-bg, #fee2e2); }
 .ci-under_review { background: var(--ts-status-info-bg, #e0f2fe); }
 .ci-badge-under_review { color: var(--ts-status-info-fg, #0c4a6e); background: var(--ts-status-info-bg, #e0f2fe); }
+.ci-pending_owner { background: #f3e8ff; }
+.ci-badge-pending_owner { color: #6b21a8; background: #f3e8ff; }
 .ci-empty { padding: 40px 24px; color: var(--ts-text-muted, #64748b); max-width: 640px; }
 .ci-empty code { background: var(--ts-bg-subtle, #f1f5f9); padding: 1px 4px; border-radius: 3px; }
 .ci-skipped-hint { cursor: help; color: var(--ts-text-muted, #64748b); font-size: 10px; vertical-align: super; }

@@ -124,9 +124,9 @@ export interface ImpactViewConfig {
  * are auditable ("what I assumed").
  */
 export const COMPLIANCE_IMPACT_DEFAULTS = {
-  /** Accept all four active statuses + n_a in cell aggregation. */
+  /** Accept all active statuses + n_a in cell aggregation. */
   status_display: {
-    show: ['compliant', 'partial', 'non_compliant', 'under_review', 'n_a'] as AssertionStatus[],
+    show: ['compliant', 'partial', 'non_compliant', 'under_review', 'pending_owner', 'n_a'] as AssertionStatus[],
   },
   /** Order rows by canonical REQUIREMENT ID (lexicographic). */
   order_rows_by: 'id' as const,
@@ -383,18 +383,22 @@ function orderRows(rows: IndexRequirement[], key: 'id' | 'name' | undefined): In
 }
 
 /** Aggregate multiple matching assertions into one cell value, per §5.2 step 4.
+ *  Precedence: non_compliant > partial > pending_owner > under_review > compliant > n_a.
  *  Assumes at least one assertion matches an allowed status; caller filters. */
 function aggregateStatus(assertions: IndexAssertion[]): AssertionStatus {
   let sawPartial = false;
+  let sawPendingOwner = false;
   let sawUnderReview = false;
   let sawCompliant = false;
   for (const a of assertions) {
     if (a.status === 'non_compliant') return 'non_compliant';
     if (a.status === 'partial') sawPartial = true;
+    else if (a.status === 'pending_owner') sawPendingOwner = true;
     else if (a.status === 'under_review') sawUnderReview = true;
     else if (a.status === 'compliant') sawCompliant = true;
   }
   if (sawPartial) return 'partial';
+  if (sawPendingOwner) return 'pending_owner';
   if (sawUnderReview) return 'under_review';
   if (sawCompliant) return 'compliant';
   return 'n_a';
@@ -480,7 +484,7 @@ export function buildImpactMatrix(
     : buildProductColumns(config, [...(canon.products ?? []), ...(canon.subjects ?? [])]);
 
   const allowedStatuses = new Set<AssertionStatus>(
-    config.status_display?.show ?? ['compliant', 'partial', 'non_compliant', 'under_review', 'n_a'],
+    config.status_display?.show ?? ['compliant', 'partial', 'non_compliant', 'under_review', 'pending_owner', 'n_a'],
   );
 
   const rowIndex = new Set(obligations.map(r => r.id));
@@ -625,6 +629,7 @@ const STATUS_GLYPH: Record<AssertionStatus, string> = {
   partial: 'PARTIAL',
   non_compliant: 'FAIL',
   under_review: 'REVIEW',
+  pending_owner: 'PENDING',
   n_a: 'N/A',
 };
 
@@ -678,7 +683,7 @@ export function renderImpactMarkdown(matrix: ImpactMatrix): string {
   lines.push('');
   lines.push('## Legend');
   lines.push('');
-  lines.push('- **OK / PARTIAL / FAIL / REVIEW / N/A** — aggregated `ASSERTION.status` per §5.2.');
+  lines.push('- **OK / PARTIAL / FAIL / REVIEW / PENDING / N/A** — aggregated `ASSERTION.status` per §5.2.');
   lines.push(`- **${escMd(matrix.emptyLabels.no_obligation_label)}** — modelling gap; no admitted ASSERTION binds this (obligation, subject) pair.`);
   lines.push(`- **${escMd(matrix.emptyLabels.no_obligation_applies_label)}** — modelled fact; an admitted ASSERTION with status \`n_a\` excludes this pair.`);
 

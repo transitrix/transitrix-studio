@@ -54,6 +54,8 @@ export interface IndexAssertion {
    * stage-grouped matrix cells.
    */
   realised_via?: string[];
+  /** ID or name of the party who must confirm this assertion (pending-owner state). */
+  owner_to_confirm?: string;
 }
 
 // ── Stage grouping (CV-3a) ──────────────────────────────────────────────────
