@@ -324,15 +324,7 @@ export class ComplianceImpactPreview {
       subjects: { ...cfg.subjects, products: subjectProducts },
     };
 
-    this.matrix = buildImpactMatrix(
-      {
-        products: canon.products,
-        requirements: canon.requirements,
-        assertions: canon.assertions,
-        codex: canon.codex,
-      },
-      effectiveConfig,
-    );
+    this.matrix = buildImpactMatrix(canon, effectiveConfig);
 
     this.jIndex = buildJurisdictionIndex(this.matrix.rows, canon);
     this.render();
