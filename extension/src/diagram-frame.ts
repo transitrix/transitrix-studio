@@ -186,7 +186,7 @@ const ERROR_BLOCK_CSS = `
 // up and crowd the canvas, so — unlike the error strip — this one is COLLAPSED
 // by default (checkbox starts `checked`); the count stays visible in the
 // summary and the user expands to read.
-const WARN_BLOCK_CSS = `
+export const WARN_BLOCK_CSS = `
 .tx-warn-toggle-cb{position:absolute;left:-9999px;width:1px;height:1px;opacity:0;}
 .tx-warn{margin:8px 16px;border:1px solid var(--vscode-editorWarning-foreground,#c07030);border-radius:6px;}
 .tx-warn-summary{display:block;cursor:pointer;user-select:none;padding:6px 10px;font-size:12px;font-weight:600;color:var(--vscode-editorWarning-foreground,#c07030);}
@@ -197,6 +197,21 @@ const WARN_BLOCK_CSS = `
 .tx-warn-item{color:var(--vscode-editorWarning-foreground,#c07030);font-size:11px;padding:2px 12px;}
 .tx-warn-toggle-cb:checked ~ .tx-warn .tx-warn-body{display:none;}
 `;
+
+/**
+ * Builds the HTML for a collapsible warnings block (starts collapsed).
+ * Requires `WARN_BLOCK_CSS` to be included in the page stylesheet.
+ * Returns empty strings when `warnings` is empty.
+ */
+export function buildWarnHtml(warnings: string[]): { input: string; block: string } {
+  if (warnings.length === 0) return { input: '', block: '' };
+  const label = warnings.length === 1 ? '1 warning' : `${warnings.length} warnings`;
+  const items = warnings.map(w => `<div class="tx-warn-item">${escXml(w)}</div>`).join('');
+  return {
+    input: '<input type="checkbox" id="ts-warn-toggle" class="tx-warn-toggle-cb" checked>',
+    block: `<div class="tx-warn">\n  <label for="ts-warn-toggle" class="tx-warn-summary">⚠ ${label}</label>\n  <div class="tx-warn-body">${items}</div>\n</div>`,
+  };
+}
 
 const FRAME_HEADER_CSS = `
 .frame-header{padding:16px 20px 20px;}
@@ -380,15 +395,7 @@ export function buildDiagramFrame(opts: DiagramFrameOpts): string {
 
   // Warnings collapse via the same hidden-checkbox mechanism, but start
   // COLLAPSED (checkbox `checked`) — advisories shouldn't crowd the canvas.
-  const warnToggleInput = warnings.length > 0
-    ? `<input type="checkbox" id="ts-warn-toggle" class="tx-warn-toggle-cb" checked>`
-    : '';
-  const warnBlock = warnings.length > 0
-    ? `<div class="tx-warn">
-  <label for="ts-warn-toggle" class="tx-warn-summary">⚠ ${warnings.length === 1 ? '1 warning' : `${warnings.length} warnings`}</label>
-  <div class="tx-warn-body">${warnings.map(w => `<div class="tx-warn-item">${escXml(w)}</div>`).join('')}</div>
-</div>`
-    : '';
+  const { input: warnToggleInput, block: warnBlock } = buildWarnHtml(warnings);
 
   const metaParts = [version ? `v${escXml(version)}` : null, date ? escXml(date) : null].filter(Boolean);
   const headerBlock = title

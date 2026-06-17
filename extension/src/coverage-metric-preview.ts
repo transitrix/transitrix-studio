@@ -10,6 +10,7 @@ import {
 } from '../../packages/diagrams/src/compliance/coverage-metric.js';
 import { scanComplianceCanon, openComplianceFile } from './compliance-scan.js';
 import type { ScannedCanon } from './compliance-scan.js';
+import { WARN_BLOCK_CSS, buildWarnHtml } from './diagram-frame.js';
 
 // Coverage-metric view preview — strategy#185.
 //
@@ -184,6 +185,7 @@ export class CoverageMetricPreview {
     let bodyHtml: string;
     let titleLine: string;
     let subtitleLine = '';
+    let warnings: string[] = [];
 
     try {
       const parsed = yaml.load(yamlText) as unknown;
@@ -195,6 +197,7 @@ export class CoverageMetricPreview {
         const config = r.config;
         titleLine = escXml(config.name);
         if (config.description) subtitleLine = escXml(config.description.trim());
+        if (config.warnings) warnings = config.warnings;
         const canon: ScannedCanon = await scanComplianceCanon();
         const matrix = buildCoverageMatrix(canon, config);
         bodyHtml = buildTableHtml(matrix);
@@ -203,6 +206,8 @@ export class CoverageMetricPreview {
       bodyHtml = `<div class="cm-error">${escXml((e as Error).message ?? 'Unknown error')}</div>`;
       titleLine = 'Coverage Metric — error';
     }
+
+    const { input: warnInput, block: warnBlock } = buildWarnHtml(warnings);
 
     return (
       '<!DOCTYPE html>\n' +
@@ -215,14 +220,18 @@ export class CoverageMetricPreview {
       generateWebviewCss(themeId) +
       '\n' +
       COVERAGE_CSS +
+      '\n' +
+      WARN_BLOCK_CSS +
       '\n  </style>\n' +
       '</head>\n' +
       '<body>\n' +
+      warnInput +
       '  <div id="cm-toolbar">\n' +
       `    <div class="cm-title">${titleLine}</div>\n` +
       (subtitleLine ? `    <div class="cm-subtitle">${subtitleLine}</div>\n` : '') +
       `    <a href="command:${REFRESH_COMMAND}" class="cm-btn" title="Re-scan the workspace and reload">Refresh</a>\n` +
       '  </div>\n' +
+      warnBlock +
       bodyHtml +
       '</body>\n</html>'
     );
