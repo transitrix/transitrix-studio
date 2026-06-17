@@ -9,17 +9,29 @@ import { emptyCanon, ingestComplianceDoc, type ComplianceCanon } from '../../pac
 // (also used by the CLI's `export-compliance` scan), so the recognition rules
 // are defined once.
 
-/** The scanned canon plus an id → workspace file path map for click-to-open. */
-export type ScannedCanon = ComplianceCanon & { pathById: Map<string, string> };
+/**
+ * The scanned canon plus an id → workspace file path map for click-to-open
+ * and a count of YAML files that had both `id` and `notation` fields but
+ * weren't recognised as compliance artefacts (unrecognized notation value).
+ */
+export type ScannedCanon = ComplianceCanon & {
+  pathById: Map<string, string>;
+  skippedNotationCount: number;
+};
 
 /**
  * Scans the workspace for compliance canon artefacts (products / requirements /
  * assertions by `notation`, codex by `zone: codex`). Unreadable/unparseable
  * files and non-artefacts are skipped. node_modules is excluded.
+ *
+ * Files that have both `id` and `notation` fields but aren't recognised by
+ * `ingestComplianceDoc` are counted in `skippedNotationCount` so callers can
+ * surface a diagnostic rather than silently producing an empty view.
  */
 export async function scanComplianceCanon(): Promise<ScannedCanon> {
   const canon = emptyCanon();
   const pathById = new Map<string, string>();
+  let skippedNotationCount = 0;
 
   const uris = await vscode.workspace.findFiles('**/*.{yaml,yml}', '**/node_modules/**', 5000);
   for (const uri of uris) {
@@ -31,10 +43,22 @@ export async function scanComplianceCanon(): Promise<ScannedCanon> {
       continue;
     }
     const id = ingestComplianceDoc(canon, parsed);
-    if (id) pathById.set(id, uri.fsPath);
+    if (id) {
+      pathById.set(id, uri.fsPath);
+    } else if (hasIdAndNotation(parsed)) {
+      skippedNotationCount++;
+    }
   }
 
-  return { ...canon, pathById };
+  return { ...canon, pathById, skippedNotationCount };
+}
+
+/** True when a parsed YAML document looks like a canon artefact candidate
+ *  (has `id` + `notation`) but was not recognised by `ingestComplianceDoc`. */
+function hasIdAndNotation(doc: unknown): boolean {
+  if (doc === null || typeof doc !== 'object' || Array.isArray(doc)) return false;
+  const d = doc as Record<string, unknown>;
+  return typeof d.id === 'string' && typeof d.notation === 'string';
 }
 
 /** Opens a canon artefact file beside the active editor — the click-to-open

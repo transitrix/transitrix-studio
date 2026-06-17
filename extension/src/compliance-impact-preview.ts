@@ -382,6 +382,9 @@ export class ComplianceImpactPreview {
     const totalPending = [...this.pendingIndex.values()].reduce((a, b) => a + b, 0);
     const pendingSummary =
       totalPending > 0 ? ' &middot; <strong>' + totalPending + '</strong> pending (admission)' : '';
+    const skipped = this.canon?.skippedNotationCount ?? 0;
+    const skippedSummary =
+      skipped > 0 ? ' &middot; &#x26A0; <strong>' + skipped + '</strong> file(s) skipped (unrecognized notation)' : '';
 
     const empty = rows.length === 0 || columns.length === 0;
     const bodyHtml = empty ? this.emptyHtml(matrix) : this.gridHtml(rows, columns, cells, matrix.emptyLabels, matrix.obligationsLane, this.filter.showObligationsLane);
@@ -460,6 +463,7 @@ export class ComplianceImpactPreview {
       totalGaps +
       '</strong> gaps' +
       pendingSummary +
+      skippedSummary +
       '</div>\n' +
       '    <div class="ci-config">' +
       configLine +
@@ -481,6 +485,8 @@ export class ComplianceImpactPreview {
       laneToggle +
       '\n' +
       '  </div>\n' +
+      '\n' +
+      bodyHtml +
       '\n' +
       '  <script nonce="' +
       nonce +
