@@ -46,17 +46,26 @@ export interface ImpactEmptyCellLabels {
  * single subject: `{ subjectId, label: subjectId }`.
  *
  * At `grouping.columns: 'product-stage'` a column represents one (product,
- * stage) pair: `{ subjectId: productId, stageId, label: productId + ':' + stageId }`.
+ * stage) pair: `{ subjectId, stageId, label: subjectId + ':' + stageId }`.
  * A cell is populated when an ASSERTION has `subject === subjectId` and
  * `stageId ∈ assertion.realised_via` (or `realised_via` is absent, meaning
  * the assertion covers the entire subject — it then contributes to every
  * stage column for that subject).
+ *
+ * At `grouping.columns: 'product-stage-task'` a column represents one
+ * (product, stage, task) triple: `{ subjectId, stageId, taskId,
+ * label: subjectId + ':' + stageId + ':' + taskId }`. A cell is populated
+ * when an ASSERTION's `realised_via` contains the `taskId` directly, OR
+ * contains the `stageId` (stage-level claim applies to all tasks in that stage),
+ * OR `realised_via` is absent (claim covers the entire subject).
  */
 export interface ImpactColumn {
   /** Subject (product / process / capability) the column belongs to. */
   subjectId: string;
-  /** Stage ID — present only when grouping.columns is not 'product'. */
+  /** Stage ID — present at product-stage and product-stage-task grain. */
   stageId?: string;
+  /** Task ID — present only at product-stage-task grain. */
+  taskId?: string;
   /** Human-readable column header. */
   label: string;
   /** Display name for the subject (product/process name, not the id). */
@@ -66,13 +75,16 @@ export interface ImpactColumn {
 /**
  * Grouping options for matrix columns.
  *
- * `columns` controls the column grain:
+ * `columns` controls the column grain (COMPIMP-004 validates the value set):
  *   - `'product'` (default) — one column per subject.
- *   - `'product-stage'`     — one column per (subject, stage) pair derived
- *     from `objectDetails` passed to `buildImpactMatrix`.
+ *   - `'product-stage'`     — one column per (subject, stage) pair; pass
+ *     `objectDetails` (from `extractObjectDetails`) into `buildImpactMatrix`.
+ *   - `'product-stage-task'` — one column per (subject, stage, task) triple;
+ *     pass `objectDetails` with stages that carry `tasks[]` (built via
+ *     `extractObjectDetails` + `extractProcessFlowTasks` + `mergeStageTaskDetails`).
  */
 export interface ImpactGrouping {
-  columns: 'object' | 'object-details';
+  columns: 'product' | 'product-stage' | 'product-stage-task';
 }
 
 /**
@@ -139,8 +151,8 @@ export const COMPLIANCE_IMPACT_DEFAULTS = {
   obligations: { include: undefined as string[] | undefined, filter: undefined },
   /** Subjects: empty — must be supplied explicitly in the view config. */
   subjects: { products: [] as string[], processes: [] as string[], capabilities: [] as string[] },
-  /** Column grain: one column per business object (no stage decomposition). */
-  grouping: { columns: 'object' as const },
+  /** Column grain: one column per subject (no stage/task decomposition). */
+  grouping: { columns: 'product' as const },
 } as const;
 
 // ── View-config parser ──────────────────────────────────────────────────────
@@ -203,6 +215,19 @@ export function parseImpactViewConfig(raw: unknown): ParseImpactViewConfigResult
       ? (v.empty_cells as Record<string, unknown>)
       : {};
 
+  // Parse grouping.columns — accept spec-canonical values plus backward-compat aliases.
+  const rawGrouping =
+    v.grouping && typeof v.grouping === 'object' && !Array.isArray(v.grouping)
+      ? (v.grouping as Record<string, unknown>)
+      : null;
+  const rawColumns = typeof rawGrouping?.columns === 'string' ? rawGrouping.columns : undefined;
+  const VALID_COLUMNS = new Set<string>(['product', 'product-stage', 'product-stage-task']);
+  const normalizedColumns: ImpactGrouping['columns'] | undefined =
+    rawColumns === 'object-details' ? 'product-stage'   // backward-compat alias
+    : rawColumns === 'object' ? 'product'               // backward-compat alias
+    : VALID_COLUMNS.has(rawColumns ?? '') ? (rawColumns as ImpactGrouping['columns'])
+    : undefined;
+
   const config: ImpactViewConfig = {
     id: v.id as string,
     name: v.name as string,
@@ -247,6 +272,7 @@ export function parseImpactViewConfig(raw: unknown): ParseImpactViewConfigResult
           : COMPLIANCE_IMPACT_DEFAULTS.empty_cells.no_obligation_applies_label,
     },
     order_rows_by: v.order_rows_by === 'name' ? 'name' : COMPLIANCE_IMPACT_DEFAULTS.order_rows_by,
+    grouping: normalizedColumns !== undefined ? { columns: normalizedColumns } : undefined,
   };
 
   return { ok: true, config };
@@ -438,17 +464,64 @@ function buildObjectDetailColumns(config: ImpactViewConfig, objectDetails: Objec
 }
 
 /**
+ * Build `product-stage-task` columns: one column per (subject, stage, task) triple.
+ * Each stage in `objectDetails` that carries a `tasks[]` array is expanded to
+ * per-task columns `{ subjectId, stageId, taskId, label: subjectId:stageId:taskId }`.
+ * Stages with no tasks fall back to a single stage-grain column.
+ */
+function buildTaskColumns(config: ImpactViewConfig, objectDetails: ObjectDetailInput[]): ImpactColumn[] {
+  const detailMap = new Map<string, ObjectDetailDef[]>(objectDetails.map(d => [d.objectId, d.details]));
+  const subjects = [
+    ...(config.subjects.products ?? []),
+    ...(config.subjects.processes ?? []),
+    ...(config.subjects.capabilities ?? []),
+  ];
+  const cols: ImpactColumn[] = [];
+  for (const subjectId of subjects) {
+    const stages = detailMap.get(subjectId);
+    if (!stages || stages.length === 0) {
+      cols.push({ subjectId, label: subjectId });
+    } else {
+      for (const stage of stages) {
+        if (!stage.tasks || stage.tasks.length === 0) {
+          // Stage with no tasks: fall back to stage-grain column.
+          cols.push({ subjectId, stageId: stage.id, label: `${subjectId}:${stage.id}` });
+        } else {
+          for (const task of stage.tasks) {
+            cols.push({
+              subjectId,
+              stageId: stage.id,
+              taskId: task.id,
+              label: `${subjectId}:${stage.id}:${task.id}`,
+            });
+          }
+        }
+      }
+    }
+  }
+  return cols;
+}
+
+/**
  * Returns true when assertion `a` contributes to column `col`.
  *
  * At `'product'` grain: `a.subject` must match `col.subjectId`.
  * At `'product-stage'` grain: `a.subject` must match AND either
- * `a.realised_via` is absent (claim covers the whole subject, so every stage
- * inherits it) OR `col.stageId` ∈ `a.realised_via`.
+ * `a.realised_via` is absent (claim covers the whole subject) OR
+ * `col.stageId` ∈ `a.realised_via`.
+ * At `'product-stage-task'` grain: as above for stage, plus `col.taskId` ∈
+ * `a.realised_via` counts as a match (task-level claim covers this task column).
+ * A stage-level claim (`col.stageId` ∈ `a.realised_via`) covers all task columns
+ * in that stage.
  */
 function assertionMatchesColumn(a: IndexAssertion, col: ImpactColumn): boolean {
   if (a.subject !== col.subjectId) return false;
   if (!col.stageId) return true;
   if (!a.realised_via || a.realised_via.length === 0) return true;
+  if (col.taskId) {
+    // Task grain: match on taskId OR on stageId (stage claim covers all tasks).
+    return a.realised_via.includes(col.taskId) || a.realised_via.includes(col.stageId);
+  }
   return a.realised_via.includes(col.stageId);
 }
 
@@ -456,10 +529,17 @@ function assertionMatchesColumn(a: IndexAssertion, col: ImpactColumn): boolean {
  * Build the matrix per §5.2.
  *
  * At the default `grouping.columns: 'product'` grain, one column per subject.
- * At `grouping.columns: 'product-stage'`, pass `objectDetails` to expand each
- * subject into per-stage sub-columns (typically extracted from a
- * process-blueprint document via `extractObjectDetails`).  Subjects with no
- * stage mapping fall back to a single product-grain column automatically.
+ *
+ * At `grouping.columns: 'product-stage'`, pass `objectDetails` (from
+ * `extractObjectDetails` on a process-blueprint) to expand each subject into
+ * per-stage sub-columns.  Subjects with no stage mapping fall back to a single
+ * product-grain column.
+ *
+ * At `grouping.columns: 'product-stage-task'`, pass `objectDetails` where each
+ * stage carries a `tasks[]` array (combine blueprint stages and process-flow
+ * tasks via `mergeStageTaskDetails`).  Each task becomes a
+ * `(subject, stage, task)` column.  Stages with no tasks fall back to
+ * stage-grain columns.
  *
  * Subjects are taken from `config.subjects.products`, `config.subjects.processes`,
  * and `config.subjects.capabilities` (in that order).  Subjects with no binding
@@ -477,11 +557,14 @@ export function buildImpactMatrix(
 
   const obligations = orderRows(resolveObligations(config, index, canon.requirements), config.order_rows_by);
 
-  const useStageGrain =
-    config.grouping?.columns === 'object-details' && objectDetails && objectDetails.length > 0;
-  const columns: ImpactColumn[] = useStageGrain
-    ? buildObjectDetailColumns(config, objectDetails!)
-    : buildProductColumns(config, [...(canon.products ?? []), ...(canon.subjects ?? [])]);
+  const grain = config.grouping?.columns ?? 'product';
+  const hasDetails = objectDetails !== undefined && objectDetails.length > 0;
+  const columns: ImpactColumn[] =
+    grain === 'product-stage-task' && hasDetails
+      ? buildTaskColumns(config, objectDetails!)
+      : (grain === 'product-stage' || (grain as string) === 'object-details') && hasDetails
+        ? buildObjectDetailColumns(config, objectDetails!)
+        : buildProductColumns(config, [...(canon.products ?? []), ...(canon.subjects ?? [])]);
 
   const allowedStatuses = new Set<AssertionStatus>(
     config.status_display?.show ?? ['compliant', 'partial', 'non_compliant', 'under_review', 'pending_owner', 'n_a'],
@@ -582,10 +665,11 @@ function emptyCell(): ImpactCell {
   };
 }
 
-// ── Process-blueprint stage extractor (CV-3a) ───────────────────────────────
+// ── Process-blueprint / process-flow extractors (CV-3a) ─────────────────────
 
 /**
- * Extract `ObjectDetailInput` from a raw (YAML-parsed) process-blueprint document.
+ * Extract stage-level `ObjectDetailInput` from a raw (YAML-parsed)
+ * process-blueprint document.
  *
  * Accepts both the bare document object and the wrapped form
  * (`{ process_blueprint: { id, stages: […] } }`).
@@ -594,6 +678,8 @@ function emptyCell(): ImpactCell {
  *
  * Pass the returned value into `buildImpactMatrix` as part of the
  * `objectDetails` array when `grouping.columns: 'product-stage'` is configured.
+ * For `grouping.columns: 'product-stage-task'`, combine with
+ * `extractProcessFlowTasks` via `mergeStageTaskDetails`.
  */
 export function extractObjectDetails(doc: unknown): ObjectDetailInput | null {
   if (!doc || typeof doc !== 'object' || Array.isArray(doc)) return null;
@@ -620,6 +706,84 @@ export function extractObjectDetails(doc: unknown): ObjectDetailInput | null {
   }
 
   return { objectId: id, details };
+}
+
+/**
+ * Extract task-type steps from a raw (YAML-parsed) PROCESS element document.
+ *
+ * Reads `notation: process` documents with an inline `flow.steps[]` array.
+ * Filters for task-type nodes (`task`, `userTask`, `serviceTask`) — start/end
+ * events and gateways are excluded.  Returns a flat `ObjectDetailInput` where
+ * `details` are the extracted task steps in declaration order.
+ *
+ * Returns `null` when the document is not a recognisable process element or
+ * has no `id` / `flow.steps` array.
+ *
+ * Use the returned value with `mergeStageTaskDetails` to embed tasks into
+ * blueprint stages for `grouping.columns: product-stage-task`.
+ */
+export function extractProcessFlowTasks(doc: unknown): ObjectDetailInput | null {
+  if (!doc || typeof doc !== 'object' || Array.isArray(doc)) return null;
+  const top = doc as Record<string, unknown>;
+  if (top.notation !== 'process') return null;
+  const id = typeof top.id === 'string' ? top.id : null;
+  if (!id) return null;
+  const flow =
+    top.flow && typeof top.flow === 'object' && !Array.isArray(top.flow)
+      ? (top.flow as Record<string, unknown>)
+      : null;
+  if (!flow || !Array.isArray(flow.steps)) return null;
+
+  const TASK_TYPES = new Set(['task', 'userTask', 'serviceTask', 'scriptTask',
+    'receiveTask', 'sendTask', 'manualTask', 'businessRuleTask', 'callActivity', 'subProcess']);
+  const details: ObjectDetailDef[] = [];
+  for (const step of flow.steps) {
+    if (!step || typeof step !== 'object' || Array.isArray(step)) continue;
+    const s = step as Record<string, unknown>;
+    const stepId = typeof s.id === 'string' ? s.id : null;
+    if (!stepId) continue;
+    if (!TASK_TYPES.has(s.type as string)) continue;
+    details.push({ id: stepId, name: typeof s.name === 'string' ? s.name : stepId });
+  }
+
+  return details.length > 0 ? { objectId: id, details } : null;
+}
+
+/**
+ * Combine blueprint stage details (from `extractObjectDetails`) with
+ * process-flow task details (from `extractProcessFlowTasks`) into a
+ * stage-with-tasks hierarchy for `grouping.columns: product-stage-task`.
+ *
+ * All tasks from `taskInput.details` are distributed into their parent stage
+ * by matching the `stageOwner` map: `stageId → taskId[]`.  If `stageOwner` is
+ * omitted (no stage-to-task mapping is available), all tasks are placed into
+ * every stage (`undefined` key `→` all tasks).
+ *
+ * When `taskInput` is `null` or its `objectId` does not match `stageInput`,
+ * returns `stageInput` unchanged (callers can safely chain the result into
+ * `buildImpactMatrix` — it will degrade to stage-grain columns).
+ *
+ * @param stageInput   Stage-level detail (from `extractObjectDetails`).
+ * @param taskInput    Task-level detail  (from `extractProcessFlowTasks`).
+ * @param stageOwner   Optional mapping `stageId → taskId[]`. When provided,
+ *                     only tasks listed for a stage are embedded in it.
+ */
+export function mergeStageTaskDetails(
+  stageInput: ObjectDetailInput,
+  taskInput: ObjectDetailInput | null,
+  stageOwner?: Record<string, string[]>,
+): ObjectDetailInput {
+  if (!taskInput || taskInput.objectId !== stageInput.objectId) return stageInput;
+  const allTasks = taskInput.details;
+  return {
+    objectId: stageInput.objectId,
+    details: stageInput.details.map(stage => {
+      const stageTasks = stageOwner
+        ? allTasks.filter(t => (stageOwner[stage.id] ?? []).includes(t.id))
+        : allTasks;
+      return stageTasks.length > 0 ? { ...stage, tasks: stageTasks } : stage;
+    }),
+  };
 }
 
 // ── Markdown rendering ──────────────────────────────────────────────────────
