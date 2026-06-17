@@ -15,11 +15,14 @@ if (!blocklist || blocklist.trim() === '') {
   process.exit(0);
 }
 
+const blocklistHub = process.env.HYGIENE_BLOCKLIST_HUB;
+const combined = blocklistHub && blocklistHub.trim() ? `${blocklist}|${blocklistHub}` : blocklist;
+
 let pattern;
 try {
-  pattern = new RegExp(blocklist, 'i');
+  pattern = new RegExp(combined, 'i');
 } catch {
-  console.error('[hygiene] HYGIENE_BLOCKLIST is not a valid JavaScript regex.');
+  console.error('[hygiene] HYGIENE_BLOCKLIST (combined) is not a valid JavaScript regex.');
   process.exit(2);
 }
 
