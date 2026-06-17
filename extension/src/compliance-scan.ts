@@ -11,12 +11,14 @@ import { emptyCanon, ingestComplianceDoc, type ComplianceCanon } from '../../pac
 
 /**
  * The scanned canon plus an id → workspace file path map for click-to-open
- * and a count of YAML files that had both `id` and `notation` fields but
- * weren't recognised as compliance artefacts (unrecognized notation value).
+ * and an array of files that had both `id` and `notation` fields but weren't
+ * recognised as compliance artefacts (unrecognized notation value), with the
+ * short workspace-relative path and the actual notation string found.
  */
 export type ScannedCanon = ComplianceCanon & {
   pathById: Map<string, string>;
-  skippedNotationCount: number;
+  /** Files skipped due to an unrecognized `notation` value. */
+  skippedNotations: Array<{ shortPath: string; notation: string }>;
 };
 
 /**
@@ -25,14 +27,15 @@ export type ScannedCanon = ComplianceCanon & {
  * files and non-artefacts are skipped. node_modules is excluded.
  *
  * Files that have both `id` and `notation` fields but aren't recognised by
- * `ingestComplianceDoc` are counted in `skippedNotationCount` so callers can
- * surface a diagnostic rather than silently producing an empty view.
+ * `ingestComplianceDoc` are collected in `skippedNotations` so callers can
+ * surface a diagnostic with the actual notation value and file path.
  */
 export async function scanComplianceCanon(): Promise<ScannedCanon> {
   const canon = emptyCanon();
   const pathById = new Map<string, string>();
-  let skippedNotationCount = 0;
+  const skippedNotations: Array<{ shortPath: string; notation: string }> = [];
 
+  const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
   const uris = await vscode.workspace.findFiles('**/*.{yaml,yml}', '**/node_modules/**', 5000);
   for (const uri of uris) {
     let parsed: unknown;
@@ -46,11 +49,15 @@ export async function scanComplianceCanon(): Promise<ScannedCanon> {
     if (id) {
       pathById.set(id, uri.fsPath);
     } else if (hasIdAndNotation(parsed)) {
-      skippedNotationCount++;
+      const notation = (parsed as Record<string, unknown>).notation as string;
+      const shortPath = workspaceRoot && uri.fsPath.startsWith(workspaceRoot)
+        ? uri.fsPath.slice(workspaceRoot.length).replace(/^[\\/]/, '')
+        : uri.fsPath;
+      skippedNotations.push({ shortPath, notation });
     }
   }
 
-  return { ...canon, pathById, skippedNotationCount };
+  return { ...canon, pathById, skippedNotations };
 }
 
 /** True when a parsed YAML document looks like a canon artefact candidate

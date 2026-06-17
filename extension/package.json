@@ -104,6 +104,17 @@
           "default": "transitrix",
           "description": "Color theme for Transitrix diagram previews (Goals, FGCA, and other static notation previews)."
         },
+        "transitrix.report.columnWidth": {
+          "type": "string",
+          "enum": ["narrow", "normal", "wide"],
+          "enumDescriptions": [
+            "Narrow columns (80 px)",
+            "Normal columns (120 px)",
+            "Wide columns (200 px)"
+          ],
+          "default": "normal",
+          "description": "Column width preset for table-based reports (Compliance Impact, Compliance Matrix, Products, Process Map, etc.)."
+        },
         "transitrix.spacing.goals.horizontalGap": {
           "type": "number",
           "minimum": 20,

@@ -7,7 +7,7 @@ import {
   type MatrixFilter,
 } from '../../packages/diagrams/src/compliance-matrix/index.js';
 import type { AssertionStatus } from '../../packages/diagrams/src/assertion/types.js';
-import { genNonce } from './preview-controls.js';
+import { genNonce, colWidthPxFromSetting, colWidthRootCss } from './preview-controls.js';
 import { scanComplianceCanon } from './compliance-scan.js';
 
 // Compliance matrix preview (vkgeorgia/strategy#84 Phase 2).
@@ -53,6 +53,7 @@ export class ComplianceMatrixPreview {
   private fullMatrix: ComplianceMatrix | undefined;
   private assertionPaths = new Map<string, string>();
   private filter: MatrixFilter = {};
+  private colWidth: string = vscode.workspace.getConfiguration('transitrix').get<string>('report.columnWidth', 'normal');
 
   constructor(private readonly extensionUri: vscode.Uri) {}
 
@@ -94,8 +95,17 @@ export class ComplianceMatrixPreview {
   }
 
   private async onMessage(m: {
-    type?: string; statuses?: string[]; severities?: string[]; jurisdictions?: string[];
+    type?: string; statuses?: string[]; severities?: string[]; jurisdictions?: string[]; columnWidth?: string;
   }): Promise<void> {
+    if (m?.type === 'transitrix:col-width') {
+      const w = m.columnWidth;
+      if (w === 'narrow' || w === 'normal' || w === 'wide') {
+        this.colWidth = w;
+        void vscode.workspace.getConfiguration('transitrix').update('report.columnWidth', w, vscode.ConfigurationTarget.Workspace);
+      }
+      this.render();
+      return;
+    }
     if (m?.type !== 'transitrix:matrix-filter') return;
     this.filter = {
       statuses: (m.statuses ?? []).filter((s): s is AssertionStatus => (ALL_STATUSES as string[]).includes(s)),
@@ -148,12 +158,22 @@ export class ComplianceMatrixPreview {
       ? `<span class="cm-filter-label">Jurisdiction</span>${jurisdictionBoxes}`
       : '';
 
+    const colWCss = colWidthRootCss(colWidthPxFromSetting(this.colWidth));
+    const colWidthSelect =
+      `<span class="cm-filter-label">Columns</span>` +
+      `<select data-cm-col-width class="cm-col-width-select">` +
+      ['narrow', 'normal', 'wide'].map(w =>
+        `<option value="${w}"${this.colWidth === w ? ' selected' : ''}>${w.charAt(0).toUpperCase()}${w.slice(1)}</option>`
+      ).join('') +
+      `</select>`;
+
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}';">
   <style>
+${colWCss}
 ${generateWebviewCss(themeId)}
 ${MATRIX_CSS}
   </style>
@@ -168,6 +188,7 @@ ${MATRIX_CSS}
     <span class="cm-filter-label">Status</span>${statusBoxes}
     <span class="cm-filter-label">Severity</span>${severityBoxes}
     ${jurisdictionRow}
+    ${colWidthSelect}
   </div>
   ${body}
   <script nonce="${nonce}">
@@ -190,6 +211,12 @@ ${MATRIX_CSS}
       });
     });
   });
+  var colWidthSel = document.querySelector('[data-cm-col-width]');
+  if (colWidthSel) {
+    colWidthSel.addEventListener('change', function () {
+      vscode.postMessage({ type: 'transitrix:col-width', columnWidth: colWidthSel.value });
+    });
+  }
 }());
   </script>
 </body>
@@ -252,11 +279,12 @@ body { padding: 0; }
 .cm-filter-label { font-weight: 600; color: var(--ts-text, #0f172a); margin-left: 8px; }
 .cm-filter-label:first-child { margin-left: 0; }
 .cm-chip { display: inline-flex; align-items: center; gap: 4px; color: var(--ts-text-muted, #64748b); }
+.cm-col-width-select { font-size: 11px; font-family: var(--vscode-font-family, sans-serif); color: var(--vscode-input-foreground, #333); background: var(--vscode-input-background, #fff); border: 1px solid var(--vscode-input-border, var(--ts-border, #cbd5e1)); border-radius: 3px; padding: 1px 4px; }
 #cm-grid-wrap { overflow: auto; padding: 12px 16px 24px; }
 #cm-grid { border-collapse: collapse; font-size: 12px; }
 #cm-grid th, #cm-grid td { border: 1px solid var(--ts-border, #cbd5e1); }
 .cm-corner { background: transparent; border: none; }
-.cm-col { padding: 6px 10px; vertical-align: bottom; text-align: left; background: var(--ts-bg-subtle, #f1f5f9); min-width: 90px; max-width: 160px; }
+.cm-col { padding: 6px 10px; vertical-align: bottom; text-align: left; background: var(--ts-bg-subtle, #f1f5f9); min-width: var(--ts-col-w, 120px); width: var(--ts-col-w, 120px); }
 .cm-col-name { font-weight: 600; color: var(--ts-text, #0f172a); }
 .cm-col-sev { font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 2px; }
 .cm-col-jur { margin-top: 4px; display: flex; flex-wrap: wrap; gap: 3px; }
@@ -266,7 +294,7 @@ body { padding: 0; }
 .cm-sev-low { color: #2563eb; }
 .cm-row { padding: 6px 12px; text-align: left; font-weight: 600; color: var(--ts-text, #0f172a); background: var(--ts-bg-subtle, #f1f5f9); white-space: nowrap; position: sticky; left: 0; }
 .cm-unresolved { color: #b45309; }
-.cm-cell { width: 110px; height: 38px; text-align: center; vertical-align: middle; }
+.cm-cell { width: var(--ts-col-w, 120px); height: 38px; text-align: center; vertical-align: middle; }
 .cm-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
 .cm-cell-link { text-decoration: none; }
 .cm-gap { background: repeating-linear-gradient(45deg, transparent, transparent 5px, var(--ts-bg-subtle, #f1f5f9) 5px, var(--ts-bg-subtle, #f1f5f9) 10px); }

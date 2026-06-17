@@ -189,9 +189,10 @@ export class ProcessMapPreview {
       errorMsg = (e as Error).message ?? 'Parse error';
     }
 
-    const themeId = vscode.workspace
-      .getConfiguration('transitrix')
-      .get<ThemeId>('theme', 'transitrix');
+    const cfg = vscode.workspace.getConfiguration('transitrix');
+    const themeId = cfg.get<ThemeId>('theme', 'transitrix');
+    const colW = cfg.get<string>('report.columnWidth', 'normal');
+    const colWPx = colW === 'narrow' ? 80 : colW === 'wide' ? 200 : 120;
 
     return buildDiagramFrame({
       filename,
@@ -203,7 +204,7 @@ export class ProcessMapPreview {
       subtitle,
       version,
       date,
-      extraStyles: CATALOGUE_STYLES + PROCESS_MAP_STYLES,
+      extraStyles: `:root { --ts-col-w: ${colWPx}px; }\n` + CATALOGUE_STYLES + PROCESS_MAP_STYLES,
     });
   }
 }
@@ -314,7 +315,7 @@ const PROCESS_MAP_STYLES = `
     font-size: 12px;
     color: var(--ts-brand-primary, #004d67);
   }
-  .col-name      { min-width: 220px; }
+  .col-name      { min-width: var(--ts-col-w, 220px); }
   .col-status, .col-maturity, .col-owner, .col-capability, .col-bpmn { white-space: nowrap; }
   .empty-group, .empty-map {
     text-align: center;

@@ -84,7 +84,7 @@ function buildTableHtml(matrix: CoverageMatrix): string {
     '<th class="cm-under_review" title="Requirements under review">Under review</th>' +
     '<th class="cm-gap" title="Requirements with no assertion for scoped products">Gap</th>' +
     '<th>Coverage</th>' +
-    '<th>RAG</th>' +
+    '<th title="Coverage status against configured thresholds (green / amber / red)">Coverage Status</th>' +
     '</tr></thead>' +
     '<tbody>' +
     rows +
@@ -115,7 +115,7 @@ body { padding: 0; margin: 0; font-family: var(--vscode-font-family, sans-serif)
 .cm-non_compliant { color: var(--ts-status-error-fg, #991b1b); }
 .cm-under_review { color: var(--ts-status-info-fg, #0c4a6e); }
 .cm-gap { color: var(--ts-text-muted, #64748b); }
-.cm-coverage { min-width: 140px; }
+.cm-coverage { min-width: var(--ts-col-w, 140px); }
 .cm-bar-wrap { display: flex; align-items: center; gap: 8px; }
 .cm-bar { height: 10px; border-radius: 5px; min-width: 2px; }
 .cm-bar-green { background: var(--ts-status-success-bg, #d1fae5); outline: 1px solid var(--ts-status-success-fg, #065f46); }
@@ -176,9 +176,10 @@ export class CoverageMetricPreview {
   }
 
   private async buildHtml(yamlText: string): Promise<string> {
-    const themeId = vscode.workspace
-      .getConfiguration('transitrix')
-      .get<ThemeId>('theme', 'transitrix');
+    const cfg = vscode.workspace.getConfiguration('transitrix');
+    const themeId = cfg.get<ThemeId>('theme', 'transitrix');
+    const colW = cfg.get<string>('report.columnWidth', 'normal');
+    const colWPx = colW === 'narrow' ? 80 : colW === 'wide' ? 200 : 120;
 
     let bodyHtml: string;
     let titleLine: string;
@@ -210,6 +211,7 @@ export class CoverageMetricPreview {
       '  <meta charset="UTF-8"/>\n' +
       '  <meta http-equiv="Content-Security-Policy" content="default-src \'none\'; style-src \'unsafe-inline\';">\n' +
       '  <style>\n' +
+      `:root { --ts-col-w: ${colWPx}px; }\n` +
       generateWebviewCss(themeId) +
       '\n' +
       COVERAGE_CSS +

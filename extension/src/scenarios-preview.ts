@@ -184,9 +184,10 @@ export class ScenariosPreview {
       errorMsg = (e as Error).message ?? 'Parse error';
     }
 
-    const themeId = vscode.workspace
-      .getConfiguration('transitrix')
-      .get<ThemeId>('theme', 'transitrix');
+    const cfg = vscode.workspace.getConfiguration('transitrix');
+    const themeId = cfg.get<ThemeId>('theme', 'transitrix');
+    const colW = cfg.get<string>('report.columnWidth', 'normal');
+    const colWPx = colW === 'narrow' ? 80 : colW === 'wide' ? 200 : 120;
 
     return buildDiagramFrame({
       filename,
@@ -198,7 +199,7 @@ export class ScenariosPreview {
       subtitle,
       version,
       date,
-      extraStyles: CATALOGUE_STYLES + SCENARIOS_STYLES,
+      extraStyles: `:root { --ts-col-w: ${colWPx}px; }\n` + CATALOGUE_STYLES + SCENARIOS_STYLES,
     });
   }
 }
@@ -281,7 +282,7 @@ const SCENARIOS_STYLES = `
     vertical-align: top;
   }
   .scn-table tr:last-child td { border-bottom: none; }
-  .col-factor-id { font-family: monospace; white-space: nowrap; }
+  .col-factor-id { font-family: monospace; white-space: nowrap; min-width: var(--ts-col-w, 120px); }
   .col-relevance { white-space: nowrap; }
   .scn-ref-list {
     margin: 0;
