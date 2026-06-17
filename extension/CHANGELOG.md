@@ -1,5 +1,12 @@
 # Transitrix Studio — changelog
 
+## 1.5.3 — 2026-06-17
+
+### Fixed
+
+- **Compliance-impact preview now renders the matrix grid.** The obligation × subject table was computed but never inserted into the panel HTML — you saw the toolbar and filters but an empty body. Fixed.
+- **Scan warns when files are silently skipped.** If the workspace contains YAML files with an `id` and `notation` field that the compliance scanner doesn't recognise, the preview summary now shows a ⚠ count instead of silently producing an empty view.
+
 ## 1.5.1 — 2026-06-16
 
 Tidier preview strips: validation warnings now collapse, and the error strip folds in static previews too.
