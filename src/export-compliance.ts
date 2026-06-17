@@ -203,7 +203,7 @@ export async function handleExportComplianceCommand(argv: string[]): Promise<voi
       ? viewConfig.subjects.products
       : canon.products.map(p => p.id).sort();
     const matrix = buildImpactMatrix(
-      { products: canon.products, requirements: canon.requirements, assertions: canon.assertions, codex: canon.codex },
+      canon,
       { ...viewConfig, subjects: { ...viewConfig.subjects, products: effectiveProducts } },
     );
 

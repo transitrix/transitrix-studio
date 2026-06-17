@@ -22,6 +22,7 @@ export interface ImpactObligationFilter {
 export interface ImpactSubjects {
   products?: string[];
   processes?: string[];
+  capabilities?: string[];
 }
 
 export interface ImpactStatusDisplay {
@@ -137,7 +138,7 @@ export const COMPLIANCE_IMPACT_DEFAULTS = {
   /** Obligation scope: all known REQUIREMENTs in the canon (no filter). */
   obligations: { include: undefined as string[] | undefined, filter: undefined },
   /** Subjects: empty — must be supplied explicitly in the view config. */
-  subjects: { products: [] as string[], processes: [] as string[] },
+  subjects: { products: [] as string[], processes: [] as string[], capabilities: [] as string[] },
   /** Column grain: one column per business object (no stage decomposition). */
   grouping: { columns: 'object' as const },
 } as const;
@@ -214,6 +215,9 @@ export function parseImpactViewConfig(raw: unknown): ParseImpactViewConfigResult
       processes: Array.isArray(subjects.processes)
         ? (subjects.processes as unknown[]).filter((x): x is string => typeof x === 'string')
         : [...COMPLIANCE_IMPACT_DEFAULTS.subjects.processes],
+      capabilities: Array.isArray(subjects.capabilities)
+        ? (subjects.capabilities as unknown[]).filter((x): x is string => typeof x === 'string')
+        : [...COMPLIANCE_IMPACT_DEFAULTS.subjects.capabilities],
     },
     obligations: {
       include: Array.isArray(obligations.include)
@@ -398,15 +402,23 @@ function aggregateStatus(assertions: IndexAssertion[]): AssertionStatus {
 
 // ── Column builder helpers (CV-3a) ──────────────────────────────────────────
 
-function buildProductColumns(config: ImpactViewConfig, products: { id: string; name: string }[]): ImpactColumn[] {
-  const nameMap = new Map(products.map(p => [p.id, p.name]));
-  const subjects = [...(config.subjects.products ?? []), ...(config.subjects.processes ?? [])];
+function buildProductColumns(config: ImpactViewConfig, namedItems: { id: string; name: string }[]): ImpactColumn[] {
+  const nameMap = new Map(namedItems.map(p => [p.id, p.name]));
+  const subjects = [
+    ...(config.subjects.products ?? []),
+    ...(config.subjects.processes ?? []),
+    ...(config.subjects.capabilities ?? []),
+  ];
   return subjects.map(id => ({ subjectId: id, label: id, subjectName: nameMap.get(id) }));
 }
 
 function buildObjectDetailColumns(config: ImpactViewConfig, objectDetails: ObjectDetailInput[]): ImpactColumn[] {
   const detailMap = new Map<string, ObjectDetailDef[]>(objectDetails.map(d => [d.objectId, d.details]));
-  const subjects = [...(config.subjects.products ?? []), ...(config.subjects.processes ?? [])];
+  const subjects = [
+    ...(config.subjects.products ?? []),
+    ...(config.subjects.processes ?? []),
+    ...(config.subjects.capabilities ?? []),
+  ];
   const cols: ImpactColumn[] = [];
   for (const subjectId of subjects) {
     const details = detailMap.get(subjectId);
@@ -445,8 +457,8 @@ function assertionMatchesColumn(a: IndexAssertion, col: ImpactColumn): boolean {
  * process-blueprint document via `extractObjectDetails`).  Subjects with no
  * stage mapping fall back to a single product-grain column automatically.
  *
- * Subjects are taken from `config.subjects.products` and
- * `config.subjects.processes` (in that order).  Subjects with no binding
+ * Subjects are taken from `config.subjects.products`, `config.subjects.processes`,
+ * and `config.subjects.capabilities` (in that order).  Subjects with no binding
  * obligation still appear as columns so the gap is visible.
  */
 export function buildImpactMatrix(
@@ -465,7 +477,7 @@ export function buildImpactMatrix(
     config.grouping?.columns === 'object-details' && objectDetails && objectDetails.length > 0;
   const columns: ImpactColumn[] = useStageGrain
     ? buildObjectDetailColumns(config, objectDetails!)
-    : buildProductColumns(config, canon.products ?? []);
+    : buildProductColumns(config, [...(canon.products ?? []), ...(canon.subjects ?? [])]);
 
   const allowedStatuses = new Set<AssertionStatus>(
     config.status_display?.show ?? ['compliant', 'partial', 'non_compliant', 'under_review', 'n_a'],

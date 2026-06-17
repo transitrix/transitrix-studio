@@ -23,10 +23,16 @@ export interface ComplianceCanon {
   requirements: IndexRequirement[];
   assertions: IndexAssertion[];
   codex: ComplianceCodexDoc[];
+  /**
+   * Named elements that can serve as assertion subjects beyond `products`:
+   * capabilities, processes, applications, and systems. Populated by
+   * `ingestComplianceDoc` for the corresponding notation values.
+   */
+  subjects: ComplianceProduct[];
 }
 
 export function emptyCanon(): ComplianceCanon {
-  return { products: [], requirements: [], assertions: [], codex: [] };
+  return { products: [], requirements: [], assertions: [], codex: [], subjects: [] };
 }
 
 const str = (v: unknown): string | undefined => (typeof v === 'string' ? v : undefined);
@@ -48,6 +54,15 @@ export function ingestComplianceDoc(canon: ComplianceCanon, doc: unknown): strin
 
   if (d.notation === 'product') {
     canon.products.push({ id, name: str(d.name) ?? id });
+    return id;
+  }
+  if (
+    d.notation === 'capability' ||
+    d.notation === 'process' ||
+    d.notation === 'application' ||
+    d.notation === 'system'
+  ) {
+    canon.subjects.push({ id, name: str(d.name) ?? id });
     return id;
   }
   if (d.notation === 'requirement') {

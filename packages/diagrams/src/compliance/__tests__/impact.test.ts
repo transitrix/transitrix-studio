@@ -191,6 +191,65 @@ describe('renderImpactMarkdown', () => {
     const md = renderImpactMarkdown(matrix);
     expect(md).toContain('Report snapshot: 2026-06-09');
   });
+
+  it('resolves capability subject names from canon.subjects', () => {
+    const canon = emptyCanon();
+    canon.subjects.push({ id: 'CAPABILITY-CRM-1', name: 'CRM Platform' });
+    canon.requirements.push({ id: 'REQUIREMENT-FOO-1', name: 'Foo' });
+    canon.assertions.push({
+      id: 'ASSERTION-1',
+      about: 'REQUIREMENT-FOO-1',
+      subject: 'CAPABILITY-CRM-1',
+      status: 'compliant',
+    });
+    const matrix = buildImpactMatrix(canon, {
+      id: 'V-1', name: 'Test',
+      subjects: { capabilities: ['CAPABILITY-CRM-1'] },
+      obligations: {},
+    });
+    expect(matrix.columns[0].subjectId).toBe('CAPABILITY-CRM-1');
+    expect(matrix.columns[0].subjectName).toBe('CRM Platform');
+    expect(matrix.cells[0][0].status).toBe('compliant');
+  });
+
+  it('resolves process subject names from canon.subjects', () => {
+    const canon = emptyCanon();
+    canon.subjects.push({ id: 'PROCESS-CS-1', name: 'Customer Support' });
+    canon.requirements.push({ id: 'REQUIREMENT-BAR-1', name: 'Bar' });
+    canon.assertions.push({
+      id: 'ASSERTION-P1',
+      about: 'REQUIREMENT-BAR-1',
+      subject: 'PROCESS-CS-1',
+      status: 'partial',
+    });
+    const matrix = buildImpactMatrix(canon, {
+      id: 'V-2', name: 'Test',
+      subjects: { processes: ['PROCESS-CS-1'] },
+      obligations: {},
+    });
+    expect(matrix.columns[0].subjectName).toBe('Customer Support');
+    expect(matrix.cells[0][0].status).toBe('partial');
+  });
+
+  it('mixed product + capability columns — names resolved from respective buckets', () => {
+    const canon = buildCanon();
+    canon.subjects.push({ id: 'CAPABILITY-CRM-1', name: 'CRM' });
+    canon.requirements.push({ id: 'REQUIREMENT-CRM-1', name: 'CRM req' });
+    canon.assertions.push({
+      id: 'ASSERTION-CRM-1',
+      about: 'REQUIREMENT-CRM-1',
+      subject: 'CAPABILITY-CRM-1',
+      status: 'under_review',
+    });
+    const matrix = buildImpactMatrix(canon, {
+      id: 'V-3', name: 'Mixed',
+      subjects: { products: ['PRODUCT-A-1'], capabilities: ['CAPABILITY-CRM-1'] },
+      obligations: {},
+    });
+    expect(matrix.columns.map(c => c.subjectId)).toEqual(['PRODUCT-A-1', 'CAPABILITY-CRM-1']);
+    expect(matrix.columns[0].subjectName).toBe('Product A');
+    expect(matrix.columns[1].subjectName).toBe('CRM');
+  });
 });
 
 // ── parseImpactViewConfig ───────────────────────────────────────────────────
@@ -226,6 +285,7 @@ describe('parseImpactViewConfig', () => {
     const c = r.config;
     expect(c.subjects.products).toEqual([]);
     expect(c.subjects.processes).toEqual([]);
+    expect(c.subjects.capabilities).toEqual([]);
     expect(c.status_display?.show).toEqual(COMPLIANCE_IMPACT_DEFAULTS.status_display.show);
     expect(c.order_rows_by).toBe('id');
     expect(c.empty_cells?.no_obligation_label).toBe(
