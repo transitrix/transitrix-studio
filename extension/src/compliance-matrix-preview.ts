@@ -9,6 +9,7 @@ import {
 import type { AssertionStatus } from '../../packages/diagrams/src/assertion/types.js';
 import { genNonce, colWidthPxFromSetting, colWidthRootCss } from './preview-controls.js';
 import { scanComplianceCanon } from './compliance-scan.js';
+import type { ScannedCanon } from './compliance-scan.js';
 import { ERROR_BLOCK_CSS, buildErrorHtml, WARN_BLOCK_CSS, buildWarnHtml } from './diagram-frame.js';
 
 // Compliance matrix preview (vkgeorgia/strategy#84 Phase 2).
@@ -21,6 +22,25 @@ import { ERROR_BLOCK_CSS, buildErrorHtml, WARN_BLOCK_CSS, buildWarnHtml } from '
 // Scripts are enabled under the same strict nonce CSP as the other interactive
 // previews (the 2026-06-02 posture call), used only by the inline filter script.
 // Cell click-to-open uses command URIs; hover uses native title tooltips.
+
+// Statuses the compliance matrix recognises as filed claims. Assertions with
+// any other status (e.g. 'proposed') are excluded from the matrix cells and
+// tracked separately so gaps can surface an F17 "N pending" badge.
+const ADMITTED_STATUSES = new Set<string>(['compliant', 'partial', 'non_compliant', 'under_review', 'pending_owner', 'n_a']);
+
+function pendingKey(requirementId: string, productId: string): string {
+  return requirementId + '\x00' + productId;
+}
+
+function buildPendingIndex(scan: ScannedCanon): Map<string, number> {
+  const pending = new Map<string, number>();
+  for (const a of scan.assertions) {
+    if (ADMITTED_STATUSES.has(a.status)) continue;
+    const k = pendingKey(a.about, a.subject);
+    pending.set(k, (pending.get(k) ?? 0) + 1);
+  }
+  return pending;
+}
 
 const STATUS_LABELS: Record<AssertionStatus, string> = {
   compliant: 'Compliant',
@@ -54,6 +74,7 @@ export class ComplianceMatrixPreview {
   private panel: vscode.WebviewPanel | undefined;
   private fullMatrix: ComplianceMatrix | undefined;
   private assertionPaths = new Map<string, string>();
+  private pendingIndex = new Map<string, number>();
   private filter: MatrixFilter = {};
   private colWidth: string = vscode.workspace.getConfiguration('transitrix').get<string>('report.columnWidth', 'normal');
   private errorMsg = '';
@@ -91,12 +112,13 @@ export class ComplianceMatrixPreview {
       this.skippedWarnings = (scan.skippedNotations ?? []).map(
         s => 'Skipped — unrecognized notation "' + s.notation + '": ' + s.shortPath,
       );
+      this.pendingIndex = buildPendingIndex(scan);
       this.fullMatrix = buildComplianceMatrix({
         products: scan.products,
         requirements: scan.requirements.map(r => ({
           id: r.id, name: r.name, severity: r.severity, derived_from: r.derived_from,
         })),
-        assertions: scan.assertions,
+        assertions: scan.assertions.filter(a => ADMITTED_STATUSES.has(a.status)),
         codex: scan.codex.map(c => ({ id: c.id, jurisdiction: c.jurisdiction })),
       });
       this.errorMsg = '';
@@ -263,12 +285,18 @@ ${WARN_BLOCK_CSS}
     </tr>`;
 
     const rows = products.map((p, ri) => {
-      const cellsHtml = requirements.map((_r, ci) => {
+      const cellsHtml = requirements.map((r, ci) => {
         const cell = cells[ri][ci];
+        const oblRef = r.name !== r.id ? `${r.id} — ${r.name}` : r.id;
         if (cell.status === undefined) {
-          return `<td class="cm-cell cm-gap" title="No assertion — compliance gap"></td>`;
+          const pendingCount = this.pendingIndex.get(pendingKey(r.id, p.id)) ?? 0;
+          if (pendingCount > 0) {
+            return `<td class="cm-cell cm-gap cm-pending" title="${escXml(oblRef)} · ${pendingCount} assertion(s) pending admission"><span class="cm-badge-pending">${pendingCount} pending</span></td>`;
+          }
+          return `<td class="cm-cell cm-gap" title="${escXml(oblRef)} · No assertion (compliance gap)"></td>`;
         }
         const meta = [
+          oblRef,
           STATUS_LABELS[cell.status],
           cell.assessed_at ? `assessed ${cell.assessed_at}` : null,
           cell.next_review_at ? `review by ${cell.next_review_at}` : null,
@@ -319,6 +347,8 @@ body { padding: 0; }
 .cm-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
 .cm-cell-link { text-decoration: none; }
 .cm-gap { background: repeating-linear-gradient(45deg, transparent, transparent 5px, var(--ts-bg-subtle, #f1f5f9) 5px, var(--ts-bg-subtle, #f1f5f9) 10px); }
+.cm-pending { background: #fef9c3; border: 1px dashed #b45309 !important; }
+.cm-badge-pending { display: inline-block; padding: 2px 6px; border-radius: 8px; font-size: 10px; font-weight: 600; color: #b45309; background: #fef9c3; }
 .cm-compliant { background: var(--ts-status-success-bg, #d1fae5); }
 .cm-compliant .cm-badge { color: var(--ts-status-success-fg, #065f46); }
 .cm-partial { background: var(--ts-status-warning-bg, #fef9c3); }
