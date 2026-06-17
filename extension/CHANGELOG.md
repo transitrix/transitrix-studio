@@ -1,5 +1,23 @@
 # Transitrix Studio — changelog
 
+## 1.6.0 — 2026-06-17
+
+Column-width controls, product names in impact headers, coverage-metric spec fix.
+
+### Added
+
+- **Column width setting.** `transitrix.report.columnWidth` (Narrow / Normal / Wide) controls the data column width across all table-based reports. Compliance-impact and compliance-matrix offer a live dropdown in the toolbar; all other table reports pick the setting up at render time.
+- **Product names in compliance-impact headers.** Each obligation × subject column now shows the product's display name with the product code below in gray.
+
+### Changed
+
+- **Skipped-notation diagnostic shows paths and notation values** (was a bare count).
+- **Coverage-metric last column renamed to "Coverage Status"** (was "RAG") to avoid confusion with AI retrieval systems.
+
+### Fixed
+
+- **Coverage-metric parser now reads the canonical `view:` / `regimes` spec shape.** Files using the old `coverage_metric.scope.codex` shape still load (backward compat) and produce a deprecation warning.
+
 ## 1.5.3 — 2026-06-17
 
 ### Fixed
