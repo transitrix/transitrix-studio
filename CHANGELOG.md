@@ -2,8 +2,14 @@
 
 ## [Unreleased]
 
-### Removed
-- **`build-extension.bat` and `build-extension.sh`** — replaced by `scripts/package-extension.mjs`, a cross-platform Node.js script with identical `--bump` / `--target` flags. Run via `npm run package-extension` (no flags = universal local-install VSIX, same default as before) or directly with `node scripts/package-extension.mjs --help`. The `package-extension` npm script no longer auto-bumps the version; pass `--bump` explicitly when a version increment is wanted.
+## [1.5.3] — 2026-06-17
+
+### Fixed
+- **Compliance-impact preview now renders the matrix grid.** `bodyHtml` (the obligation × subject table) was computed but never interpolated into the HTML template returned by `buildHtml` — the panel displayed the toolbar and filter controls but the body was completely absent. One-line fix inserts `bodyHtml` between the filters block and the script tag.
+
+### Changed
+- **Compliance-impact scan surfaces a skip-count diagnostic.** `scanComplianceCanon` now counts YAML files that carry both `id` and `notation` fields but aren't recognised as compliance artefacts (unrecognized notation value). The preview summary line shows a ⚠ warning with the count so users can diagnose an unexpectedly empty matrix rather than guessing.
+- **Build scripts consolidated** — `build-extension.bat` / `build-extension.sh` replaced by `scripts/package-extension.mjs` (cross-platform Node.js, same `--bump` / `--target` flags). Shared esbuild constants extracted to `scripts/esbuild-helpers.mjs` to reduce duplication across the three bundle scripts.
 
 ## [1.5.2] — 2026-06-16
 
