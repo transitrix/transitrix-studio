@@ -9,6 +9,7 @@ import {
 import type { AssertionStatus } from '../../packages/diagrams/src/assertion/types.js';
 import { genNonce, colWidthPxFromSetting, colWidthRootCss } from './preview-controls.js';
 import { scanComplianceCanon } from './compliance-scan.js';
+import { ERROR_BLOCK_CSS, buildErrorHtml, WARN_BLOCK_CSS, buildWarnHtml } from './diagram-frame.js';
 
 // Compliance matrix preview (vkgeorgia/strategy#84 Phase 2).
 //
@@ -29,7 +30,7 @@ const STATUS_LABELS: Record<AssertionStatus, string> = {
   pending_owner: 'Pending owner',
   n_a: 'N/A',
 };
-const ALL_STATUSES: AssertionStatus[] = ['compliant', 'partial', 'non_compliant', 'under_review', 'n_a'];
+const ALL_STATUSES: AssertionStatus[] = ['compliant', 'partial', 'non_compliant', 'under_review', 'pending_owner', 'n_a'];
 const ALL_SEVERITIES = ['high', 'medium', 'low'];
 
 const OPEN_FILE_COMMAND = 'transitrixStudio.openComplianceFile';
@@ -55,6 +56,8 @@ export class ComplianceMatrixPreview {
   private assertionPaths = new Map<string, string>();
   private filter: MatrixFilter = {};
   private colWidth: string = vscode.workspace.getConfiguration('transitrix').get<string>('report.columnWidth', 'normal');
+  private errorMsg = '';
+  private skippedWarnings: string[] = [];
 
   constructor(private readonly extensionUri: vscode.Uri) {}
 
@@ -82,16 +85,25 @@ export class ComplianceMatrixPreview {
   /** Re-scan the workspace and re-render. */
   async refresh(): Promise<void> {
     if (!this.panel) return;
-    const scan = await scanComplianceCanon();
-    this.assertionPaths = scan.pathById;
-    this.fullMatrix = buildComplianceMatrix({
-      products: scan.products,
-      requirements: scan.requirements.map(r => ({
-        id: r.id, name: r.name, severity: r.severity, derived_from: r.derived_from,
-      })),
-      assertions: scan.assertions,
-      codex: scan.codex.map(c => ({ id: c.id, jurisdiction: c.jurisdiction })),
-    });
+    try {
+      const scan = await scanComplianceCanon();
+      this.assertionPaths = scan.pathById;
+      this.skippedWarnings = (scan.skippedNotations ?? []).map(
+        s => 'Skipped — unrecognized notation "' + s.notation + '": ' + s.shortPath,
+      );
+      this.fullMatrix = buildComplianceMatrix({
+        products: scan.products,
+        requirements: scan.requirements.map(r => ({
+          id: r.id, name: r.name, severity: r.severity, derived_from: r.derived_from,
+        })),
+        assertions: scan.assertions,
+        codex: scan.codex.map(c => ({ id: c.id, jurisdiction: c.jurisdiction })),
+      });
+      this.errorMsg = '';
+    } catch (e) {
+      this.errorMsg = (e as Error).message ?? 'Unknown error';
+      this.skippedWarnings = [];
+    }
     this.render();
   }
 
@@ -117,25 +129,29 @@ export class ComplianceMatrixPreview {
   }
 
   private render(): void {
-    if (!this.panel || !this.fullMatrix) return;
+    if (!this.panel) return;
     const themeId = vscode.workspace.getConfiguration('transitrix').get<ThemeId>('theme', 'transitrix');
-    const matrix = filterComplianceMatrix(this.fullMatrix, this.filter);
+    const matrix = this.fullMatrix ? filterComplianceMatrix(this.fullMatrix, this.filter) : undefined;
     this.panel.webview.html = this.buildHtml(matrix, themeId);
   }
 
-  private buildHtml(matrix: ComplianceMatrix, themeId: ThemeId): string {
+  private buildHtml(matrix: ComplianceMatrix | undefined, themeId: ThemeId): string {
     const nonce = genNonce();
-    const { products, requirements, summary } = matrix;
+    const { input: errInput, block: errBlock } = buildErrorHtml(this.errorMsg);
+    const { input: warnInput, block: warnBlock } = buildWarnHtml(this.skippedWarnings);
 
-    const empty = requirements.length === 0 || products.length === 0;
-    const body = empty
+    const summary = matrix?.summary ?? { products: 0, requirements: 0, gaps: 0, assertions: 0 };
+    const empty = !matrix || matrix.requirements.length === 0 || matrix.products.length === 0;
+    const body = this.errorMsg
+      ? '<div class="cm-empty"><p>Scan failed — see error above.</p></div>'
+      : empty
       ? `<div class="cm-empty">
           <p>No compliance matrix to show.</p>
           <p>This view needs <code>notation: product</code>, <code>notation: requirement</code> and
              <code>notation: assertion</code> files in the workspace. None of one or more were found
              (${summary.products} products, ${summary.requirements} requirements).</p>
         </div>`
-      : this.gridHtml(matrix);
+      : this.gridHtml(matrix!);
 
     const filterStatuses = new Set(this.filter.statuses ?? []);
     const filterSeverities = new Set(this.filter.severities ?? []);
@@ -151,7 +167,7 @@ export class ComplianceMatrixPreview {
     // full matrix's columns. Hidden entirely when no requirement resolved one
     // (e.g. no codex files in the workspace) so the toolbar doesn't claim a
     // dimension that has no values.
-    const jurisdictionUniverse = collectJurisdictions(this.fullMatrix!);
+    const jurisdictionUniverse = this.fullMatrix ? collectJurisdictions(this.fullMatrix) : [];
     const jurisdictionBoxes = jurisdictionUniverse.map(j =>
       `<label class="cm-chip"><input type="checkbox" data-cm-jurisdiction="${escXml(j)}"${filterJurisdictions.has(j) ? ' checked' : ''}> ${escXml(j)}</label>`,
     ).join('');
@@ -177,14 +193,18 @@ export class ComplianceMatrixPreview {
 ${colWCss}
 ${generateWebviewCss(themeId)}
 ${MATRIX_CSS}
+${ERROR_BLOCK_CSS}
+${WARN_BLOCK_CSS}
   </style>
 </head>
 <body data-theme="${escXml(themeId)}">
+  ${errInput}${warnInput}
   <div id="cm-toolbar">
     <div class="cm-title">Compliance Matrix</div>
     <div class="cm-summary">${summary.products} products × ${summary.requirements} requirements · <strong>${summary.gaps}</strong> gaps · ${summary.assertions} claims shown</div>
     <a href="command:${REFRESH_COMMAND}" class="cm-btn" title="Re-scan the workspace">Refresh</a>
   </div>
+  ${errBlock}${warnBlock}
   <div id="cm-filters">
     <span class="cm-filter-label">Status</span>${statusBoxes}
     <span class="cm-filter-label">Severity</span>${severityBoxes}
@@ -309,6 +329,8 @@ body { padding: 0; }
 .cm-under_review .cm-badge { color: var(--ts-status-info-fg, #0c4a6e); }
 .cm-n_a { background: var(--ts-bg-subtle, #f1f5f9); }
 .cm-n_a .cm-badge { color: var(--ts-text-muted, #64748b); }
+.cm-pending_owner { background: #f3e8ff; }
+.cm-pending_owner .cm-badge { color: #6b21a8; }
 .cm-empty { padding: 40px 24px; color: var(--ts-text-muted, #64748b); max-width: 640px; }
 .cm-empty code { background: var(--ts-bg-subtle, #f1f5f9); padding: 1px 4px; border-radius: 3px; }
 `;

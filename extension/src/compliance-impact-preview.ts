@@ -13,7 +13,7 @@ import type { IndexRequirement, DeadlineStatus } from '../../packages/diagrams/s
 import { genNonce, colWidthPxFromSetting, colWidthRootCss } from './preview-controls.js';
 import { scanComplianceCanon, openComplianceFile } from './compliance-scan.js';
 import type { ScannedCanon } from './compliance-scan.js';
-import { WARN_BLOCK_CSS, buildWarnHtml } from './diagram-frame.js';
+import { WARN_BLOCK_CSS, buildWarnHtml, ERROR_BLOCK_CSS, buildErrorHtml } from './diagram-frame.js';
 
 // Compliance-impact matrix preview -- CV-2 (vkgeorgia/strategy#84).
 //
@@ -277,6 +277,7 @@ export class ComplianceImpactPreview {
   private jIndex = new Map<string, string[]>();
   private filter: ImpactFilter = defaultFilter();
   private colWidth: string = vscode.workspace.getConfiguration('transitrix').get<string>('report.columnWidth', 'normal');
+  private errorMsg = '';
 
   constructor(private readonly extensionUri: vscode.Uri) {}
 
@@ -310,25 +311,29 @@ export class ComplianceImpactPreview {
     if (!this.panel) return;
     this.panel.webview.html = this.buildLoadingHtml();
 
-    const canon = await scanComplianceCanon();
-    this.canon = canon;
-    this.config = await resolveViewConfig(canon);
-    this.pendingIndex = buildPendingIndex(canon);
+    try {
+      const canon = await scanComplianceCanon();
+      this.canon = canon;
+      this.config = await resolveViewConfig(canon);
+      this.pendingIndex = buildPendingIndex(canon);
 
-    // Auto-fill subjects.products if the view config left it empty.
-    const cfg = this.config;
-    const subjectProducts =
-      cfg.subjects.products && cfg.subjects.products.length > 0
-        ? cfg.subjects.products
-        : canon.products.map(p => p.id).sort();
-    const effectiveConfig: ImpactViewConfig = {
-      ...cfg,
-      subjects: { ...cfg.subjects, products: subjectProducts },
-    };
+      // Auto-fill subjects.products if the view config left it empty.
+      const cfg = this.config;
+      const subjectProducts =
+        cfg.subjects.products && cfg.subjects.products.length > 0
+          ? cfg.subjects.products
+          : canon.products.map(p => p.id).sort();
+      const effectiveConfig: ImpactViewConfig = {
+        ...cfg,
+        subjects: { ...cfg.subjects, products: subjectProducts },
+      };
 
-    this.matrix = buildImpactMatrix(canon, effectiveConfig);
-
-    this.jIndex = buildJurisdictionIndex(this.matrix.rows, canon);
+      this.matrix = buildImpactMatrix(canon, effectiveConfig);
+      this.jIndex = buildJurisdictionIndex(this.matrix.rows, canon);
+      this.errorMsg = '';
+    } catch (e) {
+      this.errorMsg = (e as Error).message ?? 'Unknown error';
+    }
     this.render();
   }
 
@@ -364,7 +369,7 @@ export class ComplianceImpactPreview {
   }
 
   private render(): void {
-    if (!this.panel || !this.matrix) return;
+    if (!this.panel) return;
     const themeId = vscode.workspace
       .getConfiguration('transitrix')
       .get<ThemeId>('theme', 'transitrix');
@@ -377,8 +382,27 @@ export class ComplianceImpactPreview {
 
   private buildHtml(themeId: ThemeId): string {
     const nonce = genNonce();
-    const matrix = this.matrix!;
-    const config = this.config!;
+    const { input: errInput, block: errBlock } = buildErrorHtml(this.errorMsg);
+
+    if (!this.matrix || !this.config) {
+      return (
+        '<!DOCTYPE html>\n<html lang="en">\n<head>\n' +
+        '<meta charset="UTF-8"/>\n' +
+        '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; style-src \'unsafe-inline\';">\n' +
+        '<style>\n' + generateWebviewCss(themeId) + '\n' + IMPACT_CSS + '\n' + ERROR_BLOCK_CSS + '\n</style>\n' +
+        '</head>\n<body data-theme="' + escXml(themeId) + '">\n' +
+        errInput + '\n' +
+        '<div id="ci-toolbar">' +
+        '<div class="ci-title">Compliance Impact Matrix</div>' +
+        '<a href="command:' + REFRESH_COMMAND + '" class="ci-btn" title="Re-scan the workspace and reload view config">Refresh</a>' +
+        '</div>\n' +
+        errBlock + '\n' +
+        '</body>\n</html>'
+      );
+    }
+
+    const matrix = this.matrix;
+    const config = this.config;
 
     const { rows, columns, cells } = applyFilter(matrix, this.filter, this.jIndex);
     const allJurisdictions = collectAllJurisdictions(matrix.rows, this.jIndex);
@@ -464,6 +488,8 @@ export class ComplianceImpactPreview {
       '\n' +
       IMPACT_CSS +
       '\n' +
+      ERROR_BLOCK_CSS +
+      '\n' +
       WARN_BLOCK_CSS +
       '\n' +
       '  </style>\n' +
@@ -471,6 +497,7 @@ export class ComplianceImpactPreview {
       '<body data-theme="' +
       escXml(themeId) +
       '">\n' +
+      errInput +
       warnInput +
       '  <div id="ci-toolbar">\n' +
       '    <div class="ci-title">Compliance Impact Matrix</div>\n' +
@@ -490,6 +517,7 @@ export class ComplianceImpactPreview {
       REFRESH_COMMAND +
       '" class="ci-btn" title="Re-scan the workspace and reload view config">Refresh</a>\n' +
       '  </div>\n' +
+      errBlock +
       warnBlock +
       '  <div id="ci-filters">\n' +
       '    <span class="ci-filter-label">Status</span>' +
