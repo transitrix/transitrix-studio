@@ -65,7 +65,7 @@ function buildRowHtml(row: CoverageRow): string {
 
 function buildTableHtml(matrix: CoverageMatrix): string {
   if (matrix.rows.length === 0) {
-    return '<div class="cm-empty"><p>No laws in scope. Add <code>scope.codex</code> entries to the view config.</p></div>';
+    return '<div class="cm-empty"><p>No laws in scope. Add <code>regimes.include</code> or <code>regimes.filter</code> under the <code>view:</code> block, or the canon has no codex entries yet.</p></div>';
   }
 
   const rows = matrix.rows.map(buildRowHtml).join('');
