@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+## [1.6.0] — 2026-06-17
+
+### Added
+- **`transitrix.report.columnWidth` setting** — choose between Narrow (80 px), Normal (120 px, default), and Wide (200 px) column widths for all table-based compliance reports: compliance-impact, compliance-matrix, products, process-map, applications, scenarios, coverage-metric, and the FGCA chain table. Interactive reports (compliance-impact, compliance-matrix) expose a live dropdown in the toolbar that persists the choice to the workspace configuration; static reports pick it up at render time.
+- **Product names in compliance-impact column headers.** Each law × subject column now shows the product's display name (e.g. "E-commerce Platform") with the product code in a smaller gray line below, instead of showing only the raw identifier. The name is sourced from the compliance canon product document.
+
+### Changed
+- **Skipped-notation scan diagnostic now surfaces file paths and notation values.** When the compliance scanner skips a YAML file whose `notation` value is not recognised, the preview toolbar now lists every distinct unrecognised notation string (e.g. `scenario`, `unknown-type`) with an expandable tooltip showing the workspace-relative paths of the affected files, replacing the previous bare file count.
+- **Coverage-metric "Coverage Status" column** (was "RAG"). The last column in the coverage-metric report is renamed to avoid confusion with the RAG (Retrieval-Augmented Generation) term that is commonly used in AI-based documentation workflows. A tooltip on the header still explains the green / amber / red threshold semantics.
+
+### Fixed
+- **Coverage-metric parser aligned with the notation spec.** The parser previously expected `coverage_metric.scope.codex` (a key that does not exist in the spec, COVMET-001). It now accepts the canonical `view: { regimes: { include | filter }, subjects }` format. `regimes.include` takes an explicit list of codex IDs; `regimes.filter` resolves from the workspace canon by `jurisdiction` and/or `codex_type`; omitting `regimes` entirely enumerates all codex entries. The deprecated `coverage_metric:` wrapper is still accepted and its `scope.codex` is silently migrated to `regimes.include` (emits a `COVMET-DEPRECATED` warning). Fixture YAML files updated to `view:` + `spec_version: "0.2"`.
+
 ## [1.5.3] — 2026-06-17
 
 ### Fixed
