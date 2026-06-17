@@ -13,6 +13,7 @@ import type { IndexRequirement, DeadlineStatus } from '../../packages/diagrams/s
 import { genNonce, colWidthPxFromSetting, colWidthRootCss } from './preview-controls.js';
 import { scanComplianceCanon, openComplianceFile } from './compliance-scan.js';
 import type { ScannedCanon } from './compliance-scan.js';
+import { WARN_BLOCK_CSS, buildWarnHtml } from './diagram-frame.js';
 
 // Compliance-impact matrix preview -- CV-2 (vkgeorgia/strategy#84).
 //
@@ -384,17 +385,10 @@ export class ComplianceImpactPreview {
 
     const totalGaps = matrix.cells.flat().filter(c => c.kind === 'gap').length;
     const totalPending = [...this.pendingIndex.values()].reduce((a, b) => a + b, 0);
-    const pendingSummary =
-      totalPending > 0 ? ' &middot; <strong>' + totalPending + '</strong> pending (admission)' : '';
+    const pendingSummary = totalPending > 0 ? ' &middot; <strong>' + totalPending + '</strong> pending (admission)' : '';
     const skippedList = this.canon?.skippedNotations ?? [];
-    const skippedSummary = skippedList.length > 0
-      ? ' &middot; &#x26A0; <strong>' + skippedList.length + '</strong> file(s) skipped'
-        + ' &mdash; unrecognized notation: '
-        + [...new Set(skippedList.map(s => '<code>' + escXml(s.notation) + '</code>'))].join(', ')
-        + ' <span class="ci-skipped-hint" title="'
-        + escXml(skippedList.map(s => s.notation + ': ' + s.shortPath).join('\n'))
-        + '">(?)</span>'
-      : '';
+    const skippedWarnings = skippedList.map(s => 'Skipped — unrecognized notation "' + s.notation + '": ' + s.shortPath);
+    const { input: warnInput, block: warnBlock } = buildWarnHtml(skippedWarnings);
 
     const empty = rows.length === 0 || columns.length === 0;
     const bodyHtml = empty ? this.emptyHtml(matrix) : this.gridHtml(rows, columns, cells, matrix.emptyLabels, matrix.obligationsLane, this.filter.showObligationsLane);
@@ -470,11 +464,14 @@ export class ComplianceImpactPreview {
       '\n' +
       IMPACT_CSS +
       '\n' +
+      WARN_BLOCK_CSS +
+      '\n' +
       '  </style>\n' +
       '</head>\n' +
       '<body data-theme="' +
       escXml(themeId) +
       '">\n' +
+      warnInput +
       '  <div id="ci-toolbar">\n' +
       '    <div class="ci-title">Compliance Impact Matrix</div>\n' +
       '    <div class="ci-summary">' +
@@ -485,7 +482,6 @@ export class ComplianceImpactPreview {
       totalGaps +
       '</strong> gaps' +
       pendingSummary +
-      skippedSummary +
       '</div>\n' +
       '    <div class="ci-config">' +
       configLine +
@@ -494,6 +490,7 @@ export class ComplianceImpactPreview {
       REFRESH_COMMAND +
       '" class="ci-btn" title="Re-scan the workspace and reload view config">Refresh</a>\n' +
       '  </div>\n' +
+      warnBlock +
       '  <div id="ci-filters">\n' +
       '    <span class="ci-filter-label">Status</span>' +
       statusBoxes +
@@ -759,7 +756,6 @@ body { padding: 0; }
 .ci-badge-pending_owner { color: #6b21a8; background: #f3e8ff; }
 .ci-empty { padding: 40px 24px; color: var(--ts-text-muted, #64748b); max-width: 640px; }
 .ci-empty code { background: var(--ts-bg-subtle, #f1f5f9); padding: 1px 4px; border-radius: 3px; }
-.ci-skipped-hint { cursor: help; color: var(--ts-text-muted, #64748b); font-size: 10px; vertical-align: super; }
 .ci-new { box-shadow: inset 0 0 0 2px #6366f1; }
 .ci-urgent { background: repeating-linear-gradient(45deg, #fee2e2, #fee2e2 5px, #fef2f2 5px, #fef2f2 10px) !important; }
 .ci-urgent-badge { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 50%; background: #dc2626; color: #fff; font-weight: 700; font-size: 11px; }
