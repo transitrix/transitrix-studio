@@ -10,6 +10,7 @@
 import esbuild from 'esbuild';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { NODE_BUILTIN_EXTERNALS, REQUIRE_BANNER } from './esbuild-helpers.mjs';
 
 const root = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 
@@ -22,41 +23,12 @@ await esbuild.build({
     // Native module — its platform .node binary cannot be bundled; resolved
     // at runtime from the node_modules shipped inside the VSIX.
     '@resvg/resvg-js',
-    'node:path',
-    'node:url',
-    'node:fs',
-    'node:fs/promises',
-    'node:child_process',
-    'node:os',
-    'node:http',
-    'node:https',
-    'node:stream',
-    'node:util',
-    'node:events',
-    'node:buffer',
-    'node:crypto',
-    'path',
-    'url',
-    'fs',
-    'os',
-    'http',
-    'https',
-    'stream',
-    'util',
-    'events',
-    'buffer',
-    'child_process',
-    'crypto',
+    ...NODE_BUILTIN_EXTERNALS,
   ],
   platform: 'node',
   format: 'esm',
   target: 'node18',
   sourcemap: false,
   logLevel: 'info',
-  // Inject createRequire so any dynamic `require(...)` in bundled CJS
-  // dependencies falls through to Node's real module resolver. Same
-  // pattern as build-compiler-bundle.mjs.
-  banner: {
-    js: "import { createRequire as __createRequire__ } from 'node:module'; const require = __createRequire__(import.meta.url);",
-  },
+  banner: REQUIRE_BANNER,
 });
