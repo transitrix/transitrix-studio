@@ -250,6 +250,43 @@ describe('renderImpactMarkdown', () => {
     expect(matrix.columns[0].subjectName).toBe('Product A');
     expect(matrix.columns[1].subjectName).toBe('CRM');
   });
+
+  it('pending_owner cell renders as bound with PENDING status', () => {
+    const canon = emptyCanon();
+    canon.products.push({ id: 'PRODUCT-A-1', name: 'Product A' });
+    canon.requirements.push({ id: 'REQUIREMENT-PO-1', name: 'PO req' });
+    canon.assertions.push({
+      id: 'ASSERTION-PO-1',
+      about: 'REQUIREMENT-PO-1',
+      subject: 'PRODUCT-A-1',
+      status: 'pending_owner',
+      owner_to_confirm: 'alice@example.com',
+    });
+    const matrix = buildImpactMatrix(canon, {
+      id: 'V-PO', name: 'PO Test',
+      subjects: { products: ['PRODUCT-A-1'] },
+      obligations: {},
+    });
+    expect(matrix.cells[0][0].kind).toBe('bound');
+    expect(matrix.cells[0][0].status).toBe('pending_owner');
+    expect(matrix.cells[0][0].assertions[0].owner_to_confirm).toBe('alice@example.com');
+  });
+
+  it('pending_owner loses to partial in aggregation', () => {
+    const canon = emptyCanon();
+    canon.products.push({ id: 'PRODUCT-A-1', name: 'Product A' });
+    canon.requirements.push({ id: 'REQUIREMENT-PO-2', name: 'PO req 2' });
+    canon.assertions.push(
+      { id: 'ASSERTION-PO-2a', about: 'REQUIREMENT-PO-2', subject: 'PRODUCT-A-1', status: 'partial' },
+      { id: 'ASSERTION-PO-2b', about: 'REQUIREMENT-PO-2', subject: 'PRODUCT-A-1', status: 'pending_owner' },
+    );
+    const matrix = buildImpactMatrix(canon, {
+      id: 'V-PO2', name: 'PO Agg',
+      subjects: { products: ['PRODUCT-A-1'] },
+      obligations: {},
+    });
+    expect(matrix.cells[0][0].status).toBe('partial');
+  });
 });
 
 // ── parseImpactViewConfig ───────────────────────────────────────────────────

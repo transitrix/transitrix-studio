@@ -37,6 +37,20 @@ describe('ingestComplianceDoc', () => {
     expect(canon.subjects[0]).toEqual({ id: 'CAPABILITY-X-1', name: 'CAPABILITY-X-1' });
   });
 
+  it('captures owner_to_confirm on pending_owner assertions', () => {
+    const canon = emptyCanon();
+    ingestComplianceDoc(canon, {
+      notation: 'assertion', id: 'ASSERTION-PO-1',
+      about: 'REQUIREMENT-1', subject: 'PRODUCT-1',
+      status: 'pending_owner', owner_to_confirm: 'alice@example.com',
+    });
+    expect(canon.assertions[0]).toMatchObject({
+      id: 'ASSERTION-PO-1',
+      status: 'pending_owner',
+      owner_to_confirm: 'alice@example.com',
+    });
+  });
+
   it('returns null for non-artefacts, missing id, and malformed assertions', () => {
     const canon = emptyCanon();
     expect(ingestComplianceDoc(canon, { notation: 'goals', id: 'X-1' })).toBeNull();
