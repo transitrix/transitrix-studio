@@ -210,9 +210,10 @@ export class ApplicationsPreview {
       errorMsg = (e as Error).message ?? 'Parse error';
     }
 
-    const themeId = vscode.workspace
-      .getConfiguration('transitrix')
-      .get<ThemeId>('theme', 'transitrix');
+    const cfg = vscode.workspace.getConfiguration('transitrix');
+    const themeId = cfg.get<ThemeId>('theme', 'transitrix');
+    const colW = cfg.get<string>('report.columnWidth', 'normal');
+    const colWPx = colW === 'narrow' ? 80 : colW === 'wide' ? 200 : 120;
 
     return buildDiagramFrame({
       filename,
@@ -224,7 +225,7 @@ export class ApplicationsPreview {
       subtitle,
       version,
       date,
-      extraStyles: CATALOGUE_STYLES + APPLICATIONS_STYLES,
+      extraStyles: `:root { --ts-col-w: ${colWPx}px; }\n` + CATALOGUE_STYLES + APPLICATIONS_STYLES,
     });
   }
 }
@@ -300,6 +301,6 @@ const APPLICATIONS_STYLES = `
   }
   .vendor-internal { font-style: italic; color: var(--ts-text-muted, #64748b); }
   .vendor-external { color: var(--ts-text, #0f172a); }
-  .col-name { min-width: 200px; }
+  .col-name { min-width: var(--ts-col-w, 200px); }
   .col-type, .col-status, .col-maturity, .col-domain, .col-vendor, .col-owner { white-space: nowrap; }
 `;

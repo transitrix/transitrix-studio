@@ -58,6 +58,8 @@ export interface ImpactColumn {
   stageId?: string;
   /** Human-readable column header. */
   label: string;
+  /** Display name for the subject (product/process name, not the id). */
+  subjectName?: string;
 }
 
 /**
@@ -396,9 +398,10 @@ function aggregateStatus(assertions: IndexAssertion[]): AssertionStatus {
 
 // ── Column builder helpers (CV-3a) ──────────────────────────────────────────
 
-function buildProductColumns(config: ImpactViewConfig): ImpactColumn[] {
+function buildProductColumns(config: ImpactViewConfig, products: { id: string; name: string }[]): ImpactColumn[] {
+  const nameMap = new Map(products.map(p => [p.id, p.name]));
   const subjects = [...(config.subjects.products ?? []), ...(config.subjects.processes ?? [])];
-  return subjects.map(id => ({ subjectId: id, label: id }));
+  return subjects.map(id => ({ subjectId: id, label: id, subjectName: nameMap.get(id) }));
 }
 
 function buildObjectDetailColumns(config: ImpactViewConfig, objectDetails: ObjectDetailInput[]): ImpactColumn[] {
@@ -462,7 +465,7 @@ export function buildImpactMatrix(
     config.grouping?.columns === 'object-details' && objectDetails && objectDetails.length > 0;
   const columns: ImpactColumn[] = useStageGrain
     ? buildObjectDetailColumns(config, objectDetails!)
-    : buildProductColumns(config);
+    : buildProductColumns(config, canon.products ?? []);
 
   const allowedStatuses = new Set<AssertionStatus>(
     config.status_display?.show ?? ['compliant', 'partial', 'non_compliant', 'under_review', 'n_a'],

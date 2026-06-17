@@ -86,7 +86,7 @@ const CHAIN_COLUMN_HEADERS: Record<ChainColumn, string> = {
 const CHAIN_TABLE_CSS = `
 .chain-table-wrap { padding: 0 16px 16px; overflow-x: auto; }
 .chain-table { border-collapse: collapse; font-size: 12px; }
-.chain-table th, .chain-table td { border: 1px solid var(--ts-border, #cbd5e1); padding: 6px 12px; text-align: left; vertical-align: top; }
+.chain-table th, .chain-table td { border: 1px solid var(--ts-border, #cbd5e1); padding: 6px 12px; text-align: left; vertical-align: top; min-width: var(--ts-col-w, 120px); }
 .chain-table th { background: var(--ts-bg-subtle, #f1f5f9); color: var(--ts-text, #0f172a); font-weight: 600; }
 .chain-table td { color: var(--ts-text, #0f172a); }
 .chain-table td.chain-empty { background: var(--ts-bg-subtle, #f8fafc); }
@@ -174,9 +174,11 @@ function renderChainPreview(
     // Scope is a no-op in table view, so no scope-warning is added here.
     const body = parsedDoc ? chainTableHtml(buildChainTable(parsedDoc, { hideChanges: p.hideChanges })) : '';
     const showHeader = !errorMsg && parsedDoc != null;
+    const colW = vscode.workspace.getConfiguration('transitrix').get<string>('report.columnWidth', 'normal');
+    const colWPx = colW === 'narrow' ? 80 : colW === 'wide' ? 200 : 120;
     const html = buildDiagramFrame({
       filename, notation: p.notation, bodyContent: body, errorMsg, warnings: baseWarnings, themeId,
-      extraStyles: CHAIN_TABLE_CSS,
+      extraStyles: `:root { --ts-col-w: ${colWPx}px; }\n` + CHAIN_TABLE_CSS,
       title: showHeader ? p.heading : undefined,
       version: docVersion,
       date: showHeader ? docDate : undefined,

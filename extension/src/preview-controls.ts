@@ -89,6 +89,21 @@ export function genNonce(): string {
   return randomBytes(16).toString('base64');
 }
 
+/**
+ * Maps a `transitrix.report.columnWidth` setting value to a pixel count.
+ * 'narrow' → 80, 'normal' → 120, 'wide' → 200.
+ */
+export function colWidthPxFromSetting(setting: string): number {
+  if (setting === 'narrow') return 80;
+  if (setting === 'wide') return 200;
+  return 120;
+}
+
+/** CSS :root block that injects --ts-col-w so report CSS can reference var(--ts-col-w). */
+export function colWidthRootCss(px: number): string {
+  return `:root { --ts-col-w: ${px}px; }`;
+}
+
 function escXml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }

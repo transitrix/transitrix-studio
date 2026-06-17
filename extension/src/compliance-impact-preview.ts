@@ -10,7 +10,7 @@ import {
 } from '../../packages/diagrams/src/compliance/impact.js';
 import type { AssertionStatus } from '../../packages/diagrams/src/assertion/types.js';
 import type { IndexRequirement, DeadlineStatus } from '../../packages/diagrams/src/compliance/types.js';
-import { genNonce } from './preview-controls.js';
+import { genNonce, colWidthPxFromSetting, colWidthRootCss } from './preview-controls.js';
 import { scanComplianceCanon, openComplianceFile } from './compliance-scan.js';
 import type { ScannedCanon } from './compliance-scan.js';
 
@@ -274,6 +274,7 @@ export class ComplianceImpactPreview {
   private pendingIndex = new Map<string, number>();
   private jIndex = new Map<string, string[]>();
   private filter: ImpactFilter = defaultFilter();
+  private colWidth: string = vscode.workspace.getConfiguration('transitrix').get<string>('report.columnWidth', 'normal');
 
   constructor(private readonly extensionUri: vscode.Uri) {}
 
@@ -343,7 +344,17 @@ export class ComplianceImpactPreview {
     severities?: string[];
     jurisdictions?: string[];
     showObligationsLane?: boolean;
+    columnWidth?: string;
   }): Promise<void> {
+    if (m?.type === 'transitrix:col-width') {
+      const w = m.columnWidth;
+      if (w === 'narrow' || w === 'normal' || w === 'wide') {
+        this.colWidth = w;
+        void vscode.workspace.getConfiguration('transitrix').update('report.columnWidth', w, vscode.ConfigurationTarget.Workspace);
+      }
+      this.render();
+      return;
+    }
     if (m?.type !== 'transitrix:impact-filter') return;
     this.filter = {
       statuses: new Set(
@@ -382,9 +393,15 @@ export class ComplianceImpactPreview {
     const totalPending = [...this.pendingIndex.values()].reduce((a, b) => a + b, 0);
     const pendingSummary =
       totalPending > 0 ? ' &middot; <strong>' + totalPending + '</strong> pending (admission)' : '';
-    const skipped = this.canon?.skippedNotationCount ?? 0;
-    const skippedSummary =
-      skipped > 0 ? ' &middot; &#x26A0; <strong>' + skipped + '</strong> file(s) skipped (unrecognized notation)' : '';
+    const skippedList = this.canon?.skippedNotations ?? [];
+    const skippedSummary = skippedList.length > 0
+      ? ' &middot; &#x26A0; <strong>' + skippedList.length + '</strong> file(s) skipped'
+        + ' &mdash; unrecognized notation: '
+        + [...new Set(skippedList.map(s => '<code>' + escXml(s.notation) + '</code>'))].join(', ')
+        + ' <span class="ci-skipped-hint" title="'
+        + escXml(skippedList.map(s => s.notation + ': ' + s.shortPath).join('\n'))
+        + '">(?)</span>'
+      : '';
 
     const empty = rows.length === 0 || columns.length === 0;
     const bodyHtml = empty ? this.emptyHtml(matrix) : this.gridHtml(rows, columns, cells, matrix.emptyLabels, matrix.obligationsLane, this.filter.showObligationsLane);
@@ -430,10 +447,20 @@ export class ComplianceImpactPreview {
       (this.filter.showObligationsLane ? ' checked' : '') +
       '> Laws lane</label>';
 
+    const colWidthSelect =
+      '<span class="ci-filter-label">Columns</span>' +
+      '<select data-ci-col-width class="ci-col-width-select">' +
+      ['narrow', 'normal', 'wide']
+        .map(w => '<option value="' + w + '"' + (this.colWidth === w ? ' selected' : '') + '>' + w.charAt(0).toUpperCase() + w.slice(1) + '</option>')
+        .join('') +
+      '</select>';
+
     const configLine =
       config.id === 'auto'
         ? 'Auto-config (add *.compliance-impact.{view,transitrix}.yaml to pin)'
         : 'View: <code>' + escXml(config.id) + '</code>';
+
+    const colWCss = colWidthRootCss(colWidthPxFromSetting(this.colWidth));
 
     return (
       '<!DOCTYPE html>\n' +
@@ -444,6 +471,8 @@ export class ComplianceImpactPreview {
       nonce +
       '\';">\n' +
       '  <style>\n' +
+      colWCss +
+      '\n' +
       generateWebviewCss(themeId) +
       '\n' +
       IMPACT_CSS +
@@ -483,6 +512,8 @@ export class ComplianceImpactPreview {
       jurisdictionRow +
       '\n    <span class="ci-filter-label">Lanes</span>' +
       laneToggle +
+      '\n    ' +
+      colWidthSelect +
       '\n' +
       '  </div>\n' +
       '\n' +
@@ -511,6 +542,12 @@ export class ComplianceImpactPreview {
       "      });\n" +
       "    });\n" +
       "  });\n" +
+      "  var colWidthSel = document.querySelector('[data-ci-col-width]');\n" +
+      "  if (colWidthSel) {\n" +
+      "    colWidthSel.addEventListener('change', function () {\n" +
+      "      vscode.postMessage({ type: 'transitrix:col-width', columnWidth: colWidthSel.value });\n" +
+      "    });\n" +
+      "  }\n" +
       '}());\n' +
       '  </script>\n' +
       '</body>\n' +
@@ -536,7 +573,13 @@ export class ComplianceImpactPreview {
     const head =
       '<tr>\n      <th class="ci-corner"></th>\n      ' +
       columns
-        .map(col => '<th class="ci-col"><div class="ci-col-name">' + escXml(col.label) + '</div></th>')
+        .map(col =>
+          '<th class="ci-col"><div class="ci-col-name">' +
+          escXml(col.subjectName ?? col.label) +
+          '</div>' +
+          (col.subjectName ? '<div class="ci-col-id">' + escXml(col.label) + '</div>' : '') +
+          '</th>',
+        )
         .join('') +
       '\n    </tr>';
     const laneRow = showObligationsLane
@@ -686,19 +729,21 @@ body { padding: 0; }
 .ci-filter-label { font-weight: 600; color: var(--ts-text, #0f172a); margin-left: 8px; }
 .ci-filter-label:first-child { margin-left: 0; }
 .ci-chip { display: inline-flex; align-items: center; gap: 4px; color: var(--ts-text-muted, #64748b); cursor: pointer; }
+.ci-col-width-select { font-size: 11px; font-family: var(--vscode-font-family, sans-serif); color: var(--vscode-input-foreground, #333); background: var(--vscode-input-background, #fff); border: 1px solid var(--vscode-input-border, var(--ts-border, #cbd5e1)); border-radius: 3px; padding: 1px 4px; }
 #ci-grid-wrap { overflow: auto; padding: 12px 16px 24px; }
 #ci-grid { border-collapse: collapse; font-size: 12px; }
 #ci-grid th, #ci-grid td { border: 1px solid var(--ts-border, #cbd5e1); }
 .ci-corner { background: transparent; border: none; }
-.ci-col { padding: 6px 10px; vertical-align: bottom; text-align: left; background: var(--ts-bg-subtle, #f1f5f9); min-width: 80px; max-width: 140px; }
+.ci-col { padding: 6px 10px; vertical-align: bottom; text-align: left; background: var(--ts-bg-subtle, #f1f5f9); min-width: var(--ts-col-w, 120px); width: var(--ts-col-w, 120px); }
 .ci-col-name { font-weight: 600; color: var(--ts-text, #0f172a); font-size: 11px; word-break: break-all; }
+.ci-col-id { font-size: 10px; font-family: var(--vscode-editor-font-family, monospace); color: var(--ts-text-muted, #64748b); margin-top: 2px; word-break: break-all; }
 .ci-row { padding: 6px 12px; text-align: left; background: var(--ts-bg-subtle, #f1f5f9); white-space: nowrap; position: sticky; left: 0; min-width: 160px; max-width: 260px; }
 .ci-row-id { font-size: 11px; font-family: var(--vscode-editor-font-family, monospace); color: var(--ts-text-muted, #64748b); }
 .ci-row-name { font-weight: 600; color: var(--ts-text, #0f172a); font-size: 12px; white-space: normal; }
 .ci-sev { font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 2px; }
 .ci-sev-high { color: #b91c1c; } .ci-sev-medium { color: #b45309; } .ci-sev-low { color: #2563eb; }
 .ci-jur { display: inline-block; padding: 1px 5px; border-radius: 3px; font-size: 10px; color: var(--ts-text-muted, #64748b); background: var(--ts-bg-elevated, #e2e8f0); text-transform: uppercase; letter-spacing: 0.04em; margin-top: 2px; margin-right: 2px; }
-.ci-cell { width: 110px; height: 40px; text-align: center; vertical-align: middle; }
+.ci-cell { width: var(--ts-col-w, 120px); height: 40px; text-align: center; vertical-align: middle; }
 .ci-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
 .ci-link { text-decoration: none; }
 .ci-gap { background: repeating-linear-gradient(45deg, transparent, transparent 5px, var(--ts-bg-subtle, #f1f5f9) 5px, var(--ts-bg-subtle, #f1f5f9) 10px); }
@@ -717,6 +762,7 @@ body { padding: 0; }
 .ci-badge-under_review { color: var(--ts-status-info-fg, #0c4a6e); background: var(--ts-status-info-bg, #e0f2fe); }
 .ci-empty { padding: 40px 24px; color: var(--ts-text-muted, #64748b); max-width: 640px; }
 .ci-empty code { background: var(--ts-bg-subtle, #f1f5f9); padding: 1px 4px; border-radius: 3px; }
+.ci-skipped-hint { cursor: help; color: var(--ts-text-muted, #64748b); font-size: 10px; vertical-align: super; }
 .ci-new { box-shadow: inset 0 0 0 2px #6366f1; }
 .ci-urgent { background: repeating-linear-gradient(45deg, #fee2e2, #fee2e2 5px, #fef2f2 5px, #fef2f2 10px) !important; }
 .ci-urgent-badge { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 50%; background: #dc2626; color: #fff; font-weight: 700; font-size: 11px; }
