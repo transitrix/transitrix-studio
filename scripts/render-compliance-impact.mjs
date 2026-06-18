@@ -5,11 +5,12 @@
  *
  * Materialises the subject × obligation × status matrix per the render
  * contract in methodology/notations/views/21-compliance-impact.md §5.
- * Supports two column grains:
- *   - product (default)      — one column per subject.
- *   - product-stage (CV-3a)  — one column per (subject, stage) pair; requires
- *     process-blueprint YAML files to be present in the canon root so
- *     `extractObjectDetails` can map subject IDs to their ordered stages.
+ * Supports three column grains:
+ *   - product (default)           — one column per subject.
+ *   - product-stage (CV-3a)       — one column per (subject, stage) pair; requires
+ *     process-blueprint YAML files in the canon root for stage extraction.
+ *   - product-stage-task (CV-3a)  — one column per (subject, stage, task) triple;
+ *     requires process-blueprint AND process-element YAML files.
  *
  * Usage — named view-config file:
  *   node scripts/render-compliance-impact.mjs \
@@ -186,6 +187,8 @@ async function main() {
     parseImpactViewConfig,
     COMPLIANCE_IMPACT_DEFAULTS,
     extractObjectDetails,
+    extractProcessFlowTasks,
+    mergeStageTaskDetails,
   } = diagrams;
 
   // Resolve the view config.
@@ -212,10 +215,10 @@ async function main() {
   if (view.snapshot_at) console.error(`[render-compliance-impact] snapshot_at: ${view.snapshot_at}`);
   logActiveDefaults(view, COMPLIANCE_IMPACT_DEFAULTS);
 
-  // Scan canon — collect compliance artefacts and process-blueprints (for stage grouping).
+  // Scan canon — collect compliance artefacts, process-blueprints, and process elements.
   const canon = emptyCanon();
-  /** Raw parsed YAML docs that look like process-blueprints, for extractObjectDetails. */
   const rawBlueprints = [];
+  const rawProcesses = [];
   let scanned = 0;
   let ingested = 0;
   for await (const file of walkYaml(args.canon)) {
@@ -228,11 +231,9 @@ async function main() {
       continue;
     }
     if (ingestComplianceDoc(canon, parsed)) ingested += 1;
-    // Collect process-blueprints for stage-grouping (CV-3a).
     const bp = parsed?.process_blueprint ?? parsed;
-    if (bp?.notation === 'process_blueprint' || parsed?.process_blueprint) {
-      rawBlueprints.push(parsed);
-    }
+    if (bp?.notation === 'process_blueprint' || parsed?.process_blueprint) rawBlueprints.push(parsed);
+    if (parsed?.notation === 'process') rawProcesses.push(parsed);
   }
 
   console.error(
@@ -241,22 +242,36 @@ async function main() {
       `assertions=${canon.assertions.length})`,
   );
 
-  // Build stage groups when grouping.columns = 'product-stage'.
+  // Build stage / task groups for product-stage and product-stage-task grains.
+  const grain = view.grouping?.columns ?? 'product';
   let objectDetails;
-  if (view.grouping?.columns === 'object-details') {
-    objectDetails = rawBlueprints.flatMap(doc => {
+  if (grain === 'product-stage' || grain === 'product-stage-task') {
+    const stageMap = new Map();
+    for (const doc of rawBlueprints) {
       const sg = extractObjectDetails(doc);
-      return sg ? [d] : [];
-    });
-    if (objectDetails.length === 0) {
+      if (sg) stageMap.set(sg.objectId, sg);
+    }
+    if (stageMap.size === 0) {
       console.error(
-        '[render-compliance-impact] warning: grouping.columns=object-details but no process-blueprint ' +
+        `[render-compliance-impact] warning: grouping.columns=${grain} but no process-blueprint ` +
           'documents found in the canon root — falling back to product grain.',
       );
     } else {
+      if (grain === 'product-stage-task') {
+        const taskMap = new Map();
+        for (const doc of rawProcesses) {
+          const tk = extractProcessFlowTasks(doc);
+          if (tk) taskMap.set(tk.objectId, tk);
+        }
+        objectDetails = [...stageMap.values()].map(stages =>
+          mergeStageTaskDetails(stages, taskMap.get(stages.objectId) ?? null),
+        );
+      } else {
+        objectDetails = [...stageMap.values()];
+      }
       console.error(
-        `[render-compliance-impact] stage-grouping: ${objectDetails.length} blueprint(s), ` +
-          objectDetails.map(d => `${d.objectId}(${d.details.length} details)`).join(', '),
+        `[render-compliance-impact] ${grain}: ${objectDetails.length} subject(s), ` +
+          objectDetails.map(d => `${d.objectId}(${d.details.length} stages)`).join(', '),
       );
     }
   }

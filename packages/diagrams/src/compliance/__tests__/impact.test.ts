@@ -6,6 +6,8 @@ import {
   parseImpactViewConfig,
   COMPLIANCE_IMPACT_DEFAULTS,
   extractObjectDetails,
+  extractProcessFlowTasks,
+  mergeStageTaskDetails,
   computeDeadlineStatus,
   type ImpactViewConfig,
 } from '../impact.js';
@@ -377,7 +379,7 @@ describe('CV-3a — stage grouping (ImpactColumn, extractObjectDetails, buildImp
     const canon = buildCanon();
     const matrix = buildImpactMatrix(
       canon,
-      { ...baseConfig, subjects: { products: ['PRODUCT-A-1'] }, grouping: { columns: 'object-details' } },
+      { ...baseConfig, subjects: { products: ['PRODUCT-A-1'] }, grouping: { columns: 'product-stage' } },
       [{ objectId: 'PRODUCT-A-1', details: [{ id: 'STAGE-1', name: 'Stage One' }, { id: 'STAGE-2', name: 'Stage Two' }] }],
     );
     expect(matrix.columns.map(c => c.label)).toEqual(['PRODUCT-A-1:STAGE-1', 'PRODUCT-A-1:STAGE-2']);
@@ -395,7 +397,7 @@ describe('CV-3a — stage grouping (ImpactColumn, extractObjectDetails, buildImp
         id: 'V', name: 'V',
         subjects: { products: ['PROD-1'] },
         obligations: {},
-        grouping: { columns: 'object-details' },
+        grouping: { columns: 'product-stage' },
       },
       [{ objectId: 'PROD-1', details: [{ id: 'S1', name: 's1' }, { id: 'S2', name: 's2' }] }],
     );
@@ -418,7 +420,7 @@ describe('CV-3a — stage grouping (ImpactColumn, extractObjectDetails, buildImp
         id: 'V', name: 'V',
         subjects: { products: ['PROD-1'] },
         obligations: {},
-        grouping: { columns: 'object-details' },
+        grouping: { columns: 'product-stage' },
       },
       [{ objectId: 'PROD-1', details: [{ id: 'STAGE-A', name: 'a' }, { id: 'STAGE-B', name: 'b' }] }],
     );
@@ -433,7 +435,7 @@ describe('CV-3a — stage grouping (ImpactColumn, extractObjectDetails, buildImp
       {
         ...baseConfig,
         subjects: { products: ['PRODUCT-A-1', 'PRODUCT-B-1'] },
-        grouping: { columns: 'object-details' },
+        grouping: { columns: 'product-stage' },
       },
       // Only provide stages for A — B falls back to a single column.
       [{ objectId: 'PRODUCT-A-1', details: [{ id: 'S1', name: 's1' }] }],
@@ -467,7 +469,7 @@ describe('CV-3a — stage grouping (ImpactColumn, extractObjectDetails, buildImp
         id: 'V', name: 'Stage Report',
         subjects: { products: ['PROD-1'] },
         obligations: {},
-        grouping: { columns: 'object-details' },
+        grouping: { columns: 'product-stage' },
       },
       [{ objectId: 'PROD-1', details: [{ id: 'S1', name: 'Stage One' }] }],
     );
@@ -575,5 +577,265 @@ describe('computeDeadlineStatus', () => {
   });
   it('returns upcoming more than 30 days away', () => {
     expect(computeDeadlineStatus('2026-12-31', '2026-06-01')).toBe('upcoming');
+  });
+});
+
+// ── parseImpactViewConfig — grouping field ────────────────────────────────────
+
+describe('parseImpactViewConfig — grouping field', () => {
+  it('parses grouping.columns: product-stage', () => {
+    const r = parseImpactViewConfig({ id: 'V', name: 'V', subjects: {}, grouping: { columns: 'product-stage' } });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.config.grouping?.columns).toBe('product-stage');
+  });
+
+  it('parses grouping.columns: product-stage-task', () => {
+    const r = parseImpactViewConfig({ id: 'V', name: 'V', subjects: {}, grouping: { columns: 'product-stage-task' } });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.config.grouping?.columns).toBe('product-stage-task');
+  });
+
+  it('parses grouping.columns: product (coarsest grain)', () => {
+    const r = parseImpactViewConfig({ id: 'V', name: 'V', subjects: {}, grouping: { columns: 'product' } });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.config.grouping?.columns).toBe('product');
+  });
+
+  it('normalises backward-compat alias object-details → product-stage', () => {
+    const r = parseImpactViewConfig({ id: 'V', name: 'V', subjects: {}, grouping: { columns: 'object-details' } });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.config.grouping?.columns).toBe('product-stage');
+  });
+
+  it('normalises backward-compat alias object → product', () => {
+    const r = parseImpactViewConfig({ id: 'V', name: 'V', subjects: {}, grouping: { columns: 'object' } });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.config.grouping?.columns).toBe('product');
+  });
+
+  it('leaves grouping undefined when the field is absent', () => {
+    const r = parseImpactViewConfig({ id: 'V', name: 'V', subjects: {} });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.config.grouping).toBeUndefined();
+  });
+
+  it('leaves grouping undefined for an unrecognised columns value', () => {
+    const r = parseImpactViewConfig({ id: 'V', name: 'V', subjects: {}, grouping: { columns: 'unknown-grain' } });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.config.grouping).toBeUndefined();
+  });
+});
+
+// ── CV-3a — product-stage-task grain ─────────────────────────────────────────
+
+describe('CV-3a — product-stage-task grain (buildImpactMatrix, buildTaskColumns)', () => {
+  it('expands columns to (subject, stage, task) triples; label is subjectId:stageId:taskId', () => {
+    const canon = emptyCanon();
+    canon.requirements.push({ id: 'REQ-1', name: 'R1' });
+    canon.assertions.push({ id: 'ASS-1', about: 'REQ-1', subject: 'PROD-1', status: 'compliant' });
+    const matrix = buildImpactMatrix(
+      canon,
+      {
+        id: 'V', name: 'V',
+        subjects: { products: ['PROD-1'] },
+        obligations: {},
+        grouping: { columns: 'product-stage-task' },
+      },
+      [{
+        objectId: 'PROD-1',
+        details: [
+          { id: 'STAGE-A', name: 'Stage A', tasks: [{ id: 'TASK-1', name: 'Task 1' }, { id: 'TASK-2', name: 'Task 2' }] },
+        ],
+      }],
+    );
+    expect(matrix.columns.map(c => c.label)).toEqual(['PROD-1:STAGE-A:TASK-1', 'PROD-1:STAGE-A:TASK-2']);
+    expect(matrix.columns[0]).toMatchObject({ subjectId: 'PROD-1', stageId: 'STAGE-A', taskId: 'TASK-1' });
+    expect(matrix.columns[1]).toMatchObject({ subjectId: 'PROD-1', stageId: 'STAGE-A', taskId: 'TASK-2' });
+  });
+
+  it('assertion without realised_via fills every task column for its subject', () => {
+    const canon = emptyCanon();
+    canon.requirements.push({ id: 'REQ-1', name: 'R1' });
+    canon.assertions.push({ id: 'ASS-1', about: 'REQ-1', subject: 'PROD-1', status: 'compliant' });
+    const matrix = buildImpactMatrix(
+      canon,
+      {
+        id: 'V', name: 'V',
+        subjects: { products: ['PROD-1'] },
+        obligations: {},
+        grouping: { columns: 'product-stage-task' },
+      },
+      [{ objectId: 'PROD-1', details: [{ id: 'S1', name: 's1', tasks: [{ id: 'T1', name: 't1' }, { id: 'T2', name: 't2' }] }] }],
+    );
+    expect(matrix.cells[0][0].kind).toBe('bound');
+    expect(matrix.cells[0][1].kind).toBe('bound');
+  });
+
+  it('assertion with realised_via: [taskId] fills only the matching task column', () => {
+    const canon = emptyCanon();
+    canon.requirements.push({ id: 'REQ-1', name: 'R1' });
+    canon.assertions.push({ id: 'ASS-1', about: 'REQ-1', subject: 'PROD-1', status: 'compliant', realised_via: ['T1'] });
+    const matrix = buildImpactMatrix(
+      canon,
+      {
+        id: 'V', name: 'V',
+        subjects: { products: ['PROD-1'] },
+        obligations: {},
+        grouping: { columns: 'product-stage-task' },
+      },
+      [{ objectId: 'PROD-1', details: [{ id: 'S1', name: 's1', tasks: [{ id: 'T1', name: 't1' }, { id: 'T2', name: 't2' }] }] }],
+    );
+    expect(matrix.cells[0][0].kind).toBe('bound');   // T1: covered
+    expect(matrix.cells[0][1].kind).toBe('gap');     // T2: not covered
+  });
+
+  it('assertion with realised_via: [stageId] fills all task columns in that stage', () => {
+    const canon = emptyCanon();
+    canon.requirements.push({ id: 'REQ-1', name: 'R1' });
+    canon.assertions.push({ id: 'ASS-1', about: 'REQ-1', subject: 'PROD-1', status: 'compliant', realised_via: ['S1'] });
+    const matrix = buildImpactMatrix(
+      canon,
+      {
+        id: 'V', name: 'V',
+        subjects: { products: ['PROD-1'] },
+        obligations: {},
+        grouping: { columns: 'product-stage-task' },
+      },
+      [{ objectId: 'PROD-1', details: [{ id: 'S1', name: 's1', tasks: [{ id: 'T1', name: 't1' }, { id: 'T2', name: 't2' }] }] }],
+    );
+    expect(matrix.cells[0][0].kind).toBe('bound');
+    expect(matrix.cells[0][1].kind).toBe('bound');
+  });
+
+  it('stage with no tasks falls back to stage-grain column', () => {
+    const canon = emptyCanon();
+    canon.requirements.push({ id: 'REQ-1', name: 'R1' });
+    const matrix = buildImpactMatrix(
+      canon,
+      {
+        id: 'V', name: 'V',
+        subjects: { products: ['PROD-1'] },
+        obligations: {},
+        grouping: { columns: 'product-stage-task' },
+      },
+      [{ objectId: 'PROD-1', details: [{ id: 'S1', name: 's1' }] }],
+    );
+    expect(matrix.columns.map(c => c.label)).toEqual(['PROD-1:S1']);
+    expect(matrix.columns[0].taskId).toBeUndefined();
+    expect(matrix.columns[0].stageId).toBe('S1');
+  });
+
+  it('subject with no objectDetails falls back to product-grain column', () => {
+    const canon = emptyCanon();
+    canon.requirements.push({ id: 'REQ-1', name: 'R1' });
+    const matrix = buildImpactMatrix(
+      canon,
+      {
+        id: 'V', name: 'V',
+        subjects: { products: ['PROD-1'] },
+        obligations: {},
+        grouping: { columns: 'product-stage-task' },
+      },
+    );
+    expect(matrix.columns.map(c => c.label)).toEqual(['PROD-1']);
+    expect(matrix.columns[0].stageId).toBeUndefined();
+  });
+});
+
+// ── extractProcessFlowTasks ───────────────────────────────────────────────────
+
+describe('extractProcessFlowTasks', () => {
+  it('returns null for non-process documents', () => {
+    expect(extractProcessFlowTasks(null)).toBeNull();
+    expect(extractProcessFlowTasks({ notation: 'requirement', id: 'R1' })).toBeNull();
+    expect(extractProcessFlowTasks({ notation: 'process_blueprint', id: 'BP-1' })).toBeNull();
+  });
+
+  it('returns null when process has no flow.steps', () => {
+    expect(extractProcessFlowTasks({ notation: 'process', id: 'PROC-1' })).toBeNull();
+    expect(extractProcessFlowTasks({ notation: 'process', id: 'PROC-1', flow: { sequence: [] } })).toBeNull();
+  });
+
+  it('returns null when no task-type steps exist', () => {
+    const doc = {
+      notation: 'process', id: 'PROC-1',
+      flow: { steps: [
+        { id: 'S-1', type: 'startEvent' },
+        { id: 'G-1', type: 'exclusiveGateway' },
+        { id: 'E-1', type: 'endEvent' },
+      ] },
+    };
+    expect(extractProcessFlowTasks(doc)).toBeNull();
+  });
+
+  it('extracts task-type steps and skips events/gateways', () => {
+    const doc = {
+      notation: 'process', id: 'PROC-1',
+      flow: { steps: [
+        { id: 'S-1', type: 'startEvent' },
+        { id: 'STEP-T1', type: 'task', name: 'Task One' },
+        { id: 'G-1', type: 'exclusiveGateway', name: 'Branch?' },
+        { id: 'STEP-T2', type: 'userTask', name: 'User Task' },
+        { id: 'E-1', type: 'endEvent' },
+      ] },
+    };
+    const result = extractProcessFlowTasks(doc);
+    expect(result).not.toBeNull();
+    expect(result!.objectId).toBe('PROC-1');
+    expect(result!.details.map(d => d.id)).toEqual(['STEP-T1', 'STEP-T2']);
+    expect(result!.details[0].name).toBe('Task One');
+  });
+
+  it('falls back to step id as name when name is absent', () => {
+    const doc = {
+      notation: 'process', id: 'PROC-1',
+      flow: { steps: [{ id: 'STEP-T1', type: 'serviceTask' }] },
+    };
+    const result = extractProcessFlowTasks(doc);
+    expect(result!.details[0].name).toBe('STEP-T1');
+  });
+});
+
+// ── mergeStageTaskDetails ─────────────────────────────────────────────────────
+
+describe('mergeStageTaskDetails', () => {
+  const stages = {
+    objectId: 'PROC-1',
+    details: [
+      { id: 'S1', name: 'Stage 1' },
+      { id: 'S2', name: 'Stage 2' },
+    ],
+  };
+
+  it('returns stageInput unchanged when taskInput is null', () => {
+    expect(mergeStageTaskDetails(stages, null)).toBe(stages);
+  });
+
+  it('returns stageInput unchanged when objectIds do not match', () => {
+    const other = { objectId: 'PROC-99', details: [{ id: 'T1', name: 't1' }] };
+    expect(mergeStageTaskDetails(stages, other)).toBe(stages);
+  });
+
+  it('embeds all tasks into every stage when no stageOwner map is provided', () => {
+    const tasks = { objectId: 'PROC-1', details: [{ id: 'T1', name: 't1' }, { id: 'T2', name: 't2' }] };
+    const merged = mergeStageTaskDetails(stages, tasks);
+    expect(merged.objectId).toBe('PROC-1');
+    expect(merged.details[0].tasks?.map(t => t.id)).toEqual(['T1', 'T2']);
+    expect(merged.details[1].tasks?.map(t => t.id)).toEqual(['T1', 'T2']);
+  });
+
+  it('distributes tasks by stageOwner map', () => {
+    const tasks = { objectId: 'PROC-1', details: [{ id: 'T1', name: 't1' }, { id: 'T2', name: 't2' }] };
+    const merged = mergeStageTaskDetails(stages, tasks, { S1: ['T1'], S2: ['T2'] });
+    expect(merged.details[0].tasks?.map(t => t.id)).toEqual(['T1']);
+    expect(merged.details[1].tasks?.map(t => t.id)).toEqual(['T2']);
+  });
+
+  it('leaves stages without matching stageOwner entries task-free', () => {
+    const tasks = { objectId: 'PROC-1', details: [{ id: 'T1', name: 't1' }] };
+    const merged = mergeStageTaskDetails(stages, tasks, { S1: ['T1'], S2: [] });
+    expect(merged.details[0].tasks?.map(t => t.id)).toEqual(['T1']);
+    // S2 has no tasks in stageOwner, filter returns [] → no tasks embedded
+    expect(merged.details[1].tasks).toBeUndefined();
   });
 });

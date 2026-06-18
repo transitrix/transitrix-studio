@@ -60,18 +60,32 @@ export interface IndexAssertion {
 
 // ── Stage grouping (CV-3a) ──────────────────────────────────────────────────
 
-/** One detail-level element of a business object, used as a matrix sub-column. */
+/** One stage (or task) element of a business object, used as a matrix sub-column. */
 export interface ObjectDetailDef {
   id: string;
   name: string;
+  /**
+   * Ordered task-type flow steps within this stage.
+   * Present only when `grouping.columns: product-stage-task` grain is active.
+   * Each task produces a separate matrix column: (subject, stageId, taskId).
+   * When absent or empty, the stage itself is the column grain.
+   */
+  tasks?: Array<{ id: string; name: string }>;
 }
 
 /**
- * Maps a business object to its ordered detail elements.
- * Passed into `buildImpactMatrix` when `grouping.columns` is
- * `object-details`. The details can be process stages, product
- * components, capability modules, etc. — whatever sub-structure the object
- * exposes. Typically extracted from a process-blueprint via`extractObjectDetails`.
+ * Maps a business object to its ordered stages (and optionally their tasks).
+ * Passed into `buildImpactMatrix` to enable stage/task column grouping.
+ *
+ * - For `grouping.columns: product-stage`: `details` contains stages; each
+ *   stage becomes one matrix column.
+ * - For `grouping.columns: product-stage-task`: each stage in `details` carries
+ *   a `tasks` array; each task produces a `(subject, stage, task)` column.
+ *   Stages with no tasks fall back to a stage-grain column.
+ *
+ * Typically built by combining `extractObjectDetails` (blueprint stages) and
+ * `extractProcessFlowTasks` (process flow tasks), then merging via
+ * `mergeStageTaskDetails`.
  */
 export interface ObjectDetailInput {
   objectId: string;
