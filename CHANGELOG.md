@@ -1,8 +1,10 @@
 # Changelog
 
-## [Unreleased]
-
 ## [2.0.0] — 2026-06-18
+
+### Changed
+
+- **Toolbar "Copy PNG" button renamed to "Copy image"** — cleaner label, avoids the all-caps acronym.
 
 ### Breaking changes
 
