@@ -468,7 +468,7 @@ export function buildDiagramFrame(opts: DiagramFrameOpts): string {
     actionParts.push(`<a href="command:${escXml(savePngCommand!)}" class="toolbar-btn" title="Save the current diagram as a .png file">Save .png</a>`);
   }
   if (showCopyPng) {
-    actionParts.push(`<a href="command:${escXml(copyPngCommand!)}" class="toolbar-btn" title="Copy the current diagram to the clipboard as a PNG image">Copy PNG</a>`);
+    actionParts.push(`<a href="command:${escXml(copyPngCommand!)}" class="toolbar-btn" title="Copy the current diagram to the clipboard as a PNG image">Copy image</a>`);
   }
   if (showSpacing) {
     actionParts.push(`<a href="command:${escXml(spacingCommand!)}" class="toolbar-btn" title="Adjust the horizontal/vertical spacing for this notation in Settings">Spacing…</a>`);
