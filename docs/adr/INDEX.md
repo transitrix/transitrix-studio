@@ -13,3 +13,4 @@ authoritative methodology ADR via a `methodology_adr` field.
 |---|---|---|---|
 | [0001](0001-intellij-mvp-tech-choice.md) | IntelliJ IDEA extension MVP — rendering & validation technology (JCEF + reuse `@transitrix/diagrams`) | Proposed | epic #135 |
 | [0002](0002-process-blueprint-compliance-lane.md) | Process Blueprint compliance lane (Studio implementation) | Accepted | transitrix-studio |
+| [0003](0003-diagrams-schema-version-contract.md) | `@transitrix/diagrams` schema-version contract — `SCHEMA_VERSION` export + manifest pin + SV-1 unit test | Accepted | transitrix-studio |
