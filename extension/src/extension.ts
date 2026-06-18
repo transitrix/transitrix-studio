@@ -420,6 +420,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       // a projection over canon/elements + canon/relations). Runs before the
       // per-type routing below (which early-returns on a match).
       void activityCardPreview.refreshIfSiblingSaved(doc);
+      void fgcaPreview.refreshIfSiblingSaved(doc);
       // Compliance views are repo-wide: re-scan the open ones whenever a canon
       // artefact (by filename convention) is saved. No-op when no panel is open.
       if (/^(PRODUCT|REQUIREMENT|ASSERTION|LAW|REGULATION|POLICY|INTERNAL_STANDARD)-.*\.ya?ml$/.test(path.basename(doc.fileName))) {

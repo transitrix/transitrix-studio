@@ -1,0 +1,20 @@
+notation: fgca
+spec_version: "0.1"
+
+id: FGCA-STRAT-1
+name: "Strategy 2026 — FGCA chain"
+description: "Factor → Goal → Change → Activity decomposition for the 2026 plan."
+period: "2026"
+version: "0.1"
+date: "2026-05-26"
+author: Transitrix
+
+view_config:
+  goals:
+    filter: all
+  factors:
+    surface: derived
+  changes:
+    surface: derived
+  activities:
+    surface: derived

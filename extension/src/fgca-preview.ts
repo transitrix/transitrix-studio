@@ -3,7 +3,9 @@ import * as vscode from 'vscode';
 import yaml from 'js-yaml';
 import { buildDiagramFrame, prepareSvgForExport, type ThemeId } from './diagram-frame.js';
 import { TITLE_BLOCK_H, titleBlockSvg, todayIso } from './svg-title-block.js';
+import { loadCanon, findCanonRoot, isUnderCanon, type CanonDocs } from './canon-loader.js';
 import { parseCanonicalFGCA, parseCanonicalFGA } from '../../packages/diagrams/src/fgca/parse-canonical.js';
+import { resolveFGCA, isFGCAViewDoc } from '../../packages/diagrams/src/fgca/resolver.js';
 import {
   layoutFGCAPreview,
   FGCA_NODE_W as NODE_W,
@@ -345,12 +347,25 @@ export class FGCAPreview {
     await this.pushDocument(doc);
   }
 
-  private async pushDocument(doc: vscode.TextDocument): Promise<void> {
-    if (!this.panel) return;
-    this.panel.webview.html = this.buildHtml(doc.getText(), path.basename(doc.fileName));
+  /** Re-render the tracked document when a sibling canon element/relation saves. */
+  async refreshIfSiblingSaved(doc: vscode.TextDocument): Promise<void> {
+    if (!this.panel || !this.trackedUri) return;
+    if (!doc.fileName.endsWith('.yaml')) return;
+    const fgcaUri = vscode.Uri.parse(this.trackedUri);
+    const canonRoot = findCanonRoot(fgcaUri);
+    if (!canonRoot) return;
+    if (!isUnderCanon(canonRoot, doc.uri)) return;
+    const fgcaDoc = await vscode.workspace.openTextDocument(fgcaUri);
+    await this.pushDocument(fgcaDoc);
   }
 
-  private buildHtml(yamlText: string, filename: string): string {
+  private async pushDocument(doc: vscode.TextDocument): Promise<void> {
+    if (!this.panel) return;
+    const sources = await loadCanon(doc.uri);
+    this.panel.webview.html = this.buildHtml(doc.getText(), path.basename(doc.fileName), sources);
+  }
+
+  private buildHtml(yamlText: string, filename: string, sources: CanonDocs): string {
     let parsedDoc: FGCADoc | null = null;
     let errorMsg = '';
     let warnings: string[] = [];
@@ -362,15 +377,15 @@ export class FGCAPreview {
       const meta = (parsed && typeof parsed === 'object' ? parsed : {}) as { version?: unknown; date?: unknown };
       docVersion = typeof meta.version === 'string' ? meta.version : undefined;
       docDate = typeof meta.date === 'string' ? meta.date : todayIso();
-      const v = parseCanonicalFGCA(parsed);
-      warnings = v.warnings.map(w => `${w.code}: ${w.message}`);
+      // Canon-projection form (VP-3): view_config present, no inline elements.
+      // Fall back to inline parsing for legacy documents that carry factors[]/goals[].
+      const input = isFGCAViewDoc(parsed) ? resolveFGCA(parsed, sources) : parsed;
+      warnings = [...sources.warnings];
+      const v = parseCanonicalFGCA(input);
+      warnings.push(...v.warnings.map(w => `${w.code}: ${w.message}`));
       if (!v.valid || !v.parsed) {
         errorMsg = v.errors.map(e => `${e.code}: ${e.message}`).join('\n');
       } else {
-        // parseCanonicalFGCA returns the strict internal form with numeric
-        // IDs and singular `change.goal_id` / `change.activity_ids`. The
-        // inline FGCADoc / buildSvg here accept both forms (number | string
-        // unions) — pass through.
         parsedDoc = v.parsed as unknown as FGCADoc;
       }
     } catch (e) {

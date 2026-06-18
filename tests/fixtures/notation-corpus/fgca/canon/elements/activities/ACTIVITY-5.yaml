@@ -1,0 +1,4 @@
+notation: activity
+id: ACTIVITY-5
+name: "CRM implementation"
+changes: [CHANGE-3]

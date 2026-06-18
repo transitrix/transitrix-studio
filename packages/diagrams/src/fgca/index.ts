@@ -36,6 +36,8 @@ export type {
   DiagramStyle,
   FGCAColumn,
 } from "./types";
+export { resolveFGCA, isFGCAViewDoc } from './resolver.js';
+export type { FGCAViewConfig, FGCACanonSources } from './resolver.js';
 export { default as FGCAFactorNode } from "./nodes/FGCAFactorNode";
 export { default as FGCAGoalNode } from "./nodes/FGCAGoalNode";
 export { default as FGCAChangeNode } from "./nodes/FGCAChangeNode";
