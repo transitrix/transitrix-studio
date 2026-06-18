@@ -192,4 +192,49 @@ describe('layoutProcessBlueprint', () => {
     expect(layout.stageColumnWidth).toBe(300);
     expect(layout.stageHeaders[1].x).toBe(200 + 300);
   });
+
+  describe('visibleAspects', () => {
+    const FILE_WITH_ALL = build({
+      stages: [{ id: 'STAGE-1', name: 'A', goal: 'g', result: 'r' }],
+      systems: [{ name: 'OMS', stages: ['STAGE-1'] }],
+      actors: [{ name: 'Ops', stages: ['STAGE-1'] }],
+      equipment: [{ name: 'Printer', stages: ['STAGE-1'] }],
+    });
+
+    it('shows all categories when visibleAspects is not set', () => {
+      const layout = layoutProcessBlueprint(FILE_WITH_ALL);
+      expect(layout.aspectRows.map(r => r.category)).toEqual(
+        expect.arrayContaining(['systems', 'actors', 'equipment']),
+      );
+      expect(layout.aspectRows).toHaveLength(3);
+    });
+
+    it('limits rows to those in visibleAspects', () => {
+      const layout = layoutProcessBlueprint(FILE_WITH_ALL, {
+        visibleAspects: ['systems'],
+      });
+      expect(layout.aspectRows).toHaveLength(1);
+      expect(layout.aspectRows[0].category).toBe('systems');
+    });
+
+    it('suppresses all aspect rows when visibleAspects is empty', () => {
+      const layout = layoutProcessBlueprint(FILE_WITH_ALL, { visibleAspects: [] });
+      expect(layout.aspectRows).toHaveLength(0);
+    });
+
+    it('preserves the canonical ASPECT_CATEGORIES order within the filtered set', () => {
+      const layout = layoutProcessBlueprint(FILE_WITH_ALL, {
+        visibleAspects: ['equipment', 'systems'],
+      });
+      expect(layout.aspectRows.map(r => r.category)).toEqual(['systems', 'equipment']);
+    });
+
+    it('ignores categories in visibleAspects that have no data', () => {
+      const layout = layoutProcessBlueprint(FILE_WITH_ALL, {
+        visibleAspects: ['systems', 'information_entities'],
+      });
+      expect(layout.aspectRows).toHaveLength(1);
+      expect(layout.aspectRows[0].category).toBe('systems');
+    });
+  });
 });

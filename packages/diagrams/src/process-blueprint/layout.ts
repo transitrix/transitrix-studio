@@ -27,21 +27,19 @@ const ASPECT_LABEL: Record<AspectCategory, string> = {
   information_entities: 'Information',
 };
 
-// The compliance lane is opt-in, so its two options have no meaningful default
-// (absent = lane disabled). Every other option is a sizing value that always
-// resolves to a number — keep those `Required`, but exclude the compliance pair
-// rather than forcing them to a non-optional type they can't satisfy.
+// Sizing options always resolve to a number; the non-sizing options are opt-in
+// (absent = feature disabled) and must stay optional in the resolved type.
 type SizingOptionKeys = Exclude<
   keyof ProcessBlueprintLayoutOptions,
-  'complianceLane' | 'complianceInput'
+  'complianceLane' | 'complianceInput' | 'visibleAspects'
 >;
 
 /**
  * Options after defaults are applied: every sizing field is guaranteed present;
- * the compliance lane fields stay optional (undefined = lane disabled).
+ * the opt-in feature fields stay optional (undefined = feature disabled).
  */
 type ResolvedLayoutOptions = Required<Pick<ProcessBlueprintLayoutOptions, SizingOptionKeys>> &
-  Pick<ProcessBlueprintLayoutOptions, 'complianceLane' | 'complianceInput'>;
+  Pick<ProcessBlueprintLayoutOptions, 'complianceLane' | 'complianceInput' | 'visibleAspects'>;
 
 const DEFAULTS = {
   legendColumnWidth: 140,
@@ -428,10 +426,16 @@ export function layoutProcessBlueprint(
   const aspectsStartY = resultRowY + resultRowHeight;
 
   // Aspect rows: only categories with at least one entry, in fixed order.
+  // When visibleAspects is set, skip categories not in the list.
+  const aspectCategoriesToRender =
+    opts.visibleAspects !== undefined
+      ? ASPECT_CATEGORIES.filter(c => opts.visibleAspects!.includes(c))
+      : ASPECT_CATEGORIES;
+
   const aspectRows: AspectRow[] = [];
   let aspectCursorY = aspectsStartY;
 
-  for (const category of ASPECT_CATEGORIES) {
+  for (const category of aspectCategoriesToRender) {
     const arr = pb?.[category];
     if (!Array.isArray(arr) || arr.length === 0) continue;
 
