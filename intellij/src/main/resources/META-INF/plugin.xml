@@ -24,6 +24,20 @@
         <p>Built on ArchiMate 3.2. Open source, MIT licensed.</p>
     ]]></description>
 
+    <change-notes><![CDATA[
+        <h3>0.1.0 — Initial release</h3>
+        <ul>
+            <li>Live notation preview for all Transitrix YAML formats: Goals trees,
+            FGCA / FGA chains, activity networks, BPMN processes, capability maps,
+            process blueprints, activity cards, and more.</li>
+            <li>Preview panel opens automatically on <code>*.transitrix.yaml</code> files,
+            or on demand via right-click → <b>Transitrix: Preview Notation</b>.</li>
+            <li>Powered by the shared <code>@transitrix/diagrams</code> engine —
+            identical output to the VS Code extension.</li>
+            <li>Open source, MIT licensed.</li>
+        </ul>
+    ]]></change-notes>
+
     <depends>com.intellij.modules.platform</depends>
 
     <extensions defaultExtensionNs="com.intellij">
