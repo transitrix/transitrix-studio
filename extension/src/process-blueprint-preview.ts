@@ -6,6 +6,7 @@ import { TITLE_BLOCK_H, titleBlockSvg, todayIso } from './svg-title-block.js';
 import {
   validateProcessBlueprint,
   layoutProcessBlueprint,
+  type AspectCategory,
   type ComplianceLaneConfig,
   type ComplianceLaneInput,
   type LaneConfig,
@@ -179,12 +180,46 @@ ${parts.join('\n')}
 
 /** Extract compliance lane config from the blueprint's `lane_config:` block. */
 function resolveLaneConfig(lc: LaneConfig | undefined): ComplianceLaneConfig {
+  const ps = lc?.compliance_filter?.previous_snapshot;
   return {
     enabled: lc?.compliance === true,
     jurisdictions: Array.isArray(lc?.compliance_filter?.jurisdictions)
       ? (lc!.compliance_filter!.jurisdictions as string[]).filter((x): x is string => typeof x === 'string')
       : [],
+    previousSnapshot:
+      ps !== null && ps !== undefined && typeof ps === 'object' && !Array.isArray(ps)
+        ? (ps as Record<string, string[]>)
+        : undefined,
   };
+}
+
+const ASPECT_CATEGORY_IDS = ['systems', 'actors', 'equipment', 'information_entities'] as const;
+
+/**
+ * Read per-user display preferences from `.transitrix/display-preferences/process-blueprint.json`.
+ * Returns an empty object when the file is absent or unreadable (non-fatal).
+ */
+async function readBlueprintDisplayPreferences(): Promise<{ visible_lanes?: string[] }> {
+  const folders = vscode.workspace.workspaceFolders;
+  if (!folders || folders.length === 0) return {};
+  for (const folder of folders) {
+    try {
+      const prefUri = vscode.Uri.joinPath(
+        folder.uri,
+        '.transitrix',
+        'display-preferences',
+        'process-blueprint.json',
+      );
+      const bytes = await vscode.workspace.fs.readFile(prefUri);
+      const parsed = JSON.parse(Buffer.from(bytes).toString('utf-8')) as unknown;
+      if (parsed !== null && typeof parsed === 'object' && 'visible_lanes' in parsed) {
+        return parsed as { visible_lanes?: string[] };
+      }
+    } catch {
+      // No prefs file in this workspace folder — try next.
+    }
+  }
+  return {};
 }
 
 /** Project scanned compliance canon into the minimal shape the layout needs. */
@@ -263,9 +298,23 @@ export class ProcessBlueprintPreview {
         const docDate = typeof pb.date === 'string' ? pb.date : todayIso();
 
         // Compliance lane — scan workspace when opt-in via lane_config.compliance: true.
-        const laneCfg = resolveLaneConfig(file.process_blueprint?.lane_config);
+        const laneConfigRaw = file.process_blueprint?.lane_config;
+        const laneCfg = resolveLaneConfig(laneConfigRaw);
+
+        // Per-user display preferences override the blueprint's lane_config.visible_lanes.
+        const userPrefs = await readBlueprintDisplayPreferences();
+        const visibleLanes: string[] | undefined =
+          userPrefs.visible_lanes ??
+          (Array.isArray(laneConfigRaw?.visible_lanes) ? laneConfigRaw!.visible_lanes : undefined);
+
+        // Derive visible aspect categories and compliance lane visibility from merged lanes.
+        const visibleAspects: AspectCategory[] | undefined = visibleLanes
+          ? (ASPECT_CATEGORY_IDS.filter(c => visibleLanes.includes(c)) as AspectCategory[])
+          : undefined;
+        const complianceVisible = visibleLanes ? visibleLanes.includes('compliance') : true;
+
         let complianceInput: ComplianceLaneInput | undefined;
-        if (laneCfg.enabled) {
+        if (laneCfg.enabled && complianceVisible) {
           try {
             const canon = await scanComplianceCanon();
             complianceInput = buildComplianceLaneInput(canon);
@@ -275,8 +324,9 @@ export class ProcessBlueprintPreview {
         }
 
         const layout = layoutProcessBlueprint(file, {
-          complianceLane: laneCfg,
+          complianceLane: { ...laneCfg, enabled: laneCfg.enabled && complianceVisible },
           complianceInput,
+          visibleAspects,
         });
         svgContent = layoutToSvg(layout, filename, docDate, docVersion);
       }

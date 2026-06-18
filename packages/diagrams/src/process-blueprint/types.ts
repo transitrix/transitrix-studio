@@ -118,7 +118,22 @@ export interface LaneConfig {
   compliance_filter?: {
     /** ISO jurisdiction codes; empty array means all jurisdictions. */
     jurisdictions?: string[];
+    /**
+     * Per-stage map of law IDs known from the previous generated snapshot.
+     * Key: stage ID; Value: array of law IDs present in that stage's previous report.
+     * Laws absent from the previous snapshot receive the `new` decoration.
+     * When absent, every law chip is treated as new.
+     */
+    previous_snapshot?: Record<string, string[]>;
   };
+  /**
+   * Lanes to show; controls which aspect rows and the compliance lane are rendered.
+   * Valid values: `"systems"` | `"actors"` | `"equipment"` | `"information_entities"` | `"compliance"`.
+   * When absent, all lanes with data are shown (current default behaviour).
+   * Named report config — committed, versioned. Per-user overrides live in
+   * `.transitrix/display-preferences/process-blueprint.json` (gitignored, never committed).
+   */
+  visible_lanes?: string[];
 }
 
 export interface ProcessBlueprintHeader {
@@ -170,6 +185,12 @@ export interface ProcessBlueprintLayoutOptions {
   complianceLane?: ComplianceLaneConfig;
   /** Assertion + requirement data for the compliance lane derivation. */
   complianceInput?: ComplianceLaneInput;
+  /**
+   * Restrict which aspect-category rows are rendered.
+   * When absent, all categories that have at least one entry are shown.
+   * Pass an empty array to suppress all aspect rows.
+   */
+  visibleAspects?: AspectCategory[];
 }
 
 import type { LayoutBounds } from '../geometry.js';
