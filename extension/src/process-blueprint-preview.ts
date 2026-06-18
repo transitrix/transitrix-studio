@@ -16,6 +16,7 @@ import {
 import { coerceDatesToIsoStrings } from '../../packages/diagrams/src/yaml-normalize.js';
 import { savePngFromSvg, copyPngFromSvg } from './png-export.js';
 import { scanComplianceCanon, type ScannedCanon } from './compliance-scan.js';
+import { genNonce } from './preview-controls.js';
 
 function escXml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -50,6 +51,7 @@ function complianceChipSvg(
   chip: import('../../packages/diagrams/src/process-blueprint/types.js').ComplianceChip,
   ox: number,
   oy: number,
+  stageId: string,
 ): string {
   const { x, y, width, height, lawId, decorations } = chip;
   const ax = x + ox;
@@ -77,7 +79,8 @@ function complianceChipSvg(
       `<text class="compliance-badge-text" x="${bx}" y="${by}" text-anchor="middle" dominant-baseline="central">!</text>`,
     );
   }
-  return parts.join('\n');
+  // Wrap in a <g> so the chip is a single click target with drill-down data attributes.
+  return `<g data-chip-law="${escXml(lawId)}" data-chip-stage="${escXml(stageId)}">\n${parts.join('\n')}\n</g>`;
 }
 
 function layoutToSvg(layout: ProcessBlueprintLayout, filename?: string, date?: string, version?: string): string {
@@ -167,7 +170,8 @@ function layoutToSvg(layout: ProcessBlueprintLayout, filename?: string, date?: s
       );
     }
     for (const chip of row.chips) {
-      parts.push(complianceChipSvg(chip, ox, oy));
+      const stageId = layout.stageHeaders[chip.stageIndex]?.id ?? '';
+      parts.push(complianceChipSvg(chip, ox, oy, stageId));
     }
   }
 
@@ -176,6 +180,176 @@ function layoutToSvg(layout: ProcessBlueprintLayout, filename?: string, date?: s
 ${titleSvg}
 ${parts.join('\n')}
 </svg>`;
+}
+
+// ── Compliance chip drill-down ───────────────────────────────────────────────
+
+interface ChipDetailItem {
+  reqId: string;
+  reqName: string;
+  deadline?: string;
+  assertionId: string;
+  status: string;
+  subject: string;
+}
+
+interface ChipDetail {
+  lawId: string;
+  stageName: string;
+  items: ChipDetailItem[];
+}
+
+/** Pre-compute per-chip detail rows from the scanned canon for client-side lookup. */
+function buildChipDetailData(
+  layout: ProcessBlueprintLayout,
+  canon: ScannedCanon,
+): Record<string, ChipDetail> {
+  if (!layout.complianceRow) return {};
+
+  const reqByLaw = new Map<string, Array<{ id: string; name: string; deadline?: string }>>();
+  for (const req of canon.requirements) {
+    for (const lawId of req.derived_from ?? []) {
+      if (!reqByLaw.has(lawId)) reqByLaw.set(lawId, []);
+      reqByLaw.get(lawId)!.push({ id: req.id, name: req.name, deadline: req.deadline });
+    }
+  }
+
+  const assertionsByReq = new Map<string, Array<{ id: string; status: string; subject: string; realised_via?: string[] }>>();
+  for (const a of canon.assertions) {
+    if (!assertionsByReq.has(a.about)) assertionsByReq.set(a.about, []);
+    assertionsByReq.get(a.about)!.push({ id: a.id, status: a.status, subject: a.subject, realised_via: a.realised_via });
+  }
+
+  const result: Record<string, ChipDetail> = {};
+  for (const chip of layout.complianceRow.chips) {
+    const stageHeader = layout.stageHeaders[chip.stageIndex];
+    if (!stageHeader) continue;
+    const { id: stageId, name: stageName } = stageHeader;
+    const key = `${stageId}|${chip.lawId}`;
+    const items: ChipDetailItem[] = [];
+    for (const req of reqByLaw.get(chip.lawId) ?? []) {
+      for (const a of assertionsByReq.get(req.id) ?? []) {
+        const covers =
+          !a.realised_via || a.realised_via.length === 0 || a.realised_via.includes(stageId);
+        if (covers) {
+          items.push({
+            reqId: req.id,
+            reqName: req.name,
+            deadline: req.deadline,
+            assertionId: a.id,
+            status: a.status,
+            subject: a.subject,
+          });
+        }
+      }
+    }
+    result[key] = { lawId: chip.lawId, stageName, items };
+  }
+  return result;
+}
+
+const CHIP_DETAIL_PANEL_HTML = `
+<div id="tx-chip-panel" hidden class="tx-chip-panel">
+  <div class="tx-chip-panel-header">
+    <span>Compliance detail</span>
+    <button id="tx-chip-close" class="tx-chip-close" aria-label="Close">&times;</button>
+  </div>
+  <div id="tx-chip-content" class="tx-chip-content"></div>
+</div>`;
+
+const CHIP_DETAIL_CSS = `
+[data-chip-law] { cursor: pointer; }
+.tx-chip-panel {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: var(--vscode-editor-background, #ffffff);
+  border-top: 2px solid var(--ts-border, #cbd5e1);
+  padding: 10px 16px 14px;
+  max-height: 260px; overflow-y: auto; z-index: 20;
+  box-shadow: 0 -2px 8px rgba(0,0,0,0.12);
+}
+.tx-chip-panel[hidden] { display: none; }
+.tx-chip-panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.tx-chip-panel-header > span { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ts-text-muted, #64748b); }
+.tx-chip-close { background: none; border: none; cursor: pointer; color: var(--ts-text-muted, #64748b); font-size: 18px; line-height: 1; padding: 0 4px; }
+.tx-chip-close:hover { color: var(--ts-text, #0f172a); }
+.tx-chip-law-heading { font-weight: 700; font-size: 14px; color: var(--ts-text, #0f172a); }
+.tx-chip-stage-label { font-size: 11px; color: var(--ts-text-muted, #64748b); margin-left: 8px; }
+.tx-chip-item { border-top: 1px solid var(--ts-border, #e2e8f0); padding: 6px 0 2px; margin-top: 4px; }
+.tx-chip-req-id { font-size: 10px; font-weight: 600; color: var(--ts-text-muted, #64748b); letter-spacing: 0.05em; text-transform: uppercase; }
+.tx-chip-req-name { font-size: 12px; color: var(--ts-text, #0f172a); margin: 2px 0; }
+.tx-chip-deadline { font-size: 11px; color: var(--vscode-editorWarning-foreground, #c07030); margin-bottom: 4px; }
+.tx-chip-assertion-row { display: flex; gap: 6px; align-items: baseline; flex-wrap: wrap; margin-top: 2px; }
+.tx-chip-subject { font-size: 11px; color: var(--ts-text-muted, #64748b); }
+.tx-chip-status { font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 10px; white-space: nowrap; }
+.tx-chip-status-compliant { background: var(--ts-status-success-bg, #d1fae5); color: var(--ts-status-success-fg, #065f46); }
+.tx-chip-status-partial { background: var(--ts-status-warning-bg, #fef9c3); color: var(--ts-status-warning-fg, #854d0e); }
+.tx-chip-status-non-compliant { background: var(--ts-status-error-bg, #fee2e2); color: var(--ts-status-error-fg, #991b1b); }
+.tx-chip-status-under-review, .tx-chip-status-pending-owner { background: var(--ts-status-info-bg, #e0f2fe); color: var(--ts-status-info-fg, #0c4a6e); }
+.tx-chip-status-n-a { background: var(--ts-bg-elevated, #f1f5f9); color: var(--ts-text-muted, #64748b); }
+.tx-chip-empty { color: var(--ts-text-muted, #64748b); font-size: 12px; padding: 4px 0; }
+`;
+
+function buildChipDetailScript(nonce: string, chipData: Record<string, ChipDetail>): string {
+  const safeJson = JSON.stringify(chipData).replace(/<\//g, '<\\/');
+  return `<script nonce="${nonce}">
+(function () {
+  var data = ${safeJson};
+  var panel = document.getElementById('tx-chip-panel');
+  var content = document.getElementById('tx-chip-content');
+  var closeBtn = document.getElementById('tx-chip-close');
+  if (!panel || !content) return;
+  function esc(s) {
+    return String(s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  var STATUS_LABEL = {
+    compliant: '\\u2713 Compliant', partial: '\\u007e Partial',
+    non_compliant: '\\u2717 Non-compliant', under_review: '\\u2299 Under review',
+    pending_owner: '\\u2299 Pending owner', n_a: '\\u2014 N/A'
+  };
+  function statusCls(s) { return 'tx-chip-status tx-chip-status-' + s.replace(/_/g, '-'); }
+  function renderDetail(d) {
+    var html = '<span class="tx-chip-law-heading">' + esc(d.lawId) + '<\\/span>'
+             + '<span class="tx-chip-stage-label">\\u00b7 Stage: ' + esc(d.stageName) + '<\\/span>';
+    if (!d.items || d.items.length === 0) {
+      html += '<div class="tx-chip-empty">No assertions for this stage.<\\/div>';
+    } else {
+      for (var i = 0; i < d.items.length; i++) {
+        var it = d.items[i];
+        html += '<div class="tx-chip-item">'
+              + '<div class="tx-chip-req-id">' + esc(it.reqId) + '<\\/div>'
+              + '<div class="tx-chip-req-name">' + esc(it.reqName) + '<\\/div>';
+        if (it.deadline) html += '<div class="tx-chip-deadline">Deadline: ' + esc(it.deadline) + '<\\/div>';
+        html += '<div class="tx-chip-assertion-row">'
+              + '<span class="tx-chip-subject">' + esc(it.subject) + '<\\/span> '
+              + '<span class="' + statusCls(it.status) + '">' + esc(STATUS_LABEL[it.status] || it.status) + '<\\/span>'
+              + '<\\/div><\\/div>';
+      }
+    }
+    return html;
+  }
+  var groups = document.querySelectorAll('[data-chip-law]');
+  for (var i = 0; i < groups.length; i++) {
+    (function (el) {
+      el.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var lawId = el.getAttribute('data-chip-law');
+        var stageId = el.getAttribute('data-chip-stage');
+        var key = stageId + '|' + lawId;
+        var detail = data[key];
+        if (!detail) { panel.hidden = true; return; }
+        content.innerHTML = renderDetail(detail);
+        panel.hidden = false;
+      });
+    })(groups[i]);
+  }
+  if (closeBtn) closeBtn.addEventListener('click', function () { panel.hidden = true; });
+  document.addEventListener('click', function (e) {
+    if (!panel.hidden && !panel.contains(e.target)) panel.hidden = true;
+  });
+}());
+<\/script>`;
 }
 
 /** Extract compliance lane config from the blueprint's `lane_config:` block. */
@@ -263,7 +437,7 @@ export class ProcessBlueprintPreview {
         'processBlueprintPreview',
         `${this.panelTitle} — ${path.basename(doc.fileName)}`,
         { viewColumn: vscode.ViewColumn.Beside, preserveFocus: false },
-        { enableScripts: false, retainContextWhenHidden: true, enableCommandUris: ['transitrixStudio.saveProcessBlueprintAsSvg', 'transitrixStudio.saveProcessBlueprintAsPng', 'transitrixStudio.copyProcessBlueprintAsPng'] },
+        { enableScripts: true, retainContextWhenHidden: true, enableCommandUris: ['transitrixStudio.saveProcessBlueprintAsSvg', 'transitrixStudio.saveProcessBlueprintAsPng', 'transitrixStudio.copyProcessBlueprintAsPng'] },
       );
       this.panel.onDidDispose(() => { this.panel = undefined; this.trackedUri = undefined; });
     }
@@ -284,6 +458,8 @@ export class ProcessBlueprintPreview {
     let svgContent = '';
     let errorMsg = '';
     let warnings: string[] = [];
+    let drillDownNonce = '';
+    let drillDownScript = '';
 
     try {
       const parsed = coerceDatesToIsoStrings(yaml.load(yamlText) as unknown);
@@ -314,9 +490,11 @@ export class ProcessBlueprintPreview {
         const complianceVisible = visibleLanes ? visibleLanes.includes('compliance') : true;
 
         let complianceInput: ComplianceLaneInput | undefined;
+        let scannedCanon: ScannedCanon | undefined;
         if (laneCfg.enabled && complianceVisible) {
           try {
             const canon = await scanComplianceCanon();
+            scannedCanon = canon;
             complianceInput = buildComplianceLaneInput(canon);
           } catch {
             // Non-fatal: render blueprint without compliance lane if scan fails.
@@ -329,6 +507,16 @@ export class ProcessBlueprintPreview {
           visibleAspects,
         });
         svgContent = layoutToSvg(layout, filename, docDate, docVersion);
+
+        // Append the drill-down panel when compliance chips are present.
+        if (layout.complianceRow && scannedCanon) {
+          svgContent += CHIP_DETAIL_PANEL_HTML;
+          drillDownNonce = genNonce();
+          drillDownScript = buildChipDetailScript(
+            drillDownNonce,
+            buildChipDetailData(layout, scannedCanon),
+          );
+        }
       }
     } catch (e) {
       errorMsg = (e as Error).message ?? 'Parse error';
@@ -347,9 +535,13 @@ export class ProcessBlueprintPreview {
       errorMsg,
       warnings,
       themeId,
+      extraStyles: CHIP_DETAIL_CSS,
       saveSvgCommand: 'transitrixStudio.saveProcessBlueprintAsSvg',
       savePngCommand: 'transitrixStudio.saveProcessBlueprintAsPng',
       copyPngCommand: 'transitrixStudio.copyProcessBlueprintAsPng',
+      interactive: drillDownNonce
+        ? { nonce: drillDownNonce, controlsPanel: '', controlsScript: drillDownScript }
+        : undefined,
     });
   }
 
