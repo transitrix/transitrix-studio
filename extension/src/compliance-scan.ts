@@ -60,12 +60,29 @@ export async function scanComplianceCanon(): Promise<ScannedCanon> {
   return { ...canon, pathById, skippedNotations };
 }
 
+// Known Transitrix notation values that are definitively not compliance artefacts.
+// Files with these notations have `id` + `notation` but are silently skipped —
+// no warning is emitted. The warning is reserved for truly unrecognised values
+// (e.g. a typo like "asssertion") that might indicate a miscategorised file.
+const SILENT_NOTATIONS = new Set([
+  // Element notations
+  'activity', 'actor', 'assessment', 'business_object', 'change', 'constraint',
+  'equipment', 'factor', 'goal', 'registry', 'relation', 'role', 'rule',
+  'stakeholder', 'target-state',
+  // View / diagram notations
+  'activities', 'activity-card', 'applications', 'blocks', 'bpmn',
+  'capability-map', 'compliance-impact', 'coverage-metric', 'fga', 'fgca',
+  'goals', 'issues', 'process-blueprint', 'process-map', 'products', 'scenarios',
+]);
+
 /** True when a parsed YAML document looks like a canon artefact candidate
- *  (has `id` + `notation`) but was not recognised by `ingestComplianceDoc`. */
+ *  (has `id` + `notation`) but was not recognised by `ingestComplianceDoc`
+ *  and is not a known non-compliance Transitrix notation. */
 function hasIdAndNotation(doc: unknown): boolean {
   if (doc === null || typeof doc !== 'object' || Array.isArray(doc)) return false;
   const d = doc as Record<string, unknown>;
-  return typeof d.id === 'string' && typeof d.notation === 'string';
+  if (typeof d.id !== 'string' || typeof d.notation !== 'string') return false;
+  return !SILENT_NOTATIONS.has(d.notation);
 }
 
 /** Opens a canon artefact file beside the active editor — the click-to-open
