@@ -5,10 +5,8 @@ import { readFile } from 'node:fs/promises';
 import jsyaml from 'js-yaml';
 
 import {
-  CERVIN_DEPRECATION_NOTICE,
-  DEFAULT_CERVIN_FILE_EXTENSIONS,
+  DEFAULT_TRANSITRIX_FILE_EXTENSIONS,
   inputMatchesExtension,
-  invokedAsCervin,
   parseCliFileArgv,
   parseValidateArgv,
 } from './cli-parse.js';
@@ -24,16 +22,15 @@ function printUsage(): void {
   console.error(`Transitrix Studio CLI — usage:
        transitrix serve [--port 8765] [--host 127.0.0.1]
        transitrix <input.yaml> <output.bpmn> [--no-metrics] [--no-validate]
-       transitrix [--ext=.cervin.yaml,.bpmn.transitrix.yaml] <input.yaml> <output.bpmn> [--no-metrics] [--no-validate]
+       transitrix [--ext=.bpmn.transitrix.yaml] <input.yaml> <output.bpmn> [--no-metrics] [--no-validate]
        transitrix metrics <input.yaml> [--json]
-       transitrix metrics [--ext=.cervin.yaml,.bpmn.transitrix.yaml] <input.yaml> [--json]
+       transitrix metrics [--ext=.bpmn.transitrix.yaml] <input.yaml> [--json]
        transitrix validate <input.yaml> [--json]
-       transitrix validate [--ext=.cervin.yaml,.bpmn.transitrix.yaml] <input.yaml> [--json]
+       transitrix validate [--ext=.bpmn.transitrix.yaml] <input.yaml> [--json]
        transitrix validate --scope=repo [--root <dir>] [--json]
        transitrix export-compliance [--format md|pdf] [--scope law:<ID>|product:<ID>|gap] [--output <path>] [--root <dir>]
        transitrix migrate [--from X.Y] [--to X.Y] [--dry-run] [--recipes <dir>] [target-dir]
 
-  ('cervin' is a deprecated alias of 'transitrix'; both run the same CLI.)
 
   serve     — local web UI (run npm run ui:build once beforehand).
   <compile> — YAML → BPMN 2.0 XML with layout metrics.
@@ -57,11 +54,11 @@ function printUsage(): void {
   --no-validate suppress validation warnings (errors always run).
 
 Examples:
-  npm run transitrix -- compile input.cervin.yaml output.bpmn
+  npm run transitrix -- compile input.bpmn.transitrix.yaml output.bpmn
   npm run transitrix -- serve
-  npm run transitrix -- metrics example.cervin.yaml --json
-  npm run transitrix -- validate example.cervin.yaml
-  npm run transitrix -- validate example.cervin.yaml --json
+  npm run transitrix -- metrics example.bpmn.transitrix.yaml --json
+  npm run transitrix -- validate example.bpmn.transitrix.yaml
+  npm run transitrix -- validate example.bpmn.transitrix.yaml --json
   npm run transitrix -- migrate --dry-run
   npm run transitrix -- migrate --from 0.5 --to 0.6 /path/to/adopter-repo
 `);
@@ -75,7 +72,7 @@ async function handleCompileCommand(argv: string[]): Promise<void> {
   }
 
   const { positional, extList, wantsHelp } = parsed;
-  const exts = extList.length > 0 ? extList : DEFAULT_CERVIN_FILE_EXTENSIONS;
+  const exts = extList.length > 0 ? extList : DEFAULT_TRANSITRIX_FILE_EXTENSIONS;
 
   if (wantsHelp) {
     printUsage();
@@ -265,7 +262,7 @@ async function handleValidateCommand(argv: string[]): Promise<void> {
   }
 
   const { scope, root, positional, extList, wantsHelp } = parsed;
-  const exts = extList.length > 0 ? extList : DEFAULT_CERVIN_FILE_EXTENSIONS;
+  const exts = extList.length > 0 ? extList : DEFAULT_TRANSITRIX_FILE_EXTENSIONS;
   const useJson = argv.includes('--json');
 
   if (wantsHelp) {
@@ -461,7 +458,7 @@ async function handleMetricsCommand(argv: string[]): Promise<void> {
   }
 
   const { positional, extList, wantsHelp } = parsed;
-  const exts = extList.length > 0 ? extList : DEFAULT_CERVIN_FILE_EXTENSIONS;
+  const exts = extList.length > 0 ? extList : DEFAULT_TRANSITRIX_FILE_EXTENSIONS;
   const useJson = argv.includes('--json');
 
   if (wantsHelp) {
@@ -506,11 +503,6 @@ async function handleMetricsCommand(argv: string[]): Promise<void> {
   }
 }
 
-// Cervin → Transitrix deprecation (P1): warn once when launched under the
-// legacy `cervin` bin name. Goes to stderr so it never pollutes --json output.
-if (invokedAsCervin(process.argv[1])) {
-  console.error(CERVIN_DEPRECATION_NOTICE);
-}
 
 const subcommand = process.argv[2];
 

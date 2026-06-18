@@ -34,9 +34,6 @@ const ajv = new Ajv({ allErrors: true, strict: false })
 addFormats(ajv)
 const validateConfig = ajv.compile(CERVINRC_SCHEMA)
 
-/**
- * Format AJV validation errors into human-readable messages.
- */
 function formatAjvErrors(): string[] {
   const e = validateConfig.errors
   if (!e?.length) return []
@@ -46,9 +43,6 @@ function formatAjvErrors(): string[] {
   )
 }
 
-/**
- * Validate raw data against .cervinrc schema.
- */
 function validateCervinrcDocument(data: unknown): asserts data is TransitrixrcConfig {
   if (!validateConfig(data)) {
     const err = new Error('Config validation failed') as ConfigError
@@ -57,27 +51,8 @@ function validateCervinrcDocument(data: unknown): asserts data is TransitrixrcCo
   }
 }
 
-// Cervin → Transitrix config migration (CLAUDE.md §Cervin naming, P4). The
-// canonical project config is `.transitrixrc`; `.cervinrc` is read as a
-// fallback through the 1.x line and removed in 2.0.0.
 const TRANSITRIXRC_FILE = '.transitrixrc'
-const CERVINRC_FILE = '.cervinrc'
 
-export const CERVINRC_DEPRECATION_NOTICE =
-  '.cervinrc is deprecated and will be removed in 2.0.0 — rename it to .transitrixrc.'
-
-let cervinrcNoticeShown = false
-
-function noteCervinrcDeprecation(): void {
-  if (cervinrcNoticeShown) return
-  cervinrcNoticeShown = true
-  console.warn(CERVINRC_DEPRECATION_NOTICE)
-}
-
-/**
- * Read, JSON-parse and schema-validate a single rc file. `fileLabel` is the
- * bare filename used in error messages so they name the file actually read.
- */
 function loadRcFile(rcPath: string, fileLabel: string): TransitrixrcConfig {
   try {
     const content = readFileSync(rcPath, 'utf8')
@@ -90,7 +65,7 @@ function loadRcFile(rcPath: string, fileLabel: string): TransitrixrcConfig {
       throw err
     }
     if ((e as ConfigError).errors) {
-      throw e // Re-throw validation errors
+      throw e
     }
     const err = e as Error
     throw new Error(`Failed to load ${fileLabel}: ${err.message}`)
@@ -98,33 +73,23 @@ function loadRcFile(rcPath: string, fileLabel: string): TransitrixrcConfig {
 }
 
 /**
- * Load and parse the project config from the given directory. Prefers
- * `.transitrixrc`; falls back to the legacy `.cervinrc` (with a one-time
- * deprecation notice) when `.transitrixrc` is absent. Returns an empty config
- * when neither exists.
+ * Load and parse the project config from `.transitrixrc` in the given
+ * directory. Returns an empty config when the file is absent.
  *
  * @param startPath Directory to search (default: current working directory)
  * @returns Validated config, or empty config if no file is found
- * @throws ConfigError if a file exists but is invalid JSON or fails schema validation
+ * @throws ConfigError if the file exists but is invalid JSON or fails schema validation
  */
 export function loadTransitrixrc(startPath: string = process.cwd()): TransitrixrcConfig {
   const transitrixPath = join(startPath, TRANSITRIXRC_FILE)
   if (existsSync(transitrixPath)) {
     return loadRcFile(transitrixPath, TRANSITRIXRC_FILE)
   }
-
-  const cervinPath = join(startPath, CERVINRC_FILE)
-  if (existsSync(cervinPath)) {
-    noteCervinrcDeprecation()
-    return loadRcFile(cervinPath, CERVINRC_FILE)
-  }
-
-  return {} // Optional config file
+  return {}
 }
 
 /**
- * @deprecated Use {@link loadTransitrixrc}. Retained as a compatibility alias
- * through the 1.x line; reads `.transitrixrc` then falls back to `.cervinrc`.
+ * @deprecated Removed in 2.0.0 — use {@link loadTransitrixrc}.
  */
 export function loadCervinrc(startPath: string = process.cwd()): TransitrixrcConfig {
   return loadTransitrixrc(startPath)
@@ -133,8 +98,6 @@ export function loadCervinrc(startPath: string = process.cwd()): TransitrixrcCon
 /**
  * Prevent downgrade of error-severity rules.
  * Error rules are BPMN conformance gates and cannot be disabled or demoted.
- *
- * @throws ConfigError if any error-severity rule is marked 'off'
  */
 export function assertNoCriticalRuleDowngrade(
   registeredRules: Map<string, ValidationRule>,
@@ -158,13 +121,8 @@ export function assertNoCriticalRuleDowngrade(
 }
 
 /**
- * Merge .cervinrc config with rule registry to produce a set of enabled rule IDs.
- * Rules marked 'off' are excluded; unmarked rules are included (except off-by-default rules).
- * Off-by-default rules must be explicitly enabled via config.
- *
- * @param registeredRules All registered validation rules
- * @param config Loaded .cervinrc config
- * @returns Set of rule IDs that should be executed
+ * Merge config with rule registry to produce a set of enabled rule IDs.
+ * Rules marked 'off' are excluded; off-by-default rules must be explicitly enabled.
  */
 export function mergeConfigWithDefaults(
   registeredRules: Map<string, ValidationRule>,
@@ -172,20 +130,17 @@ export function mergeConfigWithDefaults(
 ): Set<string> {
   const enabledRules = new Set<string>()
 
-  // Start with all registered rules except those marked offByDefault
   for (const [ruleId, rule] of registeredRules.entries()) {
     if (!rule.offByDefault) {
       enabledRules.add(ruleId)
     }
   }
 
-  // Apply overrides from config
   if (config.rules) {
     for (const [ruleId, override] of Object.entries(config.rules)) {
       if (override === 'off') {
         enabledRules.delete(ruleId)
       } else if (override === 'warn') {
-        // 'warn' override: explicitly enable the rule (useful for off-by-default rules)
         enabledRules.add(ruleId)
       }
     }

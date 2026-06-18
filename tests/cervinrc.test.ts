@@ -1,14 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { writeFileSync, unlinkSync, mkdirSync, rmSync } from 'node:fs'
+import { writeFileSync, mkdirSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import {
   loadCervinrc,
   loadTransitrixrc,
   assertNoCriticalRuleDowngrade,
   mergeConfigWithDefaults,
-  CERVINRC_DEPRECATION_NOTICE,
 } from '../src/cervinrc.js'
-import type { ValidationRule, CervinrcConfig, ConfigError } from '../src/validator-types.js'
+import type { ValidationRule, TransitrixrcConfig, ConfigError } from '../src/validator-types.js'
 
 describe('cervinrc config loader', () => {
   const testDir = '/tmp/cervinrc-test'
@@ -21,26 +20,26 @@ describe('cervinrc config loader', () => {
     rmSync(testDir, { recursive: true, force: true })
   })
 
-  it('loads valid .cervinrc with warning rule overridden to off', () => {
-    const config: CervinrcConfig = {
+  it('loads valid .transitrixrc with warning rule overridden to off', () => {
+    const config: TransitrixrcConfig = {
       rules: {
         'AP-001': 'off',
         'AP-002': 'warn',
       },
     }
-    writeFileSync(join(testDir, '.cervinrc'), JSON.stringify(config))
+    writeFileSync(join(testDir, '.transitrixrc'), JSON.stringify(config))
 
     const loaded = loadCervinrc(testDir)
     expect(loaded.rules).toEqual(config.rules)
   })
 
-  it('returns empty config when .cervinrc does not exist', () => {
+  it('returns empty config when .transitrixrc does not exist', () => {
     const loaded = loadCervinrc(testDir)
     expect(loaded).toEqual({})
   })
 
   it('throws ConfigError on invalid JSON', () => {
-    writeFileSync(join(testDir, '.cervinrc'), '{ invalid json }')
+    writeFileSync(join(testDir, '.transitrixrc'), '{ invalid json }')
 
     expect(() => loadCervinrc(testDir)).toThrow(
       expect.objectContaining({
@@ -51,7 +50,7 @@ describe('cervinrc config loader', () => {
 
   it('throws ConfigError on schema validation failure (unknown rule ID format)', () => {
     const config = { rules: { 'INVALID': 'off' } }
-    writeFileSync(join(testDir, '.cervinrc'), JSON.stringify(config))
+    writeFileSync(join(testDir, '.transitrixrc'), JSON.stringify(config))
 
     expect(() => loadCervinrc(testDir)).toThrow(
       expect.objectContaining({
@@ -62,7 +61,7 @@ describe('cervinrc config loader', () => {
 
   it('throws ConfigError on invalid override value', () => {
     const config = { rules: { 'AP-001': 'invalid' } }
-    writeFileSync(join(testDir, '.cervinrc'), JSON.stringify(config))
+    writeFileSync(join(testDir, '.transitrixrc'), JSON.stringify(config))
 
     expect(() => loadCervinrc(testDir)).toThrow(
       expect.objectContaining({
@@ -84,7 +83,7 @@ describe('cervinrc config loader', () => {
       ],
     ])
 
-    const config: CervinrcConfig = {
+    const config: TransitrixrcConfig = {
       rules: { 'SE-001': 'off' },
     }
 
@@ -108,7 +107,7 @@ describe('cervinrc config loader', () => {
       ],
     ])
 
-    const config: CervinrcConfig = {
+    const config: TransitrixrcConfig = {
       rules: { 'AP-001': 'off' },
     }
 
@@ -136,7 +135,7 @@ describe('cervinrc config loader', () => {
       ['AP-002', { ruleId: 'AP-002', severity: 'warning', description: 'Test', validate: () => [] }],
     ])
 
-    const config: CervinrcConfig = {
+    const config: TransitrixrcConfig = {
       rules: { 'AP-001': 'off' },
     }
 
@@ -152,7 +151,7 @@ describe('cervinrc config loader', () => {
       ['AP-001', { ruleId: 'AP-001', severity: 'warning', description: 'Test', validate: () => [] }],
     ])
 
-    const config: CervinrcConfig = {
+    const config: TransitrixrcConfig = {
       rules: { 'AP-001': 'warn' },
     }
 
@@ -162,7 +161,7 @@ describe('cervinrc config loader', () => {
 
   it('rejects additionalProperties in config root', () => {
     const config = { rules: {}, unknownField: true }
-    writeFileSync(join(testDir, '.cervinrc'), JSON.stringify(config))
+    writeFileSync(join(testDir, '.transitrixrc'), JSON.stringify(config))
 
     expect(() => loadCervinrc(testDir)).toThrow(
       expect.objectContaining({
@@ -206,7 +205,7 @@ describe('cervinrc config loader', () => {
       ],
     ])
 
-    const config: CervinrcConfig = {
+    const config: TransitrixrcConfig = {
       rules: { 'AP-GW-AS-TASK': 'warn' },
     }
 
@@ -215,7 +214,7 @@ describe('cervinrc config loader', () => {
   })
 })
 
-describe('loadTransitrixrc (Cervin deprecation P4)', () => {
+describe('loadTransitrixrc (Cervin deprecation P7)', () => {
   const testDir = '/tmp/transitrixrc-test'
 
   beforeEach(() => {
@@ -227,30 +226,14 @@ describe('loadTransitrixrc (Cervin deprecation P4)', () => {
   })
 
   it('loads .transitrixrc when present', () => {
-    const config: CervinrcConfig = { rules: { 'AP-001': 'off' } }
+    const config: TransitrixrcConfig = { rules: { 'AP-001': 'off' } }
     writeFileSync(join(testDir, '.transitrixrc'), JSON.stringify(config))
 
     const loaded = loadTransitrixrc(testDir)
     expect(loaded.rules).toEqual(config.rules)
   })
 
-  it('falls back to .cervinrc when .transitrixrc is absent', () => {
-    const config: CervinrcConfig = { rules: { 'AP-002': 'warn' } }
-    writeFileSync(join(testDir, '.cervinrc'), JSON.stringify(config))
-
-    const loaded = loadTransitrixrc(testDir)
-    expect(loaded.rules).toEqual(config.rules)
-  })
-
-  it('prefers .transitrixrc over a present .cervinrc', () => {
-    writeFileSync(join(testDir, '.transitrixrc'), JSON.stringify({ rules: { 'AP-001': 'off' } }))
-    writeFileSync(join(testDir, '.cervinrc'), JSON.stringify({ rules: { 'AP-002': 'warn' } }))
-
-    const loaded = loadTransitrixrc(testDir)
-    expect(loaded.rules).toEqual({ 'AP-001': 'off' })
-  })
-
-  it('returns empty config when neither file exists', () => {
+  it('returns empty config when .transitrixrc does not exist', () => {
     expect(loadTransitrixrc(testDir)).toEqual({})
   })
 
@@ -264,10 +247,5 @@ describe('loadTransitrixrc (Cervin deprecation P4)', () => {
   it('loadCervinrc is an alias that still resolves .transitrixrc', () => {
     writeFileSync(join(testDir, '.transitrixrc'), JSON.stringify({ rules: { 'AP-001': 'off' } }))
     expect(loadCervinrc(testDir).rules).toEqual({ 'AP-001': 'off' })
-  })
-
-  it('exposes a deprecation notice naming .transitrixrc', () => {
-    expect(CERVINRC_DEPRECATION_NOTICE).toMatch(/\.transitrixrc/)
-    expect(CERVINRC_DEPRECATION_NOTICE).toMatch(/deprecated/i)
   })
 })

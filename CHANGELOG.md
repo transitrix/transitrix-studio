@@ -2,6 +2,47 @@
 
 ## [Unreleased]
 
+## [2.0.0] — 2026-06-18
+
+### Breaking changes
+
+All `cervin` compatibility shims introduced in 1.x are removed in this release.
+See the **Migration guide** section below for drop-in replacements.
+
+- **`cervin` CLI binary removed.** The `cervin` command no longer exists. Use `transitrix`.
+- **`cervin.*` VS Code settings removed.** `cervin.fileExtensions` and `cervin.exportEnabled` no longer exist. Use `transitrix.fileExtensions` / `transitrix.exportEnabled`.
+- **`cervin.*` VS Code commands removed.** `cervin.openPreview`, `cervin.exportSvg`, `cervin.exportPng`, `cervin.exportBpmn` are gone. Use the `transitrix.*` equivalents. Any keybindings or macros that referenced `cervin.*` commands must be updated.
+- **`.cervinrc` config file no longer read.** `loadTransitrixrc()` now reads only `.transitrixrc`. Rename `.cervinrc` → `.transitrixrc` (same JSON schema).
+- **`cervin-yaml` VS Code language ID renamed to `transitrix-yaml`.** If you have `"[cervin-yaml]"` in your `settings.json` (e.g. for a formatter rule), change it to `"[transitrix-yaml]"`. `cervin-yaml` is listed as a legacy alias so existing syntax highlighting continues to work without action for most users.
+- **`DEFAULT_CERVIN_FILE_EXTENSIONS` is now a deprecated alias of `DEFAULT_TRANSITRIX_FILE_EXTENSIONS`.** The default file extension list no longer includes `.cervin.yaml`; only `.bpmn.transitrix.yaml` is canonical.
+- **BPMN `exporter` attribute changed from `cervin` to `transitrix`.** Exported `.bpmn` files now carry `exporter="transitrix"`. Existing files are unaffected; only newly compiled files change.
+
+### Migration guide
+
+| 1.x (removed) | 2.0 replacement |
+|----------------|-----------------|
+| `cervin <args>` | `transitrix <args>` |
+| `cervin.fileExtensions` setting | `transitrix.fileExtensions` |
+| `cervin.exportEnabled` setting | `transitrix.exportEnabled` |
+| `cervin.openPreview` command | `transitrix.openPreview` |
+| `cervin.exportSvg` command | `transitrix.exportSvg` |
+| `cervin.exportPng` command | `transitrix.exportPng` |
+| `cervin.exportBpmn` command | `transitrix.exportBpmn` |
+| `.cervinrc` project config | `.transitrixrc` (identical JSON schema) |
+| `"[cervin-yaml]"` in settings.json | `"[transitrix-yaml]"` |
+
+**Note:** `*.cervin.yaml` files still open in the editor and the language server — the file-extension sunset is a separate methodology decision.
+
+### Removed
+
+- `cervin` bin entry from `package.json` / `bin` field
+- `cervin.*` VS Code command registrations and Command Palette entries
+- `cervin.*` VS Code setting enablement fallbacks
+- `.cervinrc` fallback path in `loadTransitrixrc()`
+- `CERVIN_DEPRECATION_NOTICE` / `invokedAsCervin()` from `cli-parse.ts`
+- `cervinPackageVersion()` → replaced by `transitrixPackageVersion()`
+- `cervin-export-` temp directory prefix → now `transitrix-export-`
+
 ## [1.6.0] — 2026-06-17
 
 ### Added
