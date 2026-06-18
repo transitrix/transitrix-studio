@@ -61,17 +61,23 @@ export interface RasterizeOptions {
   background?: string;
 }
 
+import { createRequire } from 'node:module';
+
 type ResvgModule = typeof import('@resvg/resvg-js');
-let resvgModule: Promise<ResvgModule> | undefined;
+let resvgModule: ResvgModule | undefined;
 
 /**
- * Lazily load the native `@resvg/resvg-js` binding. Deferred so opening a
- * preview never pays the native-module load cost — it happens only on the
- * first PNG export. The module is marked `external` in the esbuild bundle so
- * its platform `.node` binary resolves from the shipped `node_modules`.
+ * Lazily load the native `@resvg/resvg-js` binding. Uses createRequire so
+ * CJS resolution walks parent dirs from out/extension.js and finds
+ * node_modules/@resvg in the extension root. A plain ESM dynamic import()
+ * fails in VS Code's Electron host: the package has no "exports" field and
+ * the host's ESM resolver doesn't fall back to "main".
  */
-function loadResvg(): Promise<ResvgModule> {
-  if (!resvgModule) resvgModule = import('@resvg/resvg-js');
+function loadResvg(): ResvgModule {
+  if (!resvgModule) {
+    const req = createRequire(import.meta.url);
+    resvgModule = req('@resvg/resvg-js') as ResvgModule;
+  }
   return resvgModule;
 }
 
@@ -82,7 +88,7 @@ function loadResvg(): Promise<ResvgModule> {
  */
 export async function rasterizeSvgToPng(svg: string, opts: RasterizeOptions = {}): Promise<Buffer> {
   const { scale = 2, background = 'white' } = opts;
-  const { Resvg } = await loadResvg();
+  const { Resvg } = loadResvg();
   const flattened = flattenCssVars(svg);
   const resvg = new Resvg(flattened, {
     background,

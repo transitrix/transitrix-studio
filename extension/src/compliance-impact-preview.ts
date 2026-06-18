@@ -766,7 +766,7 @@ body { padding: 0; }
 .ci-cell { width: var(--ts-col-w, 120px); height: 40px; text-align: center; vertical-align: middle; }
 .ci-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
 .ci-link { text-decoration: none; }
-.ci-gap { background: repeating-linear-gradient(45deg, transparent, transparent 5px, var(--ts-bg-subtle, #f1f5f9) 5px, var(--ts-bg-subtle, #f1f5f9) 10px); }
+.ci-gap { background: repeating-linear-gradient(-45deg, transparent, transparent 5px, var(--ts-bg-subtle, #f1f5f9) 5px, var(--ts-bg-subtle, #f1f5f9) 10px); }
 .ci-pending { background: #fef9c3; border: 1px dashed #b45309 !important; }
 .ci-badge-pending { display: inline-block; padding: 2px 6px; border-radius: 8px; font-size: 10px; font-weight: 600; color: #b45309; background: #fef9c3; }
 .ci-filtered { background: var(--ts-bg-subtle, #f8fafc); opacity: 0.35; }

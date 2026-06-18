@@ -510,7 +510,6 @@ export class ProcessBlueprintPreview {
 
         // Append the drill-down panel when compliance chips are present.
         if (layout.complianceRow && scannedCanon) {
-          svgContent += CHIP_DETAIL_PANEL_HTML;
           drillDownNonce = genNonce();
           drillDownScript = buildChipDetailScript(
             drillDownNonce,
@@ -522,7 +521,10 @@ export class ProcessBlueprintPreview {
       errorMsg = (e as Error).message ?? 'Parse error';
     }
 
+    // Store pure SVG only — the drill-down HTML panel must not be included
+    // here because lastSvg is passed directly to resvg for PNG rasterization.
     this.lastSvg = svgContent;
+    const webviewSvgContent = drillDownNonce ? svgContent + CHIP_DETAIL_PANEL_HTML : svgContent;
 
     const themeId = vscode.workspace
       .getConfiguration('transitrix')
@@ -531,7 +533,7 @@ export class ProcessBlueprintPreview {
     return buildDiagramFrame({
       filename,
       notation: 'Process Blueprint',
-      svgContent,
+      svgContent: webviewSvgContent,
       errorMsg,
       warnings,
       themeId,

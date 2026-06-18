@@ -1,7 +1,7 @@
 import { create } from 'xmlbuilder2';
 
 import type { FlowElement, LayoutIr } from './ir.js';
-import { cervinPackageVersion } from './package-version.js';
+import { transitrixPackageVersion } from './package-version.js';
 
 const BPMN_MODEL = 'http://www.omg.org/spec/BPMN/20100524/MODEL';
 const BPMN_DI = 'http://www.omg.org/spec/BPMN/20100524/DI';
@@ -41,8 +41,8 @@ export function emitBpmnXml(layout: LayoutIr): string {
     'xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
     id: 'Definitions_1',
     targetNamespace: 'http://bpmn.io/schema/bpmn',
-    exporter: 'cervin',
-    exporterVersion: cervinPackageVersion(),
+    exporter: 'transitrix',
+    exporterVersion: transitrixPackageVersion(),
   });
 
   const collaboration = definitions.ele('collaboration', { id: collabId });

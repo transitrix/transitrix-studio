@@ -216,7 +216,7 @@ export async function handleExportComplianceCommand(argv: string[]): Promise<voi
     // format === 'pdf'
     const html = renderImpactMatrixHtml(matrix, { today });
     const pdfPath = output ?? `compliance-impact-${viewConfig.id}.pdf`;
-    const tmpDir = mkdtempSync(path.join(os.tmpdir(), 'cervin-export-'));
+    const tmpDir = mkdtempSync(path.join(os.tmpdir(), 'transitrix-export-'));
     const htmlPath = path.join(tmpDir, 'report.html');
     try {
       writeFileSync(htmlPath, html, 'utf-8');
@@ -252,7 +252,7 @@ export async function handleExportComplianceCommand(argv: string[]): Promise<voi
   // format === 'pdf'
   const html = renderComplianceHtml(canon, scope, { today });
   const pdfPath = output ?? defaultPdfFilename(scope);
-  const tmpDir = mkdtempSync(path.join(os.tmpdir(), 'cervin-export-'));
+  const tmpDir = mkdtempSync(path.join(os.tmpdir(), 'transitrix-export-'));
   const htmlPath = path.join(tmpDir, 'report.html');
   try {
     writeFileSync(htmlPath, html, 'utf-8');
