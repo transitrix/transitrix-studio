@@ -8,10 +8,10 @@ name: JetBrains Marketplace — publish
 # Bump it there before cutting a release that includes IntelliJ changes.
 #
 # Prerequisites (one-time maintainer setup — see intellij/PUBLISHING.md):
-#   - JETBRAINS_CERTIFICATE_CHAIN  — contents of chain.crt (PEM)
-#   - JETBRAINS_PRIVATE_KEY        — contents of private.pem (PEM)
-#   - JETBRAINS_PRIVATE_KEY_PASSWORD — passphrase used when generating the key
-#   - JETBRAINS_PUBLISH_TOKEN      — permanent token from plugins.jetbrains.com
+#   - CERTIFICATE_CHAIN      — contents of chain.crt (PEM)
+#   - PRIVATE_KEY            — contents of private.pem (PEM)
+#   - PRIVATE_KEY_PASSWORD   — passphrase used when generating the key
+#   - PUBLISH_TOKEN          — permanent token from plugins.jetbrains.com
 #
 # NOTE: the very first upload of a NEW plugin must be done manually via the
 # JetBrains Marketplace website; this workflow only handles subsequent updates.
@@ -36,16 +36,16 @@ jobs:
 
       - name: Verify secrets are set
         env:
-          CERTIFICATE_CHAIN: ${{ secrets.JETBRAINS_CERTIFICATE_CHAIN }}
-          PRIVATE_KEY: ${{ secrets.JETBRAINS_PRIVATE_KEY }}
-          PRIVATE_KEY_PASSWORD: ${{ secrets.JETBRAINS_PRIVATE_KEY_PASSWORD }}
-          PUBLISH_TOKEN: ${{ secrets.JETBRAINS_PUBLISH_TOKEN }}
+          CERTIFICATE_CHAIN: ${{ secrets.CERTIFICATE_CHAIN }}
+          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+          PRIVATE_KEY_PASSWORD: ${{ secrets.PRIVATE_KEY_PASSWORD }}
+          PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
         run: |
           missing=()
-          [ -z "$CERTIFICATE_CHAIN" ]    && missing+=(JETBRAINS_CERTIFICATE_CHAIN)
-          [ -z "$PRIVATE_KEY" ]          && missing+=(JETBRAINS_PRIVATE_KEY)
-          [ -z "$PRIVATE_KEY_PASSWORD" ] && missing+=(JETBRAINS_PRIVATE_KEY_PASSWORD)
-          [ -z "$PUBLISH_TOKEN" ]        && missing+=(JETBRAINS_PUBLISH_TOKEN)
+          [ -z "$CERTIFICATE_CHAIN" ]    && missing+=(CERTIFICATE_CHAIN)
+          [ -z "$PRIVATE_KEY" ]          && missing+=(PRIVATE_KEY)
+          [ -z "$PRIVATE_KEY_PASSWORD" ] && missing+=(PRIVATE_KEY_PASSWORD)
+          [ -z "$PUBLISH_TOKEN" ]        && missing+=(PUBLISH_TOKEN)
           if [ ${#missing[@]} -gt 0 ]; then
             echo "::error::Missing Actions secrets: ${missing[*]}"
             echo "::error::See intellij/PUBLISHING.md for setup instructions."
@@ -76,8 +76,8 @@ jobs:
       - name: Publish plugin
         working-directory: intellij
         env:
-          CERTIFICATE_CHAIN: ${{ secrets.JETBRAINS_CERTIFICATE_CHAIN }}
-          PRIVATE_KEY: ${{ secrets.JETBRAINS_PRIVATE_KEY }}
-          PRIVATE_KEY_PASSWORD: ${{ secrets.JETBRAINS_PRIVATE_KEY_PASSWORD }}
-          PUBLISH_TOKEN: ${{ secrets.JETBRAINS_PUBLISH_TOKEN }}
+          CERTIFICATE_CHAIN: ${{ secrets.CERTIFICATE_CHAIN }}
+          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+          PRIVATE_KEY_PASSWORD: ${{ secrets.PRIVATE_KEY_PASSWORD }}
+          PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
         run: ./gradlew publishPlugin
