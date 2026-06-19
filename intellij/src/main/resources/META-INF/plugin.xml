@@ -25,6 +25,13 @@
     ]]></description>
 
     <change-notes><![CDATA[
+        <h3>0.2.0</h3>
+        <ul>
+            <li>Publishing pipeline fixed: Gradle wrapper, zipSigner dependency, and
+            CI secrets aligned so automated Marketplace uploads now work reliably.</li>
+            <li>No functional changes to the plugin itself.</li>
+        </ul>
+
         <h3>0.1.0 — Initial release</h3>
         <ul>
             <li>Live notation preview for all Transitrix YAML formats: Goals trees,
