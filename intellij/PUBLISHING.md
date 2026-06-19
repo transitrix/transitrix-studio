@@ -30,8 +30,8 @@ plugins.jetbrains.com → your profile → **My Tokens** → create a permanent 
 `build.gradle.kts` reads all secrets from the environment — nothing lives in the
 repo:
 
-| Variable | Source |
-|----------|--------|
+| Secret name (GitHub) | Source |
+|----------------------|--------|
 | `CERTIFICATE_CHAIN` | contents of `chain.crt` |
 | `PRIVATE_KEY` | contents of `private.pem` |
 | `PRIVATE_KEY_PASSWORD` | the passphrase set during `genpkey` |
