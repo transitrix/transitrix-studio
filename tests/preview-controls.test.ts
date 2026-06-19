@@ -36,8 +36,18 @@ describe('buildControlsPanel', () => {
       spacing: { horizontalGap: 180, verticalGap: 40, defaults: spacingDefaults },
       curvature: { value: 2.5, default: 1 },
     }));
-    expect(html).toContain('data-tx-field="horizontalGap"\n        min="20" max="300" step="1" value="180"');
+    expect(html).toContain('data-tx-field="horizontalGap" data-tx-event="input" data-tx-output="tx-hgap-out"\n        min="20" max="300" step="1" value="180"');
     expect(html).toContain('value="2.5"');
+  });
+
+  it('spacing inputs are range sliders that fire live on drag', () => {
+    const html = buildControlsPanel(baseModel());
+    expect(html).toContain('type="range" data-tx-control="spacing" data-tx-field="horizontalGap"');
+    expect(html).toContain('type="range" data-tx-control="spacing" data-tx-field="verticalGap"');
+    expect(html).toContain('data-tx-event="input"');
+    // Output elements show the current value alongside each slider.
+    expect(html).toContain('<output id="tx-hgap-out">');
+    expect(html).toContain('<output id="tx-vgap-out">');
   });
 
   it('omits the scope row when no scope model is given (Activities)', () => {
