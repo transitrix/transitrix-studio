@@ -1,0 +1,58 @@
+name: npm — publish @transitrix/diagrams
+
+# Triggered on every GitHub Release to publish @transitrix/diagrams to npm.
+#
+# Prerequisites (one-time maintainer setup):
+#   - NPM_TOKEN — Automation-type granular access token from npmjs.com with
+#     read-write permission on the @transitrix/diagrams package.
+#     Create at: https://www.npmjs.com/settings/<user>/tokens
+#     Save as a repo Actions secret named NPM_TOKEN.
+#
+# The package version comes from packages/diagrams/package.json and is
+# versioned independently from the VS Code extension. Bump it before cutting
+# a release that includes library changes.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Publish @transitrix/diagrams to npm
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          registry-url: https://registry.npmjs.org
+
+      - name: Verify NPM_TOKEN is set
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -z "$NPM_TOKEN" ]; then
+            echo "::error::NPM_TOKEN Actions secret is not set."
+            echo "::error::Create an Automation token on npmjs.com and save it as a repo Actions secret named NPM_TOKEN."
+            exit 1
+          fi
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Build @transitrix/diagrams
+        run: npm run build --workspace packages/diagrams
+
+      - name: Publish to npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --workspace packages/diagrams --access public
