@@ -179,7 +179,7 @@ function spacingRow(s: SpacingControlModel): string {
 function curvatureRow(c: CurvatureControlModel): string {
   return `<div class="tx-ctl-row">
     <span class="tx-ctl-label">Curvature</span>
-    <input type="range" data-tx-control="curvature" data-tx-output="tx-curv-out"
+    <input type="range" data-tx-control="curvature" data-tx-event="input" data-tx-output="tx-curv-out"
       min="${CURVATURE_MIN}" max="${CURVATURE_MAX}" step="${CURVATURE_STEP}" value="${c.value}">
     <output id="tx-curv-out">${c.value}</output>
   </div>`;
