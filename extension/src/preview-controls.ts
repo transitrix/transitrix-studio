@@ -166,11 +166,13 @@ function spacingRow(s: SpacingControlModel): string {
   return `<div class="tx-ctl-row">
     <span class="tx-ctl-label">Spacing</span>
     <label title="Horizontal gap between columns (px)">H
-      <input type="number" data-tx-control="spacing" data-tx-field="horizontalGap"
-        min="${SPACING_MIN}" max="${SPACING_MAX}" step="1" value="${s.horizontalGap}"></label>
+      <input type="range" data-tx-control="spacing" data-tx-field="horizontalGap" data-tx-event="input" data-tx-output="tx-hgap-out"
+        min="${SPACING_MIN}" max="${SPACING_MAX}" step="1" value="${s.horizontalGap}">
+      <output id="tx-hgap-out">${s.horizontalGap}</output></label>
     <label title="Vertical gap between stacked nodes (px)">V
-      <input type="number" data-tx-control="spacing" data-tx-field="verticalGap"
-        min="${SPACING_MIN}" max="${SPACING_MAX}" step="1" value="${s.verticalGap}"></label>
+      <input type="range" data-tx-control="spacing" data-tx-field="verticalGap" data-tx-event="input" data-tx-output="tx-vgap-out"
+        min="${SPACING_MIN}" max="${SPACING_MAX}" step="1" value="${s.verticalGap}">
+      <output id="tx-vgap-out">${s.verticalGap}</output></label>
   </div>`;
 }
 
@@ -258,7 +260,8 @@ export function buildControlsScript(nonce: string): string {
         var out = document.getElementById(outId);
         if (out) el.addEventListener('input', function () { out.value = el.value; });
       }
-      el.addEventListener('change', function () {
+      var triggerEvt = el.getAttribute('data-tx-event') || 'change';
+      el.addEventListener(triggerEvt, function () {
         if (control === 'scope' && field === 'rootId') {
           var v = el.value;
           if (v) { var lvl = sel('scope', 'maxLevel'); if (lvl) lvl.value = ''; }
