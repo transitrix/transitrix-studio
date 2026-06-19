@@ -50,6 +50,12 @@ describe('buildControlsPanel', () => {
     expect(html).toContain('<output id="tx-vgap-out">');
   });
 
+  it('curvature slider fires live on drag', () => {
+    const html = buildControlsPanel(baseModel());
+    expect(html).toContain('type="range" data-tx-control="curvature" data-tx-event="input"');
+    expect(html).toContain('<output id="tx-curv-out">');
+  });
+
   it('omits the scope row when no scope model is given (Activities)', () => {
     const html = buildControlsPanel(baseModel());
     expect(html).not.toContain('data-tx-control="scope"');
