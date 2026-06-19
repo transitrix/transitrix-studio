@@ -23,6 +23,8 @@ dependencies {
         // `instrumentCode` task (form/NotNull bytecode instrumentation);
         // without it the build fails with "No Java Compiler dependency found".
         instrumentationTools()
+        // Required for the `signPlugin` task — downloads the Marketplace ZIP Signer CLI.
+        zipSigner()
     }
 }
 
