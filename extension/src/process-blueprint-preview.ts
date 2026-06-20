@@ -196,24 +196,24 @@ function layoutToSvg(layout: ProcessBlueprintLayout, filename?: string, date?: s
   const gridY2 = oy + th;
   if (layout.legend.length > 0) {
     const headerBottomY = oy + layout.legend[0].y;
-    inner.push(`<line class="bp-grid-line" x1="${gridX1}" y1="${headerBottomY}" x2="${gridX2}" y2="${headerBottomY}"/>`);
+    inner.push(`<line class="diagram-edge" x1="${gridX1}" y1="${headerBottomY}" x2="${gridX2}" y2="${headerBottomY}"/>`);
     for (let i = 0; i < layout.legend.length - 1; i++) {
       const rowBottomY = oy + layout.legend[i].y + layout.legend[i].height;
-      inner.push(`<line class="bp-grid-line" x1="${gridX1}" y1="${rowBottomY}" x2="${gridX2}" y2="${rowBottomY}"/>`);
+      inner.push(`<line class="diagram-edge" x1="${gridX1}" y1="${rowBottomY}" x2="${gridX2}" y2="${rowBottomY}"/>`);
     }
   }
   const legLineX = ox + layout.legendColumnWidth;
-  inner.push(`<line class="bp-grid-line" x1="${legLineX}" y1="${gridY1}" x2="${legLineX}" y2="${gridY2}"/>`);
+  inner.push(`<line class="diagram-edge" x1="${legLineX}" y1="${gridY1}" x2="${legLineX}" y2="${gridY2}"/>`);
   for (let i = 1; i < layout.stageHeaders.length; i++) {
     const stageLineX = ox + layout.legendColumnWidth + i * layout.stageColumnWidth;
-    inner.push(`<line class="bp-grid-line" x1="${stageLineX}" y1="${gridY1}" x2="${stageLineX}" y2="${gridY2}"/>`);
+    inner.push(`<line class="diagram-edge" x1="${stageLineX}" y1="${gridY1}" x2="${stageLineX}" y2="${gridY2}"/>`);
   }
 
   // Inner content (fills + grid lines) clipped to rounded outer rect.
   parts.push(`<g clip-path="url(#${clipId})">${inner.join('\n')}${topParts.join('\n')}</g>`);
 
-  // Outer border on top (fill: none; stroke from theme).
-  parts.push(`<rect class="bp-border" x="${ox}" y="${oy}" width="${tw}" height="${th}" rx="6"/>`);
+  // Outer border on top — fill="none" as attribute so PNG export (no external CSS) never shows black.
+  parts.push(`<rect class="bp-border" x="${ox}" y="${oy}" width="${tw}" height="${th}" rx="6" fill="none"/>`);
 
   const titleSvg = showTitle ? titleBlockSvg('Process Blueprint', filename!, date!, pad, pad, version) : '';
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
@@ -773,6 +773,7 @@ export class ProcessBlueprintPreview {
     return {
       rawSvg: this.lastSvg || undefined,
       themeId: vscode.workspace.getConfiguration('transitrix').get<ThemeId>('theme', 'transitrix'),
+      notationCss: BLUEPRINT_CSS + CHIP_DETAIL_CSS,
       emptyMessage: 'No diagram rendered yet. Open a *.process-blueprint.transitrix.yaml file first.',
     };
   }
