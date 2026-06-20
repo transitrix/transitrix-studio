@@ -120,10 +120,13 @@ export interface ResolvedMilestone {
   deliversChanges: string[];
 }
 
-export interface ResolvedFactor {
+export interface ResolvedDriver {
   id: string;
   name: string;
 }
+
+/** @deprecated Use {@link ResolvedDriver}. */
+export type ResolvedFactor = ResolvedDriver;
 
 /**
  * A dated finding about the current state of a Driver, answering the
@@ -144,8 +147,8 @@ export interface ResolvedAssessment {
 export interface ResolvedGoal {
   id: string;
   name: string;
-  /** FACTOR-… IDs that motivate this goal (canonical `goal.factors`). */
-  factorIds: string[];
+  /** DRIVER-… IDs that motivate this goal (canonical `goal.factors` YAML field). */
+  driverIds: string[];
 }
 
 export interface ResolvedChange {
@@ -155,9 +158,9 @@ export interface ResolvedChange {
   goalIds: string[];
 }
 
-/** Motivation chain: Factors → Goals → Changes, scoped to the project. */
+/** Motivation chain: Drivers → Goals → Changes, scoped to the project. */
 export interface ResolvedMotivation {
-  factors: ResolvedFactor[];
+  drivers: ResolvedDriver[];
   goals: ResolvedGoal[];
   changes: ResolvedChange[];
 }

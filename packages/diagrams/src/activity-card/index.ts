@@ -5,6 +5,7 @@ export type {
   ActivityCardSources,
   ResolvedProject,
   ResolvedMilestone,
+  ResolvedDriver,
   ResolvedFactor,
   ResolvedAssessment,
   ResolvedGoal,

@@ -18,8 +18,8 @@ const RESOLVED: ResolvedActivityCard = {
     { id: 'MILESTONE-CERT-1', name: 'Cert', date: '2027-01-31', deliversChanges: ['CHANGE-EU-COMPLIANCE-1'] },
   ],
   motivation: {
-    factors: [{ id: 'FACTOR-EU-MDR-1', name: 'EU MDR regulation' }],
-    goals: [{ id: 'GOAL-EU-MARKET-1', name: 'Access EU market', factorIds: ['FACTOR-EU-MDR-1'] }],
+    drivers: [{ id: 'FACTOR-EU-MDR-1', name: 'EU MDR regulation' }],
+    goals: [{ id: 'GOAL-EU-MARKET-1', name: 'Access EU market', driverIds: ['FACTOR-EU-MDR-1'] }],
     changes: [{ id: 'CHANGE-EU-COMPLIANCE-1', name: 'Achieve MDR compliance', goalIds: ['GOAL-EU-MARKET-1'] }],
   },
   assessments: [
@@ -115,7 +115,7 @@ describe('layoutActivityCard', () => {
   it('empty chain sections have isEmpty=true', () => {
     const l = layoutActivityCard({
       ...RESOLVED,
-      motivation: { factors: [], goals: [], changes: [] },
+      motivation: { drivers: [], goals: [], changes: [] },
       assessments: [],
     });
     expect(l.chainSections.every((s) => s.isEmpty)).toBe(true);
@@ -159,7 +159,7 @@ describe('layoutActivityCard', () => {
       cardId: 'ACTIVITY_CARD-X-1',
       project: { id: 'ACTIVITY-X-1', name: 'Empty' },
       milestones: [],
-      motivation: { factors: [], goals: [], changes: [] },
+      motivation: { drivers: [], goals: [], changes: [] },
       assessments: [],
       childActivities: [],
     });

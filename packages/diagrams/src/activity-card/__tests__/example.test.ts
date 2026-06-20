@@ -53,7 +53,7 @@ describe('activity-card worked example (eu-programme)', () => {
       'MILESTONE-EU-CONFORMITY-CERT-1',
       'MILESTONE-EU-MARKET-LAUNCH-1',
     ]);
-    expect(c.motivation.factors.map((f) => f.id)).toEqual(['FACTOR-EU-MDR-1']);
+    expect(c.motivation.drivers.map((d) => d.id)).toEqual(['FACTOR-EU-MDR-1']);
     expect(c.motivation.goals.map((g) => g.id)).toEqual(['GOAL-EU-MARKET-1']);
     expect(c.motivation.changes.map((x) => x.id)).toEqual(['CHANGE-EU-COMPLIANCE-1']);
     expect(c.childActivities).toHaveLength(4);

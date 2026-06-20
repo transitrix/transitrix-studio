@@ -46,7 +46,7 @@ import type {
   ResolvedAssessment,
   ResolvedChange,
   ResolvedChildActivity,
-  ResolvedFactor,
+  ResolvedDriver,
   ResolvedGoal,
   ResolvedMilestone,
   ResolvedProject,
@@ -267,8 +267,10 @@ export function resolveActivityCard(
     return { valid: false, errors, warnings };
   }
 
-  // ── Motivation chain — expand against canon FACTOR / GOAL / CHANGE elements ──
-  const factorElems = collectByNotation(sources.elements, 'factor');
+  // ── Motivation chain — expand against canon DRIVER / GOAL / CHANGE elements ──
+  // Note: YAML corpus still uses `notation: factor` and `goal.factors` field names;
+  // the YAML keys are stable. The resolved TypeScript API uses "driver/driverIds".
+  const driverElems = collectByNotation(sources.elements, 'factor');
   const goalElems = collectByNotation(sources.elements, 'goal');
   const changeElems = collectByNotation(sources.elements, 'change');
 
@@ -286,7 +288,7 @@ export function resolveActivityCard(
   }
 
   // Goals shown = the project's declared goals ∪ goals referenced by in-scope
-  // changes (so the F→G→C chain stays connected).
+  // changes (so the D→G→C chain stays connected).
   const goalIdSet = new Set<string>(projectGoalIds);
   for (const ch of changes) for (const g of ch.goalIds) goalIdSet.add(g);
 
@@ -300,30 +302,30 @@ export function resolveActivityCard(
       });
       continue;
     }
-    goals.push({ id: gid, name: str(rec['name']) ?? gid, factorIds: strArray(rec['factors']) });
+    goals.push({ id: gid, name: str(rec['name']) ?? gid, driverIds: strArray(rec['factors']) });
   }
 
-  // Factors shown = those referenced by the in-scope goals.
-  const factorIdSet = new Set<string>();
-  for (const g of goals) for (const f of g.factorIds) factorIdSet.add(f);
+  // Drivers shown = those referenced by the in-scope goals.
+  const driverIdSet = new Set<string>();
+  for (const g of goals) for (const d of g.driverIds) driverIdSet.add(d);
 
-  const factors: ResolvedFactor[] = [];
-  for (const fid of factorIdSet) {
-    const rec = factorElems.get(fid);
-    factors.push({ id: fid, name: rec ? str(rec['name']) ?? fid : fid });
+  const drivers: ResolvedDriver[] = [];
+  for (const did of driverIdSet) {
+    const rec = driverElems.get(did);
+    drivers.push({ id: did, name: rec ? str(rec['name']) ?? did : did });
   }
 
-  // ── Assessments — findings that assesses an in-scope Driver ─────────────────
+  // ── Assessments — findings that assess an in-scope Driver ────────────────────
   // Assessments answer "what specific problem are we solving?" They are resolved
   // from ASSESSMENT elements whose `assesses` field matches a Driver id that
   // appeared in the motivation chain above. Empty when none exist — the gap is
   // intentionally visible on the card so the author knows it needs filling.
-  const driverIdSet = new Set(factors.map((f) => f.id));
+  const driverIdLookup = new Set(drivers.map((d) => d.id));
   const assessmentElems = collectByNotation(sources.elements, 'assessment');
   const assessments: ResolvedAssessment[] = [];
   for (const [aid, rec] of assessmentElems) {
     const driverId = str(rec['assesses']);
-    if (!driverId || !driverIdSet.has(driverId)) continue;
+    if (!driverId || !driverIdLookup.has(driverId)) continue;
     assessments.push({
       id: aid,
       name: str(rec['name']) ?? aid,
@@ -401,7 +403,7 @@ export function resolveActivityCard(
     cardDescription: str(card.description),
     project,
     milestones,
-    motivation: { factors, goals, changes },
+    motivation: { drivers, goals, changes },
     assessments,
     childActivities,
     goalNames,
