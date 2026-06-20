@@ -1,5 +1,26 @@
 # Changelog
 
+## [2.1.0] — 2026-06-20
+
+### Added
+
+- **Activity Card — full motivation chain.** The card now resolves and displays the complete **Driver → Assessment → Goal → Change** chain from the canon element store. Empty sections render a "— not on file" gap indicator so authors see missing data. Each section header carries a concise subtitle question (e.g. *"What prompted this initiative?"*).
+- **Activity Card — status and activity type badges.** `status` and `activity_type` fields on the Activity element are now shown as styled badges in the card header (`planned`, `in_progress`, `programme`, `project`, …).
+- **Activity Card — stakeholder role slots.** `Initiator`, `Owner`, `Sponsor`, and `PM` slots are resolved from `activity_stakeholder` relations and rendered in a 2-column grid. Names are no longer truncated at 20 characters.
+- **GDPR remediation example.** `organizations/acme_corp/` ships a complete `ACTIVITY-GDPR-REMEDIATION-1` programme with a full motivation chain, three workstream children, and an Activity Card view.
+- **Preview live sliders.** Spacing and curvature sliders update the diagram immediately on drag.
+- **`@transitrix/diagrams` npm publish CI workflow.**
+
+### Changed
+
+- **All previews — "Generated:" date label.** The date line in every diagram title block now reads `Generated: YYYY-MM-DD` to distinguish it from project date fields.
+- **Activity Card — badge text vertically centred.** Uses `style="dominant-baseline:central"` (inline; specificity 1-0-0) so CSS class rules cannot override the alignment.
+- **`ResolvedDriver` replaces `ResolvedFactor`** in `@transitrix/diagrams`. `ResolvedFactor` is kept as a deprecated alias and will be removed in 2.2.0. YAML corpus is unchanged (`notation: factor`, `goal.factors`).
+
+### Internal
+
+- **Cervin deprecation P5.** `src/transitrixrc.ts` is now the canonical module; `src/cervinrc.ts` is a thin re-export shim. `loadCervinrc()` and `CERVINRC_SCHEMA` deprecated aliases kept through 2.x.
+
 ## [2.0.0] — 2026-06-18
 
 ### Changed
