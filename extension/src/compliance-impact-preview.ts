@@ -291,7 +291,7 @@ export class ComplianceImpactPreview {
           enableScripts: true,
           retainContextWhenHidden: true,
           localResourceRoots: [vscode.Uri.joinPath(this.extensionUri, 'media')],
-          enableCommandUris: [OPEN_FILE_COMMAND, REFRESH_COMMAND],
+          enableCommandUris: [OPEN_FILE_COMMAND, REFRESH_COMMAND, 'transitrixStudio.changeTheme'],
         },
       );
       this.panel.webview.onDidReceiveMessage((m) => { void this.onMessage(m); });
@@ -392,9 +392,12 @@ export class ComplianceImpactPreview {
         '<style>\n' + generateWebviewCss(themeId) + '\n' + IMPACT_CSS + '\n' + ERROR_BLOCK_CSS + '\n</style>\n' +
         '</head>\n<body data-theme="' + escXml(themeId) + '">\n' +
         errInput + '\n' +
-        '<div id="ci-toolbar">' +
-        '<div class="ci-title">Compliance Impact Matrix</div>' +
-        '<a href="command:' + REFRESH_COMMAND + '" class="ci-btn" title="Re-scan the workspace and reload view config">Refresh</a>' +
+        '<div id="toolbar">' +
+        '<span class="toolbar-label">Compliance Impact Matrix</span>' +
+        '<div class="toolbar-actions">' +
+        '<a href="command:transitrixStudio.changeTheme" class="toolbar-btn" title="Change the color scheme for all diagram previews">Theme…</a>' +
+        '<a href="command:' + REFRESH_COMMAND + '" class="toolbar-btn" title="Re-scan the workspace and reload view config">Refresh</a>' +
+        '</div>' +
         '</div>\n' +
         errBlock + '\n' +
         '</body>\n</html>'
@@ -499,9 +502,19 @@ export class ComplianceImpactPreview {
       '">\n' +
       errInput +
       warnInput +
-      '  <div id="ci-toolbar">\n' +
-      '    <div class="ci-title">Compliance Impact Matrix</div>\n' +
-      '    <div class="ci-summary">' +
+      '  <div id="toolbar">\n' +
+      '    <span class="toolbar-label">Compliance Impact Matrix</span>\n' +
+      '    <div class="toolbar-actions">\n' +
+      '      <a href="command:transitrixStudio.changeTheme" class="toolbar-btn" title="Change the color scheme for all diagram previews">Theme…</a>\n' +
+      '      <a href="command:' +
+      REFRESH_COMMAND +
+      '" class="toolbar-btn" title="Re-scan the workspace and reload view config">Refresh</a>\n' +
+      '    </div>\n' +
+      '  </div>\n' +
+      errBlock +
+      warnBlock +
+      '  <div id="ci-filters">\n' +
+      '    <span class="ci-summary">' +
       rows.length +
       ' obligations &times; ' +
       columns.length +
@@ -509,17 +522,11 @@ export class ComplianceImpactPreview {
       totalGaps +
       '</strong> gaps' +
       pendingSummary +
-      '</div>\n' +
-      '    <div class="ci-config">' +
+      '</span>' +
+      '    <span class="ci-config">' +
       configLine +
-      '</div>\n' +
-      '    <a href="command:' +
-      REFRESH_COMMAND +
-      '" class="ci-btn" title="Re-scan the workspace and reload view config">Refresh</a>\n' +
-      '  </div>\n' +
-      errBlock +
-      warnBlock +
-      '  <div id="ci-filters">\n' +
+      '</span>' +
+      '    <span class="ci-filter-sep"></span>' +
       '    <span class="ci-filter-label">Status</span>' +
       statusBoxes +
       '\n' +
@@ -737,14 +744,16 @@ export class ComplianceImpactPreview {
 
 const IMPACT_CSS = `
 body { padding: 0; }
-#ci-toolbar { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--ts-border, #cbd5e1); flex-wrap: wrap; }
-.ci-title { font-size: 14px; font-weight: 700; color: var(--ts-text, #0f172a); }
-.ci-summary { font-size: 12px; color: var(--ts-text-muted, #64748b); }
+#toolbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 16px; border-bottom: 1px solid var(--ts-border, #cbd5e1); flex-wrap: wrap; }
+.toolbar-label { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--ts-text-muted, #64748b); }
+.toolbar-actions { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+.toolbar-btn { cursor: pointer; user-select: none; font-size: 11px; padding: 1px 8px; border-radius: 4px; color: var(--ts-text-muted, #64748b); white-space: nowrap; text-decoration: none; }
+.toolbar-btn:hover { color: var(--ts-text, #0f172a); background: var(--ts-bg-elevated, #f1f5f9); }
+.ci-summary { font-size: 11px; color: var(--ts-text-muted, #64748b); }
 .ci-summary strong { color: var(--ts-text, #0f172a); }
-.ci-config { font-size: 11px; color: var(--ts-text-muted, #64748b); margin-left: auto; }
+.ci-config { font-size: 11px; color: var(--ts-text-muted, #64748b); padding-left: 4px; border-left: 1px solid var(--ts-border, #cbd5e1); margin-left: 4px; }
 .ci-config code { background: var(--ts-bg-subtle, #f1f5f9); padding: 1px 4px; border-radius: 3px; }
-.ci-btn { font-size: 11px; padding: 2px 10px; border-radius: 4px; color: var(--ts-text-muted, #64748b); text-decoration: none; border: 1px solid var(--ts-border, #cbd5e1); }
-.ci-btn:hover { color: var(--ts-text, #0f172a); background: var(--ts-bg-elevated, #f1f5f9); }
+.ci-filter-sep { flex-basis: 100%; height: 0; }
 #ci-filters { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 16px; border-bottom: 1px solid var(--ts-border, #cbd5e1); font-size: 11px; }
 .ci-filter-label { font-weight: 600; color: var(--ts-text, #0f172a); margin-left: 8px; }
 .ci-filter-label:first-child { margin-left: 0; }

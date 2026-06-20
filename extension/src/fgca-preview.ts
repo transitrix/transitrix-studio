@@ -1,7 +1,7 @@
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 import yaml from 'js-yaml';
-import { buildDiagramFrame, prepareSvgForExport, type ThemeId } from './diagram-frame.js';
+import { buildDiagramFrame, prepareSvgForExport, type ThemeId, OPEN_THEME_COMMAND } from './diagram-frame.js';
 import { TITLE_BLOCK_H, titleBlockSvg, todayIso } from './svg-title-block.js';
 import { loadCanon, findCanonRoot, isUnderCanon, type CanonDocs } from './canon-loader.js';
 import { parseCanonicalFGCA, parseCanonicalFGA } from '../../packages/diagrams/src/fgca/parse-canonical.js';
@@ -214,6 +214,7 @@ function renderChainPreview(
     spacingCommand: OPEN_SPACING_SETTINGS_COMMAND,
     curvatureCommand: OPEN_CURVATURE_SETTINGS_COMMAND,
     scopeCommand: OPEN_SCOPE_SETTINGS_COMMAND,
+    themeCommand: OPEN_THEME_COMMAND,
     interactive: { nonce, controlsPanel: buildControlsPanel(model), controlsScript: script, viewToggleHtml },
   });
   return { html, svg };
@@ -326,7 +327,7 @@ export class FGCAPreview {
           enableScripts: true,
           retainContextWhenHidden: true,
           localResourceRoots: [vscode.Uri.joinPath(this.extensionUri, 'media')],
-          enableCommandUris: ['transitrixStudio.saveFGCAAsSvg', 'transitrixStudio.saveFGCAAsPng', 'transitrixStudio.copyFGCAAsPng', OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND, OPEN_SCOPE_SETTINGS_COMMAND],
+          enableCommandUris: ['transitrixStudio.saveFGCAAsSvg', 'transitrixStudio.saveFGCAAsPng', 'transitrixStudio.copyFGCAAsPng', OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND, OPEN_SCOPE_SETTINGS_COMMAND, OPEN_THEME_COMMAND],
         },
       );
       this.panel.webview.onDidReceiveMessage((m) => { void applyControlMessage('fgca', m); });
@@ -478,7 +479,7 @@ export class FGAPreview {
           enableScripts: true,
           retainContextWhenHidden: true,
           localResourceRoots: [vscode.Uri.joinPath(this.extensionUri, 'media')],
-          enableCommandUris: ['transitrixStudio.saveFGAAsSvg', 'transitrixStudio.saveFGAAsPng', 'transitrixStudio.copyFGAAsPng', OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND, OPEN_SCOPE_SETTINGS_COMMAND],
+          enableCommandUris: ['transitrixStudio.saveFGAAsSvg', 'transitrixStudio.saveFGAAsPng', 'transitrixStudio.copyFGAAsPng', OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND, OPEN_SCOPE_SETTINGS_COMMAND, OPEN_THEME_COMMAND],
         },
       );
       this.panel.webview.onDidReceiveMessage((m) => { void applyControlMessage('fga', m); });

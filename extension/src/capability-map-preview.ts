@@ -1,7 +1,7 @@
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 import yaml from 'js-yaml';
-import { buildDiagramFrame, CATALOGUE_STYLES, type ThemeId } from './diagram-frame.js';
+import { buildDiagramFrame, CATALOGUE_STYLES, type ThemeId, OPEN_THEME_COMMAND } from './diagram-frame.js';
 import { coerceDatesToIsoStrings } from '../../packages/diagrams/src/yaml-normalize.js';
 import { validateCapabilityMap } from '../../packages/diagrams/src/capability-map/validate.js';
 
@@ -132,7 +132,7 @@ export class CapabilityMapPreview {
         'capabilityMapPreview',
         `${this.panelTitle} — ${path.basename(doc.fileName)}`,
         { viewColumn: vscode.ViewColumn.Beside, preserveFocus: false },
-        { enableScripts: false, retainContextWhenHidden: true },
+        { enableScripts: false, retainContextWhenHidden: true, enableCommandUris: ['transitrixStudio.changeTheme'] },
       );
       this.panel.onDidDispose(() => { this.panel = undefined; this.trackedUri = undefined; });
     }
@@ -141,6 +141,12 @@ export class CapabilityMapPreview {
 
   async refreshSaved(doc: vscode.TextDocument): Promise<void> {
     if (!this.isShowingDocument(doc.uri)) return;
+    await this.pushDocument(doc);
+  }
+
+  async refreshConfig(): Promise<void> {
+    if (!this.panel || !this.trackedUri) return;
+    const doc = await vscode.workspace.openTextDocument(vscode.Uri.parse(this.trackedUri));
     await this.pushDocument(doc);
   }
 
@@ -197,6 +203,7 @@ export class CapabilityMapPreview {
       version,
       date,
       extraStyles: CATALOGUE_STYLES + CAPABILITY_MAP_STYLES,
+      themeCommand: OPEN_THEME_COMMAND,
     });
   }
 }

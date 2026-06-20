@@ -113,9 +113,10 @@ function detectMode(doc: ActivityDoc, leaves: Activity[]): 'computed' | 'pinned'
   if (allPinned) return 'pinned';
   const hasProjectStart =
     typeof doc.project?.start_date === 'string' && doc.project.start_date.length > 0;
-  const allHaveDuration = leaves.every(
-    (a) => typeof a.duration === 'number' && Number.isFinite(a.duration) && a.duration >= 0,
-  );
+  const allHaveDuration = leaves.every((a) => {
+    const d = a.duration ?? a.duration_days;
+    return typeof d === 'number' && Number.isFinite(d) && d >= 0;
+  });
   if (hasProjectStart && allHaveDuration) return 'computed';
   return null;
 }
@@ -144,7 +145,7 @@ export function computeGanttLayout(doc: ActivityDoc): GanttResult {
     for (const a of leaves) {
       const startDate = a.start_date as string;
       const endDate = a.end_date as string;
-      const isMilestone = a.duration === 0 || startDate === endDate;
+      const isMilestone = (a.duration ?? a.duration_days) === 0 || startDate === endDate;
       const bar: GanttBar = {
         id: a.id,
         name: a.name,
@@ -166,7 +167,7 @@ export function computeGanttLayout(doc: ActivityDoc): GanttResult {
     for (const a of leaves) {
       const c = cpm.get(a.id);
       const es = c?.es ?? 0;
-      const dur = a.duration ?? 0;
+      const dur = a.duration ?? a.duration_days ?? 0;
       const startDate = nthWorkingDay(projectStart, es, calendar);
       const endDate = dur === 0
         ? startDate

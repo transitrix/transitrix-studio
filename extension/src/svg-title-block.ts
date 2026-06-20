@@ -36,8 +36,7 @@ export function titleBlockSvg(
   top: number,
   version?: string,
 ): string {
-  const trimmedVersion = version?.trim();
-  const dateLine = trimmedVersion ? `v${trimmedVersion} · Generated: ${date}` : `Generated: ${date}`;
+  const dateLine = `Generated: ${date}`;
   return `<g class="diagram-title-block">
   <text class="text-header" x="${x}" y="${top + 14}">${escXml(heading)}</text>
   <text class="text-secondary" x="${x}" y="${top + 30}">${escXml(filename)}</text>

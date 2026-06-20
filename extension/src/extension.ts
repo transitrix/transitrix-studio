@@ -39,6 +39,7 @@ import {
   SCOPE_CONFIG_SECTION,
   VIEW_CONFIG_SECTION,
 } from './spacing-config.js';
+import { OPEN_THEME_COMMAND } from './diagram-frame.js';
 
 function isGoalsFile(doc: vscode.TextDocument): boolean {
   return doc.fileName.endsWith('.goals.transitrix.yaml');
@@ -396,13 +397,29 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand(OPEN_SCOPE_SETTINGS_COMMAND, () =>
       vscode.commands.executeCommand('workbench.action.openSettings', SCOPE_CONFIG_SECTION),
     ),
-    // Re-render the spacing/curvature/scope-aware previews when a gap, curvature
-    // or scope setting changes — the settings-driven persistence mechanism
-    // (vkgeorgia/strategy#75, #76, #77). Config is the single source of truth:
+    vscode.commands.registerCommand(OPEN_THEME_COMMAND, async () => {
+      const cfg = vscode.workspace.getConfiguration('transitrix');
+      const current = cfg.get<string>('theme', 'transitrix');
+      const items = [
+        { label: 'Transitrix Light', description: 'Default light theme', value: 'transitrix' },
+        { label: 'Transitrix Dark', description: 'Dark theme', value: 'transitrix-dark' },
+        { label: 'VS Code Adaptive', description: 'Follow the active VS Code color theme', value: 'vscode-adaptive' },
+      ].map(i => ({ ...i, label: (i.value === current ? '$(check) ' : '          ') + i.label }));
+      const picked = await vscode.window.showQuickPick(items, {
+        title: 'Transitrix Diagram Theme',
+        placeHolder: 'Select color scheme for all diagram previews',
+      });
+      if (!picked) return;
+      await cfg.update('theme', picked.value, vscode.ConfigurationTarget.Workspace);
+    }),
+    // Re-render the spacing/curvature/scope-aware previews when a gap, curvature,
+    // scope, or theme setting changes. Config is the single source of truth:
     // both the in-preview controls (PR2) and the "…" Settings links write here,
     // and this handler rebuilds the webview HTML from the tracked document.
     vscode.workspace.onDidChangeConfiguration((e) => {
+      const isThemeChange = e.affectsConfiguration('transitrix.theme');
       if (
+        !isThemeChange &&
         !e.affectsConfiguration(SPACING_CONFIG_SECTION) &&
         !e.affectsConfiguration(CURVATURE_CONFIG_SECTION) &&
         !e.affectsConfiguration(ENTRY_CURVATURE_CONFIG_SECTION) &&
@@ -413,6 +430,22 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       void fgcaPreview.refreshConfig();
       void fgaPreview.refreshConfig();
       void activitiesPreview.refreshConfig();
+      if (isThemeChange) {
+        void blocksPreview.refreshConfig();
+        void processBlueprintPreview.refreshConfig();
+        void activityCardPreview.refreshConfig();
+        void applicationsPreview.refreshConfig();
+        void productsPreview.refreshConfig();
+        void processMapPreview.refreshConfig();
+        void scenariosPreview.refreshConfig();
+        void capabilityMapPreview.refreshConfig();
+        void complianceMatrixPreview.refresh();
+        void complianceImpactPreview.refresh();
+        void singleLawPreview.refresh();
+        void singleProductPreview.refresh();
+        void gapDashboardPreview.refresh();
+        void coverageMetricPreview.refreshConfig();
+      }
     }),
     vscode.workspace.onDidSaveTextDocument((doc) => {
       // Multi-document: an open Activity Card re-resolves when any canon

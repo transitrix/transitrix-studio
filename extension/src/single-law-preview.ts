@@ -41,7 +41,7 @@ export class SingleLawPreview {
         {
           enableScripts: false,
           retainContextWhenHidden: true,
-          enableCommandUris: [OPEN_FILE_COMMAND, REFRESH_COMMAND],
+          enableCommandUris: [OPEN_FILE_COMMAND, REFRESH_COMMAND, 'transitrixStudio.changeTheme'],
         },
       );
       this.panel.onDidDispose(() => { this.panel = undefined; this.trackedUri = undefined; });
@@ -81,7 +81,7 @@ export class SingleLawPreview {
     if (!lawId) {
       this.panel.webview.html = complianceShell({
         title: 'Single-law tree',
-        themeId, refreshCommand: REFRESH_COMMAND,
+        themeId, refreshCommand: REFRESH_COMMAND, themeCommand: 'transitrixStudio.changeTheme',
         bodyHtml: `<div class="cmp-empty">This file has no <code>id</code> — open a codex artefact (LAW / REGULATION / POLICY / INTERNAL_STANDARD).</div>`,
       });
       return;
@@ -100,8 +100,11 @@ export class SingleLawPreview {
     this.panel.webview.html = complianceShell({
       title: lawName,
       subtitle: `${lawId} · ${tree.requirements.length} requirement(s)`,
+      filename: path.basename(doc.fileName),
+      date: todayIso(),
       themeId,
       refreshCommand: REFRESH_COMMAND,
+      themeCommand: 'transitrixStudio.changeTheme',
       bodyHtml: this.treeHtml(tree, scan.pathById),
       confidence,
     });

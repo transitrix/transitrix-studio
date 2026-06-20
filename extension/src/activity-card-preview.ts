@@ -1,7 +1,7 @@
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 import yaml from 'js-yaml';
-import { buildDiagramFrame, prepareSvgForExport, type ThemeId } from './diagram-frame.js';
+import { buildDiagramFrame, prepareSvgForExport, type ThemeId, OPEN_THEME_COMMAND } from './diagram-frame.js';
 import { TITLE_BLOCK_H, titleBlockSvg, todayIso } from './svg-title-block.js';
 import {
   validateActivityCard,
@@ -182,6 +182,7 @@ export class ActivityCardPreview {
             'transitrixStudio.saveActivityCardAsSvg',
             'transitrixStudio.saveActivityCardAsPng',
             'transitrixStudio.copyActivityCardAsPng',
+            'transitrixStudio.changeTheme',
           ],
         },
       );
@@ -192,6 +193,12 @@ export class ActivityCardPreview {
 
   async refreshSaved(doc: vscode.TextDocument): Promise<void> {
     if (!this.isShowingDocument(doc.uri)) return;
+    await this.pushDocument(doc);
+  }
+
+  async refreshConfig(): Promise<void> {
+    if (!this.panel || !this.trackedUri) return;
+    const doc = await vscode.workspace.openTextDocument(vscode.Uri.parse(this.trackedUri));
     await this.pushDocument(doc);
   }
 
@@ -258,6 +265,7 @@ export class ActivityCardPreview {
       saveSvgCommand: 'transitrixStudio.saveActivityCardAsSvg',
       savePngCommand: 'transitrixStudio.saveActivityCardAsPng',
       copyPngCommand: 'transitrixStudio.copyActivityCardAsPng',
+      themeCommand: OPEN_THEME_COMMAND,
     });
   }
 

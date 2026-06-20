@@ -40,7 +40,7 @@ export class SingleProductPreview {
         {
           enableScripts: false,
           retainContextWhenHidden: true,
-          enableCommandUris: [OPEN_FILE_COMMAND, REFRESH_COMMAND],
+          enableCommandUris: [OPEN_FILE_COMMAND, REFRESH_COMMAND, 'transitrixStudio.changeTheme'],
         },
       );
       this.panel.onDidDispose(() => { this.panel = undefined; this.trackedUri = undefined; });
@@ -79,7 +79,7 @@ export class SingleProductPreview {
     if (!productId) {
       this.panel.webview.html = complianceShell({
         title: 'Single-product view',
-        themeId, refreshCommand: REFRESH_COMMAND,
+        themeId, refreshCommand: REFRESH_COMMAND, themeCommand: 'transitrixStudio.changeTheme',
         bodyHtml: `<div class="cmp-empty">This file has no <code>id</code> — open a <code>notation: product</code> file.</div>`,
       });
       return;
@@ -97,8 +97,11 @@ export class SingleProductPreview {
     this.panel.webview.html = complianceShell({
       title: productName,
       subtitle: `${productId} · ${view.requirements.length} requirement(s) asserted`,
+      filename: path.basename(doc.fileName),
+      date: todayIso(),
       themeId,
       refreshCommand: REFRESH_COMMAND,
+      themeCommand: 'transitrixStudio.changeTheme',
       bodyHtml: this.viewHtml(view, scan.pathById),
       confidence,
     });

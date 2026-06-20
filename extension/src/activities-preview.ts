@@ -1,7 +1,7 @@
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 import yaml from 'js-yaml';
-import { buildDiagramFrame, prepareSvgForExport, type ThemeId } from './diagram-frame.js';
+import { buildDiagramFrame, prepareSvgForExport, type ThemeId, OPEN_THEME_COMMAND } from './diagram-frame.js';
 import { TITLE_BLOCK_H, titleBlockSvg, todayIso } from './svg-title-block.js';
 import {
   validateActivities,
@@ -429,9 +429,7 @@ function buildActivityViews(doc: ActivityDoc, gaps: ActivitiesLayoutOptions, cur
   const networkSvgStr = networkSvg(doc, gaps, curvature, entryCurvature, networkHeading, filename, date, version);
   const gantt: GanttResult = computeGanttLayout(doc);
 
-  // Mirror titleBlockSvg's date line: `v{version} · {date}` when version is set.
-  const trimmedVersion = version?.trim();
-  const dateLine = trimmedVersion ? `v${trimmedVersion} · ${date}` : date;
+  const dateLine = date;
 
   if (isGanttUnavailable(gantt)) {
     // No SVG to embed the title into — fall back to an HTML title block plus
@@ -503,7 +501,8 @@ const ACTIVITIES_WEBVIEW_CSS = `
      keeps them keyboard-focusable while not taking layout space, and stops
      the webview default styles from showing a 13px input box. */
   .view-radio { position: absolute; left: -9999px; width: 1px; height: 1px; }
-  .view-tabs { display: flex; gap: 4px; padding: 12px 16px 0; border-bottom: 1px solid var(--ts-border, #cbd5e1); margin-bottom: 8px; }
+  #canvas { padding-top: 0; }
+  .view-tabs { display: flex; gap: 4px; padding: 8px 0 0; border-bottom: 1px solid var(--ts-border, #cbd5e1); margin-bottom: 8px; }
   .view-tab {
     padding: 6px 14px;
     font-size: 12px;
@@ -578,7 +577,7 @@ export class ActivitiesPreview {
           enableScripts: true,
           retainContextWhenHidden: true,
           localResourceRoots: [vscode.Uri.joinPath(this.extensionUri, 'media')],
-          enableCommandUris: ['transitrixStudio.saveActivitiesAsSvg', 'transitrixStudio.saveActivitiesAsPng', 'transitrixStudio.copyActivitiesAsPng', OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND],
+          enableCommandUris: ['transitrixStudio.saveActivitiesAsSvg', 'transitrixStudio.saveActivitiesAsPng', 'transitrixStudio.copyActivitiesAsPng', OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND, OPEN_THEME_COMMAND],
         },
       );
       this.panel.webview.onDidReceiveMessage((m) => { void applyControlMessage('activities', m); });
@@ -667,6 +666,7 @@ export class ActivitiesPreview {
       copyPngCommand: 'transitrixStudio.copyActivitiesAsPng',
       spacingCommand: OPEN_SPACING_SETTINGS_COMMAND,
       curvatureCommand: OPEN_CURVATURE_SETTINGS_COMMAND,
+      themeCommand: OPEN_THEME_COMMAND,
       interactive: { nonce, controlsPanel, controlsScript: buildControlsScript(nonce) },
     });
   }

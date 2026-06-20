@@ -92,7 +92,7 @@ export class ComplianceMatrixPreview {
           enableScripts: true,
           retainContextWhenHidden: true,
           localResourceRoots: [vscode.Uri.joinPath(this.extensionUri, 'media')],
-          enableCommandUris: [OPEN_FILE_COMMAND, REFRESH_COMMAND],
+          enableCommandUris: [OPEN_FILE_COMMAND, REFRESH_COMMAND, 'transitrixStudio.changeTheme'],
         },
       );
       this.panel.webview.onDidReceiveMessage((m) => { void this.onMessage(m); });
@@ -224,6 +224,7 @@ ${WARN_BLOCK_CSS}
   <div id="cm-toolbar">
     <div class="cm-title">Compliance Matrix</div>
     <div class="cm-summary">${summary.products} products × ${summary.requirements} requirements · <strong>${summary.gaps}</strong> gaps · ${summary.assertions} claims shown</div>
+    <a href="command:transitrixStudio.changeTheme" class="cm-btn" title="Change the color scheme for all diagram previews">Theme…</a>
     <a href="command:${REFRESH_COMMAND}" class="cm-btn" title="Re-scan the workspace">Refresh</a>
   </div>
   ${errBlock}${warnBlock}
@@ -346,7 +347,7 @@ body { padding: 0; }
 .cm-cell { width: var(--ts-col-w, 120px); height: 38px; text-align: center; vertical-align: middle; }
 .cm-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
 .cm-cell-link { text-decoration: none; }
-.cm-gap { background: repeating-linear-gradient(45deg, transparent, transparent 5px, var(--ts-bg-subtle, #f1f5f9) 5px, var(--ts-bg-subtle, #f1f5f9) 10px); }
+.cm-gap { background-color: var(--ts-bg, #fff); background-image: repeating-linear-gradient(135deg, rgba(100,116,139,0.18) 0, rgba(100,116,139,0.18) 2px, transparent 0, transparent 50%); background-size: 8px 8px; }
 .cm-pending { background: #fef9c3; border: 1px dashed #b45309 !important; }
 .cm-badge-pending { display: inline-block; padding: 2px 6px; border-radius: 8px; font-size: 10px; font-weight: 600; color: #b45309; background: #fef9c3; }
 .cm-compliant { background: var(--ts-status-success-bg, #d1fae5); }
@@ -357,7 +358,7 @@ body { padding: 0; }
 .cm-non_compliant .cm-badge { color: var(--ts-status-error-fg, #991b1b); }
 .cm-under_review { background: var(--ts-status-info-bg, #e0f2fe); }
 .cm-under_review .cm-badge { color: var(--ts-status-info-fg, #0c4a6e); }
-.cm-n_a { background: var(--ts-bg-subtle, #f1f5f9); }
+.cm-n_a { background-color: var(--ts-bg, #fff); background-image: repeating-linear-gradient(135deg, var(--ts-border, #cbd5e1) 0, var(--ts-border, #cbd5e1) 1.5px, transparent 0, transparent 50%); background-size: 8px 8px; }
 .cm-n_a .cm-badge { color: var(--ts-text-muted, #64748b); }
 .cm-pending_owner { background: #f3e8ff; }
 .cm-pending_owner .cm-badge { color: #6b21a8; }

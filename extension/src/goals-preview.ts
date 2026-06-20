@@ -1,7 +1,7 @@
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 import yaml from 'js-yaml';
-import { buildDiagramFrame, prepareSvgForExport, type ThemeId } from './diagram-frame.js';
+import { buildDiagramFrame, prepareSvgForExport, type ThemeId, OPEN_THEME_COMMAND } from './diagram-frame.js';
 import { savePngFromSvg, copyPngFromSvg } from './png-export.js';
 import { TITLE_BLOCK_H, titleBlockSvg, todayIso } from './svg-title-block.js';
 import {
@@ -121,7 +121,7 @@ export class GoalsPreview {
           enableScripts: true,
           retainContextWhenHidden: true,
           localResourceRoots: [vscode.Uri.joinPath(this.extensionUri, 'media')],
-          enableCommandUris: ['transitrixStudio.saveGoalsAsSvg', 'transitrixStudio.saveGoalsAsPng', 'transitrixStudio.copyGoalsAsPng', OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND, OPEN_SCOPE_SETTINGS_COMMAND],
+          enableCommandUris: ['transitrixStudio.saveGoalsAsSvg', 'transitrixStudio.saveGoalsAsPng', 'transitrixStudio.copyGoalsAsPng', OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND, OPEN_SCOPE_SETTINGS_COMMAND, OPEN_THEME_COMMAND],
         },
       );
       this.panel.webview.onDidReceiveMessage((m) => { void applyControlMessage('goals', m); });
@@ -216,6 +216,7 @@ export class GoalsPreview {
       spacingCommand: OPEN_SPACING_SETTINGS_COMMAND,
       curvatureCommand: OPEN_CURVATURE_SETTINGS_COMMAND,
       scopeCommand: OPEN_SCOPE_SETTINGS_COMMAND,
+      themeCommand: OPEN_THEME_COMMAND,
       interactive: { nonce, controlsPanel: buildControlsPanel(model), controlsScript: buildControlsScript(nonce) },
     });
   }

@@ -13,6 +13,7 @@ import type {
   LegendCell,
   ProcessBlueprintFile,
   ProcessBlueprintLayout,
+  RowId,
   Stage,
   StageHeaderCell,
   StageTextCell,
@@ -31,7 +32,7 @@ const ASPECT_LABEL: Record<AspectCategory, string> = {
 // (absent = feature disabled) and must stay optional in the resolved type.
 type SizingOptionKeys = Exclude<
   keyof ProcessBlueprintLayoutOptions,
-  'complianceLane' | 'complianceInput' | 'visibleAspects'
+  'complianceLane' | 'complianceInput' | 'visibleAspects' | 'visibleRows' | 'visibleStages'
 >;
 
 /**
@@ -39,7 +40,7 @@ type SizingOptionKeys = Exclude<
  * the opt-in feature fields stay optional (undefined = feature disabled).
  */
 type ResolvedLayoutOptions = Required<Pick<ProcessBlueprintLayoutOptions, SizingOptionKeys>> &
-  Pick<ProcessBlueprintLayoutOptions, 'complianceLane' | 'complianceInput' | 'visibleAspects'>;
+  Pick<ProcessBlueprintLayoutOptions, 'complianceLane' | 'complianceInput' | 'visibleAspects' | 'visibleRows' | 'visibleStages'>;
 
 const DEFAULTS = {
   legendColumnWidth: 140,
@@ -48,14 +49,19 @@ const DEFAULTS = {
   goalRowHeight: 56,
   resultRowHeight: 56,
   aspectRowMinHeight: 60,
-  pillHeight: 28,
+  pillHeight: 40,
   pillGap: 4,
   cellPadding: 8,
-  textLineHeight: 15,
-  textCharWidth: 6.2,
+  // 17px gives comfortable breathing room between wrapped lines at typical
+  // webview font sizes (VS Code uses ~13–14px body, SVG text-secondary ≈ same).
+  textLineHeight: 17,
+  // 7.5px per char is a conservative estimate that causes wrap to trigger
+  // before text visually overflows the cell border.
+  textCharWidth: 7.5,
   cellTextPadX: 10,
   cellTextPadY: 10,
-  maxTextLines: 6,
+  // No hard truncation: rows grow to fit all wrapped lines.
+  maxTextLines: 100,
 } satisfies Required<Pick<ProcessBlueprintLayoutOptions, SizingOptionKeys>>;
 
 interface RawPill {
@@ -369,8 +375,24 @@ export function layoutProcessBlueprint(
   const opts = resolveOptions(options);
 
   const pb = file.process_blueprint;
-  const stages = Array.isArray(pb?.stages) ? pb.stages : [];
+
+  // Filter stages by visibleStages if set
+  const allStages = Array.isArray(pb?.stages) ? pb.stages : [];
+  const stages = opts.visibleStages
+    ? allStages.filter(s => s?.id != null && opts.visibleStages!.includes(s.id))
+    : allStages;
   const stageIndexById = buildStageIndex(stages);
+
+  // Row visibility from visibleRows
+  const visRows = opts.visibleRows;
+  const showGoal = !visRows || (visRows as string[]).includes('goal');
+  const showResult = !visRows || (visRows as string[]).includes('result');
+  const effectiveVisibleAspects: AspectCategory[] | undefined = visRows
+    ? (ASPECT_CATEGORIES.filter(c => (visRows as string[]).includes(c)) as AspectCategory[])
+    : opts.visibleAspects;
+  const effectiveComplianceEnabled =
+    opts.complianceLane?.enabled === true &&
+    (!visRows || (visRows as string[]).includes('compliance'));
 
   // Stage headers
   const stageHeaders: StageHeaderCell[] = stages.map((s, i) => ({
@@ -398,38 +420,39 @@ export function layoutProcessBlueprint(
   const goalLines = stages.map(s => wrap(s?.goal ?? ''));
   const resultLines = stages.map(s => wrap(s?.result ?? ''));
 
-  const goalRowY = opts.stageHeaderHeight;
-  const goalRowHeight = rowHeightFor(goalLines.map(l => l.length), opts.goalRowHeight);
-  const resultRowY = goalRowY + goalRowHeight;
-  const resultRowHeight = rowHeightFor(resultLines.map(l => l.length), opts.resultRowHeight);
+  let cursorY = opts.stageHeaderHeight;
+  let goalRowY = 0, goalRowHeight = 0;
+  let resultRowY = 0, resultRowHeight = 0;
+  const goalCells: StageTextCell[] = [];
+  const resultCells: StageTextCell[] = [];
 
-  const goalCells: StageTextCell[] = stages.map((s, i) => ({
-    stageIndex: i,
-    text: s?.goal ?? '',
-    lines: goalLines[i],
-    x: opts.legendColumnWidth + i * opts.stageColumnWidth,
-    y: goalRowY,
-    width: opts.stageColumnWidth,
-    height: goalRowHeight,
-  }));
-
-  const resultCells: StageTextCell[] = stages.map((s, i) => ({
-    stageIndex: i,
-    text: s?.result ?? '',
-    lines: resultLines[i],
-    x: opts.legendColumnWidth + i * opts.stageColumnWidth,
-    y: resultRowY,
-    width: opts.stageColumnWidth,
-    height: resultRowHeight,
-  }));
-
-  const aspectsStartY = resultRowY + resultRowHeight;
+  if (showGoal) {
+    goalRowY = cursorY;
+    goalRowHeight = rowHeightFor(goalLines.map(l => l.length), opts.goalRowHeight);
+    goalCells.push(...stages.map((s, i) => ({
+      stageIndex: i, text: s?.goal ?? '', lines: goalLines[i],
+      x: opts.legendColumnWidth + i * opts.stageColumnWidth, y: goalRowY,
+      width: opts.stageColumnWidth, height: goalRowHeight,
+    })));
+    cursorY += goalRowHeight;
+  }
+  if (showResult) {
+    resultRowY = cursorY;
+    resultRowHeight = rowHeightFor(resultLines.map(l => l.length), opts.resultRowHeight);
+    resultCells.push(...stages.map((s, i) => ({
+      stageIndex: i, text: s?.result ?? '', lines: resultLines[i],
+      x: opts.legendColumnWidth + i * opts.stageColumnWidth, y: resultRowY,
+      width: opts.stageColumnWidth, height: resultRowHeight,
+    })));
+    cursorY += resultRowHeight;
+  }
+  const aspectsStartY = cursorY;
 
   // Aspect rows: only categories with at least one entry, in fixed order.
-  // When visibleAspects is set, skip categories not in the list.
+  // When effectiveVisibleAspects is set, skip categories not in the list.
   const aspectCategoriesToRender =
-    opts.visibleAspects !== undefined
-      ? ASPECT_CATEGORIES.filter(c => opts.visibleAspects!.includes(c))
+    effectiveVisibleAspects !== undefined
+      ? ASPECT_CATEGORIES.filter(c => effectiveVisibleAspects.includes(c))
       : ASPECT_CATEGORIES;
 
   const aspectRows: AspectRow[] = [];
@@ -461,6 +484,13 @@ export function layoutProcessBlueprint(
       const width =
         (p.endStageIndex - p.startStageIndex + 1) * opts.stageColumnWidth - 2 * opts.cellPadding;
       const y = aspectCursorY + opts.cellPadding + slot[i] * (opts.pillHeight + opts.pillGap);
+      const pillMaxChars = Math.max(4, Math.floor((width - 2 * opts.cellPadding) / opts.textCharWidth));
+      const nameWrapped = wrapText(p.name, pillMaxChars, 2);
+      // Show id as second line only when the name fits on one line; otherwise
+      // use both lines for the name so it isn't truncated.
+      const lines: string[] = p.id && nameWrapped.length <= 1
+        ? [...nameWrapped, p.id].slice(0, 2)
+        : nameWrapped;
       return {
         category: p.category,
         entryIndex: p.entryIndex,
@@ -472,6 +502,7 @@ export function layoutProcessBlueprint(
         y,
         width,
         height: opts.pillHeight,
+        lines,
       };
     });
 
@@ -487,7 +518,7 @@ export function layoutProcessBlueprint(
 
   // Compliance lane — derived from assertions/requirements, rendered after aspect rows.
   let complianceRow: import('./types.js').ComplianceRow | undefined;
-  if (opts.complianceLane?.enabled && opts.complianceInput) {
+  if (effectiveComplianceEnabled && opts.complianceInput) {
     complianceRow = deriveComplianceRow(
       stages,
       stageIndexById,
@@ -502,8 +533,8 @@ export function layoutProcessBlueprint(
 
   // Legend (left column labels): one entry per row.
   const legend: LegendCell[] = [
-    { kind: 'goal', label: 'Goal', y: goalRowY, height: goalRowHeight },
-    { kind: 'result', label: 'Result', y: resultRowY, height: resultRowHeight },
+    ...(showGoal ? [{ kind: 'goal' as const, label: 'Goal', y: goalRowY, height: goalRowHeight }] : []),
+    ...(showResult ? [{ kind: 'result' as const, label: 'Result', y: resultRowY, height: resultRowHeight }] : []),
     ...aspectRows.map<LegendCell>(row => ({
       kind: 'aspect',
       category: row.category,
@@ -511,9 +542,7 @@ export function layoutProcessBlueprint(
       y: row.y,
       height: row.height,
     })),
-    ...(complianceRow
-      ? [{ kind: 'compliance' as const, label: 'Compliance', y: complianceRow.y, height: complianceRow.height }]
-      : []),
+    ...(complianceRow ? [{ kind: 'compliance' as const, label: 'Compliance', y: complianceRow.y, height: complianceRow.height }] : []),
   ];
 
   const totalWidth = opts.legendColumnWidth + stages.length * opts.stageColumnWidth;

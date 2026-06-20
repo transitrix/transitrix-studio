@@ -54,6 +54,7 @@ body { padding: 0; }
 #cmp-toolbar { display: flex; align-items: baseline; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--ts-border, #cbd5e1); flex-wrap: wrap; }
 .cmp-title { font-size: 15px; font-weight: 700; color: var(--ts-text, #0f172a); }
 .cmp-subtitle { font-size: 12px; color: var(--ts-text-muted, #64748b); }
+.cmp-meta { width: 100%; font-size: 11px; color: var(--ts-text-muted, #64748b); letter-spacing: 0.04em; }
 .cmp-confidence { width: 100%; font-size: 11px; color: var(--ts-text-muted, #64748b); }
 .cmp-confidence-band { display: inline-block; padding: 0 6px; margin-right: 4px; border-radius: 3px; font-weight: 700; background: var(--ts-bg-subtle, #f1f5f9); color: var(--ts-text, #0f172a); }
 .cmp-confidence-band[data-band="A"] { background: var(--ts-status-success-bg, #d1fae5); color: var(--ts-status-success-fg, #065f46); }
@@ -112,9 +113,15 @@ body { padding: 0; }
 export interface ComplianceShellOptions {
   title: string;
   subtitle?: string;
+  /** Source filename shown as the second line of the header (e.g. "gdpr.law.transitrix.yaml"). Omit for workspace-wide views. */
+  filename?: string;
+  /** Generation date shown as "Generated: YYYY-MM-DD". Pass today's ISO date from the caller. */
+  date?: string;
   themeId: ThemeId;
   /** Command id for the Refresh button (re-scan). */
   refreshCommand: string;
+  /** Command id for the Theme… button. Pass 'transitrixStudio.changeTheme' from all callers. */
+  themeCommand?: string;
   /** Extra toolbar buttons (command URIs), rendered before Refresh. */
   extraButtons?: Array<{ command: string; label: string; title: string }>;
   /** Already-built body HTML (caller is responsible for escaping). */
@@ -169,7 +176,8 @@ ${WARN_BLOCK_CSS}
   <div id="cmp-toolbar">
     <span class="cmp-title">${escXml(opts.title)}</span>
     ${opts.subtitle ? `<span class="cmp-subtitle">${escXml(opts.subtitle)}</span>` : ''}
-    <span class="cmp-toolbar-actions">${(opts.extraButtons ?? []).map(b => `<a href="command:${b.command}" class="cmp-btn" title="${escXml(b.title)}">${escXml(b.label)}</a>`).join('')}<a href="command:${opts.refreshCommand}" class="cmp-btn" title="Re-scan the workspace">Refresh</a></span>
+    ${(opts.filename || opts.date) ? `<span class="cmp-meta">${[opts.filename ? escXml(opts.filename) : '', opts.date ? `Generated: ${escXml(opts.date)}` : ''].filter(Boolean).join(' · ')}</span>` : ''}
+    <span class="cmp-toolbar-actions">${(opts.extraButtons ?? []).map(b => `<a href="command:${b.command}" class="cmp-btn" title="${escXml(b.title)}">${escXml(b.label)}</a>`).join('')}${opts.themeCommand ? `<a href="command:${opts.themeCommand}" class="cmp-btn" title="Change the color scheme for all diagram previews">Theme…</a>` : ''}<a href="command:${opts.refreshCommand}" class="cmp-btn" title="Re-scan the workspace">Refresh</a></span>
     ${opts.confidence ? confidenceLineHtml(opts.confidence) : ''}
   </div>
   ${errBlock}${warnBlock}

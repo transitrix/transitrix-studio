@@ -15,6 +15,7 @@ export interface Activity {
   id: string;
   name: string;
   duration?: number;
+  duration_days?: number;
   activity_type?: string;
   goals?: string[];
   scenario?: string;

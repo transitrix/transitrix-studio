@@ -1,7 +1,7 @@
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 import yaml from 'js-yaml';
-import { buildDiagramFrame, CATALOGUE_STYLES, type ThemeId } from './diagram-frame.js';
+import { buildDiagramFrame, CATALOGUE_STYLES, type ThemeId, OPEN_THEME_COMMAND } from './diagram-frame.js';
 import { coerceDatesToIsoStrings } from '../../packages/diagrams/src/yaml-normalize.js';
 import { validateProductsCatalogue } from '../../packages/diagrams/src/products/validate.js';
 
@@ -129,7 +129,7 @@ export class ProductsPreview {
         'productsPreview',
         `${this.panelTitle} — ${path.basename(doc.fileName)}`,
         { viewColumn: vscode.ViewColumn.Beside, preserveFocus: false },
-        { enableScripts: false, retainContextWhenHidden: true },
+        { enableScripts: false, retainContextWhenHidden: true, enableCommandUris: ['transitrixStudio.changeTheme'] },
       );
       this.panel.onDidDispose(() => { this.panel = undefined; this.trackedUri = undefined; });
     }
@@ -138,6 +138,12 @@ export class ProductsPreview {
 
   async refreshSaved(doc: vscode.TextDocument): Promise<void> {
     if (!this.isShowingDocument(doc.uri)) return;
+    await this.pushDocument(doc);
+  }
+
+  async refreshConfig(): Promise<void> {
+    if (!this.panel || !this.trackedUri) return;
+    const doc = await vscode.workspace.openTextDocument(vscode.Uri.parse(this.trackedUri));
     await this.pushDocument(doc);
   }
 
@@ -193,6 +199,7 @@ export class ProductsPreview {
       version,
       date,
       extraStyles: `:root { --ts-col-w: ${colWPx}px; }\n` + CATALOGUE_STYLES + PRODUCTS_STYLES,
+      themeCommand: OPEN_THEME_COMMAND,
     });
   }
 }

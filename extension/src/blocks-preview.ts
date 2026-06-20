@@ -1,7 +1,7 @@
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 import yaml from 'js-yaml';
-import { buildDiagramFrame, prepareSvgForExport, type ThemeId } from './diagram-frame.js';
+import { buildDiagramFrame, prepareSvgForExport, type ThemeId, OPEN_THEME_COMMAND } from './diagram-frame.js';
 import { savePngFromSvg, copyPngFromSvg } from './png-export.js';
 import { TITLE_BLOCK_H, titleBlockSvg, todayIso } from './svg-title-block.js';
 import {
@@ -102,7 +102,7 @@ export class BlocksPreview {
         {
           enableScripts: false,
           retainContextWhenHidden: true,
-          enableCommandUris: ['transitrixStudio.saveBlocksAsSvg', 'transitrixStudio.saveBlocksAsPng', 'transitrixStudio.copyBlocksAsPng'],
+          enableCommandUris: ['transitrixStudio.saveBlocksAsSvg', 'transitrixStudio.saveBlocksAsPng', 'transitrixStudio.copyBlocksAsPng', 'transitrixStudio.changeTheme'],
         },
       );
       this.panel.onDidDispose(() => {
@@ -115,6 +115,12 @@ export class BlocksPreview {
 
   async refreshSaved(doc: vscode.TextDocument): Promise<void> {
     if (!this.isShowingDocument(doc.uri)) return;
+    await this.pushDocument(doc);
+  }
+
+  async refreshConfig(): Promise<void> {
+    if (!this.panel || !this.trackedUri) return;
+    const doc = await vscode.workspace.openTextDocument(vscode.Uri.parse(this.trackedUri));
     await this.pushDocument(doc);
   }
 
@@ -167,6 +173,7 @@ export class BlocksPreview {
       saveSvgCommand: 'transitrixStudio.saveBlocksAsSvg',
       savePngCommand: 'transitrixStudio.saveBlocksAsPng',
       copyPngCommand: 'transitrixStudio.copyBlocksAsPng',
+      themeCommand: OPEN_THEME_COMMAND,
     });
   }
 

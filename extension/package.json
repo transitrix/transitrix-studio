@@ -445,6 +445,11 @@
         "enablement": "config.transitrix.exportEnabled"
       },
       {
+        "command": "transitrixStudio.changeTheme",
+        "title": "Transitrix: Change diagram color scheme",
+        "category": "Transitrix"
+      },
+      {
         "command": "transitrixStudio.previewGoals",
         "title": "Transitrix: Preview goal tree",
         "category": "Transitrix",
@@ -728,7 +733,7 @@
     "menus": {
       "editor/title": [
         {
-          "when": "resourceFilename =~ /\\.(cervin|bpmn)\\.yaml$/",
+          "when": "resourceFilename =~ /\\.(cervin|bpmn\\.transitrix)\\.yaml$/",
           "command": "transitrix.openPreview",
           "group": "navigation@-10"
         },

@@ -5,6 +5,18 @@ export function computeCpm(activities: Activity[]): CpmResult {
 
   if (activities.length === 0) return result;
 
+  // When no activity carries any duration data, critical path is indeterminate —
+  // return all non-critical so the diagram renders in default grey.
+  const hasDuration = activities.some(
+    (a) => (a.duration !== undefined && a.duration !== null) || (a.duration_days !== undefined && a.duration_days !== null),
+  );
+  if (!hasDuration) {
+    for (const a of activities) {
+      result.set(a.id, { es: 0, ef: 0, ls: 0, lf: 0, slack: 0, isCritical: false });
+    }
+    return result;
+  }
+
   // Build successor map and in-degree for topological sort
   const successors = new Map<string, string[]>();
   const predecessors = new Map<string, string[]>();
@@ -45,7 +57,7 @@ export function computeCpm(activities: Activity[]): CpmResult {
   const ef = new Map<string, number>();
   for (const id of topoOrder) {
     const a = actById.get(id)!;
-    const dur = a.duration ?? 0;
+    const dur = a.duration ?? a.duration_days ?? 0;
     const maxPredEf = Math.max(0, ...(predecessors.get(id) ?? []).map(p => ef.get(p) ?? 0));
     es.set(id, maxPredEf);
     ef.set(id, maxPredEf + dur);
@@ -59,7 +71,7 @@ export function computeCpm(activities: Activity[]): CpmResult {
   const lf = new Map<string, number>();
   for (const id of [...topoOrder].reverse()) {
     const a = actById.get(id)!;
-    const dur = a.duration ?? 0;
+    const dur = a.duration ?? a.duration_days ?? 0;
     const succs = successors.get(id) ?? [];
     const minSuccLs = succs.length === 0 ? projectFinish : Math.min(...succs.map(s => ls.get(s) ?? projectFinish));
     lf.set(id, minSuccLs);

@@ -130,7 +130,7 @@ export function validateActivities(input: unknown): ActivityValidationResult {
     }
 
     // ACT-009: non-negative numeric fields
-    const numericFields = ['duration', 'labor_cost', 'resources_cost', 'effort', 'score', 'sort'] as const;
+    const numericFields = ['duration', 'duration_days', 'labor_cost', 'resources_cost', 'effort', 'score', 'sort'] as const;
     for (const field of numericFields) {
       const val = act[field];
       if (val !== undefined && val !== null) {
@@ -140,8 +140,8 @@ export function validateActivities(input: unknown): ActivityValidationResult {
       }
     }
 
-    // ACT-011: warn if no duration
-    if (act.duration === undefined || act.duration === null) {
+    // ACT-011: warn if no duration (duration_days is accepted as an alias)
+    if ((act.duration === undefined || act.duration === null) && (act.duration_days === undefined || act.duration_days === null)) {
       warnings.push({ code: 'ACT-011', message: `Activity "${id}" has no duration — cannot participate in CPM analysis`, path });
     }
   }

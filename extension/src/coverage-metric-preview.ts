@@ -151,7 +151,7 @@ export class CoverageMetricPreview {
         {
           enableScripts: false,
           retainContextWhenHidden: true,
-          enableCommandUris: [OPEN_FILE_COMMAND, REFRESH_COMMAND],
+          enableCommandUris: [OPEN_FILE_COMMAND, REFRESH_COMMAND, 'transitrixStudio.changeTheme'],
         },
       );
       this.panel.onDidDispose(() => {
@@ -168,6 +168,12 @@ export class CoverageMetricPreview {
     if (this.panel && this.trackedUri === doc.uri.toString()) {
       await this.pushDocument(doc);
     }
+  }
+
+  async refreshConfig(): Promise<void> {
+    if (!this.panel || !this.trackedUri) return;
+    const doc = await vscode.workspace.openTextDocument(vscode.Uri.parse(this.trackedUri));
+    await this.pushDocument(doc);
   }
 
   private async pushDocument(doc: vscode.TextDocument): Promise<void> {
@@ -235,6 +241,7 @@ export class CoverageMetricPreview {
       '  <div id="cm-toolbar">\n' +
       `    <div class="cm-title">${titleLine}</div>\n` +
       (subtitleLine ? `    <div class="cm-subtitle">${subtitleLine}</div>\n` : '') +
+      `    <a href="command:transitrixStudio.changeTheme" class="cm-btn" title="Change the color scheme for all diagram previews">Theme…</a>\n` +
       `    <a href="command:${REFRESH_COMMAND}" class="cm-btn" title="Re-scan the workspace and reload">Refresh</a>\n` +
       '  </div>\n' +
       errBlock +

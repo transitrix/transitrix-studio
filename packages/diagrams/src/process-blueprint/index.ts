@@ -1,5 +1,6 @@
 export type {
   AspectCategory,
+  RowId,
   Stage,
   AspectEntry,
   LaneConfig,

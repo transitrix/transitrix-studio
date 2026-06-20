@@ -77,12 +77,13 @@ for (let i = 0; i < argv.length; i++) {
 }
 
 // Windows: spawning a .cmd (npm.cmd, npx.cmd) requires shell:true since
-// Node 18.20.2 (CVE-2024-27980). Quote the command so a path with spaces
-// survives; other executables (node via process.execPath) spawn directly.
+// Node 18.20.2 (CVE-2024-27980). Do NOT quote the command — Node 26 changed
+// %~dp0 resolution so a quoted command resolves relative to CWD instead of
+// the Node install dir, breaking npm.cmd's own path lookups.
 function run(command, args, options = {}) {
   const isBatch = process.platform === 'win32' && /\.(bat|cmd)$/i.test(command);
   return new Promise((resolve, reject) => {
-    const child = spawn(isBatch ? `"${command}"` : command, args, {
+    const child = spawn(command, args, {
       stdio: 'inherit',
       shell: isBatch,
       ...options,

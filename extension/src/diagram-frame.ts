@@ -4,6 +4,9 @@ import { CONTROLS_PANEL_CSS } from './preview-controls.js';
 
 export type { ThemeId };
 
+/** Command ID for the "Theme…" toolbar button — opens a QuickPick to change the global diagram theme. */
+export const OPEN_THEME_COMMAND = 'transitrixStudio.changeTheme';
+
 /**
  * Injects a <style> block with all --ts-* CSS variable definitions into an SVG string,
  * making it self-contained for file export (no external stylesheet required).
@@ -92,6 +95,18 @@ export interface DiagramFrameOpts {
    */
   scopeCommand?: string;
   /**
+   * Command ID for the "Theme…" toolbar button (opens a QuickPick to change the global
+   * `transitrix.theme` setting). Pass `OPEN_THEME_COMMAND` from all diagram previews.
+   * The preview's webview must include this command in `enableCommandUris`.
+   */
+  themeCommand?: string;
+  /**
+   * When true, adds a "Legend" toggle button to the toolbar (CSS-only, no scripts).
+   * The SVG must wrap its legend elements in `<g class="diagram-legend-col">`.
+   * Follows the same pattern as the title toggle (TX-R009).
+   */
+  legendToggle?: boolean;
+  /**
    * Opt-in to in-preview interactive controls (vkgeorgia/strategy#75/#76/#77 —
    * PR2). When present, the frame switches from the script-less static CSP to a
    * strict nonce-based CSP (`default-src 'none'; style-src 'unsafe-inline';
@@ -127,7 +142,7 @@ function escXml(s: string): string {
  */
 const FIX_PROMPT_CSS = `
 .fix-prompt-wrap {
-  margin: 8px 16px 12px;
+  margin: 8px 16px 0;
   border-left: 3px solid var(--vscode-editorWarning-foreground, #c07030);
   padding-left: 12px;
 }
@@ -171,7 +186,7 @@ const FIX_PROMPT_CSS = `
 // sibling combinator reaches the strip wherever it renders.
 export const ERROR_BLOCK_CSS = `
 .tx-err-toggle-cb{position:absolute;left:-9999px;width:1px;height:1px;opacity:0;}
-.tx-err{margin:8px 16px;border:1px solid var(--vscode-inputValidation-errorBorder,var(--vscode-errorForeground,#b91c1c));border-radius:6px;}
+.tx-err{margin:8px 16px 0;border:1px solid var(--vscode-inputValidation-errorBorder,var(--vscode-errorForeground,#b91c1c));border-radius:6px;}
 .tx-err-summary{display:block;cursor:pointer;user-select:none;padding:6px 10px;font-size:12px;font-weight:600;color:var(--vscode-errorForeground,#b91c1c);}
 .tx-err-summary::before{content:"\\25BE\\00a0";}
 .tx-err-toggle-cb:checked ~ .tx-err .tx-err-summary::before{content:"\\25B8\\00a0";}
@@ -188,7 +203,7 @@ export const ERROR_BLOCK_CSS = `
 // summary and the user expands to read.
 export const WARN_BLOCK_CSS = `
 .tx-warn-toggle-cb{position:absolute;left:-9999px;width:1px;height:1px;opacity:0;}
-.tx-warn{margin:8px 16px;border:1px solid var(--vscode-editorWarning-foreground,#c07030);border-radius:6px;}
+.tx-warn{margin:8px 16px 0;border:1px solid var(--vscode-editorWarning-foreground,#c07030);border-radius:6px;}
 .tx-warn-summary{display:block;cursor:pointer;user-select:none;padding:6px 10px;font-size:12px;font-weight:600;color:var(--vscode-editorWarning-foreground,#c07030);}
 .tx-warn-summary::before{content:"\\25BE\\00a0";}
 .tx-warn-toggle-cb:checked ~ .tx-warn .tx-warn-summary::before{content:"\\25B8\\00a0";}
@@ -282,6 +297,12 @@ const TITLE_TOGGLE_CSS = `
    .text-secondary from the shared theme so the typography matches. */
 .diagram-title-block-html { margin: 0 16px 12px; }
 .diagram-title-block-html div { line-height: 16px; }
+
+/* Legend column toggle (optional, opt-in via legendToggle). Checkbox drives
+   show/hide for <g class="diagram-legend-col"> inside the SVG canvas. Same
+   script-free checkbox+label+:checked~ pattern as the title toggle. */
+.legend-toggle-cb { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+.legend-toggle-cb:not(:checked) ~ #canvas .diagram-legend-col { display: none; }
 `;
 
 /**
@@ -377,8 +398,8 @@ export function buildDiagramFrame(opts: DiagramFrameOpts): string {
     errorMsg = '', warnings = [],
     themeId = 'transitrix', extraStyles = '', fixPrompt = '',
     title, subtitle, version, date,
-    saveSvgCommand, savePngCommand, copyPngCommand, spacingCommand, curvatureCommand, scopeCommand,
-    interactive,
+    saveSvgCommand, savePngCommand, copyPngCommand, spacingCommand, curvatureCommand, scopeCommand, themeCommand,
+    interactive, legendToggle,
   } = opts;
 
   const canvasContent = bodyContent ?? svgContent;
@@ -410,7 +431,7 @@ export function buildDiagramFrame(opts: DiagramFrameOpts): string {
   // COLLAPSED (checkbox `checked`) — advisories shouldn't crowd the canvas.
   const { input: warnToggleInput, block: warnBlock } = buildWarnHtml(warnings);
 
-  const metaParts = [version ? `v${escXml(version)}` : null, date ? escXml(date) : null].filter(Boolean);
+  const metaParts = date ? [`Generated: ${escXml(date)}`] : [];
   const headerBlock = title
     ? `<div class="frame-header">
   <div class="frame-title">${escXml(title)}</div>
@@ -437,10 +458,15 @@ export function buildDiagramFrame(opts: DiagramFrameOpts): string {
   const showSpacing = Boolean(spacingCommand);
   const showCurvature = Boolean(curvatureCommand);
   const showScope = Boolean(scopeCommand);
+  const showTheme = Boolean(themeCommand);
   // Zoom control gates on the same signal as Save .svg — the six vector
   // previews opt in by passing a saveSvgCommand. HTML catalogues are out of
   // scope per the orchestrator's call on issue #30.
   const showZoom = Boolean(canvasContent) && Boolean(saveSvgCommand);
+  const showLegendToggle = Boolean(legendToggle);
+  const legendToggleInput = showLegendToggle
+    ? `<input type="checkbox" id="ts-legend-toggle" class="legend-toggle-cb" checked>`
+    : '';
   const toggleInput = showToggle
     ? `<input type="checkbox" id="ts-title-toggle" class="title-toggle-cb" checked>`
     : '';
@@ -457,6 +483,9 @@ export function buildDiagramFrame(opts: DiagramFrameOpts): string {
   }
   if (showToggle) {
     actionParts.push(`<label for="ts-title-toggle" class="title-toggle" title="Show or hide the diagram title">Title</label>`);
+  }
+  if (showLegendToggle) {
+    actionParts.push(`<label for="ts-legend-toggle" class="title-toggle" title="Show or hide the legend column">Legend</label>`);
   }
   if (showZoom) {
     actionParts.push(`<div class="zoom-control" title="Zoom level"><label for="z-50" class="zoom-label">50%</label><label for="z-75" class="zoom-label">75%</label><label for="z-100" class="zoom-label">100%</label><label for="z-150" class="zoom-label">150%</label><label for="z-200" class="zoom-label">200%</label></div>`);
@@ -478,6 +507,9 @@ export function buildDiagramFrame(opts: DiagramFrameOpts): string {
   }
   if (showScope) {
     actionParts.push(`<a href="command:${escXml(scopeCommand!)}" class="toolbar-btn" title="Scope this preview to a level cap or a single goal's subtree in Settings">Scope…</a>`);
+  }
+  if (showTheme) {
+    actionParts.push(`<a href="command:${escXml(themeCommand!)}" class="toolbar-btn" title="Change the color scheme for all diagram previews">Theme…</a>`);
   }
   const toolbarRight = actionParts.length > 0
     ? `<div class="toolbar-actions">${actionParts.join('')}</div>`
@@ -511,6 +543,7 @@ ${extraStyles}
   </style>
 </head>
 <body data-theme="${escXml(themeId)}">
+  ${legendToggleInput}
   ${toggleInput}
   ${zoomInputs}
   ${errToggleInput}

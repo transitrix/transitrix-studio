@@ -1,5 +1,7 @@
 export type AspectCategory = 'systems' | 'actors' | 'equipment' | 'information_entities';
 
+export type RowId = 'goal' | 'result' | 'systems' | 'actors' | 'equipment' | 'information_entities' | 'compliance';
+
 // ── Compliance lane types ────────────────────────────────────────────────────
 
 /**
@@ -191,6 +193,17 @@ export interface ProcessBlueprintLayoutOptions {
    * Pass an empty array to suppress all aspect rows.
    */
   visibleAspects?: AspectCategory[];
+  /**
+   * Restrict which rows are rendered. When absent, all rows with data are shown.
+   * When set, takes precedence over `visibleAspects` for aspect categories and
+   * overrides `complianceLane.enabled` for the compliance row.
+   */
+  visibleRows?: RowId[];
+  /**
+   * Restrict which stages (columns) are rendered by their stage ID.
+   * When absent, all stages are shown.
+   */
+  visibleStages?: string[];
 }
 
 import type { LayoutBounds } from '../geometry.js';
@@ -236,6 +249,8 @@ export interface AspectPill {
   y: number;
   width: number;
   height: number;
+  /** Word-wrapped lines of `name`, pre-fitted to the pill width by the layout. */
+  lines: string[];
 }
 
 export interface AspectRow {

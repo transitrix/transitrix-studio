@@ -36,7 +36,7 @@ export class GapDashboardPreview {
         'gapDashboardPreview',
         this.panelTitle,
         { viewColumn: vscode.ViewColumn.Active, preserveFocus: false },
-        { enableScripts: false, retainContextWhenHidden: true, enableCommandUris: [OPEN_FILE_COMMAND, REFRESH_COMMAND, EXPORT_CSV_COMMAND] },
+        { enableScripts: false, retainContextWhenHidden: true, enableCommandUris: [OPEN_FILE_COMMAND, REFRESH_COMMAND, EXPORT_CSV_COMMAND, 'transitrixStudio.changeTheme'] },
       );
       this.panel.onDidDispose(() => { this.panel = undefined; this.lastReport = undefined; });
     } else {
@@ -131,8 +131,10 @@ export class GapDashboardPreview {
     return complianceShell({
       title: 'Compliance Gap Dashboard',
       subtitle: total === 0 ? 'No gaps found' : `${total} gap(s) across 4 checks`,
+      date: todayIso(),
       themeId,
       refreshCommand: REFRESH_COMMAND,
+      themeCommand: 'transitrixStudio.changeTheme',
       extraButtons: [{ command: EXPORT_CSV_COMMAND, label: 'Export CSV', title: 'Save the gap report as a CSV file' }],
       bodyHtml: body,
       confidence: this.lastConfidence,
