@@ -1,0 +1,23 @@
+notation: activity
+id: ACTIVITY-GDPR-CONSENT-1
+name: "Rework onboarding consent flow to Art. 7 GDPR standard"
+activity_type: workstream
+status: not_started
+parent: ACTIVITY-GDPR-REMEDIATION-1
+description: >
+  Redesign the customer onboarding consent screens to satisfy Art. 7 GDPR:
+  granular, freely-given consent per processing purpose, clear withdrawal
+  mechanism, and compliant audit trail.
+
+zone: canon
+admitted_at: "2026-06-20"
+admitted_by: "v.korobeinikov"
+gate_checks:
+  uniqueness: pass
+  consistency: pass
+  completeness: pass
+
+valid_from: "2026-05-01"
+start_date: "2026-08-01"
+end_date: "2026-11-30"
+valid_to: null

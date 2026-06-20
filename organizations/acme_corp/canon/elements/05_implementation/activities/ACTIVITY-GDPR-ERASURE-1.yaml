@@ -1,0 +1,22 @@
+notation: activity
+id: ACTIVITY-GDPR-ERASURE-1
+name: "Extend erasure pipeline to cold-storage archive"
+activity_type: workstream
+status: in_progress
+parent: ACTIVITY-GDPR-REMEDIATION-1
+description: >
+  Extend the erasure pipeline to cover the 7-year order-history cold-storage
+  archive. Moves ASSERTION-ECOMM-GDPR-ERASURE-1 from non_compliant to compliant.
+
+zone: canon
+admitted_at: "2026-06-20"
+admitted_by: "v.korobeinikov"
+gate_checks:
+  uniqueness: pass
+  consistency: pass
+  completeness: pass
+
+valid_from: "2026-05-01"
+start_date: "2026-05-12"
+end_date: "2026-09-15"
+valid_to: null
