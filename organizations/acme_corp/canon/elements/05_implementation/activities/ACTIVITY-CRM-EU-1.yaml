@@ -6,6 +6,8 @@
 notation: activity
 id: ACTIVITY-CRM-EU-1
 name: "Implement EU-localised CRM rollout"
+activity_type: project
+status: in_progress
 delivers_changes:
   - CHANGE-EU-CRM-1
 description: >

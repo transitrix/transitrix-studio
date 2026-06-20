@@ -6,6 +6,8 @@
 notation: activity
 id: ACTIVITY-EU-PROGRAMME-1
 name: "EU MDR conformity programme"
+activity_type: programme
+status: in_progress
 delivers_changes: [CHANGE-EU-COMPLIANCE-1]
 start_date: "2026-04-15"
 end_date: "2027-03-15"
