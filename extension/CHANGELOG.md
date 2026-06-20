@@ -1,5 +1,22 @@
 # Transitrix Studio — changelog
 
+## 2.1.0 — 2026-06-20
+
+Activity Card motivation chain, stakeholder grid, live sliders, "Generated:" date label.
+
+### Added
+
+- **Activity Card — full motivation chain.** Resolves and displays the complete Driver → Assessment → Goal → Change chain from the canon element store. Empty sections show "— not on file". Section headers carry concise subtitles (e.g. *"What prompted this initiative?"*).
+- **Activity Card — status and activity type badges** in the header (`planned`, `in_progress`, `programme`, `project`, …).
+- **Activity Card — stakeholder role grid.** Initiator / Owner / Sponsor / PM slots resolved from `activity_stakeholder` relations; rendered in a 2-column grid so names are not truncated.
+- **Preview live sliders.** Spacing and curvature sliders re-render the diagram immediately on drag, not only on release.
+- **GDPR remediation example** in `organizations/acme_corp/` with full motivation chain and three workstream children.
+
+### Changed
+
+- **"Generated:" date label** on every diagram title block — distinguishes the render date from project date fields.
+- **Activity Card badge text vertically centred** — fixes text floating above centre in "programme" / "in progress" badges.
+
 ## 1.6.0 — 2026-06-17
 
 Column-width controls, product names in impact headers, coverage-metric spec fix.
