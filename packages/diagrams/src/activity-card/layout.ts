@@ -148,24 +148,29 @@ export function layoutActivityCard(
   }));
   cursorY += DATES_H + CELL_GAP;
 
-  // ── 3. Stakeholder role slots row ────────────────────────────────────────
+  // ── 3. Stakeholder role slots — 2-column grid ────────────────────────────
   const ROLE_DEFS: Array<{ role: string; label: string }> = [
     { role: 'initiator', label: 'Initiator' },
     { role: 'owner', label: 'Owner' },
     { role: 'sponsor', label: 'Sponsor' },
     { role: 'project_manager', label: 'PM' },
   ];
-  const roleSlotW = (contentW - CELL_GAP * (ROLE_DEFS.length - 1)) / ROLE_DEFS.length;
+  const ROLE_COLS = 2;
+  const roleSlotW = (contentW - CELL_GAP * (ROLE_COLS - 1)) / ROLE_COLS;
   const stakeholderRoleSlots: StakeholderRoleSlot[] = ROLE_DEFS.map(({ role, label }, i) => {
+    const col = i % ROLE_COLS;
+    const row = Math.floor(i / ROLE_COLS);
     const match = (card.stakeholders ?? []).find((s) => s.role === role);
     return {
       role: label,
       name: match?.name ?? '—',
-      x: contentX + i * (roleSlotW + CELL_GAP), y: cursorY,
+      x: contentX + col * (roleSlotW + CELL_GAP),
+      y: cursorY + row * (ROLES_H + CELL_GAP),
       width: roleSlotW, height: ROLES_H,
     };
   });
-  cursorY += ROLES_H + SECTION_GAP;
+  const roleRows = Math.ceil(ROLE_DEFS.length / ROLE_COLS);
+  cursorY += roleRows * (ROLES_H + CELL_GAP) - CELL_GAP + SECTION_GAP;
 
   // ── 4. Description row (optional) ────────────────────────────────────────
   let descriptionRow: InfoRow | undefined;
@@ -189,6 +194,7 @@ export function layoutActivityCard(
   function pushChainSection(
     type: ChainSectionLayout['type'],
     label: string,
+    subtitle: string,
     rawNodes: Array<{ id: string; name: string; meta?: string }>,
   ): void {
     const isEmpty = rawNodes.length === 0;
@@ -211,23 +217,23 @@ export function layoutActivityCard(
       : rawNodes.length * (CHAIN_NODE_H + opts.rowGap) - opts.rowGap;
     const sectionH = CHAIN_HEADER_H + 8 + bodyH + 8;
 
-    chainSections.push({ type, label, nodes, isEmpty, x: contentX, y: sectionY, width: contentW, height: sectionH });
+    chainSections.push({ type, label, subtitle, nodes, isEmpty, x: contentX, y: sectionY, width: contentW, height: sectionH });
     cursorY += sectionH + CONNECTOR_H;
   }
 
   const { drivers, goals, changes } = card.motivation;
   const assessments = card.assessments ?? [];
 
-  pushChainSection('drivers', 'Drivers',
+  pushChainSection('drivers', 'Drivers', 'What prompted this initiative?',
     drivers.map((d) => ({ id: d.id, name: d.name })));
 
-  pushChainSection('assessments', 'Assessments',
+  pushChainSection('assessments', 'Assessments', 'What is the current gap?',
     assessments.map((a) => ({ id: a.id, name: a.name, meta: a.observed_at })));
 
-  pushChainSection('goals', 'Goals',
+  pushChainSection('goals', 'Goals', 'What outcome do we target?',
     goals.map((g) => ({ id: g.id, name: g.name })));
 
-  pushChainSection('changes', 'Changes',
+  pushChainSection('changes', 'Changes', 'What will change?',
     changes.map((c) => ({ id: c.id, name: c.name })));
 
   // Remove trailing CONNECTOR_H — last section connects to milestones with SECTION_GAP.
