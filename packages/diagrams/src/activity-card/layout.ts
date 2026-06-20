@@ -39,21 +39,21 @@ const TITLE_H = 44;
 const BADGE_H = 22;
 const BADGE_HPAD = 12;
 const BADGE_GAP = 8;
-const DATES_H = 56;
-const ROLES_H = 52;
+const DATES_H = 62;
+const ROLES_H = 58;
 const CELL_GAP = 12;
 const SECTION_GAP = 16;
 const CONNECTOR_H = 20;
 const CHAIN_HEADER_H = 24;
-const CHAIN_NODE_H = 40;
+const CHAIN_NODE_H = 48;
 const CHAIN_GAP_H = 32;
 const CHAIN_INNER_PAD = 12;
 const MILESTONE_W = 168;
-const MILESTONE_H = 64;
+const MILESTONE_H = 72;
 const MILESTONE_GAP = 16;
 const CHILD_ROW_H = 42;
 const INFO_LINE_H = 18;
-const INFO_ROW_BASE_H = 38;
+const INFO_ROW_BASE_H = 50;
 const INFO_CHAR_W = 7;
 
 /** §5.1 ArchiMate class — derived from element TYPE, never stored. */

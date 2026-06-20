@@ -339,6 +339,5 @@ const CAPABILITY_MAP_STYLES = `
     text-align: center;
     color: var(--ts-text-muted, #64748b);
     padding: 48px;
-    font-style: italic;
   }
 `;

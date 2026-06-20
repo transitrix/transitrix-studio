@@ -84,7 +84,7 @@ body { padding: 0; }
 .cmp-assertions { list-style: none; margin: 0; padding: 0; }
 .cmp-assertions li { display: flex; align-items: center; gap: 8px; padding: 6px 12px 6px 24px; border-top: 1px solid var(--ts-border, #e2e8f0); font-size: 12px; }
 .cmp-assertions li .cmp-meta { color: var(--ts-text-muted, #64748b); font-size: 11px; }
-.cmp-none { color: var(--ts-text-muted, #64748b); font-style: italic; padding: 6px 12px 6px 24px; border-top: 1px solid var(--ts-border, #e2e8f0); }
+.cmp-none { color: var(--ts-text-muted, #64748b); padding: 6px 12px 6px 24px; border-top: 1px solid var(--ts-border, #e2e8f0); }
 
 /* List (single-product) */
 .cmp-list { border-collapse: collapse; font-size: 12px; width: 100%; max-width: 760px; }

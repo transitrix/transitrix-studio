@@ -1,5 +1,20 @@
 # Transitrix Studio — changelog
 
+## 2.1.1 — 2026-06-20
+
+Activity Card layout polish, no-italic rule fully applied.
+
+### Fixed
+
+- **No-italic rule — complete.** Removed remaining `font-style: italic` from all previews and the JCEF webview bundle.
+- **Activity Card — taller cells** for better readability: date fields, stakeholder slots, chain nodes, milestones each gained 6–12 px of vertical space.
+- **Process-blueprint text alignment.** `dominant-baseline` converted to inline style across all `<text>` elements for reliable cross-renderer alignment.
+- **`dominant-baseline:central` in CSS text classes.** Eliminating fragile per-element inline repetition and fixing Activity Card title baseline.
+
+### Changed
+
+- **GDPR remediation example.** Added explicit milestones for the DSR workflow, pre-audit clearance, and Art. 7 consent rework (Q3–Q4 2026).
+
 ## 2.1.0 — 2026-06-20
 
 Activity Card motivation chain, stakeholder grid, live sliders, "Generated:" date label.

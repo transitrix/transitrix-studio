@@ -1,0 +1,13 @@
+notation: relation
+id: REL-GDPR-REM-STAKE-PM-1
+type: activity_stakeholder
+from: ACTIVITY-GDPR-REMEDIATION-1
+to: STAKEHOLDER-PM-GDPR-1
+role: project_manager
+
+zone: canon
+admitted_at: "2026-06-20"
+admitted_by: "v.korobeinikov"
+
+valid_from: "2026-04-10"
+valid_to: null

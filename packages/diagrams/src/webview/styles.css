@@ -228,7 +228,6 @@ body {
 .empty-scenario {
   text-align: center;
   color: var(--tx-muted);
-  font-style: italic;
   padding: 24px;
 }
 

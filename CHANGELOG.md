@@ -1,5 +1,23 @@
 # Changelog
 
+## [2.1.1] — 2026-06-20
+
+### Fixed
+
+- **No-italic rule — complete.** `font-style: italic` removed from all rendering surfaces, including the JCEF webview bundle (`styles.css`). All previews and exports now use weight, size, or colour for visual hierarchy.
+- **`dominant-baseline:central` in CSS text classes.** `.text-header`, `.text-primary`, `.text-secondary`, `.text-id`, and `.text-pill` in `themes.ts` now carry `dominant-baseline:central` directly — eliminating fragile per-element inline repetition and fixing the Activity Card title element's baseline.
+- **Process-blueprint renderer.** `dominant-baseline="central"` SVG presentation attributes converted to `style="dominant-baseline:central"` inline styles on all `<text>` elements, consistent with the activity-card renderer.
+- **Activity Card — taller cells.** `DATES_H`, `ROLES_H`, `CHAIN_NODE_H`, `MILESTONE_H`, and `INFO_ROW_BASE_H` increased by 6–12 px for better label/value spacing and readability.
+
+### Changed
+
+- **GDPR remediation example — three milestones.** `eu-gdpr-remediation.activity-card.transitrix.yaml` now carries explicit milestones for the DSR workflow go-live (2026-10-31), supervisory-authority pre-audit clearance (2026-10-31), and Art. 7 consent rework (2026-11-30).
+
+### Internal
+
+- **Test guard.** `resolver.test.ts` — `toBeUndefined()` stakeholder-role assertion now guarded with `expect(sh).toBeDefined()` to prevent vacuous passes on empty-stakeholder regressions.
+- **`escXml` consolidation.** `extension/src/activity-card-preview.ts` now imports `escXml` from `render-util.ts` instead of maintaining a private copy.
+
 ## [2.1.0] — 2026-06-20
 
 ### Added

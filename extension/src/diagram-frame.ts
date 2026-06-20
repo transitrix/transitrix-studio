@@ -363,7 +363,7 @@ export const CATALOGUE_STYLES = `
 .maturity-dots { font-size: 14px; letter-spacing: 1px; color: var(--ts-brand-primary, #004d67); }
 .maturity-none { color: var(--ts-text-muted, #64748b); }
 .cell-empty { color: var(--ts-text-muted, #94a3b8); }
-.empty-catalogue { text-align: center; color: var(--ts-text-muted, #64748b); padding: 32px; font-style: italic; }
+.empty-catalogue { text-align: center; color: var(--ts-text-muted, #64748b); padding: 32px; }
 details { margin-top: 6px; font-size: 12px; }
 details summary { cursor: pointer; color: var(--ts-brand-primary, #004d67); font-weight: 500; user-select: none; }
 details ul { margin: 4px 0 0 16px; padding: 0; }

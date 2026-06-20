@@ -1,0 +1,17 @@
+notation: actor
+id: ACTOR-SMITH-1
+name: "John Smith"
+type: person
+description: "Project manager leading the GDPR compliance remediation programme."
+contact: "j.smith@acme.example"
+
+zone: canon
+admitted_at: "2026-06-20"
+admitted_by: "v.korobeinikov"
+gate_checks:
+  uniqueness: pass
+  consistency: pass
+  completeness: pass
+
+valid_from: "2026-04-10"
+valid_to: null

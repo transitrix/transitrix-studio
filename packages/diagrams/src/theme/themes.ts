@@ -138,11 +138,11 @@ function diagramClassCss(): string {
 ${levelRules}
 .diagram-edge{stroke:var(${cv.edgeStroke});stroke-width:1.5;fill:none;}
 .arrow-fill{fill:var(${cv.edgeStroke});}
-.text-header{fill:var(${cv.headerText});font-family:${t.fontFamily};font-size:${t.sizes.header}px;font-weight:${t.weights.header};}
-.text-primary{fill:var(${cv.textPrimary});font-family:${t.fontFamily};font-size:${t.sizes.primary}px;font-weight:${t.weights.primary};}
-.text-secondary{fill:var(${cv.textSecondary});font-family:${t.fontFamily};font-size:${t.sizes.secondary}px;font-weight:${t.weights.secondary};}
-.text-id{fill:var(${cv.textSecondary});font-family:${t.fontFamily};font-size:${t.sizes.id}px;font-weight:${t.weights.id};}
-.text-pill{fill:var(${cv.textPrimary});font-family:${t.fontFamily};font-size:${t.sizes.pill}px;font-weight:${t.weights.pill};}
+.text-header{fill:var(${cv.headerText});font-family:${t.fontFamily};font-size:${t.sizes.header}px;font-weight:${t.weights.header};dominant-baseline:central;}
+.text-primary{fill:var(${cv.textPrimary});font-family:${t.fontFamily};font-size:${t.sizes.primary}px;font-weight:${t.weights.primary};dominant-baseline:central;}
+.text-secondary{fill:var(${cv.textSecondary});font-family:${t.fontFamily};font-size:${t.sizes.secondary}px;font-weight:${t.weights.secondary};dominant-baseline:central;}
+.text-id{fill:var(${cv.textSecondary});font-family:${t.fontFamily};font-size:${t.sizes.id}px;font-weight:${t.weights.id};dominant-baseline:central;}
+.text-pill{fill:var(${cv.textPrimary});font-family:${t.fontFamily};font-size:${t.sizes.pill}px;font-weight:${t.weights.pill};dominant-baseline:central;}
 .maturity-1{fill:var(${cv.maturity1});}
 .maturity-2{fill:var(${cv.maturity2});}
 .maturity-3{fill:var(${cv.maturity3});}

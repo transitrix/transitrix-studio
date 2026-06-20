@@ -118,7 +118,7 @@ describe('renderImpactMatrixHtml (CV-6)', () => {
     ingestComplianceDoc(canon, { notation: 'requirement', id: 'REQ-1', name: 'Req One', severity: 'high' });
     ingestComplianceDoc(canon, { notation: 'assertion', id: 'ASS-1', about: 'REQ-1', subject: 'PROD-1', status: 'compliant' });
     const matrix = buildImpactMatrix(
-      { products: canon.products, requirements: canon.requirements, assertions: canon.assertions, codex: canon.codex },
+      { products: canon.products, requirements: canon.requirements, assertions: canon.assertions, codex: canon.codex, subjects: canon.subjects },
       { id: 'VIEW-1', name: 'My View', subjects: { products: ['PROD-1'] }, obligations: {} },
     );
     const html = renderImpactMatrixHtml(matrix, { today: '2026-06-09' });
@@ -133,7 +133,7 @@ describe('renderImpactMatrixHtml (CV-6)', () => {
     ingestComplianceDoc(canon, { notation: 'product', id: 'PROD-1', name: 'P1' });
     ingestComplianceDoc(canon, { notation: 'requirement', id: 'REQ-1', name: 'R1' });
     const matrix = buildImpactMatrix(
-      { products: canon.products, requirements: canon.requirements, assertions: canon.assertions, codex: canon.codex },
+      { products: canon.products, requirements: canon.requirements, assertions: canon.assertions, codex: canon.codex, subjects: canon.subjects },
       { id: 'V2', name: 'V2', subjects: { products: ['PROD-1'] }, obligations: {} },
     );
     const html = renderImpactMatrixHtml(matrix);

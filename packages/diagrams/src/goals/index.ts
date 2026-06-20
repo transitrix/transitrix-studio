@@ -2,7 +2,6 @@ export type {
   Goal,
   GoalType,
   GoalTree,
-  Factor,
   ImpactType,
   ValidationResult,
   ValidationError,

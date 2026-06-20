@@ -92,7 +92,7 @@ const CHAIN_TABLE_CSS = `
 .chain-table th { background: var(--ts-bg-subtle, #f1f5f9); color: var(--ts-text, #0f172a); font-weight: 600; }
 .chain-table td { color: var(--ts-text, #0f172a); }
 .chain-table td.chain-empty { background: var(--ts-bg-subtle, #f8fafc); }
-.chain-empty-table { padding: 24px 16px; color: var(--ts-text-muted, #64748b); font-style: italic; }
+.chain-empty-table { padding: 24px 16px; color: var(--ts-text-muted, #64748b); }
 `;
 
 function chainTableHtml(table: ChainTable): string {

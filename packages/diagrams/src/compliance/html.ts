@@ -63,7 +63,7 @@ body { font-family: "Helvetica", "Arial", sans-serif; font-size: 10pt; color: #0
 .cmp-header .cmp-stamp { font-size: 9pt; color: #475569; }
 h2 { font-size: 12pt; margin: 16pt 0 6pt; color: #0f172a; page-break-after: avoid; }
 h2 .cmp-count { color: #64748b; font-weight: 400; font-size: 10pt; }
-p.cmp-empty { color: #64748b; font-style: italic; }
+p.cmp-empty { color: #64748b; }
 table { border-collapse: collapse; width: 100%; font-size: 9.5pt; margin-bottom: 10pt; }
 th, td { border: 0.5pt solid #cbd5e1; padding: 4pt 6pt; text-align: left; vertical-align: top; }
 th { background: #f1f5f9; font-weight: 700; color: #0f172a; }
