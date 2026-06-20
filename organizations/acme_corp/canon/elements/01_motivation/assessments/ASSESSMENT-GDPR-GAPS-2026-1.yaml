@@ -1,0 +1,31 @@
+# ASSESSMENT element — dated finding about the EU regulatory driver.
+# Schema: notations/ELEMENT_PRIMITIVES.md §7.16 + envelope §3.
+# Answers "what specific problem are we solving?" for the GDPR remediation card.
+# Assesses FACTOR-EU-REG-1 (the standing EU regulatory pressure driver).
+
+notation: assessment
+id: ASSESSMENT-GDPR-GAPS-2026-1
+name: "2026 gap assessment: 3 open GDPR compliance gaps in the CRM platform"
+assesses: FACTOR-EU-REG-1
+description: >
+  The 2026 data-protection gap assessment identified three open gaps:
+  (1) erasure pipeline does not reach the 7-year cold-storage archive,
+  (2) no data-subject-request handling workflow,
+  (3) onboarding consent flow does not meet Art. 7 GDPR standards.
+  All three must be closed before the supervisory-authority pre-audit.
+observed_at: "2026-04-10"
+method: audit
+source: "Internal data-protection gap assessment, April 2026"
+
+# Admission record (CONTRACT.md §6)
+zone: canon
+admitted_at: "2026-06-20"
+admitted_by: "v.korobeinikov"
+gate_checks:
+  uniqueness: pass
+  consistency: pass
+  completeness: pass
+
+# Primitive lifecycle (CONTRACT.md §7)
+valid_from: "2026-04-10"
+valid_to: null

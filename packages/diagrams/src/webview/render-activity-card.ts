@@ -78,6 +78,7 @@ function resolveSingleDoc(doc: ActivityCardDoc): ResolvedActivityCard {
     project: { id: card?.project ?? '', name: card?.project ?? '' },
     milestones,
     motivation: { factors: [], goals: [], changes: [] },
+    assessments: [],
     childActivities: [],
   };
 }
