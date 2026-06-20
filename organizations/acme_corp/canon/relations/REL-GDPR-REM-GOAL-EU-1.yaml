@@ -1,0 +1,12 @@
+notation: relation
+id: REL-GDPR-REM-GOAL-EU-1
+type: activity_goal
+from: ACTIVITY-GDPR-REMEDIATION-1
+to: GOAL-EU-1
+
+zone: canon
+admitted_at: "2026-06-20"
+admitted_by: "v.korobeinikov"
+
+valid_from: "2026-04-10"
+valid_to: null

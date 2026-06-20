@@ -1,0 +1,23 @@
+notation: activity
+id: ACTIVITY-GDPR-DSR-1
+name: "Stand up data-subject-request handling workflow"
+activity_type: workstream
+status: in_progress
+parent: ACTIVITY-GDPR-REMEDIATION-1
+description: >
+  Design and implement the end-to-end data-subject-request (DSR) workflow:
+  intake, identity verification, fulfilment, and audit logging. Covers
+  Art. 15–22 GDPR rights across all CRM-managed customer records.
+
+zone: canon
+admitted_at: "2026-06-20"
+admitted_by: "v.korobeinikov"
+gate_checks:
+  uniqueness: pass
+  consistency: pass
+  completeness: pass
+
+valid_from: "2026-05-01"
+start_date: "2026-05-26"
+end_date: "2026-10-31"
+valid_to: null

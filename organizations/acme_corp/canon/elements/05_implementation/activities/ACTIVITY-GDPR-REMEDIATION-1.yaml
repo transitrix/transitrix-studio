@@ -1,0 +1,26 @@
+notation: activity
+id: ACTIVITY-GDPR-REMEDIATION-1
+name: "GDPR compliance remediation programme"
+activity_type: programme
+status: in_progress
+delivers_changes:
+  - CHANGE-GDPR-COMPLIANCE-1
+description: >
+  Programme closing the three GDPR compliance gaps identified by the
+  April 2026 internal gap assessment: (1) erasure pipeline does not
+  reach the cold-storage archive, (2) no data-subject-request handling
+  workflow, (3) onboarding consent flow does not meet Art. 7 standards.
+  Clears the supervisory-authority pre-audit gate for EU market entry.
+
+zone: canon
+admitted_at: "2026-06-20"
+admitted_by: "v.korobeinikov"
+gate_checks:
+  uniqueness: pass
+  consistency: pass
+  completeness: pass
+
+valid_from: "2026-04-10"
+start_date: "2026-05-01"
+end_date: "2026-12-31"
+valid_to: null

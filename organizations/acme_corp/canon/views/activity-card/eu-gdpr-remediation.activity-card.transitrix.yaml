@@ -8,7 +8,7 @@ spec_version: "0.1"
 
 activity_card:
   id: ACTIVITY_CARD-GDPR-REMEDIATION-1
-  project: ACTIVITY-CRM-EU-1
+  project: ACTIVITY-GDPR-REMEDIATION-1
 
   description: >
     Programme of work closing the EU data-protection gaps surfaced by the 2026
@@ -25,7 +25,7 @@ activity_card:
         ASSERTION-ECOMM-GDPR-ERASURE-1 out of non_compliant. Hard gate for the
         pre-audit.
       delivers_changes:
-        - CHANGE-EU-CRM-1
+        - CHANGE-GDPR-COMPLIANCE-1
 
     - id: MILESTONE-GDPR-PREAUDIT-1
       name: "Supervisory-authority pre-audit cleared"
@@ -34,4 +34,4 @@ activity_card:
         Data Protection Officer presents closed gaps and the DSR workflow to the
         supervisory authority; EU go-live proceeds under the new regime.
       delivers_changes:
-        - CHANGE-EU-CRM-1
+        - CHANGE-GDPR-COMPLIANCE-1
