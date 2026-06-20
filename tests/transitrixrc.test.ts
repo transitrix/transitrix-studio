@@ -6,11 +6,11 @@ import {
   loadTransitrixrc,
   assertNoCriticalRuleDowngrade,
   mergeConfigWithDefaults,
-} from '../src/cervinrc.js'
+} from '../src/transitrixrc.js'
 import type { ValidationRule, TransitrixrcConfig, ConfigError } from '../src/validator-types.js'
 
-describe('cervinrc config loader', () => {
-  const testDir = '/tmp/cervinrc-test'
+describe('transitrixrc config loader', () => {
+  const testDir = '/tmp/transitrixrc-loader-test'
 
   beforeEach(() => {
     mkdirSync(testDir, { recursive: true })

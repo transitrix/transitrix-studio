@@ -5,7 +5,7 @@ import { parseYamlToIr } from './parser.js'
 import type { ProcessIr, LayoutIr } from './ir.js'
 import { validateProcess, validator } from './validator.js'
 import type { ValidationReport, ValidationFinding, ValidatorConfig } from './validator-types.js'
-import { loadTransitrixrc, assertNoCriticalRuleDowngrade, mergeConfigWithDefaults } from './cervinrc.js'
+import { loadTransitrixrc, assertNoCriticalRuleDowngrade, mergeConfigWithDefaults } from './transitrixrc.js'
 import { BpmnModdle } from 'bpmn-moddle'
 
 export type { LayoutDiagramOptions } from './layout-options.js'
