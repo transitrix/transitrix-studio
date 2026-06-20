@@ -176,6 +176,21 @@ describe('resolveActivityCard', () => {
     expect(r.resolved!.stakeholders[0].role).toBeUndefined();
   });
 
+  it('passes notes from card YAML through to the resolved card', () => {
+    const cardWithNotes = {
+      ...CARD,
+      activity_card: { ...CARD.activity_card, notes: 'Pre-audit scheduled for Q4.' },
+    };
+    const r = resolveActivityCard(cardWithNotes as ActivityCardDoc, sources);
+    expect(r.valid).toBe(true);
+    expect(r.resolved!.notes).toBe('Pre-audit scheduled for Q4.');
+  });
+
+  it('notes is undefined when not set in card YAML', () => {
+    const r = resolveActivityCard(CARD, sources);
+    expect(r.resolved!.notes).toBeUndefined();
+  });
+
   it('resolves no stakeholders (empty list) when none are linked', () => {
     const r = resolveActivityCard(CARD, { elements, relations: [REL_GOAL] });
     expect(r.valid).toBe(true);

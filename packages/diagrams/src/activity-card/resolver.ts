@@ -406,6 +406,7 @@ export function resolveActivityCard(
     childActivities,
     goalNames,
     stakeholders,
+    notes: str(card.notes),
   };
 
   return { valid: true, errors, warnings, resolved };

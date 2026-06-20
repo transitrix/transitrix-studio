@@ -87,6 +87,10 @@ export function validateActivityCard(input: unknown): ValidationResult {
     errors.push({ code: 'AC-001', message: 'activity_card.description must be a string' });
   }
 
+  if (card['notes'] !== undefined && typeof card['notes'] !== 'string') {
+    errors.push({ code: 'AC-001', message: 'activity_card.notes must be a string' });
+  }
+
   // ── milestones[] (optional) ─────────────────────────────────────────────────
   const milestonesRaw = card['milestones'];
   if (milestonesRaw !== undefined) {
