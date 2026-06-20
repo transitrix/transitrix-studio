@@ -42,7 +42,7 @@ function textCellSvg(
   const tspans = ls
     .map((ln, i) => `<tspan x="${x}" y="${first + i * lineHeight}">${escXml(ln)}</tspan>`)
     .join('');
-  return `<text class="${cls}" dominant-baseline="central">${tspans}</text>`;
+  return `<text class="${cls}" style="dominant-baseline:central">${tspans}</text>`;
 }
 
 /**
@@ -73,7 +73,7 @@ function complianceChipSvg(chip: ComplianceChip, ox: number, oy: number): string
     `<rect class="${rectClass}" x="${ax}" y="${ay}" width="${width}" height="${height}" rx="${rx}"${strokeDash}/>`,
   );
   parts.push(
-    `<text class="text-pill" x="${ax + width / 2}" y="${ay + height / 2}" text-anchor="middle" dominant-baseline="central">${escXml(truncate(lawId, Math.floor(width / 8)))}</text>`,
+    `<text class="text-pill" x="${ax + width / 2}" y="${ay + height / 2}" text-anchor="middle" style="dominant-baseline:central">${escXml(truncate(lawId, Math.floor(width / 8)))}</text>`,
   );
   if (hasDeadline) {
     const br = 5;
@@ -81,7 +81,7 @@ function complianceChipSvg(chip: ComplianceChip, ox: number, oy: number): string
     const by = ay + br + 3;
     parts.push(`<circle class="compliance-badge" cx="${bx}" cy="${by}" r="${br}"/>`);
     parts.push(
-      `<text class="compliance-badge-text" x="${bx}" y="${by}" text-anchor="middle" dominant-baseline="central">!</text>`,
+      `<text class="compliance-badge-text" x="${bx}" y="${by}" text-anchor="middle" style="dominant-baseline:central">!</text>`,
     );
   }
   return parts.join('\n');
@@ -120,7 +120,7 @@ export function renderProcessBlueprintSvg(
       `<rect class="diagram-node level-1" x="${s.x + ox}" y="${s.y + oy}" width="${s.width}" height="${s.height}"/>`,
     );
     parts.push(
-      `<text class="text-header" x="${s.x + ox + s.width / 2}" y="${s.y + oy + s.height / 2}" text-anchor="middle" dominant-baseline="central">${escXml(truncate(s.name, 28))}</text>`,
+      `<text class="text-header" x="${s.x + ox + s.width / 2}" y="${s.y + oy + s.height / 2}" text-anchor="middle" style="dominant-baseline:central">${escXml(truncate(s.name, 28))}</text>`,
     );
   }
 
@@ -129,7 +129,7 @@ export function renderProcessBlueprintSvg(
       `<rect class="diagram-node level-2" x="${ox}" y="${l.y + oy}" width="${layout.legendColumnWidth}" height="${l.height}"/>`,
     );
     parts.push(
-      `<text class="text-primary" x="${ox + 12}" y="${l.y + oy + l.height / 2}" dominant-baseline="central">${escXml(l.label)}</text>`,
+      `<text class="text-primary" x="${ox + 12}" y="${l.y + oy + l.height / 2}" style="dominant-baseline:central">${escXml(l.label)}</text>`,
     );
   }
 
@@ -169,7 +169,7 @@ export function renderProcessBlueprintSvg(
       );
       const label = p.id ? `${p.name} · ${p.id}` : p.name;
       parts.push(
-        `<text class="text-pill" x="${p.x + ox + p.width / 2}" y="${p.y + oy + p.height / 2}" text-anchor="middle" dominant-baseline="central">${escXml(truncate(label, Math.floor(p.width / 8)))}</text>`,
+        `<text class="text-pill" x="${p.x + ox + p.width / 2}" y="${p.y + oy + p.height / 2}" text-anchor="middle" style="dominant-baseline:central">${escXml(truncate(label, Math.floor(p.width / 8)))}</text>`,
       );
     }
   }

@@ -1,0 +1,19 @@
+notation: stakeholder
+id: STAKEHOLDER-PM-GDPR-1
+name: "John Smith"
+type: internal
+actor: ACTOR-SMITH-1
+concern: "Delivery of the GDPR remediation programme on schedule and within scope."
+interest: high
+influence: high
+
+zone: canon
+admitted_at: "2026-06-20"
+admitted_by: "v.korobeinikov"
+gate_checks:
+  uniqueness: pass
+  consistency: pass
+  completeness: pass
+
+valid_from: "2026-04-10"
+valid_to: null

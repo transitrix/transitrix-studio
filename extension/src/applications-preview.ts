@@ -275,7 +275,6 @@ const APPLICATIONS_STYLES = `
     background: var(--ts-bg-elevated, #f1f5f9);
     font-size: 10px;
     color: var(--ts-text-muted, #64748b);
-    font-style: italic;
   }
   .intg-proto {
     display: inline-block;
@@ -299,7 +298,7 @@ const APPLICATIONS_STYLES = `
     color: var(--ts-text-muted, #64748b);
     white-space: nowrap;
   }
-  .vendor-internal { font-style: italic; color: var(--ts-text-muted, #64748b); }
+  .vendor-internal { color: var(--ts-text-muted, #64748b); }
   .vendor-external { color: var(--ts-text, #0f172a); }
   .col-name { min-width: var(--ts-col-w, 200px); }
   .col-type, .col-status, .col-maturity, .col-domain, .col-vendor, .col-owner { white-space: nowrap; }

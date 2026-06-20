@@ -320,7 +320,6 @@ const PROCESS_MAP_STYLES = `
   .empty-group, .empty-map {
     text-align: center;
     color: var(--ts-text-muted, #64748b);
-    font-style: italic;
   }
   .empty-group { padding: 18px; }
   .empty-map   { padding: 48px; }

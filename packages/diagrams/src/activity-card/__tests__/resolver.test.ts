@@ -166,14 +166,17 @@ describe('resolveActivityCard', () => {
     const relWithRole = { ...REL_STAKEHOLDER, role: 'project_manager' };
     const r = resolveActivityCard(CARD, { elements, relations: [REL_GOAL, relWithRole] });
     expect(r.valid).toBe(true);
-    expect(r.resolved!.stakeholders[0].role).toBe('project_manager');
+    const sh = r.resolved?.stakeholders?.at(0);
+    expect(sh?.role).toBe('project_manager');
   });
 
   it('resolves stakeholder without role when relation has no role field', () => {
     const relNoRole = { ...REL_STAKEHOLDER, role: undefined };
     const r = resolveActivityCard(CARD, { elements, relations: [REL_GOAL, relNoRole] });
     expect(r.valid).toBe(true);
-    expect(r.resolved!.stakeholders[0].role).toBeUndefined();
+    const sh = r.resolved?.stakeholders?.at(0);
+    expect(sh).toBeDefined();
+    expect(sh?.role).toBeUndefined();
   });
 
   it('passes notes from card YAML through to the resolved card', () => {
