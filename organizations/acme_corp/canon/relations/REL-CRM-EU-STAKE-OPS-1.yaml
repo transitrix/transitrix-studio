@@ -1,0 +1,20 @@
+# activity_stakeholder relation — Operations team as owner of the EU CRM rollout.
+# The `role` field identifies the stakeholder's project-role:
+# initiator | owner | sponsor | project_manager.
+notation: relation
+id: REL-CRM-EU-STAKE-OPS-1
+type: activity_stakeholder
+from: ACTIVITY-CRM-EU-1
+to: STAKEHOLDER-OPS-1
+role: owner
+
+zone: canon
+admitted_at: "2026-06-20"
+admitted_by: "v.korobeinikov"
+gate_checks:
+  uniqueness: pass
+  consistency: pass
+  completeness: pass
+
+valid_from: "2026-05-26"
+valid_to: null

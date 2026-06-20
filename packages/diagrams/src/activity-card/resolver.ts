@@ -124,13 +124,17 @@ function activeActivityGoals(relations: unknown[], fromId: string): string[] {
 }
 
 /**
- * STAKEHOLDER ids reached by an *active* `activity_stakeholder` relation
- * originating at `fromId`. Mirrors `activeActivityGoals`: a relation with a
- * non-null `valid_to` has ended and is excluded, so the card shows the
- * project's currently-engaged stakeholders.
+ * STAKEHOLDER ids + roles reached by an *active* `activity_stakeholder`
+ * relation originating at `fromId`. A relation with a non-null `valid_to` has
+ * ended and is excluded, so the card shows the project's currently-engaged
+ * stakeholders. The optional `role` field on the relation carries the
+ * project-role (initiator | owner | sponsor | project_manager).
  */
-function activeActivityStakeholders(relations: unknown[], fromId: string): string[] {
-  const out: string[] = [];
+function activeActivityStakeholders(
+  relations: unknown[],
+  fromId: string,
+): Array<{ id: string; role?: string }> {
+  const out: Array<{ id: string; role?: string }> = [];
   for (const doc of relations) {
     if (!isObject(doc)) continue;
     if (str(doc['notation']) !== 'relation') continue;
@@ -140,7 +144,7 @@ function activeActivityStakeholders(relations: unknown[], fromId: string): strin
     if (!to) continue;
     const validTo = doc['valid_to'];
     if (validTo !== undefined && validTo !== null) continue; // ended relation
-    if (!out.includes(to)) out.push(to);
+    if (!out.some((s) => s.id === to)) out.push({ id: to, role: str(doc['role']) });
   }
   return out;
 }
@@ -333,14 +337,14 @@ export function resolveActivityCard(
   // ── Stakeholders — active `activity_stakeholder` relations from the project ──
   const stakeholderElems = collectByNotation(sources.elements, 'stakeholder');
   const stakeholders: ResolvedStakeholder[] = [];
-  for (const sid of activeActivityStakeholders(sources.relations, projectId)) {
+  for (const { id: sid, role } of activeActivityStakeholders(sources.relations, projectId)) {
     const rec = stakeholderElems.get(sid);
     if (!rec) {
       warnings.push({
         code: 'PC-001',
         message: `Stakeholder "${sid}" not found as a STAKEHOLDER element in canon; shown by id`,
       });
-      stakeholders.push({ id: sid, name: sid });
+      stakeholders.push({ id: sid, name: sid, role });
       continue;
     }
     stakeholders.push({
@@ -349,6 +353,7 @@ export function resolveActivityCard(
       type: str(rec['type']),
       interest: str(rec['interest']),
       influence: str(rec['influence']),
+      role,
     });
   }
 
