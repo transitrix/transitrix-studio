@@ -288,6 +288,8 @@ export interface ChainSectionLayout {
   type: 'drivers' | 'assessments' | 'goals' | 'changes';
   /** Section header label. */
   label: string;
+  /** Short question answered by this section, shown in grey after the label. */
+  subtitle: string;
   nodes: ChainNode[];
   isEmpty: boolean;
   x: number;

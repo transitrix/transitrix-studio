@@ -82,11 +82,11 @@ function layoutToSvg(layout: ActivityCardLayout, filename?: string, date?: strin
     parts.push(`<text class="text-primary" x="${d.x + ox + 12}" y="${d.y + oy + 40}" dominant-baseline="central">${escXml(d.value)}</text>`);
   }
 
-  // Stakeholder role slots.
+  // Stakeholder role slots (2-column grid).
   for (const s of layout.stakeholderRoleSlots) {
     parts.push(`<rect class="diagram-node level-2" x="${s.x + ox}" y="${s.y + oy}" width="${s.width}" height="${s.height}" rx="6"/>`);
     parts.push(`<text class="text-secondary" x="${s.x + ox + 10}" y="${s.y + oy + 16}" dominant-baseline="central">${escXml(s.role)}</text>`);
-    parts.push(`<text class="text-primary" x="${s.x + ox + 10}" y="${s.y + oy + 36}" dominant-baseline="central">${escXml(truncate(s.name, 20))}</text>`);
+    parts.push(`<text class="text-primary" x="${s.x + ox + 10}" y="${s.y + oy + 36}" dominant-baseline="central">${escXml(truncate(s.name, 40))}</text>`);
   }
 
   // Description row.
@@ -105,7 +105,7 @@ function layoutToSvg(layout: ActivityCardLayout, filename?: string, date?: strin
     const section = layout.chainSections[si];
     const level = SECTION_LEVEL[section.type] ?? 5;
     parts.push(`<rect class="diagram-node level-1" x="${section.x + ox}" y="${section.y + oy}" width="${section.width}" height="${section.height}" rx="6"/>`);
-    parts.push(`<text class="text-header" x="${section.x + ox + 12}" y="${section.y + oy + section.height / 2 - (section.height - 24) / 2 + 2}" dominant-baseline="central">${escXml(section.label)}</text>`);
+    parts.push(`<text class="text-header" x="${section.x + ox + 12}" y="${section.y + oy + 14}" dominant-baseline="central">${escXml(section.label)}<tspan class="text-secondary" font-size="11" font-style="italic"> (${escXml(section.subtitle)})</tspan></text>`);
     if (section.isEmpty) {
       parts.push(`<text class="text-secondary" x="${section.x + ox + 12}" y="${section.y + oy + 24 + 8 + 16}" dominant-baseline="central" font-style="italic">— not on file</text>`);
     } else {
