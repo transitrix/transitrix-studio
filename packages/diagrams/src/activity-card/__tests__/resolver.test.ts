@@ -104,7 +104,7 @@ describe('resolveActivityCard', () => {
     expect(c.project.valid_from).toBe('2026-04-01');
     expect(c.project.start_date).toBe('2026-04-15');
     expect(c.milestones).toHaveLength(1);
-    expect(c.motivation.factors.map((f) => f.id)).toEqual(['FACTOR-EU-MDR-1']);
+    expect(c.motivation.drivers.map((d) => d.id)).toEqual(['FACTOR-EU-MDR-1']);
     expect(c.motivation.goals.map((g) => g.id)).toEqual(['GOAL-EU-MARKET-1']);
     expect(c.motivation.changes.map((ch) => ch.id)).toEqual(['CHANGE-EU-COMPLIANCE-1']);
     // only the activity whose parent = the project

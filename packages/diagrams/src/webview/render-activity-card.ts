@@ -68,7 +68,7 @@ function resolveSingleDoc(doc: ActivityCardDoc): ResolvedActivityCard {
     // only. The layout falls back to '—' for the unknown date fields.
     project: { id: card?.project ?? '', name: card?.project ?? '' },
     milestones,
-    motivation: { factors: [], goals: [], changes: [] },
+    motivation: { drivers: [], goals: [], changes: [] },
     assessments: [],
     childActivities: [],
     notes: card?.notes,

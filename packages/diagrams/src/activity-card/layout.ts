@@ -215,11 +215,11 @@ export function layoutActivityCard(
     cursorY += sectionH + CONNECTOR_H;
   }
 
-  const { factors, goals, changes } = card.motivation;
+  const { drivers, goals, changes } = card.motivation;
   const assessments = card.assessments ?? [];
 
   pushChainSection('drivers', 'Drivers',
-    factors.map((f) => ({ id: f.id, name: f.name })));
+    drivers.map((d) => ({ id: d.id, name: d.name })));
 
   pushChainSection('assessments', 'Assessments',
     assessments.map((a) => ({ id: a.id, name: a.name, meta: a.observed_at })));
@@ -234,14 +234,14 @@ export function layoutActivityCard(
   cursorY = cursorY - CONNECTOR_H + SECTION_GAP;
 
   // Node-level chain edges.
-  const driverIdSet = new Set(factors.map((f) => f.id));
+  const driverIdSet = new Set(drivers.map((d) => d.id));
   const goalIdSet = new Set(goals.map((g) => g.id));
   for (const a of assessments) {
     if (driverIdSet.has(a.driverId)) chainEdges.push({ sourceId: a.driverId, targetId: a.id });
   }
   for (const g of goals) {
-    for (const fid of g.factorIds) {
-      if (driverIdSet.has(fid)) chainEdges.push({ sourceId: fid, targetId: g.id });
+    for (const did of g.driverIds) {
+      if (driverIdSet.has(did)) chainEdges.push({ sourceId: did, targetId: g.id });
     }
   }
   for (const c of changes) {
