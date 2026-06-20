@@ -43,6 +43,7 @@ import type {
   ActivityCardDoc,
   ActivityCardSources,
   ResolvedActivityCard,
+  ResolvedAssessment,
   ResolvedChange,
   ResolvedChildActivity,
   ResolvedFactor,
@@ -312,6 +313,32 @@ export function resolveActivityCard(
     factors.push({ id: fid, name: rec ? str(rec['name']) ?? fid : fid });
   }
 
+  // ── Assessments — findings that assesses an in-scope Driver ─────────────────
+  // Assessments answer "what specific problem are we solving?" They are resolved
+  // from ASSESSMENT elements whose `assesses` field matches a Driver id that
+  // appeared in the motivation chain above. Empty when none exist — the gap is
+  // intentionally visible on the card so the author knows it needs filling.
+  const driverIdSet = new Set(factors.map((f) => f.id));
+  const assessmentElems = collectByNotation(sources.elements, 'assessment');
+  const assessments: ResolvedAssessment[] = [];
+  for (const [aid, rec] of assessmentElems) {
+    const driverId = str(rec['assesses']);
+    if (!driverId || !driverIdSet.has(driverId)) continue;
+    assessments.push({
+      id: aid,
+      name: str(rec['name']) ?? aid,
+      driverId,
+      description: str(rec['description']),
+      observed_at: str(rec['observed_at']),
+    });
+  }
+  assessments.sort((a, b) => {
+    if (!a.observed_at && !b.observed_at) return 0;
+    if (!a.observed_at) return 1;
+    if (!b.observed_at) return -1;
+    return a.observed_at < b.observed_at ? -1 : a.observed_at > b.observed_at ? 1 : 0;
+  });
+
   // ── Child activities — parent = project id ──────────────────────────────────
   const childActivities: ResolvedChildActivity[] = [];
   for (const [id, rec] of activities) {
@@ -375,6 +402,7 @@ export function resolveActivityCard(
     project,
     milestones,
     motivation: { factors, goals, changes },
+    assessments,
     childActivities,
     goalNames,
     stakeholders,

@@ -50,6 +50,15 @@ const CHANGE = {
   goals: ['GOAL-EU-MARKET-1'],
 };
 
+const ASSESSMENT = {
+  notation: 'assessment',
+  id: 'ASSESSMENT-EU-MDR-WINDOW-1',
+  name: 'Notified-body capacity constrained through 2026',
+  assesses: 'FACTOR-EU-MDR-1',
+  description: 'Bottleneck in notified-body capacity narrows the available certification window.',
+  observed_at: '2026-03-01',
+};
+
 const STAKEHOLDER = {
   notation: 'stakeholder',
   id: 'STAKEHOLDER-OPS-1',
@@ -82,7 +91,7 @@ const REL_STAKEHOLDER = {
   valid_to: null,
 };
 
-const elements = [PROJECT, CHILD, UNRELATED, FACTOR, GOAL, CHANGE, STAKEHOLDER];
+const elements = [PROJECT, CHILD, UNRELATED, FACTOR, GOAL, CHANGE, STAKEHOLDER, ASSESSMENT];
 const relations = [REL_GOAL, REL_STAKEHOLDER];
 const sources = { elements, relations };
 
@@ -102,10 +111,55 @@ describe('resolveActivityCard', () => {
     expect(c.childActivities.map((a) => a.id)).toEqual(['ACTIVITY-EU-CHILD-1']);
     // project goal text field = the directly-served goal name
     expect(c.goalNames).toEqual(['Access EU market']);
+    // assessments resolved for in-scope drivers
+    expect(c.assessments).toEqual([
+      {
+        id: 'ASSESSMENT-EU-MDR-WINDOW-1',
+        name: 'Notified-body capacity constrained through 2026',
+        driverId: 'FACTOR-EU-MDR-1',
+        description: 'Bottleneck in notified-body capacity narrows the available certification window.',
+        observed_at: '2026-03-01',
+      },
+    ]);
     // stakeholders resolved from the activity_stakeholder relation (with role)
     expect(c.stakeholders).toEqual([
       { id: 'STAKEHOLDER-OPS-1', name: 'Operations', type: 'internal', interest: 'high', influence: 'medium', role: 'sponsor' },
     ]);
+  });
+
+  it('returns empty assessments when no assessment elements are in canon', () => {
+    const r = resolveActivityCard(CARD, {
+      elements: [PROJECT, CHILD, FACTOR, GOAL, CHANGE],
+      relations,
+    });
+    expect(r.valid).toBe(true);
+    expect(r.resolved!.assessments).toEqual([]);
+  });
+
+  it('omits assessments whose assesses driver is not in the motivation chain', () => {
+    const unrelatedAssessment = {
+      notation: 'assessment',
+      id: 'ASSESSMENT-UNRELATED-1',
+      name: 'Something unrelated',
+      assesses: 'FACTOR-UNRELATED-99',
+      observed_at: '2026-01-01',
+    };
+    const r = resolveActivityCard(CARD, {
+      elements: [PROJECT, CHILD, FACTOR, GOAL, CHANGE, unrelatedAssessment],
+      relations,
+    });
+    expect(r.valid).toBe(true);
+    expect(r.resolved!.assessments).toEqual([]);
+  });
+
+  it('sorts assessments by observed_at ascending', () => {
+    const a1 = { notation: 'assessment', id: 'ASSESSMENT-A-1', name: 'Later', assesses: 'FACTOR-EU-MDR-1', observed_at: '2026-06-01' };
+    const a2 = { notation: 'assessment', id: 'ASSESSMENT-A-2', name: 'Earlier', assesses: 'FACTOR-EU-MDR-1', observed_at: '2026-01-01' };
+    const r = resolveActivityCard(CARD, {
+      elements: [PROJECT, CHILD, FACTOR, GOAL, CHANGE, a1, a2],
+      relations,
+    });
+    expect(r.resolved!.assessments.map((a) => a.id)).toEqual(['ASSESSMENT-A-2', 'ASSESSMENT-A-1']);
   });
 
   it('resolves stakeholder role from the activity_stakeholder relation', () => {

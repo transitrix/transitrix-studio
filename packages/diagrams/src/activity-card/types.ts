@@ -120,6 +120,22 @@ export interface ResolvedFactor {
   name: string;
 }
 
+/**
+ * A dated finding about the current state of a Driver, answering the
+ * question "what specific problem are we solving?" (pain point).
+ * Resolved from ASSESSMENT elements whose `assesses` field points to a
+ * Driver that is in scope for this activity's motivation chain.
+ */
+export interface ResolvedAssessment {
+  id: string;
+  name: string;
+  /** ID of the Driver this assessment observes. */
+  driverId: string;
+  description?: string;
+  /** ISO 8601 date when the finding was observed. */
+  observed_at?: string;
+}
+
 export interface ResolvedGoal {
   id: string;
   name: string;
@@ -174,6 +190,12 @@ export interface ResolvedActivityCard {
   /** Sorted ascending by `date`. */
   milestones: ResolvedMilestone[];
   motivation: ResolvedMotivation;
+  /**
+   * Assessments (pain points) for the in-scope Drivers, sorted by
+   * `observed_at` ascending. Empty when no Assessment elements are found —
+   * the gap is intentionally visible on the card.
+   */
+  assessments: ResolvedAssessment[];
   /** Activities whose `parent` = the project Activity id. */
   childActivities: ResolvedChildActivity[];
   /**
