@@ -172,20 +172,6 @@ export function resolveActivityCard(
     return { valid: false, errors, warnings };
   }
 
-  // PC-002 — the resolved Activity should be the project scale. In the element
-  // model all activity scales (initiative / programme / project / task) share
-  // one ACTIVITY TYPE and `activity_type` references an ActivityType element,
-  // so a missing/non-literal value is acceptable; only an explicit, clearly
-  // non-project marker is flagged. (Canonical project-identification semantics
-  // are tracked as a follow-up internally.)
-  const activityType = str(projectRec['activity_type']);
-  if (activityType !== undefined && activityType !== 'Project' && activityType !== 'project') {
-    errors.push({
-      code: 'PC-002',
-      message: `Activity "${projectId}" has activity_type "${activityType}", expected the project scale`,
-    });
-  }
-
   // LIFECYCLE-001..003 on the project Activity.
   const validFrom = projectRec['valid_from'];
   const validToRaw = projectRec['valid_to'];
@@ -374,6 +360,8 @@ export function resolveActivityCard(
     valid_to: validToOk ? (validToRaw as string) : undefined,
     start_date: str(projectRec['start_date']),
     end_date: str(projectRec['end_date']),
+    activity_type: str(projectRec['activity_type']),
+    status: str(projectRec['status']),
   };
 
   const resolved: ResolvedActivityCard = {

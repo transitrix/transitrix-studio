@@ -93,6 +93,17 @@ export interface ResolvedProject {
   /** Planned work range. */
   start_date?: string;
   end_date?: string;
+  /**
+   * Activity scale: programme | project | workstream | task (or any custom
+   * value). Shown in the card header so the reader knows what level this card
+   * represents. Optional — card shows "—" when absent.
+   */
+  activity_type?: string;
+  /**
+   * Current execution state: planned | in_progress | on_track | at_risk |
+   * blocked | completed | cancelled. Optional — card shows "—" when absent.
+   */
+  status?: string;
 }
 
 export interface ResolvedMilestone {

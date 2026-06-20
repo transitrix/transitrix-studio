@@ -146,12 +146,24 @@ describe('resolveActivityCard', () => {
     expect(r.errors.some((e) => e.code === 'PC-001')).toBe(true);
   });
 
-  it('PC-002 when the activity carries an explicit non-project type', () => {
+  it('resolves activity_type and status from the Activity element', () => {
     const r = resolveActivityCard(CARD, {
-      elements: [{ ...PROJECT, activity_type: 'Task' }, CHILD, FACTOR, GOAL, CHANGE],
+      elements: [{ ...PROJECT, activity_type: 'programme', status: 'on_track' }, CHILD, FACTOR, GOAL, CHANGE],
       relations,
     });
-    expect(r.errors.some((e) => e.code === 'PC-002')).toBe(true);
+    expect(r.valid).toBe(true);
+    expect(r.resolved!.project.activity_type).toBe('programme');
+    expect(r.resolved!.project.status).toBe('on_track');
+  });
+
+  it('accepts any activity_type value without error (card works at all levels)', () => {
+    for (const t of ['programme', 'project', 'workstream', 'task', 'initiative']) {
+      const r = resolveActivityCard(CARD, {
+        elements: [{ ...PROJECT, activity_type: t }, CHILD, FACTOR, GOAL, CHANGE],
+        relations,
+      });
+      expect(r.errors.some((e) => e.code === 'PC-002'), `should not error for type "${t}"`).toBe(false);
+    }
   });
 
   it('PC-003 when a milestone change is not in the project changes', () => {
