@@ -158,6 +158,12 @@ export interface ResolvedStakeholder {
   type?: string;
   interest?: string;
   influence?: string;
+  /**
+   * Project role from the `activity_stakeholder` relation:
+   * initiator | owner | sponsor | project_manager.
+   * Optional — card shows the name without a role badge when absent.
+   */
+  role?: string;
 }
 
 export interface ResolvedActivityCard {

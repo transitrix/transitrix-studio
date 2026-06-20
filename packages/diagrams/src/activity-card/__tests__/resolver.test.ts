@@ -77,6 +77,7 @@ const REL_STAKEHOLDER = {
   type: 'activity_stakeholder',
   from: 'ACTIVITY-EU-PROGRAMME-1',
   to: 'STAKEHOLDER-OPS-1',
+  role: 'sponsor',
   valid_from: '2026-04-01',
   valid_to: null,
 };
@@ -101,10 +102,24 @@ describe('resolveActivityCard', () => {
     expect(c.childActivities.map((a) => a.id)).toEqual(['ACTIVITY-EU-CHILD-1']);
     // project goal text field = the directly-served goal name
     expect(c.goalNames).toEqual(['Access EU market']);
-    // stakeholders resolved from the activity_stakeholder relation
+    // stakeholders resolved from the activity_stakeholder relation (with role)
     expect(c.stakeholders).toEqual([
-      { id: 'STAKEHOLDER-OPS-1', name: 'Operations', type: 'internal', interest: 'high', influence: 'medium' },
+      { id: 'STAKEHOLDER-OPS-1', name: 'Operations', type: 'internal', interest: 'high', influence: 'medium', role: 'sponsor' },
     ]);
+  });
+
+  it('resolves stakeholder role from the activity_stakeholder relation', () => {
+    const relWithRole = { ...REL_STAKEHOLDER, role: 'project_manager' };
+    const r = resolveActivityCard(CARD, { elements, relations: [REL_GOAL, relWithRole] });
+    expect(r.valid).toBe(true);
+    expect(r.resolved!.stakeholders[0].role).toBe('project_manager');
+  });
+
+  it('resolves stakeholder without role when relation has no role field', () => {
+    const relNoRole = { ...REL_STAKEHOLDER, role: undefined };
+    const r = resolveActivityCard(CARD, { elements, relations: [REL_GOAL, relNoRole] });
+    expect(r.valid).toBe(true);
+    expect(r.resolved!.stakeholders[0].role).toBeUndefined();
   });
 
   it('resolves no stakeholders (empty list) when none are linked', () => {
@@ -126,7 +141,7 @@ describe('resolveActivityCard', () => {
       relations: [REL_GOAL, REL_STAKEHOLDER],
     });
     expect(r.valid).toBe(true);
-    expect(r.resolved!.stakeholders).toEqual([{ id: 'STAKEHOLDER-OPS-1', name: 'STAKEHOLDER-OPS-1' }]);
+    expect(r.resolved!.stakeholders).toEqual([{ id: 'STAKEHOLDER-OPS-1', name: 'STAKEHOLDER-OPS-1', role: 'sponsor' }]);
     expect(r.warnings.some((w) => w.code === 'PC-001')).toBe(true);
   });
 
