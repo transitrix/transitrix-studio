@@ -12,18 +12,17 @@
  * CROSS-DOCUMENT RESOLUTION CAVEAT
  * The Activity Card is the only MULTI-DOCUMENT Studio notation: the card YAML
  * names a project Activity, and the project's name, dates, motivation chain
- * (Factors → Goals → Changes) and child activities are pulled BY REFERENCE from
- * the canonical element + relation store (`canon/elements/**`,
+ * (Drivers → Assessments → Goals → Changes) and child activities are pulled BY
+ * REFERENCE from the canonical element + relation store (`canon/elements/**`,
  * `canon/relations/**`; see `../activity-card/resolver.ts`). That resolution
  * requires reading those files from disk, which is NOT available inside the
  * JCEF host. We therefore resolve from the single in-memory card document
- * ONLY: we synthesise
- * a minimal `ResolvedActivityCard` whose project carries just the referenced
- * project id (no resolved name/dates), whose milestones come straight from the
- * card's own `milestones[]`, and whose motivation chain + child activities are
- * empty (those cannot resolve without the siblings). The SVG layout is shared
- * with the VS Code path via `layoutActivityCard`, so a single-document card
- * still renders its title, dates band and milestone timeline.
+ * ONLY: we synthesise a minimal `ResolvedActivityCard` whose project carries
+ * just the referenced project id (no resolved name/dates), whose milestones
+ * come straight from the card's own `milestones[]`, and whose chain sections
+ * and child activities are empty. The SVG layout is shared with the VS Code
+ * path via `layoutActivityCard`, so a single-document card still renders its
+ * title, dates band and milestone section.
  */
 import { layoutActivityCard, ARCHIMATE_CLASS } from '../activity-card/layout.js';
 import type {
@@ -36,7 +35,6 @@ import { generateSvgEmbedCss } from '../theme/index.js';
 import { escXml } from './render-util.js';
 
 const PAD = 24;
-
 const EMPTY_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" viewBox="0 0 0 0"></svg>`;
 
 export interface RenderActivityCardOptions {
@@ -48,13 +46,6 @@ function truncate(text: string, maxChars: number): string {
   return text.slice(0, Math.max(0, maxChars - 1)) + '…';
 }
 
-/**
- * Build a single-document resolution of the card: everything that can be read
- * straight off the card YAML, with the cross-document fields left empty. This
- * mirrors what `resolveActivityCard` produces, minus the parts that need the
- * canon element + relation store (project name/dates, motivation chain, child
- * activities).
- */
 function resolveSingleDoc(doc: ActivityCardDoc): ResolvedActivityCard {
   const card = doc.activity_card;
   const rawMilestones = Array.isArray(card?.milestones) ? card.milestones : [];
@@ -80,6 +71,7 @@ function resolveSingleDoc(doc: ActivityCardDoc): ResolvedActivityCard {
     motivation: { factors: [], goals: [], changes: [] },
     assessments: [],
     childActivities: [],
+    notes: card?.notes,
   };
 }
 
@@ -91,46 +83,102 @@ function buildBody(layout: ActivityCardLayout, ox: number, oy: number): string {
     `<rect class="diagram-node level-0" x="${ox}" y="${oy}" width="${layout.bounds.width}" height="${layout.bounds.height}" rx="8"/>`,
   );
 
-  // Title (project name / id).
+  // Title row.
   parts.push(
-    `<text class="text-header" x="${layout.title.x + ox}" y="${layout.title.y + oy}" dominant-baseline="central" font-size="18">${escXml(truncate(layout.title.name, 70))}</text>`,
+    `<text class="text-header" x="${layout.titleRow.x + ox}" y="${layout.titleRow.y + oy}" dominant-baseline="central" font-size="18">${escXml(truncate(layout.titleRow.name, 60))}</text>`,
   );
 
-  // Dates band.
-  for (const d of layout.dateFields) {
-    parts.push(
-      `<rect class="diagram-node level-2" x="${d.x + ox}" y="${d.y + oy}" width="${d.width}" height="${d.height}" rx="6"/>`,
-    );
-    parts.push(
-      `<text class="text-secondary" x="${d.x + ox + 12}" y="${d.y + oy + 18}" dominant-baseline="central">${escXml(d.label)}</text>`,
-    );
-    parts.push(
-      `<text class="text-primary" x="${d.x + ox + 12}" y="${d.y + oy + 40}" dominant-baseline="central">${escXml(d.value)}</text>`,
-    );
+  // Activity type badge.
+  if (layout.activityTypeBadge) {
+    const b = layout.activityTypeBadge;
+    parts.push(`<rect class="diagram-node level-2" x="${b.x + ox}" y="${b.y + oy}" width="${b.width}" height="${b.height}" rx="4"/>`);
+    parts.push(`<text class="text-secondary" x="${b.x + ox + b.width / 2}" y="${b.y + oy + b.height / 2}" text-anchor="middle" dominant-baseline="central">${escXml(b.label)}</text>`);
   }
 
-  // Info rows — Description, Project goal, Stakeholders (label + value lines).
-  // Offsets (label y=22, first value y=44, step 18) match the layout's
-  // INFO_ROW_BASE_H / INFO_LINE_H budget so every line stays inside the box.
-  for (const r of layout.infoRows) {
-    parts.push(
-      `<rect class="diagram-node level-2" x="${r.x + ox}" y="${r.y + oy}" width="${r.width}" height="${r.height}" rx="6"/>`,
-    );
-    parts.push(
-      `<text class="text-secondary" x="${r.x + ox + 12}" y="${r.y + oy + 22}" dominant-baseline="central">${escXml(r.label)}</text>`,
-    );
+  // Status badge.
+  if (layout.statusBadge) {
+    const b = layout.statusBadge;
+    parts.push(`<rect class="diagram-node level-3" x="${b.x + ox}" y="${b.y + oy}" width="${b.width}" height="${b.height}" rx="4"/>`);
+    parts.push(`<text class="text-secondary" x="${b.x + ox + b.width / 2}" y="${b.y + oy + b.height / 2}" text-anchor="middle" dominant-baseline="central">${escXml(b.label)}</text>`);
+  }
+
+  // Date fields.
+  for (const d of layout.dateFields) {
+    parts.push(`<rect class="diagram-node level-2" x="${d.x + ox}" y="${d.y + oy}" width="${d.width}" height="${d.height}" rx="6"/>`);
+    parts.push(`<text class="text-secondary" x="${d.x + ox + 12}" y="${d.y + oy + 18}" dominant-baseline="central">${escXml(d.label)}</text>`);
+    parts.push(`<text class="text-primary" x="${d.x + ox + 12}" y="${d.y + oy + 40}" dominant-baseline="central">${escXml(d.value)}</text>`);
+  }
+
+  // Stakeholder role slots.
+  for (const s of layout.stakeholderRoleSlots) {
+    parts.push(`<rect class="diagram-node level-2" x="${s.x + ox}" y="${s.y + oy}" width="${s.width}" height="${s.height}" rx="6"/>`);
+    parts.push(`<text class="text-secondary" x="${s.x + ox + 10}" y="${s.y + oy + 16}" dominant-baseline="central">${escXml(s.role)}</text>`);
+    parts.push(`<text class="text-primary" x="${s.x + ox + 10}" y="${s.y + oy + 36}" dominant-baseline="central">${escXml(truncate(s.name, 20))}</text>`);
+  }
+
+  // Description row.
+  if (layout.descriptionRow) {
+    const r = layout.descriptionRow;
+    parts.push(`<rect class="diagram-node level-2" x="${r.x + ox}" y="${r.y + oy}" width="${r.width}" height="${r.height}" rx="6"/>`);
+    parts.push(`<text class="text-secondary" x="${r.x + ox + 12}" y="${r.y + oy + 22}" dominant-baseline="central">${escXml(r.label)}</text>`);
     r.valueLines.forEach((line, i) => {
-      parts.push(
-        `<text class="text-primary" x="${r.x + ox + 12}" y="${r.y + oy + 44 + i * 18}" dominant-baseline="central">${escXml(line)}</text>`,
-      );
+      parts.push(`<text class="text-primary" x="${r.x + ox + 12}" y="${r.y + oy + 44 + i * 18}" dominant-baseline="central">${escXml(line)}</text>`);
     });
   }
 
-  // Section headers.
-  for (const s of layout.sectionHeaders) {
+  // Chain sections (Drivers → Assessments → Goals → Changes).
+  const SECTION_LEVEL: Record<string, number> = {
+    drivers: 4,
+    assessments: 5,
+    goals: 5,
+    changes: 6,
+  };
+  for (let si = 0; si < layout.chainSections.length; si++) {
+    const section = layout.chainSections[si];
+    const level = SECTION_LEVEL[section.type] ?? 5;
+
+    // Section outer box.
     parts.push(
-      `<text class="text-header" x="${s.x + ox}" y="${s.y + oy + s.height / 2}" dominant-baseline="central">${escXml(s.label)}</text>`,
+      `<rect class="diagram-node level-1" x="${section.x + ox}" y="${section.y + oy}" width="${section.width}" height="${section.height}" rx="6"/>`,
     );
+    // Section header label.
+    parts.push(
+      `<text class="text-header" x="${section.x + ox + 12}" y="${section.y + oy + section.height / 2 - (section.height - 24) / 2 + 2}" dominant-baseline="central">${escXml(section.label)}</text>`,
+    );
+
+    if (section.isEmpty) {
+      // Gap indicator.
+      parts.push(
+        `<text class="text-secondary" x="${section.x + ox + 12}" y="${section.y + oy + 24 + 8 + 16}" dominant-baseline="central" font-style="italic">— not on file</text>`,
+      );
+    } else {
+      for (const n of section.nodes) {
+        parts.push(
+          `<rect class="diagram-node level-${level}" x="${n.x + ox}" y="${n.y + oy}" width="${n.width}" height="${n.height}" rx="4"/>`,
+        );
+        parts.push(
+          `<text class="text-primary" x="${n.x + ox + 10}" y="${n.y + oy + (n.meta ? 16 : n.height / 2)}" dominant-baseline="central">${escXml(truncate(n.name, 80))}</text>`,
+        );
+        if (n.meta) {
+          parts.push(
+            `<text class="text-secondary" x="${n.x + ox + 10}" y="${n.y + oy + 30}" dominant-baseline="central">${escXml(n.meta)}</text>`,
+          );
+        }
+      }
+    }
+
+    // Connector arrow to next section.
+    if (si < layout.chainSections.length - 1) {
+      const nextSection = layout.chainSections[si + 1];
+      const arrowX = section.x + ox + section.width / 2;
+      const arrowTopY = section.y + oy + section.height;
+      const arrowBotY = nextSection.y + oy;
+      const midY = (arrowTopY + arrowBotY) / 2;
+      parts.push(
+        `<path class="diagram-edge" d="M${arrowX},${arrowTopY} L${arrowX},${arrowBotY}" fill="none" marker-end="url(#ac-arrow)"/>`,
+      );
+      void midY; // midpoint available for future label placement
+    }
   }
 
   // Milestones.
@@ -149,44 +197,6 @@ function buildBody(layout: ActivityCardLayout, ox: number, oy: number): string {
     );
   }
 
-  // Motivation chain — edges first (under nodes).
-  const nodeById = new Map<string, { x: number; y: number; width: number; height: number }>();
-  for (const col of [
-    layout.chainColumns.factors,
-    layout.chainColumns.goals,
-    layout.chainColumns.changes,
-  ]) {
-    for (const n of col) nodeById.set(n.id, n);
-  }
-  for (const e of layout.chainEdges) {
-    const s = nodeById.get(e.sourceId);
-    const t = nodeById.get(e.targetId);
-    if (!s || !t) continue;
-    const x1 = s.x + s.width + ox;
-    const y1 = s.y + s.height / 2 + oy;
-    const x2 = t.x + ox;
-    const y2 = t.y + t.height / 2 + oy;
-    const mx = (x1 + x2) / 2;
-    parts.push(
-      `<path class="diagram-edge" d="M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}" fill="none" marker-end="url(#ac-arrow)"/>`,
-    );
-  }
-  const chainLevels: Array<[typeof layout.chainColumns.factors, number]> = [
-    [layout.chainColumns.factors, 4],
-    [layout.chainColumns.goals, 5],
-    [layout.chainColumns.changes, 6],
-  ];
-  for (const [col, level] of chainLevels) {
-    for (const n of col) {
-      parts.push(
-        `<rect class="diagram-node level-${level}" x="${n.x + ox}" y="${n.y + oy}" width="${n.width}" height="${n.height}" rx="6"/>`,
-      );
-      parts.push(
-        `<text class="text-pill" x="${n.x + ox + n.width / 2}" y="${n.y + oy + n.height / 2}" text-anchor="middle" dominant-baseline="central">${escXml(truncate(n.name, Math.floor(n.width / 7)))}</text>`,
-      );
-    }
-  }
-
   // Child activities.
   for (const a of layout.childActivities) {
     parts.push(
@@ -202,6 +212,16 @@ function buildBody(layout: ActivityCardLayout, ox: number, oy: number): string {
     }
   }
 
+  // Footer — notes.
+  if (layout.footerRow) {
+    const r = layout.footerRow;
+    parts.push(`<rect class="diagram-node level-2" x="${r.x + ox}" y="${r.y + oy}" width="${r.width}" height="${r.height}" rx="6"/>`);
+    parts.push(`<text class="text-secondary" x="${r.x + ox + 12}" y="${r.y + oy + 22}" dominant-baseline="central">${escXml(r.label)}</text>`);
+    r.valueLines.forEach((line, i) => {
+      parts.push(`<text class="text-primary" x="${r.x + ox + 12}" y="${r.y + oy + 44 + i * 18}" dominant-baseline="central">${escXml(line)}</text>`);
+    });
+  }
+
   return parts.join('\n');
 }
 
@@ -214,13 +234,10 @@ export function renderActivityCardSvg(
   void ARCHIMATE_CLASS;
 
   const { title = '' } = options;
-
   const resolved = resolveSingleDoc(doc);
   const layout = layoutActivityCard(resolved);
 
-  if (layout.bounds.width <= 0 || layout.bounds.height <= 0) {
-    return EMPTY_SVG;
-  }
+  if (layout.bounds.width <= 0 || layout.bounds.height <= 0) return EMPTY_SVG;
 
   const titleH = title ? 28 : 0;
   const w = layout.bounds.width + PAD * 2;
@@ -234,9 +251,6 @@ export function renderActivityCardSvg(
     ? `<text class="text-header" x="${PAD}" y="${PAD + 14}">${escXml(`Activity Card — ${title}`)}</text>`
     : '';
 
-  // Embed the shared theme CSS inside the SVG so the rendered output is
-  // self-contained — the JCEF host page only needs to drop the SVG into the
-  // DOM and styling resolves without any cooperation from the host stylesheet.
   const embedCss = generateSvgEmbedCss('transitrix');
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">

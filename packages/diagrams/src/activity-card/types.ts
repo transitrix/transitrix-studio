@@ -48,6 +48,11 @@ export interface ActivityCardBlock {
   project: string;
   description?: string;
   milestones?: RawMilestone[];
+  /**
+   * Supplementary notes shown in the card footer. Free text; stored in the
+   * view file (not in canon elements) as report-level context.
+   */
+  notes?: string;
 }
 
 export interface ActivityCardDoc {
@@ -210,6 +215,11 @@ export interface ResolvedActivityCard {
    * with a "—" placeholder).
    */
   stakeholders?: ResolvedStakeholder[];
+  /**
+   * Supplementary notes for the card footer (from `activity_card.notes` in
+   * the view YAML). Not a canonical element field.
+   */
+  notes?: string;
 }
 
 // ── Layout geometry (pure; the preview turns this into SVG) ───────────────────
@@ -227,7 +237,63 @@ export interface DateField {
   height: number;
 }
 
-/** One milestone marker on the timeline. */
+/** A small badge shown in the header (activity type or status). */
+export interface Badge {
+  label: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/** One stakeholder role slot in the header roles row. Always rendered; `name` is "—" when unfilled. */
+export interface StakeholderRoleSlot {
+  /** Display label: "Initiator", "Owner", "Sponsor", "PM". */
+  role: string;
+  /** Stakeholder name or "—". */
+  name: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/** One node in a chain section (driver / assessment / goal / change). */
+export interface ChainNode {
+  id: string;
+  name: string;
+  /** Supplementary text shown below the name (e.g. observed_at date for assessments). */
+  meta?: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/** An edge between two chain nodes (for SVG connectors). */
+export interface ChainEdge {
+  sourceId: string;
+  targetId: string;
+}
+
+/**
+ * One vertical section of the body chain: Drivers | Assessments | Goals | Changes.
+ * When `isEmpty` is true the section has no nodes and renders a gap indicator
+ * so the author sees the missing data.
+ */
+export interface ChainSectionLayout {
+  type: 'drivers' | 'assessments' | 'goals' | 'changes';
+  /** Section header label. */
+  label: string;
+  nodes: ChainNode[];
+  isEmpty: boolean;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/** One milestone marker. */
 export interface MilestoneMarker {
   id: string;
   name: string;
@@ -240,20 +306,17 @@ export interface MilestoneMarker {
   height: number;
 }
 
-/** One node in a motivation-chain column. */
-export interface ChainNode {
-  id: string;
-  name: string;
+/**
+ * A labeled, full-width text row with wrapped value lines.
+ * Used for the Description (body) and Notes (footer).
+ */
+export interface InfoRow {
+  label: string;
+  valueLines: string[];
   x: number;
   y: number;
   width: number;
   height: number;
-}
-
-/** An edge between two chain nodes (factor→goal or goal→change). */
-export interface ChainEdge {
-  sourceId: string;
-  targetId: string;
 }
 
 export interface ChildActivityRow {
@@ -268,47 +331,41 @@ export interface ChildActivityRow {
   height: number;
 }
 
-export interface SectionHeader {
-  label: string;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
-
-/**
- * A labeled, full-width text row: a label (e.g. "Project goal") over one or
- * more wrapped value lines. Used for the project Description, Project goal, and
- * Stakeholders fields. `valueLines` is `['—']` when the field is empty.
- */
-export interface InfoRow {
-  label: string;
-  valueLines: string[];
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
-
 export interface ActivityCardLayoutOptions {
   /** Outer card width (px). */
   cardWidth?: number;
-  /** Horizontal gap (px) between the three motivation-chain columns. */
-  columnGap?: number;
   /** Vertical gap (px) between stacked rows within a section. */
   rowGap?: number;
 }
 
 export interface ActivityCardLayout {
   bounds: LayoutBounds;
-  title: { name: string; x: number; y: number };
+
+  // ── Header ────────────────────────────────────────────────────────────────
+  /** Project name, positioned in the title row. */
+  titleRow: { name: string; x: number; y: number };
+  /** Activity-type badge (programme / project / workstream / task). Absent when field is unset. */
+  activityTypeBadge?: Badge;
+  /** Status badge (planned / in_progress / on_track / …). Absent when field is unset. */
+  statusBadge?: Badge;
+  /** Three date cells: Initiation, Planned start, Planned end. */
   dateFields: DateField[];
-  /** Description, Project goal, Stakeholders — full-width labeled text rows. */
-  infoRows: InfoRow[];
-  sectionHeaders: SectionHeader[];
-  milestones: MilestoneMarker[];
-  /** Three columns of the motivation chain, in F→G→C order. */
-  chainColumns: { factors: ChainNode[]; goals: ChainNode[]; changes: ChainNode[] };
+  /** Four role slots always rendered: Initiator, Owner, Sponsor, PM. Name is "—" when unfilled. */
+  stakeholderRoleSlots: StakeholderRoleSlot[];
+
+  // ── Body ──────────────────────────────────────────────────────────────────
+  /** Executive-summary description row. Absent when `cardDescription` is empty. */
+  descriptionRow?: InfoRow;
+  /** Vertical chain: Drivers → Assessments → Goals → Changes. */
+  chainSections: ChainSectionLayout[];
+  /** Node-level edges within the chain (driver→assessment, driver→goal, goal→change). */
   chainEdges: ChainEdge[];
+  /** Milestone markers below the chain, wrapped left→right by date. */
+  milestones: MilestoneMarker[];
+  /** Child activities below milestones. */
   childActivities: ChildActivityRow[];
+
+  // ── Footer ────────────────────────────────────────────────────────────────
+  /** Notes row from `activity_card.notes`. Absent when empty. */
+  footerRow?: InfoRow;
 }
