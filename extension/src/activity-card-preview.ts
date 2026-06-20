@@ -65,14 +65,14 @@ function layoutToSvg(layout: ActivityCardLayout, filename?: string, date?: strin
   if (layout.activityTypeBadge) {
     const b = layout.activityTypeBadge;
     parts.push(`<rect class="diagram-node level-2" x="${b.x + ox}" y="${b.y + oy}" width="${b.width}" height="${b.height}" rx="4"/>`);
-    parts.push(`<text class="text-secondary" x="${b.x + ox + b.width / 2}" y="${b.y + oy + b.height / 2}" text-anchor="middle" dominant-baseline="central">${escXml(b.label)}</text>`);
+    parts.push(`<text class="text-secondary" style="dominant-baseline:central;text-anchor:middle" x="${b.x + ox + b.width / 2}" y="${b.y + oy + b.height / 2}">${escXml(b.label)}</text>`);
   }
 
   // Status badge.
   if (layout.statusBadge) {
     const b = layout.statusBadge;
     parts.push(`<rect class="diagram-node level-3" x="${b.x + ox}" y="${b.y + oy}" width="${b.width}" height="${b.height}" rx="4"/>`);
-    parts.push(`<text class="text-secondary" x="${b.x + ox + b.width / 2}" y="${b.y + oy + b.height / 2}" text-anchor="middle" dominant-baseline="central">${escXml(b.label)}</text>`);
+    parts.push(`<text class="text-secondary" style="dominant-baseline:central;text-anchor:middle" x="${b.x + ox + b.width / 2}" y="${b.y + oy + b.height / 2}">${escXml(b.label)}</text>`);
   }
 
   // Dates band.
