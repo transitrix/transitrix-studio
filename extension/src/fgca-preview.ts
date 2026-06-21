@@ -269,12 +269,15 @@ function buildSvg(
       }
     }
     const twoLines = line2.length > 0;
-    const y1 = twoLines ? n.y + NODE_H / 2 - 8 : n.y + NODE_H / 2 + 5;
-    const y2 = y1 + 18;
+    const y1 = twoLines ? n.y + 16 : n.y + 26;
+    const y2 = n.y + 32;
+    const idY = twoLines ? n.y + 54 : n.y + 50;
+    const entityId = n.id.slice(n.id.indexOf('_') + 1);
     return [
       `<rect class="diagram-node layer-${n.col}" x="${n.x}" y="${n.y}" width="${NODE_W}" height="${NODE_H}" rx="8"/>`,
-      `<text class="text-primary" x="${n.x + NODE_W / 2}" y="${y1}" text-anchor="middle">${escXml(line1)}</text>`,
-      twoLines ? `<text class="text-secondary" x="${n.x + NODE_W / 2}" y="${y2}" text-anchor="middle">${escXml(line2)}</text>` : '',
+      `<text class="text-primary" x="${n.x + NODE_W / 2}" y="${y1}" text-anchor="middle" dominant-baseline="central">${escXml(line1)}</text>`,
+      twoLines ? `<text class="text-secondary" x="${n.x + NODE_W / 2}" y="${y2}" text-anchor="middle" dominant-baseline="central">${escXml(line2)}</text>` : '',
+      `<text class="text-id" x="${n.x + NODE_W / 2}" y="${idY}" text-anchor="middle" dominant-baseline="central">${escXml(entityId)}</text>`,
     ].filter(Boolean).join('\n');
   }).join('\n');
 

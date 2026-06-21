@@ -47,12 +47,12 @@ export function validateFGCADoc(input: unknown): FGCAValidationResult {
   if (errors.length > 0) return { valid: false, errors, warnings };
 
   const doc = raw as unknown as FGCADoc;
-  const collectIds = (arr: unknown[]): Set<number> => {
-    const out = new Set<number>();
+  const collectIds = (arr: unknown[]): Set<number | string> => {
+    const out = new Set<number | string>();
     for (const el of arr) {
       if (el && typeof el === 'object') {
         const id = (el as { id?: unknown }).id;
-        if (typeof id === 'number') out.add(id);
+        if (typeof id === 'number' || typeof id === 'string') out.add(id);
       }
     }
     return out;
@@ -68,7 +68,7 @@ export function validateFGCADoc(input: unknown): FGCAValidationResult {
       continue;
     }
     const factor = f as { id?: unknown; name?: unknown };
-    if (typeof factor.id !== 'number') errors.push({ code: 'SCHEMA_INVALID', message: 'factor id must be a number', path: `factors[${i}]` });
+    if (typeof factor.id !== 'number' && typeof factor.id !== 'string') errors.push({ code: 'SCHEMA_INVALID', message: 'factor id must be a number or string', path: `factors[${i}]` });
     if (typeof factor.name !== 'string' || !factor.name.trim()) errors.push({ code: 'EMPTY_NAME', message: `Factor ${String(factor.id)} has empty name`, path: `factors[${i}]` });
   }
 
@@ -79,13 +79,13 @@ export function validateFGCADoc(input: unknown): FGCAValidationResult {
       continue;
     }
     const goal = g as { id?: unknown; name?: unknown; factor?: unknown };
-    if (typeof goal.id !== 'number') errors.push({ code: 'SCHEMA_INVALID', message: 'goal id must be a number', path: `goals[${i}]` });
+    if (typeof goal.id !== 'number' && typeof goal.id !== 'string') errors.push({ code: 'SCHEMA_INVALID', message: 'goal id must be a number or string', path: `goals[${i}]` });
     if (typeof goal.name !== 'string' || !goal.name.trim()) errors.push({ code: 'EMPTY_NAME', message: `Goal ${String(goal.id)} has empty name`, path: `goals[${i}]` });
     const factorRefs = Array.isArray(goal.factor) ? (goal.factor as unknown[]) : [];
     for (const fr of factorRefs) {
       if (!fr || typeof fr !== 'object') continue;
       const fid = (fr as { id?: unknown }).id;
-      if (typeof fid === 'number' && !factorIds.has(fid)) {
+      if ((typeof fid === 'number' || typeof fid === 'string') && !factorIds.has(fid)) {
         warnings.push({ code: 'BROKEN_REF', message: `Goal ${String(goal.id)} references missing factor ${fid}`, path: `goals[${i}].factor` });
       }
     }
@@ -98,14 +98,14 @@ export function validateFGCADoc(input: unknown): FGCAValidationResult {
       continue;
     }
     const change = c as { id?: unknown; name?: unknown; goal_id?: unknown; activity_ids?: unknown };
-    if (typeof change.id !== 'number') errors.push({ code: 'SCHEMA_INVALID', message: 'change id must be a number', path: `changes[${i}]` });
+    if (typeof change.id !== 'number' && typeof change.id !== 'string') errors.push({ code: 'SCHEMA_INVALID', message: 'change id must be a number or string', path: `changes[${i}]` });
     if (typeof change.name !== 'string' || !change.name.trim()) errors.push({ code: 'EMPTY_NAME', message: `Change ${String(change.id)} has empty name`, path: `changes[${i}]` });
-    if (typeof change.goal_id === 'number' && !goalIds.has(change.goal_id)) {
+    if ((typeof change.goal_id === 'number' || typeof change.goal_id === 'string') && !goalIds.has(change.goal_id)) {
       warnings.push({ code: 'BROKEN_REF', message: `Change ${String(change.id)} references missing goal ${change.goal_id}`, path: `changes[${i}].goal_id` });
     }
     const aids = Array.isArray(change.activity_ids) ? (change.activity_ids as unknown[]) : [];
     for (const aid of aids) {
-      if (typeof aid === 'number' && !activityIds.has(aid)) {
+      if ((typeof aid === 'number' || typeof aid === 'string') && !activityIds.has(aid)) {
         warnings.push({ code: 'BROKEN_REF', message: `Change ${String(change.id)} references missing activity ${aid}`, path: `changes[${i}].activity_ids` });
       }
     }
@@ -118,7 +118,7 @@ export function validateFGCADoc(input: unknown): FGCAValidationResult {
       continue;
     }
     const activity = a as { id?: unknown; name?: unknown };
-    if (typeof activity.id !== 'number') errors.push({ code: 'SCHEMA_INVALID', message: 'activity id must be a number', path: `activities[${i}]` });
+    if (typeof activity.id !== 'number' && typeof activity.id !== 'string') errors.push({ code: 'SCHEMA_INVALID', message: 'activity id must be a number or string', path: `activities[${i}]` });
     if (typeof activity.name !== 'string' || !activity.name.trim()) errors.push({ code: 'EMPTY_NAME', message: `Activity ${String(activity.id)} has empty name`, path: `activities[${i}]` });
   }
 
