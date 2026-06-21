@@ -115,7 +115,9 @@ async function loadCompiler(ext: vscode.ExtensionContext): Promise<CompileFn> {
 
 function notYet(label: string): void {
   void vscode.window.showInformationMessage(
-    `${label}: not implemented yet — export phase on the Cervin roadmap.`,
+    `${label} export isn't available for the BPMN preview yet. ` +
+      `PNG export works via "Transitrix: Export as PNG"; the other diagram ` +
+      `types have their own "Save as PNG/SVG" commands.`,
   );
 }
 
@@ -198,8 +200,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     await preview.showOrReveal(doc);
   };
 
-  // Canonical transitrix.* commands (P3) plus deprecated cervin.* aliases that
-  // delegate to the same handler after a one-time deprecation notice.
+  // Command namespaces (intentional split, kept for compatibility):
+  //   • `transitrix.*` — the small, stable public surface inherited from the
+  //     original BPMN MVP: `openPreview` plus the export entry points gated by
+  //     `config.transitrix.exportEnabled`. `exportPng` is wired to the working
+  //     BPMN PNG export; `exportSvg`/`exportBpmn` are still placeholders.
+  //   • `transitrixStudio.*` — the broader Studio surface (all the per-notation
+  //     previews and their Save/Copy-as-PNG/SVG commands).
+  //   • `cervin.*` — deprecated aliases, removed in 2.0.0 (CLAUDE.md §Cervin P3/P7).
   const aliasOf = (legacyId: string, canonicalId: string, run: () => void | Promise<void>) =>
     vscode.commands.registerCommand(legacyId, () => {
       noteCervinCommandDeprecation(legacyId, canonicalId);
@@ -209,13 +217,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   context.subscriptions.push(
     vscode.commands.registerCommand('transitrix.openPreview', openPreviewHandler),
     vscode.commands.registerCommand('transitrix.exportSvg', () => notYet('SVG')),
-    vscode.commands.registerCommand('transitrix.exportPng', () => notYet('PNG')),
-    vscode.commands.registerCommand('transitrix.exportBpmn', () => notYet('.bpmn export')),
+    vscode.commands.registerCommand('transitrix.exportPng', () => preview.saveAsPng()),
+    vscode.commands.registerCommand('transitrix.exportBpmn', () => notYet('.bpmn')),
     vscode.commands.registerCommand('transitrixStudio.saveBpmnAsPng', () => preview.saveAsPng()),
     aliasOf('cervin.openPreview', 'transitrix.openPreview', openPreviewHandler),
     aliasOf('cervin.exportSvg', 'transitrix.exportSvg', () => notYet('SVG')),
-    aliasOf('cervin.exportPng', 'transitrix.exportPng', () => notYet('PNG')),
-    aliasOf('cervin.exportBpmn', 'transitrix.exportBpmn', () => notYet('.bpmn export')),
+    aliasOf('cervin.exportPng', 'transitrix.exportPng', () => preview.saveAsPng()),
+    aliasOf('cervin.exportBpmn', 'transitrix.exportBpmn', () => notYet('.bpmn')),
     vscode.commands.registerCommand('transitrixStudio.previewGoals', async () => {
       const doc = vscode.window.activeTextEditor?.document;
       if (!doc || !isGoalsFile(doc)) {
