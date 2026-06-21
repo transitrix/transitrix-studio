@@ -7,12 +7,12 @@
     "rules": {
       "type": "object",
       "title": "Rule overrides",
-      "description": "Override validation rule severity levels. Errors cannot be downgraded.",
+      "description": "Enable or disable validation rules by ID. Overrides only toggle whether a rule runs; they do not change a rule's built-in severity. Error-severity rules are conformance gates and cannot be disabled.",
       "patternProperties": {
         "^[A-Z]+-[0-9-]+$": {
           "type": "string",
           "enum": ["off", "warn"],
-          "description": "Rule override value: 'off' to disable, 'warn' to report as warning"
+          "description": "'off' disables the rule (not allowed for error-severity rules); 'warn' enables the rule (e.g. an off-by-default one). This does not change the rule's severity — an error-severity rule stays an error."
         }
       },
       "additionalProperties": false

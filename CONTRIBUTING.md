@@ -60,6 +60,11 @@ Project-level rule overrides (enabling/disabling validation rules) are read from
 [`schemas/transitrixrc.schema.json`](schemas/transitrixrc.schema.json); the rule-override
 format is documented in [`docs/validation.md`](docs/validation.md).
 
+The only override values are `"off"` (disable a rule; rejected for error-severity
+conformance gates) and `"warn"` (enable a rule, e.g. an off-by-default one). An
+override **only toggles whether a rule runs** — it does not change the rule's
+built-in severity, so `"<RULE>": "warn"` does not demote an error to a warning.
+
 The legacy **`.cervinrc`** filename is still read as a *fallback* when `.transitrixrc`
 is absent (see CLAUDE.md §Cervin naming, P4), but is **deprecated** — `loadTransitrixrc()`
 prints a one-time deprecation notice when it falls back, and `.cervinrc` support is slated
