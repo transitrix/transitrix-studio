@@ -107,7 +107,7 @@ function networkSvg(doc: ActivityDoc, gaps: ActivitiesLayoutOptions = {}, curvat
     const idY = twoLines ? y + 54 : y + 50;
     const durLabel = (durVal !== undefined && durVal > 0) ? `${durVal}d` : '';
     return [
-      `<rect class="${cls}" x="${x}" y="${y}" width="${N_NODE_W}" height="${N_NODE_H}" rx="6"/>`,
+      `<rect class="${cls}" x="${x}" y="${y}" width="${N_NODE_W}" height="${N_NODE_H}" rx="8"/>`,
       `<text class="text-primary" x="${x + N_NODE_W / 2}" y="${nameY1}" text-anchor="middle" dominant-baseline="central">${escXml(line1)}</text>`,
       twoLines ? `<text class="text-primary" x="${x + N_NODE_W / 2}" y="${nameY2}" text-anchor="middle" dominant-baseline="central">${escXml(line2)}</text>` : '',
       `<text class="text-id" x="${x + N_NODE_W / 2}" y="${idY}" text-anchor="middle" dominant-baseline="central">${idLabel}</text>`,
@@ -491,7 +491,7 @@ function buildCanvasContent(views: ActivityViews): string {
 
 /** Diagram-class CSS used both in the webview and in saved .svg exports. */
 const ACTIVITIES_DIAGRAM_CSS = `
-  .act-node { fill: var(--ts-bg-surface, #f8fafc); stroke: var(--ts-border, #94a3b8); stroke-width: 1.5; }
+  .act-node { fill: var(--ts-layer-activity, #d4edda); stroke: var(--ts-node-stroke, #94a3b8); stroke-width: 1; }
   .critical-node { fill: #fff7ed; stroke: var(--ts-brand-orange, #ff4d00); stroke-width: 2.5; }
   .milestone-node { fill: #ecfeff; stroke: var(--ts-text-muted, #64748b); stroke-dasharray: 4 2; }
   .critical-edge { stroke: var(--ts-brand-orange, #ff4d00); stroke-width: 2; }
