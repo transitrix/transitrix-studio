@@ -204,14 +204,34 @@ function routeSameLane(
   return dedupePoints([{ x: ex, y: ey }, { x: midX, y: ey }, { x: midX, y: iy }, { x: ix, y: iy }]);
 }
 
+/** Returns true if no element in `els` intersects the vertical segment at x=segX
+ *  between y1 and y2 (inclusive, with epsilon tolerance on the x-axis). */
+function verticalSegmentClear(
+  segX: number,
+  y1: number,
+  y2: number,
+  els: Bounds[],
+): boolean {
+  const minY = Math.min(y1, y2);
+  const maxY = Math.max(y1, y2);
+  const eps = CROSS_LANE_EDGE_OVERLAP_EPSILON_PX;
+  return els.every(
+    (el) =>
+      segX < el.x - eps ||
+      segX > el.x + el.width + eps ||
+      el.y + el.height <= minY ||
+      el.y >= maxY,
+  );
+}
+
 /** Orthogonal route for two elements in different lanes.
  *
  *  Preferred port: exit right-center of source, enter left-center of target.
  *
- *  For gateway flows with 'top'/'bottom' exit port: exit vertically through
- *  inter-lane gap (chanY), move horizontally to 20 px left of target, drop to
- *  target centre Y, then enter from the left face (5-point elbow). This avoids
- *  passing through intermediate elements that may sit in the target lane.
+ *  For gateway flows with 'top'/'bottom' exit port: when the target lane is
+ *  empty between the exit x and the target's left face, a simple 3-point
+ *  L-path is used (down + right into left face).  When intermediate elements
+ *  exist, the path travels via chanY (inter-lane gap) to stay clear.
  *
  *  For right-exit flows: horizontal from source right face to the approach
  *  column (20 px left of target), then vertical to target centre Y, then
@@ -223,7 +243,9 @@ function routeSameLane(
  *  `exitPort` lets gateway port-distribution override the exit vertex: 'bottom'
  *  routes downward out of the bottom vertex, 'top' upward.
  *  `laneVerticalGap` is the vertical spacing between lanes; used to compute the
- *  inter-lane channel coordinate for vertical gateway exits. */
+ *  inter-lane channel coordinate for vertical gateway exits.
+ *  `targetLaneElements` is the list of target-lane element bounds (excluding the
+ *  target itself); when provided, enables the 3-point path optimisation. */
 function routeCrossLane(
   fromB: Bounds,
   toB: Bounds,
@@ -231,6 +253,7 @@ function routeCrossLane(
   toLaneBound?: Bounds,
   exitPort: Port = 'right',
   laneVerticalGap = 40,
+  targetLaneElements?: Bounds[],
 ): { x: number; y: number }[] {
   const targetBelow = toB.y >= fromB.y + fromB.height - CROSS_LANE_EDGE_OVERLAP_EPSILON_PX;
   const targetAbove = toB.y + toB.height <= fromB.y + CROSS_LANE_EDGE_OVERLAP_EPSILON_PX;
@@ -250,10 +273,21 @@ function routeCrossLane(
       const chanY = targetBelow
         ? fromLaneBound.y + fromLaneBound.height + laneVerticalGap / 2
         : fromLaneBound.y - laneVerticalGap / 2;
-      // Always enter the target from the left face (→).
+      const approachX = toB.x - GATEWAY_BRANCH_CLEARANCE_PX;
+
+      // Optimisation: when the exit x is at or left of the target's left face
+      // and the straight vertical segment at ep.x through the target lane is
+      // clear of all intermediate elements, use a simple 3-point L-path.
+      if (
+        ep.x <= toB.x &&
+        targetLaneElements !== undefined &&
+        verticalSegmentClear(ep.x, chanY, iy, targetLaneElements)
+      ) {
+        return dedupePoints([ep, { x: ep.x, y: iy }, { x: toB.x, y: iy }]);
+      }
+
       // Travel via chanY (inter-lane gap) to avoid elements in the target lane,
       // then drop to target centre Y and approach from the left.
-      const approachX = toB.x - GATEWAY_BRANCH_CLEARANCE_PX;
       return dedupePoints([ep, { x: ep.x, y: chanY }, { x: approachX, y: chanY }, { x: approachX, y: iy }, { x: toB.x, y: iy }]);
     }
 
@@ -655,9 +689,15 @@ export async function layoutProcess(
       const fromLaneBound = fromL ? laneBounds.get(fromL) : undefined;
       const toLaneBound = toL ? laneBounds.get(toL) : undefined;
       const isSourceGateway = GATEWAY_TYPES.has(elementTypeMap.get(f.from) ?? '');
+      const targetLaneEls: Bounds[] | undefined = toL
+        ? ir.lanes
+            .find((l) => l.id === toL)
+            ?.elements.filter((el) => el.id !== f.to)
+            .flatMap((el) => { const b = elements.get(el.id); return b ? [b] : []; })
+        : undefined;
       wps = fromL === toL
         ? routeSameLane(fb, tb, exitOffset, exitPort, isSourceGateway)
-        : routeCrossLane(fb, tb, fromLaneBound, toLaneBound, exitPort, o.laneVerticalGap);
+        : routeCrossLane(fb, tb, fromLaneBound, toLaneBound, exitPort, o.laneVerticalGap, targetLaneEls);
       if (wps.length < 2) wps = diagonalFallbackRects(fb, tb);
     }
     return { ...f, waypoints: wps };
