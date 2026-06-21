@@ -1,6 +1,8 @@
 import * as path from 'node:path';
+import { promises as fsp } from 'node:fs';
 import * as vscode from 'vscode';
 import { getBaseResetCss } from '../../packages/diagrams/src/theme/index.js';
+import { rasterizeSvgToPng } from './raster.js';
 
 import type { LayoutMetrics, ValidationReport } from './types.js';
 
@@ -11,6 +13,8 @@ export class CervinPreview {
   readonly panelTitle = 'Cervin Preview';
   private panel: vscode.WebviewPanel | undefined;
   private trackedUri: string | undefined;
+  private lastSourceUri: vscode.Uri | undefined;
+  private pendingExport: { resolve: (svg: string) => void; reject: () => void } | undefined;
 
   constructor(
     private readonly extensionUri: vscode.Uri,
@@ -23,6 +27,7 @@ export class CervinPreview {
 
   async showOrReveal(doc: vscode.TextDocument): Promise<void> {
     this.trackedUri = doc.uri.toString();
+    this.lastSourceUri = doc.uri;
 
     const showOptions = {
       viewColumn: vscode.ViewColumn.Beside,
@@ -46,10 +51,13 @@ export class CervinPreview {
 
       this.panel.webview.html = this.buildHtml(this.panel.webview);
 
-      this.panel.webview.onDidReceiveMessage((msg: { type?: string }) => {
+      this.panel.webview.onDidReceiveMessage((msg: { type?: string; svg?: string }) => {
         if (msg?.type === 'diagram-ready' && this.panel && this.trackedUri) {
           const fp = path.basename(vscode.Uri.parse(this.trackedUri).fsPath);
           this.panel.title = `${this.panelTitle} — ${fp}`;
+        }
+        if (msg?.type === 'export-svg' && typeof msg.svg === 'string' && this.pendingExport) {
+          this.pendingExport.resolve(msg.svg);
         }
       });
 
@@ -65,6 +73,65 @@ export class CervinPreview {
   async refreshSaved(doc: vscode.TextDocument): Promise<void> {
     if (!this.isShowingDocument(doc.uri)) return;
     await this.pushDocument(doc);
+  }
+
+  async saveAsPng(): Promise<void> {
+    if (!this.panel) {
+      vscode.window.showWarningMessage('Open a BPMN preview first.');
+      return;
+    }
+    const svg = await this.requestSvgFromWebview();
+    if (!svg) return;
+
+    const preparedSvg = await this.prepareBpmnSvg(svg);
+    let png: Buffer;
+    try {
+      png = await rasterizeSvgToPng(preparedSvg);
+    } catch (e) {
+      vscode.window.showErrorMessage(`PNG export failed: ${(e as Error).message ?? String(e)}`);
+      return;
+    }
+
+    const stem = this.lastSourceUri
+      ? path.basename(this.lastSourceUri.fsPath).replace(/\.[^.]+\.transitrix\.yaml$|\.cervin\.yaml$/, '')
+      : 'diagram';
+    const filename = `${stem}.png`;
+    const defaultUri = this.lastSourceUri
+      ? vscode.Uri.file(path.join(path.dirname(this.lastSourceUri.fsPath), filename))
+      : vscode.Uri.file(filename);
+    const target = await vscode.window.showSaveDialog({ defaultUri, filters: { 'PNG Image': ['png'] } });
+    if (!target) return;
+
+    await vscode.workspace.fs.writeFile(target, png);
+    vscode.window.showInformationMessage(`Saved: ${path.basename(target.fsPath)}`);
+  }
+
+  private requestSvgFromWebview(): Promise<string | undefined> {
+    return new Promise((resolve) => {
+      if (!this.panel) { resolve(undefined); return; }
+
+      const timer = setTimeout(() => {
+        this.pendingExport = undefined;
+        vscode.window.showErrorMessage('BPMN PNG export timed out — render a diagram first.');
+        resolve(undefined);
+      }, 5000);
+
+      this.pendingExport = {
+        resolve: (s) => { clearTimeout(timer); this.pendingExport = undefined; resolve(s); },
+        reject: () => { clearTimeout(timer); this.pendingExport = undefined; resolve(undefined); },
+      };
+
+      void this.panel.webview.postMessage({ type: 'request-svg' });
+    });
+  }
+
+  private async prepareBpmnSvg(svg: string): Promise<string> {
+    const mediaDir = vscode.Uri.joinPath(this.extensionUri, 'media').fsPath;
+    const [diagramCss, bpmnCss] = await Promise.all([
+      fsp.readFile(path.join(mediaDir, 'diagram-js.css'), 'utf-8').catch(() => ''),
+      fsp.readFile(path.join(mediaDir, 'bpmn-js.css'), 'utf-8').catch(() => ''),
+    ]);
+    return svg.replace(/(<svg\b[^>]*>)/, `$1<style>${diagramCss}${bpmnCss}</style>`);
   }
 
   private async pushDocument(doc: vscode.TextDocument): Promise<void> {
@@ -103,6 +170,9 @@ export class CervinPreview {
     /* flex chain so layout height reaches #canvas — otherwise diagram-js measures ~0px */
     body{display:flex;flex-direction:column;min-height:0;}
     #toolbar{flex-shrink:0;border-bottom:1px solid var(--vscode-panel-border);padding:6px 8px;font-family:var(--vscode-font-family);font-size:12px;display:flex;flex-direction:column;gap:6px;}
+    .toolbar-btn{cursor:pointer;user-select:none;font-size:11px;padding:1px 8px;border-radius:4px;color:var(--vscode-button-foreground,#fff);background:var(--vscode-button-background,#007acc);border:none;white-space:nowrap;align-self:flex-end;}
+    .toolbar-btn:hover:not(:disabled){opacity:0.85;}
+    .toolbar-btn:disabled{opacity:0.4;cursor:default;}
     #toolbar-message{flex-shrink:0;}
     #metrics-display{display:flex;gap:16px;flex-wrap:wrap;align-items:center;font-size:11px;color:var(--vscode-descriptionForeground);}
     .metric{display:flex;align-items:center;gap:4px;}
@@ -142,6 +212,7 @@ export class CervinPreview {
     <div id="toolbar">
       <span id="toolbar-message" class="muted">Save YAML to refresh the preview.</span>
       <div id="metrics-display" hidden></div>
+      <button id="save-png-btn" class="toolbar-btn" title="Save the current diagram as a .png file" disabled>Save .png</button>
     </div>
     <pre id="err" hidden></pre>
     <div id="findings">
