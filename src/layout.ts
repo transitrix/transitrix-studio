@@ -246,23 +246,19 @@ function routeCrossLane(
     const iy = toB.y + toB.height / 2;
 
     if (exitPort === 'bottom' || exitPort === 'top') {
-      if (!fromLaneBound) return diagonalFallbackRects(fromB, toB);
-      const chanY = targetBelow
-        ? fromLaneBound.y + fromLaneBound.height + laneVerticalGap / 2
-        : fromLaneBound.y - laneVerticalGap / 2;
-
+      // Cross the lane boundary without turning at the gap.
+      // Any bend happens at the source vertex level or at the target face — never mid-gap.
       if (ep.x <= ix) {
-        // Gateway exit is left of the target left edge: drop to target centre Y
-        // at the exit column, then enter the left face with a rightward segment.
-        return dedupePoints([ep, { x: ep.x, y: chanY }, { x: ep.x, y: iy }, { x: ix, y: iy }]);
+        // Gateway exit is left of the target left edge: drop straight at ep.x to
+        // target centre Y, then enter the left face with a rightward segment.
+        return dedupePoints([ep, { x: ep.x, y: iy }, { x: ix, y: iy }]);
       }
-
-      // Gateway is directly above / to the right of the target (same column or
-      // shifted right): enter through the perpendicular face so the path drops
-      // straight down (or up) without a lateral kink at the inter-lane channel.
+      // Gateway is above / to the right of the target (same column or shifted right):
+      // drop straight to the target face Y, then slide horizontally to the target centre.
+      // The single bend is at the target face, not in the lane gap.
       const targetFaceX = toB.x + toB.width / 2;
       const targetFaceY = targetBelow ? toB.y : toB.y + toB.height;
-      return dedupePoints([ep, { x: ep.x, y: chanY }, { x: targetFaceX, y: chanY }, { x: targetFaceX, y: targetFaceY }]);
+      return dedupePoints([ep, { x: ep.x, y: targetFaceY }, { x: targetFaceX, y: targetFaceY }]);
     }
 
     // Right exit: symmetric S-curve with bend at midpoint, enter target from left.
