@@ -72,6 +72,14 @@ export interface ControlMessage {
   value?: number | string;
 }
 
+/** Snapshot-related message posted from webview to host. */
+export interface SnapshotMessage {
+  type: 'transitrix:snapshot';
+  field: 'capture' | 'load';
+  /** For 'load': the filename of the snapshot to load (e.g. "2026-06-20T143000Z.yaml"). */
+  snapshot?: string;
+}
+
 /** Tree ↔ table view, persisted per notation (vkgeorgia/strategy#137). */
 export type PreviewView = 'tree' | 'table';
 
@@ -150,6 +158,77 @@ export const CONTROLS_PANEL_CSS = `
 .tx-view-btn:hover { color: var(--ts-text, #0f172a); background: var(--ts-bg-elevated, #f1f5f9); }
 .tx-view-btn.active { color: var(--ts-text, #0f172a); background: var(--ts-bg-elevated, #f1f5f9); font-weight: 600; }
 `;
+
+/** CSS for the snapshot toolbar button and the timeline navigator strip. */
+export const SNAPSHOT_TOOLBAR_CSS = `
+.tx-snap-btn {
+  cursor: pointer;
+  user-select: none;
+  font-size: 11px;
+  padding: 1px 8px;
+  border-radius: 4px;
+  color: var(--ts-text-muted, #64748b);
+  background: transparent;
+  border: 1px solid var(--ts-border, #cbd5e1);
+  font-family: var(--vscode-font-family, sans-serif);
+  white-space: nowrap;
+}
+.tx-snap-btn:hover { color: var(--ts-text, #0f172a); background: var(--ts-bg-elevated, #f1f5f9); }
+.tx-timeline {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 4px 16px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: var(--ts-text-muted, #64748b);
+}
+.tx-timeline-label { font-weight: 600; white-space: nowrap; }
+.tx-timeline-marker {
+  cursor: pointer;
+  padding: 1px 6px;
+  border-radius: 3px;
+  border: 1px solid var(--ts-border, #cbd5e1);
+  background: transparent;
+  color: var(--ts-text-muted, #64748b);
+  font-size: 10px;
+  font-family: var(--vscode-font-family, sans-serif);
+  white-space: nowrap;
+}
+.tx-timeline-marker:hover { color: var(--ts-text, #0f172a); background: var(--ts-bg-elevated, #f1f5f9); }
+.tx-snap-info {
+  margin: 4px 16px 0;
+  padding: 6px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--ts-border, #cbd5e1);
+  background: var(--ts-bg-subtle, #f8fafc);
+  font-size: 11px;
+  color: var(--ts-text-muted, #64748b);
+}
+`;
+
+/** A snapshot marker entry for the timeline strip. */
+export interface SnapshotMarker {
+  /** Filename e.g. "2026-06-20T143000Z.yaml" */
+  filename: string;
+  /** Date portion for display e.g. "2026-06-20" */
+  dateLabel: string;
+}
+
+/** Builds the "Capture…" button HTML for the toolbar. */
+export function buildCaptureButton(): string {
+  return `<button type="button" class="tx-snap-btn" data-tx-control="snapshot" data-tx-field="capture" title="Capture the current view state as a snapshot file">Capture…</button>`;
+}
+
+/** Builds the timeline marker strip HTML from a list of existing snapshots.
+ *  Returns empty string when there are no snapshots. */
+export function buildTimelineStrip(markers: SnapshotMarker[]): string {
+  if (markers.length === 0) return '';
+  const markerHtml = markers.map(m =>
+    `<button type="button" class="tx-timeline-marker" data-tx-control="snapshot" data-tx-field="load" data-tx-snapshot="${escXml(m.filename)}" title="Jump to snapshot ${escXml(m.filename)}">${escXml(m.dateLabel)}</button>`
+  ).join('');
+  return `<div class="tx-timeline"><span class="tx-timeline-label">Snapshots:</span>${markerHtml}</div>`;
+}
 
 /** True when any control differs from its no-visual-change default. */
 function hasNonDefault(model: ControlsModel): boolean {
@@ -230,8 +309,10 @@ export function buildViewToggle(current: PreviewView): string {
 }
 
 /** Builds the nonce'd wiring `<script>`. Reads `data-tx-*` inputs, posts a
- *  ControlMessage to the host on change, and persists the panel's open/closed
- *  state in webview state so a host-driven re-render doesn't collapse it. */
+ *  ControlMessage or SnapshotMessage to the host on change, and persists the
+ *  panel's open/closed state in webview state so a host-driven re-render
+ *  doesn't collapse it. Also handles incoming `transitrix:snapshotLoaded`
+ *  messages from the host to update the timeline info box. */
 export function buildControlsScript(nonce: string): string {
   // Plain ES5-ish DOM script; runs inside the webview, not the Node host.
   return `<script nonce="${nonce}">
@@ -250,7 +331,14 @@ export function buildControlsScript(nonce: string): string {
       var control = el.getAttribute('data-tx-control');
       var field = el.getAttribute('data-tx-field');
       if (el.tagName === 'BUTTON') {
-        el.addEventListener('click', function () { post(control, field); });
+        el.addEventListener('click', function () {
+          if (control === 'snapshot') {
+            var snapshotName = el.getAttribute('data-tx-snapshot');
+            vscode.postMessage({ type: 'transitrix:snapshot', field: field, snapshot: snapshotName !== null ? snapshotName : undefined });
+          } else {
+            post(control, field);
+          }
+        });
         return;
       }
       var outId = el.getAttribute('data-tx-output');
@@ -286,6 +374,18 @@ export function buildControlsScript(nonce: string): string {
       vscode.setState(s);
     });
   }
+  // Handle incoming snapshot-loaded messages from the host extension.
+  window.addEventListener('message', function(event) {
+    var msg = event.data;
+    if (msg && msg.type === 'transitrix:snapshotLoaded') {
+      var box = document.getElementById('tx-snap-info');
+      if (box) {
+        var d = msg.content || {};
+        box.textContent = 'Snapshot: ' + msg.filename + (d.captured_at_date ? ' · date: ' + d.captured_at_date : '') + ' · ' + (d.generated_at || '');
+        box.style.display = 'block';
+      }
+    }
+  });
 }());
 </script>`;
 }
