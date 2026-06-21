@@ -1,5 +1,22 @@
 # Transitrix Studio — changelog
 
+## 2.2.0 — 2026-06-21
+
+BPMN diagram polish: PNG export, unified diagram styles, left-face entry for cross-lane flows, entity IDs in nodes.
+
+### Added
+
+- **BPMN preview — Save as PNG.** Export the rendered BPMN diagram to a `.png` file directly from the preview toolbar.
+- **Entity IDs in diagram nodes.** FGCA, FGA, and Activities nodes now show the entity ID below the name in grey, matching the Goal tree convention.
+
+### Fixed
+
+- **BPMN cross-lane gateway flows — left-face entry.** Arrows from gateway bottom/top exit ports now always enter the target block from the left face. Previously they could enter from the top or bottom depending on the gateway's position relative to the target.
+- **BPMN edge routing polish.** Corrected kinks in same-lane top/bottom exit routes, fixed `defaultFlow` attribute handling, and tightened preview layout.
+- **Activities diagram — unified node style.** Fill colour, stroke colour, stroke width, and corner radius now match Goal tree / FGA / FGCA out of the box.
+- **Preview panel titles** — standardised to `[Type] Preview — filename` pattern across all notations.
+- **Process Blueprint** — restored correct PNG export layout; uniform title block across all previews.
+
 ## 2.1.1 — 2026-06-20
 
 Activity Card layout polish, no-italic rule fully applied.
