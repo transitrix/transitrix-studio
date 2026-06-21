@@ -75,7 +75,16 @@ function resolveSingleDoc(doc: ActivityCardDoc): ResolvedActivityCard {
   };
 }
 
-function buildBody(layout: ActivityCardLayout, ox: number, oy: number): string {
+/**
+ * The single Activity Card SVG body emitter shared by every host. Takes an
+ * already-laid-out {@link ActivityCardLayout} plus the canvas offset and emits
+ * the body elements (card, header, badges, dates, chain sections, milestones,
+ * child activities, footer) — everything except the host chrome (`<defs>`
+ * marker, title, embedded CSS, `<svg>` wrapper). The VS Code preview and the
+ * host-neutral {@link renderActivityCardSvg} both build their own chrome around
+ * this single source of truth.
+ */
+export function renderActivityCardBody(layout: ActivityCardLayout, ox: number, oy: number): string {
   const parts: string[] = [];
 
   // Outer card.
@@ -245,7 +254,7 @@ export function renderActivityCardSvg(
   const ox = PAD;
   const oy = PAD + titleH;
 
-  const body = buildBody(layout, ox, oy);
+  const body = renderActivityCardBody(layout, ox, oy);
 
   const titleSvg = title
     ? `<text class="text-header" x="${PAD}" y="${PAD + 14}">${escXml(`Activity Card — ${title}`)}</text>`
