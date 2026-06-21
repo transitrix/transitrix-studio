@@ -242,10 +242,10 @@ export function buildErrorHtml(errorMsg: string): { input: string; block: string
 }
 
 const FRAME_HEADER_CSS = `
-.frame-header{padding:16px 20px 20px;}
-.frame-title{font-size:18px;font-weight:700;color:var(--ts-text,#0f172a);margin-bottom:4px;}
-.frame-subtitle{font-size:13px;color:var(--ts-text-muted,#64748b);margin-bottom:4px;}
-.frame-meta{font-size:11px;color:var(--ts-text-muted,#64748b);letter-spacing:0.04em;}
+.frame-header{padding:14px 24px 10px;}
+.frame-title{font-size:13px;font-weight:700;color:var(--ts-header-text,#0f172a);font-family:var(--vscode-font-family,system-ui,-apple-system,sans-serif);line-height:16px;margin-bottom:0;}
+.frame-subtitle{font-size:11px;font-weight:400;color:var(--ts-text-secondary,#475569);font-family:var(--vscode-font-family,system-ui,-apple-system,sans-serif);line-height:16px;margin-bottom:0;}
+.frame-meta{font-size:11px;font-weight:400;color:var(--ts-text-secondary,#475569);font-family:var(--vscode-font-family,system-ui,-apple-system,sans-serif);letter-spacing:0.04em;line-height:16px;}
 `;
 
 /**
