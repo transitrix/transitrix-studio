@@ -1,6 +1,6 @@
 import type { ThemeId } from '../../packages/diagrams/src/theme/index.js';
 import { generateWebviewCss, generateSvgEmbedCss } from '../../packages/diagrams/src/theme/index.js';
-import { CONTROLS_PANEL_CSS } from './preview-controls.js';
+import { CONTROLS_PANEL_CSS, SNAPSHOT_TOOLBAR_CSS } from './preview-controls.js';
 import { escXml } from '../../packages/diagrams/src/webview/render-util.js';
 
 export type { ThemeId };
@@ -155,6 +155,18 @@ export interface DiagramFrameOpts {
      * actions. Pass '' / omit when the preview has no toolbar control.
      */
     viewToggleHtml?: string;
+  };
+  /**
+   * When present, injects snapshot capture + timeline UI into the frame.
+   * The capture button appears in the toolbar actions; the timeline strip
+   * appears below the controls panel; the info box is appended before the
+   * canvas content. Requires `interactive` to also be present (needs scripts).
+   */
+  snapshotUi?: {
+    /** The "Capture…" button HTML (from buildCaptureButton()). */
+    captureButton: string;
+    /** The timeline strip HTML (from buildTimelineStrip(markers)). May be ''. */
+    timelineStrip: string;
   };
 }
 
@@ -422,7 +434,7 @@ export function buildDiagramFrame(opts: DiagramFrameOpts): string {
     themeId = 'transitrix', extraStyles = '', fixPrompt = '',
     title, subtitle, version, date,
     saveSvgCommand, savePngCommand, copyPngCommand, spacingCommand, curvatureCommand, scopeCommand, themeCommand,
-    interactive, legendToggle,
+    interactive, legendToggle, snapshotUi,
   } = opts;
 
   const canvasContent = bodyContent ?? svgContent;
@@ -438,7 +450,7 @@ export function buildDiagramFrame(opts: DiagramFrameOpts): string {
     : '';
   const errBlock = errorMsg
     ? `<div class="tx-err">
-  <label for="ts-err-toggle" class="tx-err-summary">⚠ ${errCount === 1 ? '1 error' : `${errCount} errors`}</label>
+  <label for="ts-err-toggle" class="tx-err-summary">⚠ ${errCount === 1 ? '1 error' : `${errCount} errors`}</label>
   <pre class="tx-err-body">${escXml(errorMsg)}</pre>
 </div>`
     : '';
@@ -504,6 +516,10 @@ export function buildDiagramFrame(opts: DiagramFrameOpts): string {
   if (interactive?.viewToggleHtml) {
     actionParts.push(interactive.viewToggleHtml);
   }
+  // Snapshot capture button — injected into toolbar actions when snapshotUi is present.
+  if (snapshotUi?.captureButton) {
+    actionParts.push(snapshotUi.captureButton);
+  }
   if (showToggle) {
     actionParts.push(`<label for="ts-title-toggle" class="title-toggle" title="Show or hide the diagram title">Title</label>`);
   }
@@ -545,8 +561,15 @@ export function buildDiagramFrame(opts: DiagramFrameOpts): string {
     ? `default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${interactive.nonce}';`
     : `default-src 'none'; style-src 'unsafe-inline';`;
   const controlsCss = interactive ? CONTROLS_PANEL_CSS : '';
+  const snapshotCss = snapshotUi ? SNAPSHOT_TOOLBAR_CSS : '';
   const controlsPanel = interactive ? interactive.controlsPanel : '';
   const controlsScript = interactive ? interactive.controlsScript : '';
+
+  // Timeline strip and info box — rendered below the controls panel when snapshotUi present.
+  const timelineStrip = snapshotUi?.timelineStrip ?? '';
+  const snapInfoBox = snapshotUi
+    ? `<div id="tx-snap-info" class="tx-snap-info" style="display:none"></div>`
+    : '';
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -562,6 +585,7 @@ ${FRAME_HEADER_CSS}
 ${TITLE_TOGGLE_CSS}
 ${ZOOM_CONTROL_CSS}
 ${controlsCss}
+${snapshotCss}
 ${extraStyles}
   </style>
 </head>
@@ -573,6 +597,8 @@ ${extraStyles}
   ${warnToggleInput}
   <div id="toolbar"><span class="toolbar-label">${escXml(notation)}: ${escXml(filename)}</span>${toolbarRight}</div>
   ${controlsPanel}
+  ${timelineStrip}
+  ${snapInfoBox}
   ${errBlock}${fixPromptBlock}${warnBlock}
   ${headerBlock}
   <div id="canvas">

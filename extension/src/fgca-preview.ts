@@ -22,9 +22,10 @@ import { coerceDatesToIsoStrings } from '../../packages/diagrams/src/yaml-normal
 import { checkScopeRoot, type Scope } from '../../packages/diagrams/src/scope.js';
 import { savePngFromSvg, copyPngFromSvg } from './png-export.js';
 import { readSpacing, readCurvature, readEntryCurvature, readScope, readView, applyControlMessage, OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND, OPEN_SCOPE_SETTINGS_COMMAND } from './spacing-config.js';
-import { genNonce, buildControlsPanel, buildControlsScript, buildViewToggle, type ControlsModel, type ScopeGoalOption } from './preview-controls.js';
+import { genNonce, buildControlsPanel, buildControlsScript, buildViewToggle, buildCaptureButton, buildTimelineStrip, type ControlsModel, type ScopeGoalOption, type SnapshotMarker, type SnapshotMessage } from './preview-controls.js';
+import { snapshotFilename, buildSnapshotContent, extractViewMeta, listSnapshotFiles, parseSnapshotForDisplay } from './snapshot-writer.js';
 
-// ── Inline render types ─────────────────────────────────────────────────────
+// ── Inline render types ────────────────────────────────────────────────────────────────────────────
 //
 // FGCA (notations/02-fgca.md) and FGA (notations/03-fga.md) are both the
 // canonical FLAT shape — top-level `factors[]` / `goals[]` / `changes[]`
@@ -47,7 +48,7 @@ interface FGCADoc {
   activities: ActivityItem[];
 }
 
-// ── Column layout ─────────────────────────────────────────────────────────────
+// ── Column layout ─────────────────────────────────────────────────────────────────────────────────
 //
 // Geometry + edge routing now live in @transitrix/diagrams
 // (`layoutFGCAPreview`) so the configurable-gap behaviour (vkgeorgia/strategy#75)
@@ -71,7 +72,7 @@ function scopeInputsFromDoc(doc: FGCADoc): { goals: ScopeGoalOption[]; maxLevelP
   };
 }
 
-// ── Chain table (vkgeorgia/strategy#137) ────────────────────────────────────
+// ── Chain table (#137) ───────────────────────────────────────────────────────
 //
 // The flattening + rowspan derivation lives in @transitrix/diagrams
 // (`buildChainTable`). Here we render that model as an HTML <table>. Scope
@@ -141,6 +142,8 @@ interface ChainPreviewParams {
   saveSvgCommand: string;
   savePngCommand: string;
   copyPngCommand: string;
+  /** Snapshot markers for the timeline strip. */
+  snapshotMarkers: SnapshotMarker[];
 }
 
 /**
@@ -167,6 +170,8 @@ function renderChainPreview(
   const nonce = genNonce();
   const script = buildControlsScript(nonce);
   const viewToggleHtml = buildViewToggle(view);
+  const captureButton = buildCaptureButton();
+  const timelineStrip = buildTimelineStrip(p.snapshotMarkers);
 
   if (view === 'table') {
     // Scope is a no-op in table view, so no scope-warning is added here.
@@ -181,6 +186,7 @@ function renderChainPreview(
       version: docVersion,
       date: showHeader ? docDate : undefined,
       interactive: { nonce, controlsPanel: '', controlsScript: script, viewToggleHtml },
+      snapshotUi: { captureButton, timelineStrip },
     });
     return { html, svg: '' };
   }
@@ -212,6 +218,7 @@ function renderChainPreview(
     scopeCommand: OPEN_SCOPE_SETTINGS_COMMAND,
     themeCommand: OPEN_THEME_COMMAND,
     interactive: { nonce, controlsPanel: buildControlsPanel(model), controlsScript: script, viewToggleHtml },
+    snapshotUi: { captureButton, timelineStrip },
   });
   return { html, svg };
 }
@@ -296,7 +303,7 @@ ${edgeSvg}
 </svg>`;
 }
 
-// ── FGCAPreview webview class ─────────────────────────────────────────────────
+// ── FGCAPreview webview class ────────────────────────────────────────────────────────────────────────────
 
 export class FGCAPreview {
   readonly panelTitle = 'FGCA Preview';
@@ -329,7 +336,10 @@ export class FGCAPreview {
           enableCommandUris: ['transitrixStudio.saveFGCAAsSvg', 'transitrixStudio.saveFGCAAsPng', 'transitrixStudio.copyFGCAAsPng', OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND, OPEN_SCOPE_SETTINGS_COMMAND, OPEN_THEME_COMMAND],
         },
       );
-      this.panel.webview.onDidReceiveMessage((m) => { void applyControlMessage('fgca', m); });
+      this.panel.webview.onDidReceiveMessage(async (m) => {
+        if (m.type === 'transitrix:control') { void applyControlMessage('fgca', m); }
+        if (m.type === 'transitrix:snapshot') { await this.handleSnapshotMessage(m as SnapshotMessage); }
+      });
       this.panel.onDidDispose(() => { this.panel = undefined; this.trackedUri = undefined; });
     }
     await this.pushDocument(doc);
@@ -359,13 +369,80 @@ export class FGCAPreview {
     await this.pushDocument(fgcaDoc);
   }
 
+  private async loadSnapshotMarkers(): Promise<SnapshotMarker[]> {
+    if (!this.trackedUri) return [];
+    const viewUri = vscode.Uri.parse(this.trackedUri);
+    const snapshotsDir = vscode.Uri.file(path.join(path.dirname(viewUri.fsPath), 'snapshots'));
+    try {
+      const entries = await vscode.workspace.fs.readDirectory(snapshotsDir);
+      const files = entries
+        .filter(([, type]) => type === vscode.FileType.File)
+        .map(([name]) => name);
+      return listSnapshotFiles(files).map(fname => ({
+        filename: fname,
+        dateLabel: fname.slice(0, 10),
+      }));
+    } catch {
+      return [];
+    }
+  }
+
+  private async handleSnapshotMessage(m: SnapshotMessage): Promise<void> {
+    if (!this.panel || !this.trackedUri) return;
+    const viewUri = vscode.Uri.parse(this.trackedUri);
+    const viewDir = path.dirname(viewUri.fsPath);
+
+    if (m.field === 'capture') {
+      const doc = await vscode.workspace.openTextDocument(viewUri);
+      const { viewId, methodologyVersion } = extractViewMeta(doc.getText());
+      const today = new Date().toISOString().slice(0, 10);
+      const chosenDate = await vscode.window.showInputBox({
+        title: 'Capture snapshot — date',
+        prompt: 'Date for this snapshot (YYYY-MM-DD). Accept today or enter a different date.',
+        value: today,
+        validateInput: v => /^\d{4}-\d{2}-\d{2}$/.test(v) ? null : 'Enter a date in YYYY-MM-DD format',
+      });
+      if (!chosenDate) return;
+      const now = new Date();
+      const fname = snapshotFilename(now);
+      const generatedAt = now.toISOString().replace(/\.\d+Z$/, 'Z');
+      const content = buildSnapshotContent({ viewId, generatedAt, methodologyVersion, capturedAtDate: chosenDate });
+      const snapshotsDirUri = vscode.Uri.file(path.join(viewDir, 'snapshots'));
+      await vscode.workspace.fs.createDirectory(snapshotsDirUri);
+      const outPath = path.join(viewDir, 'snapshots', fname);
+      await vscode.workspace.fs.writeFile(
+        vscode.Uri.file(outPath),
+        Buffer.from(content, 'utf-8'),
+      );
+      vscode.window.showInformationMessage(`Snapshot saved: ${fname}`);
+      await this.pushDocument(doc);
+    }
+
+    if (m.field === 'load' && m.snapshot) {
+      const snapshotPath = path.join(viewDir, 'snapshots', m.snapshot);
+      try {
+        const bytes = await vscode.workspace.fs.readFile(vscode.Uri.file(snapshotPath));
+        const text = Buffer.from(bytes).toString('utf-8');
+        const parsed = parseSnapshotForDisplay(text);
+        void this.panel?.webview.postMessage({
+          type: 'transitrix:snapshotLoaded',
+          filename: m.snapshot,
+          content: parsed,
+        });
+      } catch {
+        vscode.window.showWarningMessage(`Could not read snapshot: ${m.snapshot}`);
+      }
+    }
+  }
+
   private async pushDocument(doc: vscode.TextDocument): Promise<void> {
     if (!this.panel) return;
     const sources = await loadCanon(doc.uri);
-    this.panel.webview.html = this.buildHtml(doc.getText(), path.basename(doc.fileName), sources);
+    const markers = await this.loadSnapshotMarkers();
+    this.panel.webview.html = this.buildHtml(doc.getText(), path.basename(doc.fileName), sources, markers);
   }
 
-  private buildHtml(yamlText: string, filename: string, sources: CanonDocs): string {
+  private buildHtml(yamlText: string, filename: string, sources: CanonDocs, markers: SnapshotMarker[]): string {
     let parsedDoc: FGCADoc | null = null;
     let errorMsg = '';
     let warnings: string[] = [];
@@ -405,6 +482,7 @@ export class FGCAPreview {
         saveSvgCommand: 'transitrixStudio.saveFGCAAsSvg',
         savePngCommand: 'transitrixStudio.saveFGCAAsPng',
         copyPngCommand: 'transitrixStudio.copyFGCAAsPng',
+        snapshotMarkers: markers,
       },
       parsedDoc, warnings, errorMsg, docVersion, docDate, filename, themeId,
     );
@@ -450,7 +528,7 @@ export class FGCAPreview {
   }
 }
 
-// ── FGAPreview webview class ──────────────────────────────────────────────────
+// ── FGAPreview webview class ──────────────────────────────────────────────────────────────────────────────
 
 export class FGAPreview {
   readonly panelTitle = 'FGA Preview';
@@ -483,7 +561,10 @@ export class FGAPreview {
           enableCommandUris: ['transitrixStudio.saveFGAAsSvg', 'transitrixStudio.saveFGAAsPng', 'transitrixStudio.copyFGAAsPng', OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND, OPEN_SCOPE_SETTINGS_COMMAND, OPEN_THEME_COMMAND],
         },
       );
-      this.panel.webview.onDidReceiveMessage((m) => { void applyControlMessage('fga', m); });
+      this.panel.webview.onDidReceiveMessage(async (m) => {
+        if (m.type === 'transitrix:control') { void applyControlMessage('fga', m); }
+        if (m.type === 'transitrix:snapshot') { await this.handleSnapshotMessage(m as SnapshotMessage); }
+      });
       this.panel.onDidDispose(() => { this.panel = undefined; this.trackedUri = undefined; });
     }
     await this.pushDocument(doc);
@@ -501,12 +582,79 @@ export class FGAPreview {
     await this.pushDocument(doc);
   }
 
-  private async pushDocument(doc: vscode.TextDocument): Promise<void> {
-    if (!this.panel) return;
-    this.panel.webview.html = this.buildHtml(doc.getText(), path.basename(doc.fileName));
+  private async loadSnapshotMarkers(): Promise<SnapshotMarker[]> {
+    if (!this.trackedUri) return [];
+    const viewUri = vscode.Uri.parse(this.trackedUri);
+    const snapshotsDir = vscode.Uri.file(path.join(path.dirname(viewUri.fsPath), 'snapshots'));
+    try {
+      const entries = await vscode.workspace.fs.readDirectory(snapshotsDir);
+      const files = entries
+        .filter(([, type]) => type === vscode.FileType.File)
+        .map(([name]) => name);
+      return listSnapshotFiles(files).map(fname => ({
+        filename: fname,
+        dateLabel: fname.slice(0, 10),
+      }));
+    } catch {
+      return [];
+    }
   }
 
-  private buildHtml(yamlText: string, filename: string): string {
+  private async handleSnapshotMessage(m: SnapshotMessage): Promise<void> {
+    if (!this.panel || !this.trackedUri) return;
+    const viewUri = vscode.Uri.parse(this.trackedUri);
+    const viewDir = path.dirname(viewUri.fsPath);
+
+    if (m.field === 'capture') {
+      const doc = await vscode.workspace.openTextDocument(viewUri);
+      const { viewId, methodologyVersion } = extractViewMeta(doc.getText());
+      const today = new Date().toISOString().slice(0, 10);
+      const chosenDate = await vscode.window.showInputBox({
+        title: 'Capture snapshot — date',
+        prompt: 'Date for this snapshot (YYYY-MM-DD). Accept today or enter a different date.',
+        value: today,
+        validateInput: v => /^\d{4}-\d{2}-\d{2}$/.test(v) ? null : 'Enter a date in YYYY-MM-DD format',
+      });
+      if (!chosenDate) return;
+      const now = new Date();
+      const fname = snapshotFilename(now);
+      const generatedAt = now.toISOString().replace(/\.\d+Z$/, 'Z');
+      const content = buildSnapshotContent({ viewId, generatedAt, methodologyVersion, capturedAtDate: chosenDate });
+      const snapshotsDirUri = vscode.Uri.file(path.join(viewDir, 'snapshots'));
+      await vscode.workspace.fs.createDirectory(snapshotsDirUri);
+      const outPath = path.join(viewDir, 'snapshots', fname);
+      await vscode.workspace.fs.writeFile(
+        vscode.Uri.file(outPath),
+        Buffer.from(content, 'utf-8'),
+      );
+      vscode.window.showInformationMessage(`Snapshot saved: ${fname}`);
+      await this.pushDocument(doc);
+    }
+
+    if (m.field === 'load' && m.snapshot) {
+      const snapshotPath = path.join(viewDir, 'snapshots', m.snapshot);
+      try {
+        const bytes = await vscode.workspace.fs.readFile(vscode.Uri.file(snapshotPath));
+        const text = Buffer.from(bytes).toString('utf-8');
+        const parsed = parseSnapshotForDisplay(text);
+        void this.panel?.webview.postMessage({
+          type: 'transitrix:snapshotLoaded',
+          filename: m.snapshot,
+          content: parsed,
+        });
+      } catch {
+        vscode.window.showWarningMessage(`Could not read snapshot: ${m.snapshot}`);
+      }
+    }
+  }
+
+  private async pushDocument(doc: vscode.TextDocument): Promise<void> {
+    if (!this.panel) return;
+    const markers = await this.loadSnapshotMarkers();
+    this.panel.webview.html = this.buildHtml(doc.getText(), path.basename(doc.fileName), markers);
+  }
+
+  private buildHtml(yamlText: string, filename: string, markers: SnapshotMarker[]): string {
     let parsedDoc: FGCADoc | null = null;
     let errorMsg = '';
     let warnings: string[] = [];
@@ -543,6 +691,7 @@ export class FGAPreview {
         saveSvgCommand: 'transitrixStudio.saveFGAAsSvg',
         savePngCommand: 'transitrixStudio.saveFGAAsPng',
         copyPngCommand: 'transitrixStudio.copyFGAAsPng',
+        snapshotMarkers: markers,
       },
       parsedDoc, warnings, errorMsg, docVersion, docDate, filename, themeId,
     );
