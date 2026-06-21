@@ -407,6 +407,8 @@ export class FGCAPreview {
       const fname = snapshotFilename(now);
       const generatedAt = now.toISOString().replace(/\.\d+Z$/, 'Z');
       const content = buildSnapshotContent({ viewId, generatedAt, methodologyVersion, capturedAtDate: chosenDate });
+      const snapshotsDirUri = vscode.Uri.file(path.join(viewDir, 'snapshots'));
+      await vscode.workspace.fs.createDirectory(snapshotsDirUri);
       const outPath = path.join(viewDir, 'snapshots', fname);
       await vscode.workspace.fs.writeFile(
         vscode.Uri.file(outPath),
@@ -618,6 +620,8 @@ export class FGAPreview {
       const fname = snapshotFilename(now);
       const generatedAt = now.toISOString().replace(/\.\d+Z$/, 'Z');
       const content = buildSnapshotContent({ viewId, generatedAt, methodologyVersion, capturedAtDate: chosenDate });
+      const snapshotsDirUri = vscode.Uri.file(path.join(viewDir, 'snapshots'));
+      await vscode.workspace.fs.createDirectory(snapshotsDirUri);
       const outPath = path.join(viewDir, 'snapshots', fname);
       await vscode.workspace.fs.writeFile(
         vscode.Uri.file(outPath),

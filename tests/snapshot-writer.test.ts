@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import yaml from 'js-yaml';
 import {
   snapshotFilename,
   buildSnapshotContent,
@@ -67,8 +68,7 @@ describe('buildSnapshotContent', () => {
   it('produces valid YAML (round-trips)', () => {
     const content = buildSnapshotContent(base);
     // Must be parseable without throwing.
-    const { load } = await import('js-yaml');
-    const parsed = load(content) as Record<string, unknown>;
+    const parsed = yaml.load(content) as Record<string, unknown>;
     expect(parsed['view_id']).toBe('my-view');
     expect(parsed['methodology_version']).toBe('1.2.3');
     expect(parsed['captured_at_date']).toBe('2026-06-20');
