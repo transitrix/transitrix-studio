@@ -320,7 +320,7 @@ ${WARN_BLOCK_CSS}
 const MATRIX_CSS = `
 body { padding: 0; }
 #cm-toolbar { display: flex; align-items: center; gap: 14px; padding: 10px 16px; border-bottom: 1px solid var(--ts-border, #cbd5e1); flex-wrap: wrap; }
-.cm-title { font-size: 14px; font-weight: 700; color: var(--ts-text, #0f172a); }
+.cm-title { font-size: 13px; font-weight: 700; color: var(--ts-header-text, #0f172a); }
 .cm-summary { font-size: 12px; color: var(--ts-text-muted, #64748b); }
 .cm-summary strong { color: var(--ts-text, #0f172a); }
 .cm-btn { font-size: 11px; padding: 2px 10px; border-radius: 4px; color: var(--ts-text-muted, #64748b); text-decoration: none; border: 1px solid var(--ts-border, #cbd5e1); }
