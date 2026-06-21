@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { escXml } from '../../packages/diagrams/src/webview/render-util.js';
 import { generateWebviewCss, type ThemeId } from '../../packages/diagrams/src/theme/index.js';
 import {
   buildComplianceMatrix,
@@ -55,10 +56,6 @@ const ALL_SEVERITIES = ['high', 'medium', 'low'];
 
 const OPEN_FILE_COMMAND = 'transitrixStudio.openComplianceFile';
 const REFRESH_COMMAND = 'transitrixStudio.refreshComplianceMatrix';
-
-function escXml(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
 
 /** Union of jurisdictions resolved across the matrix's columns, sorted. */
 function collectJurisdictions(matrix: ComplianceMatrix): string[] {

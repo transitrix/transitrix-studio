@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { escXml } from '../../packages/diagrams/src/webview/render-util.js';
 import yaml from 'js-yaml';
 import { generateWebviewCss, type ThemeId } from '../../packages/diagrams/src/theme/index.js';
 import {
@@ -57,10 +58,6 @@ const STATUS_LABELS: Record<AssertionStatus, string> = {
 
 const OPEN_FILE_COMMAND = 'transitrixStudio.openComplianceFile';
 const REFRESH_COMMAND = 'transitrixStudio.refreshComplianceImpact';
-
-function escXml(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
 
 function todayIso(): string {
   return new Date().toISOString().slice(0, 10);

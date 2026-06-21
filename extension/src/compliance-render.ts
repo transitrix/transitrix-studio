@@ -1,4 +1,6 @@
 import { generateWebviewCss, type ThemeId } from '../../packages/diagrams/src/theme/index.js';
+import { escXml } from '../../packages/diagrams/src/webview/render-util.js';
+export { escXml };
 import type { AssertionStatus } from '../../packages/diagrams/src/assertion/types.js';
 import type { ViewScore } from '../../packages/diagrams/src/confidence/index.js';
 import { computeDeadlineStatus } from '../../packages/diagrams/src/compliance/impact.js';
@@ -18,11 +20,6 @@ export const STATUS_LABELS: Record<AssertionStatus, string> = {
   pending_owner: 'Pending owner',
   n_a: 'N/A',
 };
-
-export function escXml(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
-
 /** A coloured status pill. */
 export function statusBadge(status: AssertionStatus): string {
   return `<span class="cmp-badge cmp-${status}">${escXml(STATUS_LABELS[status])}</span>`;

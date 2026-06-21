@@ -16,6 +16,7 @@ import type { ComplianceCanon } from './classify.js';
 import type { ReportScope } from './markdown.js';
 import type { AssertionStatus } from '../assertion/types.js';
 import type { ImpactMatrix } from './impact.js';
+import { escHtml } from '../webview/render-util.js';
 
 const STATUS_LABELS: Record<AssertionStatus, string> = {
   compliant: 'Compliant',
@@ -31,14 +32,6 @@ export interface HtmlOptions {
   today?: string;
   /** Title override; defaults to the per-scope title. */
   title?: string;
-}
-
-function escHtml(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
 }
 
 function badge(status: AssertionStatus): string {

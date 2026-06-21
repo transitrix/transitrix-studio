@@ -1,4 +1,5 @@
 import * as path from 'node:path';
+import { escXml } from '../../packages/diagrams/src/webview/render-util.js';
 import * as vscode from 'vscode';
 import yaml from 'js-yaml';
 import { buildDiagramFrame, prepareSvgForExport, type ThemeId, OPEN_THEME_COMMAND } from './diagram-frame.js';
@@ -28,10 +29,6 @@ const NODE_W = 250;
 const NODE_H = 60;
 const RANK_SEP = 100;
 const NODE_SEP = 24;
-
-function escXml(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
 
 function layoutToSvg(layout: GoalTreeLayout, treeName: string, filename?: string, date?: string, version?: string, curvature: number = DEFAULT_EDGE_CURVATURE, entryCurvature?: number): string {
   const pad = 24;
