@@ -399,6 +399,138 @@ describe('layout', () => {
     expect(wps[0].y).toBeCloseTo(gwB.y, 1);
   });
 
+  // Straight-down/up entry rule: when gateway exit x is within the target element's
+  // horizontal extent and the target lane is clear, a direct 2-point vertical segment
+  // lands on the target top or bottom face (no chanY elbow, no left detour).
+  it('cross-lane gateway flow enters target top face when gateway is directly above', async () => {
+    // Fixture: 2 lanes stacked vertically.
+    //   Top lane: start → gw → end  (gw placed after start by ELK, end placed after gw)
+    //   Bot lane: below  (placed in same ELK column as gw; task is wider than the gateway)
+    // gw center x should fall within below's horizontal bounds → straight-down 2-point path.
+    const ir = parseYamlToIr(`process:
+  id: straight-down-repro
+  name: Straight down repro
+  pools:
+    - id: pool
+      name: Pool
+      lanes:
+        - id: lane-top
+          name: Top
+          elements:
+            - id: start
+              type: startEvent
+            - id: gw
+              type: parallelGateway
+              name: Decide
+            - id: end
+              type: endEvent
+        - id: lane-bot
+          name: Bot
+          elements:
+            - id: below
+              type: task
+              name: Below task
+  flows:
+    - from: start
+      to: gw
+    - from: gw
+      to: end
+    - from: gw
+      to: below
+`);
+    const layout = await layoutProcess(ir);
+
+    const flow = layout.flows.find((f) => f.from === 'gw' && f.to === 'below');
+    expect(flow, 'gw→below flow not found').toBeDefined();
+
+    const gwB = layout.elements.get('gw')!;
+    const belowB = layout.elements.get('below')!;
+    const gwCX = gwB.x + gwB.width / 2;
+    const gwBottom = gwB.y + gwB.height;
+    const eps = 4;
+
+    const wps = flow!.waypoints;
+
+    // First waypoint always exits the gateway BOTTOM center.
+    expect(wps[0].x).toBeCloseTo(gwCX, 0);
+    expect(wps[0].y).toBeCloseTo(gwBottom, 0);
+
+    // If ELK places the gateway center within the target's x range, verify 2-point path
+    // and top-face entry; otherwise accept any valid orthogonal path (≥ 3 points).
+    const epWithinTarget = gwCX >= belowB.x - eps && gwCX <= belowB.x + belowB.width + eps;
+    if (epWithinTarget) {
+      expect(wps.length, '2-point straight-down path expected').toBeLessThanOrEqual(2);
+      const last = wps[wps.length - 1];
+      expect(last.x).toBeCloseTo(gwCX, 0);
+      expect(last.y).toBeCloseTo(belowB.y, 0);
+    } else {
+      expect(wps.length, 'orthogonal elbow path expected').toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  it('cross-lane gateway flow enters target bottom face when gateway is directly below', async () => {
+    // Fixture: 2 lanes stacked vertically.
+    //   Bot lane: start → gw → end
+    //   Top lane: above  (placed in same ELK column as gw)
+    // gw exits TOP; gw center x within "above" bounds → 2-point upward path.
+    const ir = parseYamlToIr(`process:
+  id: straight-up-repro
+  name: Straight up repro
+  pools:
+    - id: pool
+      name: Pool
+      lanes:
+        - id: lane-top
+          name: Top
+          elements:
+            - id: above
+              type: task
+              name: Above task
+        - id: lane-bot
+          name: Bot
+          elements:
+            - id: start
+              type: startEvent
+            - id: gw
+              type: parallelGateway
+              name: Decide
+            - id: end
+              type: endEvent
+  flows:
+    - from: start
+      to: gw
+    - from: gw
+      to: end
+    - from: gw
+      to: above
+`);
+    const layout = await layoutProcess(ir);
+
+    const flow = layout.flows.find((f) => f.from === 'gw' && f.to === 'above');
+    expect(flow, 'gw→above flow not found').toBeDefined();
+
+    const gwB = layout.elements.get('gw')!;
+    const aboveB = layout.elements.get('above')!;
+    const gwCX = gwB.x + gwB.width / 2;
+    const gwTop = gwB.y;
+    const eps = 4;
+
+    const wps = flow!.waypoints;
+
+    expect(wps[0].x).toBeCloseTo(gwCX, 0);
+    expect(wps[0].y).toBeCloseTo(gwTop, 0);
+
+    const epWithinTarget = gwCX >= aboveB.x - eps && gwCX <= aboveB.x + aboveB.width + eps;
+    if (epWithinTarget) {
+      expect(wps.length, '2-point straight-up path expected').toBeLessThanOrEqual(2);
+      const last = wps[wps.length - 1];
+      expect(last.x).toBeCloseTo(gwCX, 0);
+      expect(last.y).toBeCloseTo(aboveB.y + aboveB.height, 0);
+    } else {
+      expect(wps.length, 'orthogonal elbow path expected').toBeGreaterThanOrEqual(3);
+    }
+  });
+
   it('same-lane gateway 2-way split: flows exit from different ports (RD-062)', async () => {
     // A gateway with 2 same-lane forward outputs must assign distinct exit ports so
     // no two arrows leave from the same vertex.
