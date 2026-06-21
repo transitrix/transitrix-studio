@@ -8,6 +8,11 @@ import type { LayoutMetrics, ValidationReport } from './types.js';
 
 export type CompileFn = (yaml: string) => Promise<{ xml: string; metrics: LayoutMetrics; validation: ValidationReport }>;
 
+/** Where rule `docUrl` references resolve — the project docs on GitHub. */
+const DOCS_BASE_URL = 'https://github.com/transitrix/transitrix-studio/blob/main';
+/** Accepts only repo-relative `docs/….md` paths with an optional `#anchor`. */
+const VALIDATION_DOC_PATH = /^docs\/[A-Za-z0-9._/-]+\.md(#[A-Za-z0-9._-]+)?$/;
+
 /** Webview: bpmn-js viewer + compile loop. */
 export class CervinPreview {
   readonly panelTitle = 'BPMN Preview';
@@ -51,13 +56,16 @@ export class CervinPreview {
 
       this.panel.webview.html = this.buildHtml(this.panel.webview);
 
-      this.panel.webview.onDidReceiveMessage((msg: { type?: string; svg?: string }) => {
+      this.panel.webview.onDidReceiveMessage((msg: { type?: string; svg?: string; url?: string }) => {
         if (msg?.type === 'diagram-ready' && this.panel && this.trackedUri) {
           const fp = path.basename(vscode.Uri.parse(this.trackedUri).fsPath);
           this.panel.title = `${this.panelTitle} — ${fp}`;
         }
         if (msg?.type === 'export-svg' && typeof msg.svg === 'string' && this.pendingExport) {
           this.pendingExport.resolve(msg.svg);
+        }
+        if (msg?.type === 'open-docs') {
+          this.openDocs(msg.url);
         }
       });
 
@@ -68,6 +76,18 @@ export class CervinPreview {
     }
 
     await this.pushDocument(doc);
+  }
+
+  /**
+   * Opens a validation-doc reference (the findings list forwards the rule's
+   * `docUrl`). The value is a trusted, repo-relative `docs/….md#anchor`, but
+   * it is validated strictly here — rejecting traversal and any non-`docs`
+   * target — before being handed to the browser.
+   */
+  private openDocs(rawUrl: unknown): void {
+    if (typeof rawUrl !== 'string') return;
+    if (rawUrl.includes('..') || !VALIDATION_DOC_PATH.test(rawUrl)) return;
+    void vscode.env.openExternal(vscode.Uri.parse(`${DOCS_BASE_URL}/${rawUrl}`));
   }
 
   async refreshSaved(doc: vscode.TextDocument): Promise<void> {
