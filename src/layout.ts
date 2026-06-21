@@ -246,13 +246,23 @@ function routeCrossLane(
     const iy = toB.y + toB.height / 2;
 
     if (exitPort === 'bottom' || exitPort === 'top') {
-      // Gateway vertical exit: through inter-lane gap to target left-edge column,
-      // then down/up to target centre Y. No approach offset — eliminates the kink.
       if (!fromLaneBound) return diagonalFallbackRects(fromB, toB);
       const chanY = targetBelow
         ? fromLaneBound.y + fromLaneBound.height + laneVerticalGap / 2
         : fromLaneBound.y - laneVerticalGap / 2;
-      return dedupePoints([ep, { x: ep.x, y: chanY }, { x: ix, y: chanY }, { x: ix, y: iy }]);
+      const targetFaceX = toB.x + toB.width / 2;
+      const targetFaceY = targetBelow ? toB.y : toB.y + toB.height;
+
+      if (ep.x < ix) {
+        // Gateway exit is LEFT of the target left edge: travel horizontally at chanY
+        // (the inter-lane gap, where no elements sit) then drop to the target face.
+        // This avoids clipping through intermediate elements in the target lane.
+        return dedupePoints([ep, { x: ep.x, y: chanY }, { x: targetFaceX, y: chanY }, { x: targetFaceX, y: targetFaceY }]);
+      }
+
+      // Gateway is directly above / to the right of the target (same column):
+      // drop straight to the target face — no lateral movement at chanY, no kink.
+      return dedupePoints([ep, { x: ep.x, y: targetFaceY }, { x: targetFaceX, y: targetFaceY }]);
     }
 
     // Right exit: symmetric S-curve with bend at midpoint, enter target from left.
