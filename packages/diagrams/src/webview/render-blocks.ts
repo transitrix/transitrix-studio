@@ -14,7 +14,7 @@
  */
 import { layoutNestedBlocks } from '../blocks/layout.js';
 import type { BlocksFile, BlocksLayout, LaidOutBlock } from '../blocks/types.js';
-import { generateSvgEmbedCss } from '../theme/index.js';
+import { generateSvgEmbedCss, type ThemeId } from '../theme/index.js';
 import { escXml } from './render-util.js';
 
 const PAD = 24;
@@ -57,6 +57,50 @@ function emitBlockSvg(b: LaidOutBlock, ox: number, oy: number, parts: string[]):
   for (const c of b.children) emitBlockSvg(c, ox, oy, parts);
 }
 
+export interface RenderBlocksLayoutOptions {
+  /** Extra vertical space reserved at the top of the canvas (e.g. for a title block). */
+  topInset?: number;
+  /** Raw SVG injected immediately after the opening tag — a header line or a full title block. */
+  title?: string;
+  /** When set, the theme CSS is embedded as `<style>` so the SVG is self-contained. */
+  embedCssTheme?: ThemeId;
+}
+
+/**
+ * The single Nested Blocks SVG emitter shared by every host. Takes an
+ * already-computed {@link BlocksLayout} (callers decide the layout options) and
+ * produces the `<svg>`. Hosts wrap it with their own chrome:
+ *   - IntelliJ/UI via {@link renderBlocksSvg} (embedded CSS + simple header);
+ *   - VS Code's blocks preview (rich title block, no embedded CSS — the webview
+ *     and the export path own styling).
+ */
+export function renderBlocksLayoutSvg(
+  layout: BlocksLayout,
+  options: RenderBlocksLayoutOptions = {},
+): string {
+  const { topInset = 0, title = '', embedCssTheme } = options;
+
+  const w = layout.bounds.width + PAD * 2;
+  const h = layout.bounds.height + PAD * 2 + topInset;
+  const ox = -layout.bounds.x + PAD;
+  const oy = -layout.bounds.y + PAD + topInset;
+
+  const parts: string[] = [];
+  for (const top of layout.blocks) emitBlockSvg(top, ox, oy, parts);
+
+  const styleLine = embedCssTheme ? `\n<style>${generateSvgEmbedCss(embedCssTheme)}</style>` : '';
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${styleLine}
+${title}
+${parts.join('\n')}
+</svg>`;
+}
+
+/**
+ * Host-neutral blocks renderer (IntelliJ/UI). Lays the doc out with the default
+ * spacing, then delegates the actual SVG emission to {@link renderBlocksLayoutSvg}
+ * with the shared theme CSS embedded so the output is self-contained.
+ */
 export function renderBlocksSvg(doc: BlocksFile, options: RenderBlocksOptions = {}): string {
   const { title = '' } = options;
 
@@ -66,26 +110,9 @@ export function renderBlocksSvg(doc: BlocksFile, options: RenderBlocksOptions = 
     return `<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" viewBox="0 0 0 0"></svg>`;
   }
 
-  const w = layout.bounds.width + PAD * 2;
-  const h = layout.bounds.height + PAD * 2;
-  const ox = -layout.bounds.x + PAD;
-  const oy = -layout.bounds.y + PAD;
-
-  const parts: string[] = [];
-  for (const top of layout.blocks) emitBlockSvg(top, ox, oy, parts);
-
   const titleSvg = title
     ? `<text class="text-header" x="${PAD}" y="${PAD - 6}">${escXml(`Nested Blocks — ${title}`)}</text>`
     : '';
 
-  // Embed the shared theme CSS inside the SVG so the rendered output is
-  // self-contained — the JCEF host page only needs to drop the SVG into the
-  // DOM and styling resolves without any cooperation from the host stylesheet.
-  const embedCss = generateSvgEmbedCss('transitrix');
-
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
-<style>${embedCss}</style>
-${titleSvg}
-${parts.join('\n')}
-</svg>`;
+  return renderBlocksLayoutSvg(layout, { title: titleSvg, embedCssTheme: 'transitrix' });
 }
