@@ -13,7 +13,7 @@
 import { layoutGoalTree } from '../goals/layout.js';
 import type { GoalTree, GoalTreeLayout, LaidOutEdge } from '../goals/types.js';
 import { horizontalCubicEdgePath, DEFAULT_EDGE_CURVATURE } from '../edge-path.js';
-import { generateSvgEmbedCss } from '../theme/index.js';
+import { generateSvgEmbedCss, type ThemeId } from '../theme/index.js';
 import { escXml } from './render-util.js';
 
 const NODE_W = 250;
@@ -30,6 +30,11 @@ export interface RenderGoalsOptions {
   entryCurvature?: number;
 }
 
+/**
+ * Host-neutral goals renderer (IntelliJ/UI). Lays the tree out with the default
+ * spacing, then delegates the actual SVG emission to {@link renderGoalsLayoutSvg}
+ * with the shared theme CSS embedded so the output is self-contained.
+ */
 export function renderGoalsSvg(tree: GoalTree, options: RenderGoalsOptions = {}): string {
   const { treeName = '', curvature = DEFAULT_EDGE_CURVATURE, entryCurvature } = options;
 
@@ -44,10 +49,43 @@ export function renderGoalsSvg(tree: GoalTree, options: RenderGoalsOptions = {})
     return `<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" viewBox="0 0 0 0"></svg>`;
   }
 
+  const title = treeName
+    ? `<text class="text-header" x="${PAD}" y="${PAD - 6}">${escXml(`Goal tree — ${treeName}`)}</text>`
+    : '';
+
+  // Embed the shared theme CSS so the JCEF host page only needs to drop the SVG
+  // into the DOM — styling resolves without help from the host stylesheet. The
+  // VS Code preview omits this (its webview supplies the CSS) and embeds it only
+  // on export via `prepareSvgForExport`.
+  return renderGoalsLayoutSvg(layout, { curvature, entryCurvature, title, embedCssTheme: 'transitrix' });
+}
+
+export interface RenderGoalsLayoutOptions {
+  curvature?: number;
+  entryCurvature?: number;
+  /** Extra vertical space reserved at the top of the canvas (e.g. for a title block). */
+  topInset?: number;
+  /** Raw SVG injected immediately after `<defs>` — a header line or a full title block. */
+  title?: string;
+  /** When set, the theme CSS is embedded as `<style>` so the SVG is self-contained. */
+  embedCssTheme?: ThemeId;
+}
+
+/**
+ * The single goals SVG emitter shared by every host. Takes an already-computed
+ * {@link GoalTreeLayout} (callers decide spacing/scope) and produces the `<svg>`.
+ * Hosts wrap it with their own chrome:
+ *   - IntelliJ/UI via {@link renderGoalsSvg} (embedded CSS + simple header);
+ *   - VS Code's goals preview (rich title block, no embedded CSS — the webview
+ *     and the export path own styling).
+ */
+export function renderGoalsLayoutSvg(layout: GoalTreeLayout, options: RenderGoalsLayoutOptions = {}): string {
+  const { curvature = DEFAULT_EDGE_CURVATURE, entryCurvature, topInset = 0, title = '', embedCssTheme } = options;
+
   const w = layout.bounds.width + PAD * 2;
-  const h = layout.bounds.height + PAD * 2;
+  const h = layout.bounds.height + PAD * 2 + topInset;
   const ox = -layout.bounds.x + PAD;
-  const oy = -layout.bounds.y + PAD;
+  const oy = -layout.bounds.y + PAD + topInset;
 
   const nodeMap = new Map(layout.nodes.map((n) => [n.id, n]));
 
@@ -80,24 +118,15 @@ export function renderGoalsSvg(tree: GoalTree, options: RenderGoalsOptions = {})
     })
     .join('\n');
 
-  const titleSvg = treeName
-    ? `<text class="text-header" x="${PAD}" y="${PAD - 6}">${escXml(`Goal tree — ${treeName}`)}</text>`
-    : '';
+  const styleLine = embedCssTheme ? `\n<style>${generateSvgEmbedCss(embedCssTheme)}</style>` : '';
 
-  // Embed the shared theme CSS inside the SVG so the rendered output is
-  // self-contained — the JCEF host page only needs to drop the SVG into the
-  // DOM and styling resolves without any cooperation from the host stylesheet.
-  // Matches what the VS Code path produces via `prepareSvgForExport`.
-  const embedCss = generateSvgEmbedCss('transitrix');
-
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
-<style>${embedCss}</style>
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${styleLine}
 <defs>
   <marker id="arrow" markerWidth="8" markerHeight="8" refX="8" refY="3" orient="auto">
     <path d="M0,0 L0,6 L8,3 z" class="arrow-fill"/>
   </marker>
 </defs>
-${titleSvg}
+${title}
 ${nodeSvg}
 ${edgeSvg}
 </svg>`;

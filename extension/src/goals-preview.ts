@@ -1,5 +1,4 @@
 import * as path from 'node:path';
-import { escXml } from '../../packages/diagrams/src/webview/render-util.js';
 import * as vscode from 'vscode';
 import yaml from 'js-yaml';
 import { buildDiagramFrame, prepareSvgForExport, type ThemeId, OPEN_THEME_COMMAND } from './diagram-frame.js';
@@ -8,11 +7,11 @@ import { TITLE_BLOCK_H, titleBlockSvg, todayIso } from './svg-title-block.js';
 import {
   layoutGoalTree,
   type GoalTreeLayout,
-  type LaidOutEdge,
 } from '../../packages/diagrams/src/goals/index.js';
+import { renderGoalsLayoutSvg } from '../../packages/diagrams/src/webview/render-goals.js';
 import { parseCanonicalGoals } from '../../packages/diagrams/src/goals/parse-canonical.js';
 import { coerceDatesToIsoStrings } from '../../packages/diagrams/src/yaml-normalize.js';
-import { horizontalCubicEdgePath, DEFAULT_EDGE_CURVATURE } from '../../packages/diagrams/src/edge-path.js';
+import { DEFAULT_EDGE_CURVATURE } from '../../packages/diagrams/src/edge-path.js';
 import { checkScopeRoot } from '../../packages/diagrams/src/scope.js';
 import { readSpacing, readCurvature, readEntryCurvature, readScope, applyControlMessage, OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND, OPEN_SCOPE_SETTINGS_COMMAND } from './spacing-config.js';
 import { genNonce, buildControlsPanel, buildControlsScript, type ControlsModel, type ScopeGoalOption } from './preview-controls.js';
@@ -31,58 +30,21 @@ const RANK_SEP = 100;
 const NODE_SEP = 24;
 
 function layoutToSvg(layout: GoalTreeLayout, treeName: string, filename?: string, date?: string, version?: string, curvature: number = DEFAULT_EDGE_CURVATURE, entryCurvature?: number): string {
+  // The SVG body (nodes, edges, arrow marker, edge geometry) comes from the
+  // shared @transitrix/diagrams goals renderer — the single emitter for every
+  // host. This preview only reserves room for and stacks its rich title block
+  // on top. No theme CSS is embedded here: the webview supplies it live, and
+  // export embeds it via prepareSvgForExport.
   const pad = 24;
   const showTitle = filename != null && date != null;
-  const titleH = showTitle ? TITLE_BLOCK_H : 0;
-  const w = layout.bounds.width + pad * 2;
-  const h = layout.bounds.height + pad * 2 + titleH;
-  const ox = -layout.bounds.x + pad;
-  const oy = -layout.bounds.y + pad + titleH;
-
-  const nodeMap = new Map(layout.nodes.map(n => [n.id, n]));
-
-  // Cubic bezier with horizontal control handles (shared geometry in
-  // @transitrix/diagrams). `curvature` scales the handle length: 1 = default,
-  // 0 = straight, higher = stronger arc (vkgeorgia/strategy#76).
-  function edgePath(e: LaidOutEdge): string {
-    const s = nodeMap.get(e.source);
-    const t = nodeMap.get(e.target);
-    if (!s || !t) return '';
-    const sx = s.x + ox + s.width;
-    const sy = s.y + oy + s.height / 2;
-    const tx = t.x + ox;
-    const ty = t.y + oy + t.height / 2;
-    return horizontalCubicEdgePath(sx, sy, tx, ty, curvature, entryCurvature);
-  }
-
-  const edgeSvg = layout.edges.map(e =>
-    `<path d="${edgePath(e)}" class="diagram-edge" marker-end="url(#arrow)"/>`
-  ).join('\n');
-
-  const nodeSvg = layout.nodes.map(n => {
-    const x = n.x + ox;
-    const y = n.y + oy;
-    const level = n.data.level % 8;
-    const labelText = n.data.name ?? String(n.id);
-    const label = labelText.length > 36 ? labelText.slice(0, 34) + '…' : labelText;
-    return `<g>
-  <rect class="diagram-node level-${level}" x="${x}" y="${y}" width="${n.width}" height="${n.height}" rx="8"/>
-  <text class="text-primary" x="${x + n.width / 2}" y="${y + n.height / 2}" text-anchor="middle" dominant-baseline="central">${escXml(label)}</text>
-</g>`;
-  }).join('\n');
-
   const heading = treeName ? `Goal tree — ${treeName}` : 'Goal tree';
-  const titleSvg = showTitle ? titleBlockSvg(heading, filename!, date!, pad, pad, version) : '';
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
-<defs>
-  <marker id="arrow" markerWidth="8" markerHeight="8" refX="8" refY="3" orient="auto">
-    <path d="M0,0 L0,6 L8,3 z" class="arrow-fill"/>
-  </marker>
-</defs>
-${titleSvg}
-${nodeSvg}
-${edgeSvg}
-</svg>`;
+  const title = showTitle ? titleBlockSvg(heading, filename!, date!, pad, pad, version) : '';
+  return renderGoalsLayoutSvg(layout, {
+    curvature,
+    entryCurvature,
+    topInset: showTitle ? TITLE_BLOCK_H : 0,
+    title,
+  });
 }
 
 // ── GoalsPreview webview class ───────────────────────────────────────────────
