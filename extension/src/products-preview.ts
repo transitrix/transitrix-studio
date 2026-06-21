@@ -178,6 +178,10 @@ export class ProductsPreview {
         const raw = parsed as Record<string, unknown>;
         const catalogue = raw['products_catalogue'] as ProductsCatalogueHeader;
         bodyContent = buildProductsTable(catalogue);
+        if (!title) title = catalogue.name;
+        if (!subtitle && catalogue.description) subtitle = catalogue.description;
+        if (!version && catalogue.version) version = catalogue.version;
+        if (!date) date = catalogue.updated_at;
       }
     } catch (e) {
       errorMsg = (e as Error).message ?? 'Parse error';

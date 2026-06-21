@@ -211,6 +211,10 @@ export class ApplicationsPreview {
         const raw = parsed as Record<string, unknown>;
         const catalogue = raw['applications_catalogue'] as ApplicationsCatalogueHeader;
         bodyContent = buildApplicationsTable(catalogue);
+        if (!title) title = catalogue.name;
+        if (!subtitle && catalogue.description) subtitle = catalogue.description;
+        if (!version && catalogue.version) version = catalogue.version;
+        if (!date) date = catalogue.updated_at;
       }
     } catch (e) {
       errorMsg = (e as Error).message ?? 'Parse error';
