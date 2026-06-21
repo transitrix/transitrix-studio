@@ -17,7 +17,8 @@ import {
   type GanttResult,
 } from '../../packages/diagrams/src/activities/index.js';
 import { coerceDatesToIsoStrings } from '../../packages/diagrams/src/yaml-normalize.js';
-import { horizontalCubicEdgePath, DEFAULT_EDGE_CURVATURE } from '../../packages/diagrams/src/edge-path.js';
+import { DEFAULT_EDGE_CURVATURE } from '../../packages/diagrams/src/edge-path.js';
+import { renderActivitiesNetworkBody, ACTIVITIES_NETWORK_DEFS } from '../../packages/diagrams/src/webview/render-activities.js';
 import { savePngFromSvg, copyPngFromSvg } from './png-export.js';
 import { readSpacing, readCurvature, readEntryCurvature, applyControlMessage, OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND } from './spacing-config.js';
 import { genNonce, buildControlsPanel, buildControlsScript } from './preview-controls.js';
@@ -38,8 +39,6 @@ function truncate(s: string, maxLen: number): string {
 // Consumes layoutActivities + computeCpm from @transitrix/diagrams. Studio
 // supplies the SVG presentation layer only.
 
-const N_NODE_W = 200;
-const N_NODE_H = 80;
 const N_PAD = 24;
 
 function networkSvg(doc: ActivityDoc, gaps: ActivitiesLayoutOptions = {}, curvature: number = DEFAULT_EDGE_CURVATURE, entryCurvature?: number, heading?: string, filename?: string, date?: string, version?: string): string {
@@ -56,75 +55,13 @@ function networkSvg(doc: ActivityDoc, gaps: ActivitiesLayoutOptions = {}, curvat
   const ox = -layout.bounds.x + N_PAD;
   const oy = -layout.bounds.y + N_PAD + titleH;
 
-  const nodeMap = new Map(layout.nodes.map(n => [n.id, n]));
-  // SVG paints later siblings over earlier ones. Sort non-critical first so
-  // the bright orange critical-path edges land on top — a gray edge crossing
-  // an orange one shouldn't bury the critical signal.
-  const orderedEdges = [...layout.edges].sort(
-    (a, b) => Number(Boolean(a.isCritical)) - Number(Boolean(b.isCritical)),
-  );
-  // Edge path = a single cubic Bézier with horizontal control handles (shared
-  // geometry in @transitrix/diagrams). The control points share their
-  // endpoint's Y so the tangent is horizontal at both ends — the curve meets
-  // the vertical node edge at a right angle and the marker-end arrow reads as
-  // perpendicular. `curvature` scales the handle length: 1 = default, 0 =
-  // straight, higher = stronger arc (vkgeorgia/strategy#76).
-  const edgeSvg = orderedEdges.map(e => {
-    const s = nodeMap.get(e.sourceId);
-    const t = nodeMap.get(e.targetId);
-    if (!s || !t) return '';
-    const sx = s.x + ox + s.width;
-    const sy = s.y + oy + s.height / 2;
-    const tx = t.x + ox;
-    const ty = t.y + oy + t.height / 2;
-    const cls = e.isCritical ? 'diagram-edge critical-edge' : 'diagram-edge';
-    const marker = `url(#${e.isCritical ? 'arrow-crit' : 'arrow'})`;
-    return `<path d="${horizontalCubicEdgePath(sx, sy, tx, ty, curvature, entryCurvature)}" class="${cls}" marker-end="${marker}"/>`;
-  }).join('\n');
-
-  const nodeSvg = layout.nodes.map(n => {
-    const x = n.x + ox;
-    const y = n.y + oy;
-    const isCritical = cpm.get(n.id)?.isCritical ?? false;
-    const durVal = n.data.duration;
-    const isMilestone = (durVal ?? -1) === 0;
-    const cls = `diagram-node act-node ${isCritical ? 'critical-node' : ''} ${isMilestone ? 'milestone-node' : ''}`.trim();
-    const idLabel = escXml(n.id);
-    const words = n.data.name.split(' ');
-    let line1 = '';
-    let line2 = '';
-    for (const w of words) {
-      if ((line1 + ' ' + w).trim().length <= 24) line1 = (line1 + ' ' + w).trim();
-      else if ((line2 + ' ' + w).trim().length <= 24) line2 = (line2 + ' ' + w).trim();
-      else if (!line2) { line2 = w.slice(0, 22) + '…'; break; }
-    }
-    const twoLines = line2.length > 0;
-    const nameY1 = twoLines ? y + 18 : y + 28;
-    const nameY2 = y + 34;
-    const idY = twoLines ? y + 54 : y + 50;
-    const durLabel = (durVal !== undefined && durVal > 0) ? `${durVal}d` : '';
-    return [
-      `<rect class="${cls}" x="${x}" y="${y}" width="${N_NODE_W}" height="${N_NODE_H}" rx="8"/>`,
-      `<text class="text-primary" x="${x + N_NODE_W / 2}" y="${nameY1}" text-anchor="middle" dominant-baseline="central">${escXml(line1)}</text>`,
-      twoLines ? `<text class="text-primary" x="${x + N_NODE_W / 2}" y="${nameY2}" text-anchor="middle" dominant-baseline="central">${escXml(line2)}</text>` : '',
-      `<text class="text-id" x="${x + N_NODE_W / 2}" y="${idY}" text-anchor="middle" dominant-baseline="central">${idLabel}</text>`,
-      durLabel ? `<text class="text-secondary" x="${x + N_NODE_W - 8}" y="${y + N_NODE_H - 8}" text-anchor="end">${durLabel}</text>` : '',
-    ].filter(Boolean).join('\n');
-  }).join('\n');
+  const body = renderActivitiesNetworkBody(layout, cpm, ox, oy, curvature, entryCurvature);
 
   const titleSvg = showTitle ? titleBlockSvg(heading!, filename!, date!, N_PAD, N_PAD, version) : '';
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
-<defs>
-  <marker id="arrow" markerWidth="8" markerHeight="8" refX="8" refY="3" orient="auto">
-    <path d="M0,0 L0,6 L8,3 z" class="arrow-fill"/>
-  </marker>
-  <marker id="arrow-crit" markerWidth="8" markerHeight="8" refX="8" refY="3" orient="auto">
-    <path d="M0,0 L0,6 L8,3 z" class="arrow-fill-critical"/>
-  </marker>
-</defs>
+${ACTIVITIES_NETWORK_DEFS}
 ${titleSvg}
-${nodeSvg}
-${edgeSvg}
+${body}
 </svg>`;
 }
 
