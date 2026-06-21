@@ -1,8 +1,9 @@
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 import yaml from 'js-yaml';
-import { buildDiagramFrame, prepareSvgForExport, type ThemeId, OPEN_THEME_COMMAND } from './diagram-frame.js';
+import { buildDiagramFrame, type ThemeId, OPEN_THEME_COMMAND } from './diagram-frame.js';
 import { TITLE_BLOCK_H, titleBlockSvg, todayIso } from './svg-title-block.js';
+import { StaticSvgPreview } from './static-preview.js';
 import {
   validateActivityCard,
   resolveActivityCard,
@@ -18,7 +19,6 @@ import {
   isUnderCanon,
   loadCanon,
 } from './canon-loader.js';
-import { savePngFromSvg, copyPngFromSvg } from './png-export.js';
 
 // The Activity Card is the first MULTI-DOCUMENT Studio preview. The card YAML
 // names a project Activity; the project's name/dates, the motivation chain,
@@ -60,52 +60,20 @@ ${body}
 </svg>`;
 }
 
-export class ActivityCardPreview {
+export class ActivityCardPreview extends StaticSvgPreview {
   readonly panelTitle = 'Activity Card Preview';
-  private panel: vscode.WebviewPanel | undefined;
-  private trackedUri: string | undefined;
-  private lastSvg = '';
+  protected readonly viewType = 'activityCardPreview';
+  protected readonly enableCommandUris = [
+    'transitrixStudio.saveActivityCardAsSvg',
+    'transitrixStudio.saveActivityCardAsPng',
+    'transitrixStudio.copyActivityCardAsPng',
+    'transitrixStudio.changeTheme',
+  ];
+  protected readonly stripExt = /\.activity-card\.transitrix\.yaml$/;
+  protected readonly emptyMessage = 'No card rendered yet. Open a *.activity-card.transitrix.yaml file first.';
 
-  isShowingDocument(uri: vscode.Uri): boolean {
-    return this.panel != null && this.trackedUri === uri.toString();
-  }
-
-  async showOrReveal(doc: vscode.TextDocument): Promise<void> {
-    this.trackedUri = doc.uri.toString();
-    if (this.panel) {
-      this.panel.title = `${this.panelTitle} — ${path.basename(doc.fileName)}`;
-      this.panel.reveal(vscode.ViewColumn.Beside, true);
-    } else {
-      this.panel = vscode.window.createWebviewPanel(
-        'activityCardPreview',
-        `${this.panelTitle} — ${path.basename(doc.fileName)}`,
-        { viewColumn: vscode.ViewColumn.Beside, preserveFocus: false },
-        {
-          enableScripts: false,
-          retainContextWhenHidden: true,
-          enableCommandUris: [
-            'transitrixStudio.saveActivityCardAsSvg',
-            'transitrixStudio.saveActivityCardAsPng',
-            'transitrixStudio.copyActivityCardAsPng',
-            'transitrixStudio.changeTheme',
-          ],
-        },
-      );
-      this.panel.onDidDispose(() => { this.panel = undefined; this.trackedUri = undefined; });
-    }
-    await this.pushDocument(doc);
-  }
-
-  async refreshSaved(doc: vscode.TextDocument): Promise<void> {
-    if (!this.isShowingDocument(doc.uri)) return;
-    await this.pushDocument(doc);
-  }
-
-  async refreshConfig(): Promise<void> {
-    if (!this.panel || !this.trackedUri) return;
-    const doc = await vscode.workspace.openTextDocument(vscode.Uri.parse(this.trackedUri));
-    await this.pushDocument(doc);
-  }
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  protected renderHtml(_yamlText: string, _filename: string): string { return ''; }
 
   /**
    * Multi-document refresh: when a canon element/relation document under the
@@ -124,7 +92,7 @@ export class ActivityCardPreview {
     await this.pushDocument(cardDoc);
   }
 
-  private async pushDocument(doc: vscode.TextDocument): Promise<void> {
+  protected override async pushDocument(doc: vscode.TextDocument): Promise<void> {
     if (!this.panel) return;
     const sources = await loadCanon(doc.uri);
     this.panel.webview.html = this.buildHtml(doc.getText(), path.basename(doc.fileName), sources);
@@ -176,42 +144,6 @@ export class ActivityCardPreview {
     });
   }
 
-  private pngTarget() {
-    return {
-      rawSvg: this.lastSvg || undefined,
-      themeId: vscode.workspace.getConfiguration('transitrix').get<ThemeId>('theme', 'transitrix'),
-      emptyMessage: 'No card rendered yet. Open a *.activity-card.transitrix.yaml file first.',
-    };
-  }
-
-  saveAsPng(): Promise<void> {
-    const sourceUri = this.trackedUri ? vscode.Uri.parse(this.trackedUri) : undefined;
-    return savePngFromSvg({ ...this.pngTarget(), sourceUri, stripExt: /\.activity-card\.transitrix\.yaml$/ });
-  }
-
-  copyAsPng(): Promise<void> {
-    return copyPngFromSvg(this.pngTarget());
-  }
-
-  async saveAsSvg(): Promise<void> {
-    if (!this.lastSvg) {
-      vscode.window.showWarningMessage('No card rendered yet. Open a *.activity-card.transitrix.yaml file first.');
-      return;
-    }
-    const sourceUri = this.trackedUri ? vscode.Uri.parse(this.trackedUri) : undefined;
-    const stem = sourceUri
-      ? path.basename(sourceUri.fsPath).replace(/\.activity-card\.transitrix\.yaml$/, '')
-      : 'diagram';
-    const defaultUri = sourceUri
-      ? vscode.Uri.file(path.join(path.dirname(sourceUri.fsPath), `${stem}.svg`))
-      : vscode.Uri.file(`${stem}.svg`);
-    const target = await vscode.window.showSaveDialog({ defaultUri, filters: { 'SVG Image': ['svg'] } });
-    if (!target) return;
-    const themeId = vscode.workspace.getConfiguration('transitrix').get<ThemeId>('theme', 'transitrix');
-    const svg = prepareSvgForExport(this.lastSvg, themeId);
-    await vscode.workspace.fs.writeFile(target, Buffer.from(svg, 'utf-8'));
-    vscode.window.showInformationMessage(`Saved: ${path.basename(target.fsPath)}`);
-  }
 }
 
 /** Suffix guard used by the extension router. */

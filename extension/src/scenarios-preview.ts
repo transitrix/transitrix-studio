@@ -1,10 +1,10 @@
-import * as path from 'node:path';
 import { escHtml } from '../../packages/diagrams/src/webview/render-util.js';
 import * as vscode from 'vscode';
 import yaml from 'js-yaml';
 import { buildDiagramFrame, extractDiagramMeta, CATALOGUE_STYLES, type ThemeId, OPEN_THEME_COMMAND } from './diagram-frame.js';
 import { coerceDatesToIsoStrings } from '../../packages/diagrams/src/yaml-normalize.js';
 import { validateScenario } from '../../packages/diagrams/src/scenarios/validate.js';
+import { StaticPreview } from './static-preview.js';
 
 // ── Types (used by render helpers) ───────────────────────────────────────────
 
@@ -112,49 +112,12 @@ function buildScenarioBody(scn: ScenarioHeader): string {
 
 // ── ScenariosPreview webview class ────────────────────────────────────────────
 
-export class ScenariosPreview {
+export class ScenariosPreview extends StaticPreview {
   readonly panelTitle = 'Scenario Preview';
-  private panel: vscode.WebviewPanel | undefined;
-  private trackedUri: string | undefined;
+  protected readonly viewType = 'scenariosPreview';
+  protected readonly enableCommandUris = ['transitrixStudio.changeTheme'];
 
-  isShowingDocument(uri: vscode.Uri): boolean {
-    return this.panel != null && this.trackedUri === uri.toString();
-  }
-
-  async showOrReveal(doc: vscode.TextDocument): Promise<void> {
-    this.trackedUri = doc.uri.toString();
-    if (this.panel) {
-      this.panel.title = `${this.panelTitle} — ${path.basename(doc.fileName)}`;
-      this.panel.reveal(vscode.ViewColumn.Beside, true);
-    } else {
-      this.panel = vscode.window.createWebviewPanel(
-        'scenariosPreview',
-        `${this.panelTitle} — ${path.basename(doc.fileName)}`,
-        { viewColumn: vscode.ViewColumn.Beside, preserveFocus: false },
-        { enableScripts: false, retainContextWhenHidden: true, enableCommandUris: ['transitrixStudio.changeTheme'] },
-      );
-      this.panel.onDidDispose(() => { this.panel = undefined; this.trackedUri = undefined; });
-    }
-    await this.pushDocument(doc);
-  }
-
-  async refreshSaved(doc: vscode.TextDocument): Promise<void> {
-    if (!this.isShowingDocument(doc.uri)) return;
-    await this.pushDocument(doc);
-  }
-
-  async refreshConfig(): Promise<void> {
-    if (!this.panel || !this.trackedUri) return;
-    const doc = await vscode.workspace.openTextDocument(vscode.Uri.parse(this.trackedUri));
-    await this.pushDocument(doc);
-  }
-
-  private async pushDocument(doc: vscode.TextDocument): Promise<void> {
-    if (!this.panel) return;
-    this.panel.webview.html = this.buildHtml(doc.getText(), path.basename(doc.fileName));
-  }
-
-  private buildHtml(yamlText: string, filename: string): string {
+  protected renderHtml(yamlText: string, filename: string): string {
     let bodyContent = '';
     let errorMsg = '';
     let title: string | undefined;
