@@ -72,7 +72,7 @@ function scopeInputsFromDoc(doc: FGCADoc): { goals: ScopeGoalOption[]; maxLevelP
   };
 }
 
-// ── Chain table (vkgeorgia/strategy#137) ───────────────────────────────────────────────────────
+// ── Chain table (#137) ───────────────────────────────────────────────────────
 //
 // The flattening + rowspan derivation lives in @transitrix/diagrams
 // (`buildChainTable`). Here we render that model as an HTML <table>. Scope
