@@ -1,32 +1,32 @@
 export interface FactorItem {
-  id: number;
+  id: number | string;
   name: string;
 }
 
 export interface GoalItem {
-  id: number;
+  id: number | string;
   name: string;
   level?: number;
   /** Goals may carry embedded factor links returned by the API. */
-  factor?: Array<{ id: number }>;
+  factor?: Array<{ id: number | string }>;
 }
 
 export interface BdnChangeWithActivities {
-  id: number;
+  id: number | string;
   name: string;
-  goal_id: number;
-  activity_ids: number[];
+  goal_id: number | string;
+  activity_ids: Array<number | string>;
 }
 
 export interface ActivityItem {
-  id: number;
+  id: number | string;
   name: string;
-  goal_id?: number | null;
+  goal_id?: number | string | null;
   activity_type_id?: number;
 }
 
 export interface ActivityTypeItem {
-  id: number;
+  id: number | string;
   name?: string;
 }
 
