@@ -9,14 +9,12 @@ import { parseCanonicalFGCA, parseCanonicalFGA } from '../../packages/diagrams/s
 import { resolveFGCA, isFGCAViewDoc } from '../../packages/diagrams/src/fgca/resolver.js';
 import {
   layoutFGCAPreview,
-  FGCA_NODE_W as NODE_W,
-  FGCA_NODE_H as NODE_H,
-  FGCA_HEADER_H as HEADER_H,
   FGCA_PAD as PAD,
   FGCA_DEFAULT_COL_GAP,
   FGCA_DEFAULT_ROW_GAP,
 } from '../../packages/diagrams/src/fgca/preview-layout.js';
-import { horizontalCubicEdgePath, DEFAULT_EDGE_CURVATURE } from '../../packages/diagrams/src/edge-path.js';
+import { DEFAULT_EDGE_CURVATURE } from '../../packages/diagrams/src/edge-path.js';
+import { renderFgcaBody } from '../../packages/diagrams/src/webview/render-fgca.js';
 import { buildChainTable, type ChainTable, type ChainColumn } from '../../packages/diagrams/src/fgca/chain-table.js';
 import { coerceDatesToIsoStrings } from '../../packages/diagrams/src/yaml-normalize.js';
 import { checkScopeRoot, type Scope } from '../../packages/diagrams/src/scope.js';
@@ -54,13 +52,6 @@ interface FGCADoc {
 // (`layoutFGCAPreview`) so the configurable-gap behaviour (vkgeorgia/strategy#75)
 // is unit-tested. This file owns only the SVG presentation of that layout and
 // the column header labels.
-
-const COL_LABELS: Record<string, string> = {
-  factor: 'Factors (F)',
-  goal: 'Goals (G)',
-  change: 'Changes (C)',
-  activity: 'Activities (A)',
-};
 
 // ── SVG renderer ──────────────────────────────────────────────────────────────
 /** Goal options + deepest level for the scope control, from a parsed doc. FGCA
@@ -243,46 +234,7 @@ function buildSvg(
   const showTitle = heading != null && filename != null && date != null;
   const titleH = showTitle ? TITLE_BLOCK_H : 0;
 
-  const headerSvg = columns.map(({ col, x }) => {
-    return [
-      `<rect class="diagram-node layer-${col}" x="${x}" y="${PAD}" width="${NODE_W}" height="${HEADER_H}" rx="6"/>`,
-      `<text class="text-header" x="${x + NODE_W / 2}" y="${PAD + HEADER_H / 2}" text-anchor="middle" dominant-baseline="central">${escXml(COL_LABELS[col])}</text>`,
-    ].join('\n');
-  }).join('\n');
-
-  // Cubic bezier with horizontal control handles (shared geometry in
-  // @transitrix/diagrams). `curvature` scales the handle length: 1 = default,
-  // 0 = straight, higher = stronger arc (vkgeorgia/strategy#76).
-  const edgeSvg = edges.map(e =>
-    `<path d="${horizontalCubicEdgePath(e.sx, e.sy, e.tx, e.ty, curvature, entryCurvature)}" class="diagram-edge" marker-end="url(#arrow)"/>`
-  ).join('\n');
-
-  const nodeSvg = nodes.map(n => {
-    const words = n.label.split(' ');
-    let line1 = '';
-    let line2 = '';
-    for (const w of words) {
-      if ((line1 + ' ' + w).trim().length <= 26) {
-        line1 = (line1 + ' ' + w).trim();
-      } else if ((line2 + ' ' + w).trim().length <= 26) {
-        line2 = (line2 + ' ' + w).trim();
-      } else if (!line2) {
-        line2 = w.slice(0, 24) + '…';
-        break;
-      }
-    }
-    const twoLines = line2.length > 0;
-    const y1 = twoLines ? n.y + 16 : n.y + 26;
-    const y2 = n.y + 32;
-    const idY = twoLines ? n.y + 54 : n.y + 50;
-    const entityId = n.id.slice(n.id.indexOf('_') + 1);
-    return [
-      `<rect class="diagram-node layer-${n.col}" x="${n.x}" y="${n.y}" width="${NODE_W}" height="${NODE_H}" rx="8"/>`,
-      `<text class="text-primary" x="${n.x + NODE_W / 2}" y="${y1}" text-anchor="middle" dominant-baseline="central">${escXml(line1)}</text>`,
-      twoLines ? `<text class="text-secondary" x="${n.x + NODE_W / 2}" y="${y2}" text-anchor="middle" dominant-baseline="central">${escXml(line2)}</text>` : '',
-      `<text class="text-id" x="${n.x + NODE_W / 2}" y="${idY}" text-anchor="middle" dominant-baseline="central">${escXml(entityId)}</text>`,
-    ].filter(Boolean).join('\n');
-  }).join('\n');
+  const body = renderFgcaBody(columns, nodes, edges, curvature, entryCurvature);
 
   const totalH = height + titleH;
   const titleSvg = showTitle ? titleBlockSvg(heading!, filename!, date!, PAD, PAD, version) : '';
@@ -296,9 +248,7 @@ function buildSvg(
 </defs>
 ${titleSvg}
 <g transform="translate(0, ${titleH})">
-${headerSvg}
-${nodeSvg}
-${edgeSvg}
+${body}
 </g>
 </svg>`;
 }
