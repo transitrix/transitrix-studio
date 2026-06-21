@@ -11,7 +11,7 @@ import {
   type ActivityCardLayout,
 } from '../../packages/diagrams/src/activity-card/index.js';
 import { coerceDatesToIsoStrings } from '../../packages/diagrams/src/yaml-normalize.js';
-import { escXml } from '../../packages/diagrams/src/webview/render-util.js';
+import { renderActivityCardBody } from '../../packages/diagrams/src/webview/render-activity-card.js';
 import {
   type CanonDocs,
   findCanonRoot,
@@ -30,13 +30,18 @@ import { savePngFromSvg, copyPngFromSvg } from './png-export.js';
 
 const CARD_SUFFIX = '.activity-card.transitrix.yaml';
 
-function truncate(text: string, maxChars: number): string {
-  if (text.length <= maxChars) return text;
-  return text.slice(0, Math.max(0, maxChars - 1)) + '…';
-}
-
+// Single-line `<defs>` marker kept host-specific: the VS Code SVG places it
+// after the title block, while the host-neutral renderer emits a multi-line
+// `<defs>` before the title. The shared body emitter owns everything else.
 const ARROW_DEF = `<defs><marker id="ac-arrow" markerWidth="8" markerHeight="8" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" class="arrow-fill"/></marker></defs>`;
 
+/**
+ * VS Code wrapper around the shared {@link renderActivityCardBody} emitter. Adds
+ * the rich title block (reserving `TITLE_BLOCK_H` for it) and the arrow marker,
+ * delegating the card body to the single source of truth in
+ * `@transitrix/diagrams`. No embedded CSS: the webview supplies it live and the
+ * export path embeds it via `prepareSvgForExport`.
+ */
 function layoutToSvg(layout: ActivityCardLayout, filename?: string, date?: string, version?: string): string {
   const pad = 24;
   const showTitle = filename != null && date != null;
@@ -46,112 +51,12 @@ function layoutToSvg(layout: ActivityCardLayout, filename?: string, date?: strin
   const ox = pad;
   const oy = pad + titleH;
 
-  const parts: string[] = [ARROW_DEF];
-
-  // Outer card.
-  parts.push(
-    `<rect class="diagram-node level-0" x="${ox}" y="${oy}" width="${layout.bounds.width}" height="${layout.bounds.height}" rx="8"/>`,
-  );
-
-  // Title row.
-  parts.push(
-    `<text class="text-header" x="${layout.titleRow.x + ox}" y="${layout.titleRow.y + oy}" style="dominant-baseline:central" font-size="18">${escXml(truncate(layout.titleRow.name, 60))}</text>`,
-  );
-
-  // Activity type badge.
-  if (layout.activityTypeBadge) {
-    const b = layout.activityTypeBadge;
-    parts.push(`<rect class="diagram-node level-2" x="${b.x + ox}" y="${b.y + oy}" width="${b.width}" height="${b.height}" rx="4"/>`);
-    parts.push(`<text class="text-secondary" style="dominant-baseline:central;text-anchor:middle" x="${b.x + ox + b.width / 2}" y="${b.y + oy + b.height / 2}">${escXml(b.label)}</text>`);
-  }
-
-  // Status badge.
-  if (layout.statusBadge) {
-    const b = layout.statusBadge;
-    parts.push(`<rect class="diagram-node level-3" x="${b.x + ox}" y="${b.y + oy}" width="${b.width}" height="${b.height}" rx="4"/>`);
-    parts.push(`<text class="text-secondary" style="dominant-baseline:central;text-anchor:middle" x="${b.x + ox + b.width / 2}" y="${b.y + oy + b.height / 2}">${escXml(b.label)}</text>`);
-  }
-
-  // Dates band.
-  for (const d of layout.dateFields) {
-    parts.push(`<rect class="diagram-node level-2" x="${d.x + ox}" y="${d.y + oy}" width="${d.width}" height="${d.height}" rx="6"/>`);
-    parts.push(`<text class="text-secondary" x="${d.x + ox + 12}" y="${d.y + oy + 18}" style="dominant-baseline:central">${escXml(d.label)}</text>`);
-    parts.push(`<text class="text-primary" x="${d.x + ox + 12}" y="${d.y + oy + 40}" style="dominant-baseline:central">${escXml(d.value)}</text>`);
-  }
-
-  // Stakeholder role slots (2-column grid).
-  for (const s of layout.stakeholderRoleSlots) {
-    parts.push(`<rect class="diagram-node level-2" x="${s.x + ox}" y="${s.y + oy}" width="${s.width}" height="${s.height}" rx="6"/>`);
-    parts.push(`<text class="text-secondary" x="${s.x + ox + 10}" y="${s.y + oy + 16}" style="dominant-baseline:central">${escXml(s.role)}</text>`);
-    parts.push(`<text class="text-primary" x="${s.x + ox + 10}" y="${s.y + oy + 36}" style="dominant-baseline:central">${escXml(truncate(s.name, 40))}</text>`);
-  }
-
-  // Description row.
-  if (layout.descriptionRow) {
-    const r = layout.descriptionRow;
-    parts.push(`<rect class="diagram-node level-2" x="${r.x + ox}" y="${r.y + oy}" width="${r.width}" height="${r.height}" rx="6"/>`);
-    parts.push(`<text class="text-secondary" x="${r.x + ox + 12}" y="${r.y + oy + 22}" style="dominant-baseline:central">${escXml(r.label)}</text>`);
-    r.valueLines.forEach((line, i) => {
-      parts.push(`<text class="text-primary" x="${r.x + ox + 12}" y="${r.y + oy + 44 + i * 18}" style="dominant-baseline:central">${escXml(line)}</text>`);
-    });
-  }
-
-  // Chain sections (Drivers → Assessments → Goals → Changes).
-  const SECTION_LEVEL: Record<string, number> = { drivers: 4, assessments: 5, goals: 5, changes: 6 };
-  for (let si = 0; si < layout.chainSections.length; si++) {
-    const section = layout.chainSections[si];
-    const level = SECTION_LEVEL[section.type] ?? 5;
-    parts.push(`<rect class="diagram-node level-1" x="${section.x + ox}" y="${section.y + oy}" width="${section.width}" height="${section.height}" rx="6"/>`);
-    parts.push(`<text class="text-header" x="${section.x + ox + 12}" y="${section.y + oy + 14}" style="dominant-baseline:central">${escXml(section.label)}<tspan class="text-secondary" font-size="11"> (${escXml(section.subtitle)})</tspan></text>`);
-    if (section.isEmpty) {
-      parts.push(`<text class="text-secondary" x="${section.x + ox + 12}" y="${section.y + oy + 24 + 8 + 16}" style="dominant-baseline:central">— not on file</text>`);
-    } else {
-      for (const n of section.nodes) {
-        parts.push(`<rect class="diagram-node level-${level}" x="${n.x + ox}" y="${n.y + oy}" width="${n.width}" height="${n.height}" rx="4"/>`);
-        parts.push(`<text class="text-primary" x="${n.x + ox + 10}" y="${n.y + oy + (n.meta ? 16 : n.height / 2)}" style="dominant-baseline:central">${escXml(truncate(n.name, 80))}</text>`);
-        if (n.meta) {
-          parts.push(`<text class="text-secondary" x="${n.x + ox + 10}" y="${n.y + oy + 30}" style="dominant-baseline:central">${escXml(n.meta)}</text>`);
-        }
-      }
-    }
-    if (si < layout.chainSections.length - 1) {
-      const nextSection = layout.chainSections[si + 1];
-      const arrowX = section.x + ox + section.width / 2;
-      parts.push(`<path class="diagram-edge" d="M${arrowX},${section.y + oy + section.height} L${arrowX},${nextSection.y + oy}" fill="none" marker-end="url(#ac-arrow)"/>`);
-    }
-  }
-
-  // Milestones.
-  for (const m of layout.milestones) {
-    parts.push(`<rect class="diagram-node level-3" x="${m.x + ox}" y="${m.y + oy}" width="${m.width}" height="${m.height}" rx="6"/>`);
-    parts.push(`<text class="text-secondary" x="${m.x + ox + 10}" y="${m.y + oy + 16}" style="dominant-baseline:central">${escXml(m.date)}</text>`);
-    parts.push(`<text class="text-primary" x="${m.x + ox + 10}" y="${m.y + oy + 36}" style="dominant-baseline:central">${escXml(truncate(m.name, 22))}</text>`);
-    parts.push(`<text class="text-secondary" x="${m.x + ox + 10}" y="${m.y + oy + 52}" style="dominant-baseline:central">(${escXml(m.archimateClass)})</text>`);
-  }
-
-  // Child activities.
-  for (const a of layout.childActivities) {
-    parts.push(`<rect class="diagram-node level-1" x="${a.x + ox}" y="${a.y + oy}" width="${a.width}" height="${a.height}" rx="6"/>`);
-    parts.push(`<text class="text-primary" x="${a.x + ox + 12}" y="${a.y + oy + a.height / 2}" style="dominant-baseline:central">${escXml(truncate(a.name, 48))} <tspan class="text-secondary">(${escXml(a.archimateClass)})</tspan></text>`);
-    if (a.meta) {
-      parts.push(`<text class="text-secondary" x="${a.x + a.width + ox - 12}" y="${a.y + oy + a.height / 2}" style="dominant-baseline:central;text-anchor:end">${escXml(truncate(a.meta, 40))}</text>`);
-    }
-  }
-
-  // Footer — notes.
-  if (layout.footerRow) {
-    const r = layout.footerRow;
-    parts.push(`<rect class="diagram-node level-2" x="${r.x + ox}" y="${r.y + oy}" width="${r.width}" height="${r.height}" rx="6"/>`);
-    parts.push(`<text class="text-secondary" x="${r.x + ox + 12}" y="${r.y + oy + 22}" style="dominant-baseline:central">${escXml(r.label)}</text>`);
-    r.valueLines.forEach((line, i) => {
-      parts.push(`<text class="text-primary" x="${r.x + ox + 12}" y="${r.y + oy + 44 + i * 18}" style="dominant-baseline:central">${escXml(line)}</text>`);
-    });
-  }
-
+  const body = renderActivityCardBody(layout, ox, oy);
   const titleSvg = showTitle ? titleBlockSvg('Activity Card', filename!, date!, pad, pad, version) : '';
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
 ${titleSvg}
-${parts.join('\n')}
+${ARROW_DEF}
+${body}
 </svg>`;
 }
 
