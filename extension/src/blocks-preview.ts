@@ -10,70 +10,31 @@ import {
   iterateBlocks,
   type BlocksFile,
   type BlocksLayout,
-  type LaidOutBlock,
 } from '../../packages/diagrams/src/blocks/index.js';
 import { coerceDatesToIsoStrings } from '../../packages/diagrams/src/yaml-normalize.js';
-import { escXml } from '../../packages/diagrams/src/webview/render-util.js';
+import { renderBlocksLayoutSvg } from '../../packages/diagrams/src/webview/render-blocks.js';
 
-function truncate(text: string, maxChars: number): string {
-  if (text.length <= maxChars) return text;
-  return text.slice(0, Math.max(0, maxChars - 1)) + '…';
-}
+// Pad reserved around the diagram; mirrors `PAD` in the shared emitter
+// (`render-blocks.ts`) so the VS Code title block lines up with the body.
+const PAD = 24;
 
 /**
- * Pick the diagram-frame level class for a block at the given depth.
- *
- * `level-0` is the lightest fill in the brand colour ramp; deeper levels are
- * progressively darker. The methodology spec mandates "outermost lightest"
- * (08-blocks.md §7), so depth 1 (top-level) maps to `level-0`.
- *
- * The frame defines `level-0` … `level-6`; deeper blocks reuse `level-6` so
- * extreme nesting still renders without crashing (BL-008 already warns at
- * depth 6+).
+ * VS Code wrapper around the shared {@link renderBlocksLayoutSvg} emitter. Adds
+ * the rich title block (reserving `topInset` for it) and leaves the body — node
+ * rects, headers, level classes — to the single source of truth in
+ * `@transitrix/diagrams`. No embedded CSS: the webview supplies it live and the
+ * export path embeds it via `prepareSvgForExport`.
  */
-function levelClassForDepth(depth: number): string {
-  const idx = Math.min(Math.max(depth - 1, 0), 6);
-  return `level-${idx}`;
-}
-
-function emitBlockSvg(b: LaidOutBlock, ox: number, oy: number, parts: string[]): void {
-  const cls = levelClassForDepth(b.depth);
-  parts.push(
-    `<rect class="diagram-node ${cls}" x="${b.x + ox}" y="${b.y + oy}" width="${b.width}" height="${b.height}" rx="6"/>`,
-  );
-
-  // Header label, centred horizontally within the block's header strip.
-  const headerY = b.y + oy + b.headerHeight / 2;
-  const maxChars = Math.max(4, Math.floor(b.width / 8));
-  parts.push(
-    `<text class="text-header" x="${b.x + ox + b.width / 2}" y="${headerY}" text-anchor="middle" dominant-baseline="central">${escXml(truncate(b.name, maxChars))}</text>`,
-  );
-
-  for (const c of b.children) emitBlockSvg(c, ox, oy, parts);
-}
-
 function layoutToSvg(
   layout: BlocksLayout,
   filename?: string,
   date?: string,
   version?: string,
 ): string {
-  const pad = 24;
   const showTitle = filename != null && date != null;
   const titleH = showTitle ? TITLE_BLOCK_H : 0;
-  const w = layout.bounds.width + pad * 2;
-  const h = layout.bounds.height + pad * 2 + titleH;
-  const ox = pad;
-  const oy = pad + titleH;
-
-  const parts: string[] = [];
-  for (const top of layout.blocks) emitBlockSvg(top, ox, oy, parts);
-
-  const titleSvg = showTitle ? titleBlockSvg('Nested Blocks', filename!, date!, pad, pad, version) : '';
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
-${titleSvg}
-${parts.join('\n')}
-</svg>`;
+  const titleSvg = showTitle ? titleBlockSvg('Nested Blocks', filename!, date!, PAD, PAD, version) : '';
+  return renderBlocksLayoutSvg(layout, { topInset: titleH, title: titleSvg });
 }
 
 export class BlocksPreview {
