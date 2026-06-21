@@ -121,8 +121,15 @@ export function assertNoCriticalRuleDowngrade(
 }
 
 /**
- * Merge config with rule registry to produce a set of enabled rule IDs.
- * Rules marked 'off' are excluded; off-by-default rules must be explicitly enabled.
+ * Merge config with rule registry to produce a set of *enabled* rule IDs.
+ *
+ * An override only toggles whether a rule runs — it never changes a rule's
+ * built-in severity:
+ *   - `"off"`  → exclude the rule (forbidden for error-severity rules; see
+ *                {@link assertNoCriticalRuleDowngrade}).
+ *   - `"warn"` → include the rule. This enables an off-by-default rule; for an
+ *                already-enabled rule it is a no-op. It does NOT demote an
+ *                error-severity rule to a warning.
  */
 export function mergeConfigWithDefaults(
   registeredRules: Map<string, ValidationRule>,
@@ -141,6 +148,7 @@ export function mergeConfigWithDefaults(
       if (override === 'off') {
         enabledRules.delete(ruleId)
       } else if (override === 'warn') {
+        // Enables the rule; severity is owned by the rule definition, not here.
         enabledRules.add(ruleId)
       }
     }

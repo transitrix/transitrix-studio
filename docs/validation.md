@@ -582,7 +582,7 @@ Semantic validation for process connectivity constraints per **method/methodolog
 
 ## Anti-Pattern Rules (RD-107 onwards)
 
-Anti-pattern rules detect suspicious modeling practices that may indicate errors, deadlock risks, or livelock scenarios. Unlike error rules, anti-patterns are warnings or info and can be configured (enabled/disabled) via `.cervinrc`.
+Anti-pattern rules detect suspicious modeling practices that may indicate errors, deadlock risks, or livelock scenarios. Unlike error rules, anti-patterns are warnings or info and can be enabled/disabled via `.transitrixrc` (see [Configuring rules](#configuring-rules-via-transitrixrc)).
 
 ### AP-FLOAT: Element has no incoming or outgoing flows (RD-107)
 - **Severity**: warning
@@ -644,7 +644,7 @@ Anti-pattern rules detect suspicious modeling practices that may indicate errors
 - **Description**: A gateway element (XOR, AND, OR, event-based) whose name starts with an imperative verb typical of task names (e.g., "Validate", "Approve", "Check", "Generate"). This is a heuristic hint that the element might be a task incorrectly modeled as a gateway. Gateways are routing constructs; tasks perform work.
 - **Note**: This is a heuristic hint, not a hard rule. Some gateways may legitimately have action-like names, especially in high-level process descriptions.
 - **Imperative verb list**: accept, approve, assign, authorize, calculate, cancel, check, classify, confirm, convert, create, decline, delete, derive, determine, distribute, document, evaluate, execute, extract, generate, identify, implement, invoice, judge, log, manage, notify, organize, pay, perform, prepare, process, produce, propose, publish, read, receive, reconcile, record, reduce, register, reject, release, remove, report, request, resolve, review, revise, schedule, send, sign, store, submit, summarize, test, track, transfer, transform, validate, verify, write.
-- **Default**: off by default (disabled). Enable via `.cervinrc`: `rules: { 'AP-GW-AS-TASK': 'on' }` or `rules: { 'AP-GW-AS-TASK': 'warn' }`.
+- **Default**: off by default (disabled). Enable via `.transitrixrc`: `"rules": { "AP-GW-AS-TASK": "warn" }`.
 - **Remediation**: Review the gateway's purpose. If it performs work, replace it with a task element. If it is genuinely a routing construct, rename it to a descriptive noun (e.g., "Approval Decision" instead of "Approve Order").
 - **Example Finding**:
   ```json
@@ -657,25 +657,38 @@ Anti-pattern rules detect suspicious modeling practices that may indicate errors
   }
   ```
 
-### Configuring Anti-Pattern Rules via `.transitrixrc`
+### Configuring rules via `.transitrixrc`
 
 > The canonical config file is **`.transitrixrc`**. The legacy **`.cervinrc`** is still
 > read as a fallback when `.transitrixrc` is absent (deprecated; removed in 2.0.0).
 
-Anti-pattern severity and enabled state can be overridden in `.transitrixrc`:
+`.transitrixrc` is a **JSON** file. The `rules` map enables or disables individual
+rules by ID:
 
-```yaml
-rules:
-  AP-FLOAT: 'off'           # Disable floating element check entirely
-  AP-NO-DEFAULT: 'warn'     # Keep as warning (default)
-  AP-IMPLICIT-JOIN: 'error' # Treat implicit join as blocking error
-  AP-GW-AS-TASK: 'on'       # Enable the gateway-as-task heuristic
+```json
+{
+  "rules": {
+    "AP-FLOAT": "off",
+    "AP-GW-AS-TASK": "warn"
+  }
+}
 ```
 
-Valid values: `'off'`, `'warn'`, `'error'`, `'on'` (synonymous with `'warn'`).
+The only valid override values are **`"off"`** and **`"warn"`**:
 
-Default severities (if not in `.cervinrc`):
-- `AP-FLOAT`: warning
-- `AP-NO-DEFAULT`: warning
-- `AP-IMPLICIT-JOIN`: warning
-- `AP-GW-AS-TASK`: warning (but **disabled by default**; must be explicitly enabled)
+- **`"off"`** — disable the rule. Error-severity rules are BPMN conformance gates
+  and **cannot** be disabled: `"off"` on such a rule is rejected at load time.
+- **`"warn"`** — enable the rule. Use it to turn on an off-by-default rule (such as
+  `AP-GW-AS-TASK`); for an already-enabled rule it is a no-op.
+
+> **`"warn"` does not change a rule's severity.** Every rule keeps its built-in
+> severity (error or warning); an override only toggles whether the rule runs.
+> Writing `"SE-001": "warn"` does **not** demote that error to a warning — to lower
+> a rule's reported severity, change the rule definition, not the config. (Values
+> such as `"error"` or `"on"` are **not** accepted and fail schema validation.)
+
+Default state:
+- `AP-FLOAT`: warning, enabled by default
+- `AP-NO-DEFAULT`: warning, enabled by default
+- `AP-IMPLICIT-JOIN`: warning, enabled by default
+- `AP-GW-AS-TASK`: warning, **disabled by default** — enable with `"warn"`
