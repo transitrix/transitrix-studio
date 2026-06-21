@@ -1,4 +1,5 @@
 import * as path from 'node:path';
+import { escXml } from '../../packages/diagrams/src/webview/render-util.js';
 import * as vscode from 'vscode';
 import yaml from 'js-yaml';
 import { buildDiagramFrame, prepareSvgForExport, type ThemeId, OPEN_THEME_COMMAND } from './diagram-frame.js';
@@ -27,10 +28,6 @@ const ACTIVITIES_DEFAULT_H_GAP = 80;
 const ACTIVITIES_DEFAULT_V_GAP = 24;
 
 // ── Shared helpers ───────────────────────────────────────────────────────────
-
-function escXml(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
 
 function truncate(s: string, maxLen: number): string {
   return s.length > maxLen ? s.slice(0, maxLen - 1) + '…' : s;

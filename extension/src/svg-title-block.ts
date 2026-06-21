@@ -14,11 +14,9 @@
 // interactive preview, and the right behaviour for exported SVG files
 // (the title travels with the diagram outside VS Code).
 
-export const TITLE_BLOCK_H = 60;
+import { escXml } from '../../packages/diagrams/src/webview/render-util.js';
 
-function escXml(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
+export const TITLE_BLOCK_H = 60;
 
 /**
  * Build the title <g> for embedding at (x, top) inside an SVG.

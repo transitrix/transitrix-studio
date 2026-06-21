@@ -13,10 +13,7 @@ import {
   type LaidOutBlock,
 } from '../../packages/diagrams/src/blocks/index.js';
 import { coerceDatesToIsoStrings } from '../../packages/diagrams/src/yaml-normalize.js';
-
-function escXml(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
+import { escXml } from '../../packages/diagrams/src/webview/render-util.js';
 
 function truncate(text: string, maxChars: number): string {
   if (text.length <= maxChars) return text;

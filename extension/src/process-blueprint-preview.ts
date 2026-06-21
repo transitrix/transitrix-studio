@@ -18,10 +18,7 @@ import { coerceDatesToIsoStrings } from '../../packages/diagrams/src/yaml-normal
 import { savePngFromSvg, copyPngFromSvg } from './png-export.js';
 import { scanComplianceCanon, type ScannedCanon } from './compliance-scan.js';
 import { genNonce } from './preview-controls.js';
-
-function escXml(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
+import { escXml } from '../../packages/diagrams/src/webview/render-util.js';
 
 function truncate(text: string, maxChars: number): string {
   if (text.length <= maxChars) return text;
