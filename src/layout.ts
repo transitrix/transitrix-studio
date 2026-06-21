@@ -209,9 +209,9 @@ function routeSameLane(
  *  Preferred port: exit right-center of source, enter left-center of target.
  *
  *  For gateway flows with 'top'/'bottom' exit port: exit vertically through
- *  inter-lane gap (chanY), then approach vertically to target, then enter left
- *  (5-point elbow). This avoids passing through intermediate elements that may
- *  sit on the target lane's swimlane axis.
+ *  inter-lane gap (chanY), move horizontally to 20 px left of target, drop to
+ *  target centre Y, then enter from the left face (5-point elbow). This avoids
+ *  passing through intermediate elements that may sit in the target lane.
  *
  *  For right-exit flows: horizontal from source right face to the approach
  *  column (20 px left of target), then vertical to target centre Y, then
@@ -250,19 +250,11 @@ function routeCrossLane(
       const chanY = targetBelow
         ? fromLaneBound.y + fromLaneBound.height + laneVerticalGap / 2
         : fromLaneBound.y - laneVerticalGap / 2;
-      const targetFaceX = toB.x + toB.width / 2;
-      const targetFaceY = targetBelow ? toB.y : toB.y + toB.height;
-
-      if (ep.x < ix) {
-        // Gateway exit is LEFT of the target left edge: travel horizontally at chanY
-        // (the inter-lane gap, where no elements sit) then drop to the target face.
-        // This avoids clipping through intermediate elements in the target lane.
-        return dedupePoints([ep, { x: ep.x, y: chanY }, { x: targetFaceX, y: chanY }, { x: targetFaceX, y: targetFaceY }]);
-      }
-
-      // Gateway is directly above / to the right of the target (same column):
-      // drop straight to the target face — no lateral movement at chanY, no kink.
-      return dedupePoints([ep, { x: ep.x, y: targetFaceY }, { x: targetFaceX, y: targetFaceY }]);
+      // Always enter the target from the left face (→).
+      // Travel via chanY (inter-lane gap) to avoid elements in the target lane,
+      // then drop to target centre Y and approach from the left.
+      const approachX = toB.x - GATEWAY_BRANCH_CLEARANCE_PX;
+      return dedupePoints([ep, { x: ep.x, y: chanY }, { x: approachX, y: chanY }, { x: approachX, y: iy }, { x: toB.x, y: iy }]);
     }
 
     // Right exit: symmetric S-curve with bend at midpoint, enter target from left.
