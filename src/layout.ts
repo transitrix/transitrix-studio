@@ -228,10 +228,17 @@ function verticalSegmentClear(
  *
  *  Preferred port: exit right-center of source, enter left-center of target.
  *
- *  For gateway flows with 'top'/'bottom' exit port: when the target lane is
- *  empty between the exit x and the target's left face, a simple 3-point
- *  L-path is used (down + right into left face).  When intermediate elements
- *  exist, the path travels via chanY (inter-lane gap) to stay clear.
+ *  For gateway flows with 'top'/'bottom' exit port, three paths apply in order:
+ *
+ *  1. Straight-down/up (2-point): when the exit x falls within the target's
+ *     horizontal extent and the target lane has no blocking elements, a single
+ *     vertical segment lands on the target's top or bottom face.
+ *
+ *  2. 3-point L-path: when the exit x is at or left of the target's left face
+ *     and the lane is clear, drop straight down then right into the left face.
+ *
+ *  3. 5-point chanY elbow: travel via the inter-lane gap to avoid blocking
+ *     elements in the target lane.
  *
  *  For right-exit flows: horizontal from source right face to the approach
  *  column (20 px left of target), then vertical to target centre Y, then
@@ -245,7 +252,7 @@ function verticalSegmentClear(
  *  `laneVerticalGap` is the vertical spacing between lanes; used to compute the
  *  inter-lane channel coordinate for vertical gateway exits.
  *  `targetLaneElements` is the list of target-lane element bounds (excluding the
- *  target itself); when provided, enables the 3-point path optimisation. */
+ *  target itself); when provided, enables the straight-down/up and 3-point L-path optimisations. */
 function routeCrossLane(
   fromB: Bounds,
   toB: Bounds,
@@ -270,14 +277,27 @@ function routeCrossLane(
 
     if (exitPort === 'bottom' || exitPort === 'top') {
       if (!fromLaneBound) return diagonalFallbackRects(fromB, toB);
+
+      // Straight-down/up rule: when the exit x is within the target's horizontal
+      // extent and the target lane is clear, connect directly to the top or bottom
+      // face — the connection is a single vertical segment with no bends.
+      if (
+        targetLaneElements !== undefined &&
+        ep.x >= toB.x - CROSS_LANE_EDGE_OVERLAP_EPSILON_PX &&
+        ep.x <= toB.x + toB.width + CROSS_LANE_EDGE_OVERLAP_EPSILON_PX
+      ) {
+        const entryY = targetBelow ? toB.y : toB.y + toB.height;
+        if (verticalSegmentClear(ep.x, ep.y, entryY, targetLaneElements)) {
+          return dedupePoints([ep, { x: ep.x, y: entryY }]);
+        }
+      }
+
       const chanY = targetBelow
         ? fromLaneBound.y + fromLaneBound.height + laneVerticalGap / 2
         : fromLaneBound.y - laneVerticalGap / 2;
       const approachX = toB.x - GATEWAY_BRANCH_CLEARANCE_PX;
 
-      // Optimisation: when the exit x is at or left of the target's left face
-      // and the straight vertical segment at ep.x through the target lane is
-      // clear of all intermediate elements, use a simple 3-point L-path.
+      // 3-point L-path: exit x at or left of target's left face and lane clear.
       if (
         ep.x <= toB.x &&
         targetLaneElements !== undefined &&
