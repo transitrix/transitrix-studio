@@ -70,7 +70,7 @@ function collectJurisdictions(matrix: ComplianceMatrix): string[] {
 }
 
 export class ComplianceMatrixPreview {
-  readonly panelTitle = 'Compliance Matrix';
+  readonly panelTitle = 'Compliance Matrix Preview';
   private panel: vscode.WebviewPanel | undefined;
   private fullMatrix: ComplianceMatrix | undefined;
   private assertionPaths = new Map<string, string>();

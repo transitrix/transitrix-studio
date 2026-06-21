@@ -268,7 +268,7 @@ function applyFilter(
 }
 
 export class ComplianceImpactPreview {
-  readonly panelTitle = 'Compliance Impact Matrix';
+  readonly panelTitle = 'Compliance Impact Matrix Preview';
   private panel: vscode.WebviewPanel | undefined;
   private matrix: ImpactMatrix | undefined;
   private config: ImpactViewConfig | undefined;

@@ -22,7 +22,7 @@ function todayIso(): string {
 }
 
 export class GapDashboardPreview {
-  readonly panelTitle = 'Compliance Gap Dashboard';
+  readonly panelTitle = 'Compliance Gap Dashboard Preview';
   private panel: vscode.WebviewPanel | undefined;
   private lastReport: GapReport | undefined;
   private lastConfidence: ViewScore | undefined;

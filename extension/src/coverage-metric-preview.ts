@@ -135,7 +135,7 @@ body { padding: 0; margin: 0; font-family: var(--vscode-font-family, sans-serif)
 `;
 
 export class CoverageMetricPreview {
-  readonly panelTitle = 'Coverage Metric';
+  readonly panelTitle = 'Coverage Metric Preview';
   private panel: vscode.WebviewPanel | undefined;
   private trackedUri: string | undefined;
 
