@@ -246,32 +246,18 @@ function routeCrossLane(
     const iy = toB.y + toB.height / 2;
 
     if (exitPort === 'bottom' || exitPort === 'top') {
-      // Gateway vertical exit: travel through inter-lane gap to avoid passing
-      // through intermediate elements on the target lane's swimlane axis (RD-127).
-      // chanY is the Y-coordinate of the inter-lane gap channel (above/below target lane).
-      // approachX is the X-coordinate where we drop vertically to target centre Y.
+      // Gateway vertical exit: through inter-lane gap to target left-edge column,
+      // then down/up to target centre Y. No approach offset — eliminates the kink.
       if (!fromLaneBound) return diagonalFallbackRects(fromB, toB);
       const chanY = targetBelow
         ? fromLaneBound.y + fromLaneBound.height + laneVerticalGap / 2
         : fromLaneBound.y - laneVerticalGap / 2;
-      const approachX = ix - GATEWAY_BRANCH_CLEARANCE_PX;
-      return dedupePoints([
-        ep,
-        { x: ep.x, y: chanY },          // vertical to inter-lane gap
-        { x: approachX, y: chanY },     // horizontal along gap to approach column
-        { x: approachX, y: iy },        // vertical to target centre Y
-        { x: ix, y: iy },               // horizontal into target left vertex
-      ]);
+      return dedupePoints([ep, { x: ep.x, y: chanY }, { x: ix, y: chanY }, { x: ix, y: iy }]);
     }
 
-    // Right exit: horizontal to approach column, vertical to target centre Y, enter left.
-    const approachX = ix - GATEWAY_BRANCH_CLEARANCE_PX;
-    return dedupePoints([
-      ep,
-      { x: approachX, y: ep.y },
-      { x: approachX, y: iy },
-      { x: ix,        y: iy },
-    ]);
+    // Right exit: symmetric S-curve with bend at midpoint, enter target from left.
+    const midX = (ep.x + ix) / 2;
+    return dedupePoints([ep, { x: midX, y: ep.y }, { x: midX, y: iy }, { x: ix, y: iy }]);
   }
 
   // Backward cross-lane (target to the left, lanes stacked vertically):

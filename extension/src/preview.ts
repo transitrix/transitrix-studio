@@ -10,7 +10,7 @@ export type CompileFn = (yaml: string) => Promise<{ xml: string; metrics: Layout
 
 /** Webview: bpmn-js viewer + compile loop. */
 export class CervinPreview {
-  readonly panelTitle = 'Cervin Preview';
+  readonly panelTitle = 'BPMN Preview';
   private panel: vscode.WebviewPanel | undefined;
   private trackedUri: string | undefined;
   private lastSourceUri: vscode.Uri | undefined;
@@ -195,7 +195,7 @@ export class CervinPreview {
     .finding-count.error{color:var(--vscode-errorForeground);font-weight:600;}
     .finding-count.warning{color:var(--vscode-problemsWarningIcon-foreground);font-weight:600;}
     .findings-list{display:flex;flex-direction:column;}
-    .finding-item{padding:8px;border-bottom:1px solid var(--vscode-panel-border);font-size:11px;cursor:pointer;}
+    .finding-item{padding:8px;border-bottom:1px solid var(--vscode-panel-border);font-size:11px;cursor:pointer;user-select:text;}
     .finding-item:hover{background:var(--vscode-list-hoverBackground);}
     .finding-item.error{border-left:3px solid var(--vscode-errorForeground);}
     .finding-item.warning{border-left:3px solid var(--vscode-problemsWarningIcon-foreground);}

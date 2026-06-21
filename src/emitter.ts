@@ -24,7 +24,7 @@ function appendFlowNode(
   const attrs: Record<string, string> = { id: el.id };
   if (el.name) attrs.name = el.name;
   if (defaultFlowMap?.has(el.id)) {
-    attrs.defaultFlowRef = defaultFlowMap.get(el.id)!;
+    attrs.default = defaultFlowMap.get(el.id)!;
   }
   parent.ele(el.type, attrs);
 }
