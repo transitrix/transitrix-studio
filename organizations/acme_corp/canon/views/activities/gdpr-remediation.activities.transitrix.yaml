@@ -5,13 +5,13 @@
 notation: activities
 spec_version: "0.1"
 
-title: "GDPR Remediation Programme 2026"
+name: "GDPR Remediation Programme 2026"
 description: |
   Critical path for closing the EU data-protection gaps surfaced by the 2026
   gap assessment — including the cold-storage archive erasure gap that holds
   ASSERTION-ECOMM-GDPR-ERASURE-1 in a non_compliant state.
 version: "0.1"
-date: "2026-06-10"
+generated_at: "2026-06-10"
 author: "Acme Compliance Office"
 
 activities:

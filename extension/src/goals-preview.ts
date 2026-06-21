@@ -169,10 +169,12 @@ export class GoalsPreview {
       if (!v.valid || !v.parsed) {
         errorMsg = v.errors.map(e => `${e.code}: ${e.message}`).join('\n');
       } else {
-        const meta = parsedYaml as { name?: unknown; version?: unknown; date?: unknown };
+        const meta = parsedYaml as { name?: unknown; version?: unknown; date?: unknown; generated_at?: unknown };
         const treeName = typeof meta.name === 'string' ? meta.name : '';
         const docVersion = typeof meta.version === 'string' ? meta.version : undefined;
-        const docDate = typeof meta.date === 'string' ? meta.date : todayIso();
+        const docDate = (typeof meta.generated_at === 'string' ? meta.generated_at : undefined)
+          ?? (typeof meta.date === 'string' ? meta.date : undefined)
+          ?? todayIso();
         goalOptions = v.parsed.goals.map(g => ({ id: String(g.id), name: g.name ?? '' }));
         maxLevelPresent = v.parsed.goals.reduce((m, g) => Math.max(m, typeof g.level === 'number' ? g.level : 0), 0);
         const scopeWarning = checkScopeRoot(scope, v.parsed.goals.map(g => g.id));

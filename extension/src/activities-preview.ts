@@ -634,7 +634,9 @@ export class ActivitiesPreview {
       // incoherent, so the doc's own date wins when present.
       const raw = (parsed && typeof parsed === 'object' ? parsed : {}) as Record<string, unknown>;
       const docVersion = typeof raw['version'] === 'string' ? raw['version'] : undefined;
-      const docDate = typeof raw['date'] === 'string' ? raw['date'] : todayIso();
+      const docDate = (typeof raw['generated_at'] === 'string' ? raw['generated_at'] : undefined)
+        ?? (typeof raw['date'] === 'string' ? raw['date'] : undefined)
+        ?? todayIso();
       const v = validateActivities(parsed);
       warnings = v.warnings.map(w => `${w.code}: ${w.message}`);
       if (!v.valid) {

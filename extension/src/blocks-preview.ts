@@ -142,11 +142,14 @@ export class BlocksPreview {
         errorMsg = v.errors.map((e) => `${e.code}: ${e.message}`).join('\n');
       } else {
         const file = parsed as BlocksFile;
+        const raw = (parsed && typeof parsed === 'object' ? parsed : {}) as Record<string, unknown>;
         const nb =
           (file as unknown as { nested_blocks?: { version?: unknown; date?: unknown } })
             .nested_blocks ?? {};
         const docVersion = typeof nb.version === 'string' ? nb.version : undefined;
-        const docDate = typeof nb.date === 'string' ? nb.date : todayIso();
+        const docDate = (typeof raw['generated_at'] === 'string' ? raw['generated_at'] : undefined)
+          ?? (typeof nb.date === 'string' ? nb.date : undefined)
+          ?? todayIso();
         const layout = layoutNestedBlocks(file);
         svgContent = layoutToSvg(layout, filename, docDate, docVersion);
 

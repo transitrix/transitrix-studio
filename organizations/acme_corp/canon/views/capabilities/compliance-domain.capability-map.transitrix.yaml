@@ -5,10 +5,10 @@
 
 notation: capability-map
 spec_version: "0.1"
-title: "Acme Corp — Capability Map with Compliance Overlay"
+name: "Acme Corp — Capability Map with Compliance Overlay"
 description: "Core business capabilities and the cross-cutting compliance capability, with current and target CMMI maturity."
 version: "1.0"
-date: "2026-06-10"
+generated_at: "2026-06-10"
 
 capability_map:
   id: CAPABILITY_MAP-COMPLIANCE-1

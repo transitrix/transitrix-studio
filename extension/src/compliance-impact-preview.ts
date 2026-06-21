@@ -393,7 +393,7 @@ export class ComplianceImpactPreview {
         '</head>\n<body data-theme="' + escXml(themeId) + '">\n' +
         errInput + '\n' +
         '<div id="toolbar">' +
-        '<span class="toolbar-label">Compliance Impact Matrix</span>' +
+        '<span class="toolbar-label">' + escXml(this.config?.name ?? 'Compliance Impact Matrix') + '</span>' +
         '<div class="toolbar-actions">' +
         '<a href="command:transitrixStudio.changeTheme" class="toolbar-btn" title="Change the color scheme for all diagram previews">Theme…</a>' +
         '<a href="command:' + REFRESH_COMMAND + '" class="toolbar-btn" title="Re-scan the workspace and reload view config">Refresh</a>' +
@@ -503,7 +503,7 @@ export class ComplianceImpactPreview {
       errInput +
       warnInput +
       '  <div id="toolbar">\n' +
-      '    <span class="toolbar-label">Compliance Impact Matrix</span>\n' +
+      '    <span class="toolbar-label">' + escXml(config.name) + '</span>\n' +
       '    <div class="toolbar-actions">\n' +
       '      <a href="command:transitrixStudio.changeTheme" class="toolbar-btn" title="Change the color scheme for all diagram previews">Theme…</a>\n' +
       '      <a href="command:' +

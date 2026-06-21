@@ -10,7 +10,7 @@ description: >
   Factor → Goal → Activity chain for the GDPR/NIS2 compliance workstream.
   Changes layer omitted — activities map directly to the compliance goal.
 period: "2026"
-date: "2026-06-10"
+generated_at: "2026-06-10"
 author: "Acme Compliance Office"
 
 factors:

@@ -188,22 +188,31 @@ export class CoverageMetricPreview {
     const colWPx = colW === 'narrow' ? 80 : colW === 'wide' ? 200 : 120;
 
     let bodyHtml: string;
-    let titleLine: string;
+    let titleLine = '';
     let subtitleLine = '';
+    let metaDate = '';
     let warnings: string[] = [];
     let errorMsg = '';
 
     try {
       const parsed = yaml.load(yamlText) as unknown;
+      // root.name / root.generated_at take priority per CONTRACT §1.1.
+      if (parsed && typeof parsed === 'object') {
+        const raw = parsed as Record<string, unknown>;
+        if (typeof raw['name'] === 'string') titleLine = escXml(raw['name']);
+        if (typeof raw['description'] === 'string') subtitleLine = escXml(raw['description'].trim());
+        const genAt = typeof raw['generated_at'] === 'string' ? raw['generated_at'] : undefined;
+        metaDate = genAt ?? (typeof raw['date'] === 'string' ? raw['date'] : '');
+      }
       const r = parseCoverageMetricConfig(parsed);
       if (!r.ok) {
         errorMsg = 'Parse errors:\n' + r.errors.join('\n');
         bodyHtml = '';
-        titleLine = 'Coverage Metric — parse error';
+        if (!titleLine) titleLine = 'Coverage Metric — parse error';
       } else {
         const config = r.config;
-        titleLine = escXml(config.name);
-        if (config.description) subtitleLine = escXml(config.description.trim());
+        if (!titleLine) titleLine = escXml(config.name);
+        if (!subtitleLine && config.description) subtitleLine = escXml(config.description.trim());
         if (config.warnings) warnings = config.warnings;
         const canon: ScannedCanon = await scanComplianceCanon();
         const matrix = buildCoverageMatrix(canon, config);

@@ -6,6 +6,8 @@
 
 notation: blocks
 spec_version: "0.1"
+name: "Personal-data landscape"
+generated_at: "2026-06-10"
 
 nested_blocks:
   id: BLOCKS-PERSONAL-DATA-1
