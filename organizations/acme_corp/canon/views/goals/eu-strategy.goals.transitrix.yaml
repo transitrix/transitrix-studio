@@ -9,7 +9,7 @@ id: GOALS-STRATEGY-2026
 name: "Acme Corp — Strategy 2026 Goals Tree"
 description: "Goal hierarchy for the 2026 EU-expansion plan, including the regulatory-compliance branch."
 period: "2026"
-date: "2026-06-10"
+generated_at: "2026-06-10"
 author: "Acme Strategy Office"
 
 goal_types:

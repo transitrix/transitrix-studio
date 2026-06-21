@@ -248,7 +248,9 @@ export class ActivityCardPreview {
         } else {
           const meta = (parsed && typeof parsed === 'object' ? parsed : {}) as Record<string, unknown>;
           const docVersion = typeof meta['version'] === 'string' ? (meta['version'] as string) : undefined;
-          const docDate = typeof meta['date'] === 'string' ? (meta['date'] as string) : todayIso();
+          const docDate = (typeof meta['generated_at'] === 'string' ? (meta['generated_at'] as string) : undefined)
+            ?? (typeof meta['date'] === 'string' ? (meta['date'] as string) : undefined)
+            ?? todayIso();
           const layout = layoutActivityCard(r.resolved);
           svgContent = layoutToSvg(layout, filename, docDate, docVersion);
         }

@@ -14,6 +14,8 @@
 
 notation: activity-card
 spec_version: "0.1"
+name: "GDPR Remediation — Activity Card"
+generated_at: "2026-06-10"
 
 activity_card:
   id: ACTIVITY_CARD-GDPR-REMEDIATION-1

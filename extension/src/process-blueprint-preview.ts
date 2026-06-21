@@ -648,9 +648,12 @@ export class ProcessBlueprintPreview {
         errorMsg = v.errors.map(e => `${e.code}: ${e.message}`).join('\n');
       } else {
         const file = parsed as ProcessBlueprintFile;
+        const raw = (parsed && typeof parsed === 'object' ? parsed : {}) as Record<string, unknown>;
         const pb = (file as unknown as { process_blueprint?: { version?: unknown; date?: unknown } }).process_blueprint ?? {};
         const docVersion = typeof pb.version === 'string' ? pb.version : undefined;
-        const docDate = typeof pb.date === 'string' ? pb.date : todayIso();
+        const docDate = (typeof raw['generated_at'] === 'string' ? raw['generated_at'] : undefined)
+          ?? (typeof pb.date === 'string' ? pb.date : undefined)
+          ?? todayIso();
 
         // Compliance lane — scan workspace when opt-in via lane_config.compliance: true.
         const laneConfigRaw = file.process_blueprint?.lane_config;

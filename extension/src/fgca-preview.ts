@@ -378,9 +378,11 @@ export class FGCAPreview {
 
     try {
       const parsed = coerceDatesToIsoStrings(yaml.load(yamlText) as unknown);
-      const meta = (parsed && typeof parsed === 'object' ? parsed : {}) as { version?: unknown; date?: unknown };
+      const meta = (parsed && typeof parsed === 'object' ? parsed : {}) as { version?: unknown; date?: unknown; generated_at?: unknown };
       docVersion = typeof meta.version === 'string' ? meta.version : undefined;
-      docDate = typeof meta.date === 'string' ? meta.date : todayIso();
+      docDate = (typeof meta.generated_at === 'string' ? meta.generated_at : undefined)
+        ?? (typeof meta.date === 'string' ? meta.date : undefined)
+        ?? todayIso();
       // Canon-projection form (VP-3): view_config present, no inline elements.
       // Fall back to inline parsing for legacy documents that carry factors[]/goals[].
       const input = isFGCAViewDoc(parsed) ? resolveFGCA(parsed, sources) : parsed;
@@ -517,9 +519,11 @@ export class FGAPreview {
 
     try {
       const parsed = coerceDatesToIsoStrings(yaml.load(yamlText) as unknown);
-      const meta = (parsed && typeof parsed === 'object' ? parsed : {}) as { version?: unknown; date?: unknown };
+      const meta = (parsed && typeof parsed === 'object' ? parsed : {}) as { version?: unknown; date?: unknown; generated_at?: unknown };
       docVersion = typeof meta.version === 'string' ? meta.version : undefined;
-      docDate = typeof meta.date === 'string' ? meta.date : todayIso();
+      docDate = (typeof meta.generated_at === 'string' ? meta.generated_at : undefined)
+        ?? (typeof meta.date === 'string' ? meta.date : undefined)
+        ?? todayIso();
       const v = parseCanonicalFGA(parsed);
       warnings = v.warnings.map(w => `${w.code}: ${w.message}`);
       if (!v.valid || !v.parsed) {

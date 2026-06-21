@@ -1,7 +1,7 @@
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 import yaml from 'js-yaml';
-import { buildDiagramFrame, CATALOGUE_STYLES, type ThemeId, OPEN_THEME_COMMAND } from './diagram-frame.js';
+import { buildDiagramFrame, extractDiagramMeta, CATALOGUE_STYLES, type ThemeId, OPEN_THEME_COMMAND } from './diagram-frame.js';
 import { coerceDatesToIsoStrings } from '../../packages/diagrams/src/yaml-normalize.js';
 import { validateCapabilityMap } from '../../packages/diagrams/src/capability-map/validate.js';
 
@@ -167,10 +167,7 @@ export class CapabilityMapPreview {
       const parsed = coerceDatesToIsoStrings(yaml.load(yamlText) as unknown);
       if (parsed && typeof parsed === 'object') {
         const raw = parsed as Record<string, unknown>;
-        if (typeof raw['title'] === 'string') title = raw['title'];
-        if (typeof raw['description'] === 'string') subtitle = raw['description'];
-        if (typeof raw['version'] === 'string') version = String(raw['version']);
-        if (typeof raw['date'] === 'string') date = raw['date'];
+        ({ title, subtitle, date, version } = extractDiagramMeta(raw));
       }
 
       const v = validateCapabilityMap(parsed);

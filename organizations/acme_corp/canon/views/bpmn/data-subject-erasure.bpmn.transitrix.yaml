@@ -5,6 +5,8 @@
 
 notation: bpmn
 spec_version: "0.1"
+name: "Data Subject Erasure Request (GDPR Art. 17)"
+generated_at: "2026-06-10"
 
 process:
   id: PROCESS-DSR-HANDLE-1

@@ -3,6 +3,8 @@
 
 notation: coverage-metric
 spec_version: "0.2"
+name: "acme_corp — EU Coverage Metric (GDPR + NIS2)"
+generated_at: "2026-06-10"
 
 view:
   id: COVERAGE_METRIC-ACME-EU-1
