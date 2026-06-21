@@ -52,10 +52,10 @@ export function openLink(command: string, fsPath: string | undefined, inner: str
 const COMPLIANCE_CSS = `
 body { padding: 0; }
 #cmp-toolbar { display: flex; align-items: baseline; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--ts-border, #cbd5e1); flex-wrap: wrap; }
-.cmp-title { font-size: 15px; font-weight: 700; color: var(--ts-text, #0f172a); }
-.cmp-subtitle { font-size: 12px; color: var(--ts-text-muted, #64748b); }
-.cmp-meta { width: 100%; font-size: 11px; color: var(--ts-text-muted, #64748b); letter-spacing: 0.04em; }
-.cmp-confidence { width: 100%; font-size: 11px; color: var(--ts-text-muted, #64748b); }
+.cmp-title { font-size: 13px; font-weight: 700; color: var(--ts-header-text, #0f172a); }
+.cmp-subtitle { font-size: 11px; color: var(--ts-text-secondary, #475569); }
+.cmp-meta { width: 100%; font-size: 11px; color: var(--ts-text-secondary, #475569); letter-spacing: 0.04em; }
+.cmp-confidence { width: 100%; font-size: 11px; color: var(--ts-text-secondary, #475569); }
 .cmp-confidence-band { display: inline-block; padding: 0 6px; margin-right: 4px; border-radius: 3px; font-weight: 700; background: var(--ts-bg-subtle, #f1f5f9); color: var(--ts-text, #0f172a); }
 .cmp-confidence-band[data-band="A"] { background: var(--ts-status-success-bg, #d1fae5); color: var(--ts-status-success-fg, #065f46); }
 .cmp-confidence-band[data-band="B"] { background: var(--ts-status-info-bg, #e0f2fe); color: var(--ts-status-info-fg, #0c4a6e); }

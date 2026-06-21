@@ -99,8 +99,9 @@ function buildTableHtml(matrix: CoverageMatrix): string {
 const COVERAGE_CSS = `
 body { padding: 0; margin: 0; font-family: var(--vscode-font-family, sans-serif); font-size: 13px; color: var(--ts-text, #0f172a); }
 #cm-toolbar { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--ts-border, #cbd5e1); flex-wrap: wrap; }
-.cm-title { font-size: 14px; font-weight: 700; color: var(--ts-text, #0f172a); }
-.cm-subtitle { font-size: 12px; color: var(--ts-text-muted, #64748b); }
+.cm-title { font-size: 13px; font-weight: 700; color: var(--ts-header-text, #0f172a); }
+.cm-subtitle { font-size: 11px; color: var(--ts-text-secondary, #475569); }
+.cm-meta { font-size: 11px; color: var(--ts-text-secondary, #475569); letter-spacing: 0.04em; flex-basis: 100%; }
 .cm-btn { font-size: 11px; padding: 2px 10px; border-radius: 4px; color: var(--ts-text-muted, #64748b); text-decoration: none; border: 1px solid var(--ts-border, #cbd5e1); margin-left: auto; }
 .cm-btn:hover { color: var(--ts-text, #0f172a); background: var(--ts-bg-elevated, #f1f5f9); }
 .cm-wrap { padding: 16px 20px 24px; overflow-x: auto; }
@@ -178,10 +179,11 @@ export class CoverageMetricPreview {
 
   private async pushDocument(doc: vscode.TextDocument): Promise<void> {
     if (!this.panel) return;
-    this.panel.webview.html = await this.buildHtml(doc.getText());
+    const filename = doc.uri.path.split('/').pop() ?? '';
+    this.panel.webview.html = await this.buildHtml(doc.getText(), filename);
   }
 
-  private async buildHtml(yamlText: string): Promise<string> {
+  private async buildHtml(yamlText: string, filename = ''): Promise<string> {
     const cfg = vscode.workspace.getConfiguration('transitrix');
     const themeId = cfg.get<ThemeId>('theme', 'transitrix');
     const colW = cfg.get<string>('report.columnWidth', 'normal');
@@ -241,6 +243,7 @@ export class CoverageMetricPreview {
       '  <div id="cm-toolbar">\n' +
       `    <div class="cm-title">${titleLine}</div>\n` +
       (subtitleLine ? `    <div class="cm-subtitle">${subtitleLine}</div>\n` : '') +
+      (filename ? `    <div class="cm-meta">${escXml(filename)} · Generated: ${new Date().toISOString().slice(0, 10)}</div>\n` : '') +
       `    <a href="command:transitrixStudio.changeTheme" class="cm-btn" title="Change the color scheme for all diagram previews">Theme…</a>\n` +
       `    <a href="command:${REFRESH_COMMAND}" class="cm-btn" title="Re-scan the workspace and reload">Refresh</a>\n` +
       '  </div>\n' +

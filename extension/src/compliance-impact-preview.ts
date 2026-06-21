@@ -745,7 +745,7 @@ export class ComplianceImpactPreview {
 const IMPACT_CSS = `
 body { padding: 0; }
 #toolbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 16px; border-bottom: 1px solid var(--ts-border, #cbd5e1); flex-wrap: wrap; }
-.toolbar-label { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--ts-text-muted, #64748b); }
+.toolbar-label { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: 700; color: var(--ts-header-text, #0f172a); }
 .toolbar-actions { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
 .toolbar-btn { cursor: pointer; user-select: none; font-size: 11px; padding: 1px 8px; border-radius: 4px; color: var(--ts-text-muted, #64748b); white-space: nowrap; text-decoration: none; }
 .toolbar-btn:hover { color: var(--ts-text, #0f172a); background: var(--ts-bg-elevated, #f1f5f9); }
