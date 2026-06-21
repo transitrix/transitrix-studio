@@ -1,4 +1,5 @@
 import * as path from 'node:path';
+import { escXml } from '../../packages/diagrams/src/webview/render-util.js';
 import * as vscode from 'vscode';
 import yaml from 'js-yaml';
 import { buildDiagramFrame, prepareSvgForExport, type ThemeId, OPEN_THEME_COMMAND } from './diagram-frame.js';
@@ -61,11 +62,6 @@ const COL_LABELS: Record<string, string> = {
 };
 
 // ── SVG renderer ──────────────────────────────────────────────────────────────
-
-function escXml(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
-
 /** Goal options + deepest level for the scope control, from a parsed doc. FGCA
  *  and FGA goals are flat, so a `root` scope is the single matching goal. */
 function scopeInputsFromDoc(doc: FGCADoc): { goals: ScopeGoalOption[]; maxLevelPresent: number } {

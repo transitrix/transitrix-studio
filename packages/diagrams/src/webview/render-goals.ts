@@ -14,6 +14,7 @@ import { layoutGoalTree } from '../goals/layout.js';
 import type { GoalTree, GoalTreeLayout, LaidOutEdge } from '../goals/types.js';
 import { horizontalCubicEdgePath, DEFAULT_EDGE_CURVATURE } from '../edge-path.js';
 import { generateSvgEmbedCss, type ThemeId } from '../theme/index.js';
+import { escXml } from './render-util.js';
 
 const NODE_W = 250;
 const NODE_H = 60;
@@ -22,14 +23,6 @@ const NODE_SEP = 24;
 const PAD = 24;
 const LABEL_MAX = 36;
 const LABEL_TRIM = 34;
-
-function escXml(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
 
 export interface RenderGoalsOptions {
   treeName?: string;

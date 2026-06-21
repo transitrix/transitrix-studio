@@ -1,4 +1,5 @@
 import * as path from 'node:path';
+import { escHtml } from '../../packages/diagrams/src/webview/render-util.js';
 import * as vscode from 'vscode';
 import yaml from 'js-yaml';
 import { buildDiagramFrame, extractDiagramMeta, CATALOGUE_STYLES, type ThemeId, OPEN_THEME_COMMAND } from './diagram-frame.js';
@@ -39,10 +40,6 @@ interface ProcessMapHeader {
 }
 
 // ── HTML render helpers ───────────────────────────────────────────────────────
-
-function escHtml(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
 
 const STATUS_BADGE: Record<string, string> = {
   Active:     'badge-active',

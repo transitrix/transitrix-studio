@@ -1,6 +1,7 @@
 import type { ThemeId } from '../../packages/diagrams/src/theme/index.js';
 import { generateWebviewCss, generateSvgEmbedCss } from '../../packages/diagrams/src/theme/index.js';
 import { CONTROLS_PANEL_CSS } from './preview-controls.js';
+import { escXml } from '../../packages/diagrams/src/webview/render-util.js';
 
 export type { ThemeId };
 
@@ -155,10 +156,6 @@ export interface DiagramFrameOpts {
      */
     viewToggleHtml?: string;
   };
-}
-
-function escXml(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 /**

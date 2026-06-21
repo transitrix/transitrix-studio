@@ -1,4 +1,5 @@
 import { randomBytes } from 'node:crypto';
+import { escXml } from '../../packages/diagrams/src/webview/render-util.js';
 
 // In-preview interactive control panel for the spacing / curvature / scope
 // previews (vkgeorgia/strategy#75 / #76 / #77 — PR2).
@@ -104,9 +105,6 @@ export function colWidthRootCss(px: number): string {
   return `:root { --ts-col-w: ${px}px; }`;
 }
 
-function escXml(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
 
 /** CSS for the control panel — injected into the frame's <style> only when interactive. */
 export const CONTROLS_PANEL_CSS = `

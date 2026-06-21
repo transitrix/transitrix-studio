@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { escXml } from '../../packages/diagrams/src/webview/render-util.js';
 import yaml from 'js-yaml';
 import { generateWebviewCss, type ThemeId } from '../../packages/diagrams/src/theme/index.js';
 import {
@@ -21,10 +22,6 @@ import { WARN_BLOCK_CSS, buildWarnHtml, ERROR_BLOCK_CSS, buildErrorHtml } from '
 
 const OPEN_FILE_COMMAND = 'transitrixStudio.openComplianceFile';
 const REFRESH_COMMAND = 'transitrixStudio.refreshCoverageMetric';
-
-function escXml(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
 
 function pct(n: number): string {
   return (n * 100).toFixed(1) + '%';

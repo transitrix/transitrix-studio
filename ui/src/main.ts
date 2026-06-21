@@ -11,6 +11,7 @@ import blocksTablesMarkdown from '../../tests/fixtures/notation-corpus/nested-bl
 import initialGoalsYaml from '../../tests/fixtures/notation-corpus/goals/strategy-2026.goals.transitrix.yaml?raw';
 
 import { validateGoalTree, layoutGoalTree } from '../../packages/diagrams/src/goals/index.js';
+import { escXml } from '../../packages/diagrams/src/webview/render-util.js';
 import type { GoalTree, GoalTreeLayout, LaidOutNode, LaidOutEdge } from '../../packages/diagrams/src/goals/types.js';
 
 /** Single Markdown table sample for the nested-blocks “Markdown table” input mode. */
@@ -452,10 +453,6 @@ function getViewer(): InstanceType<typeof NavigatedViewer> {
 // ── Goals tree SVG renderer ──────────────────────────────────────────────────
 
 const LEVEL_COLORS = ['#dbeafe', '#e0e7ff', '#d4edda', '#fef3c7', '#fce7f3', '#e0f2fe', '#f3e8ff', '#fef9c3'];
-
-function escXml(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
 
 function goalsLayoutToSvg(layout: GoalTreeLayout, tree: GoalTree): string {
   const pad = 24;
