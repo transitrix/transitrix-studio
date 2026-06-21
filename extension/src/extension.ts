@@ -211,6 +211,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand('transitrix.exportSvg', () => notYet('SVG')),
     vscode.commands.registerCommand('transitrix.exportPng', () => notYet('PNG')),
     vscode.commands.registerCommand('transitrix.exportBpmn', () => notYet('.bpmn export')),
+    vscode.commands.registerCommand('transitrixStudio.saveBpmnAsPng', () => preview.saveAsPng()),
     aliasOf('cervin.openPreview', 'transitrix.openPreview', openPreviewHandler),
     aliasOf('cervin.exportSvg', 'transitrix.exportSvg', () => notYet('SVG')),
     aliasOf('cervin.exportPng', 'transitrix.exportPng', () => notYet('PNG')),

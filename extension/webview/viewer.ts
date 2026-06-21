@@ -263,6 +263,15 @@ function escapeHtml(text: string): string {
   return div.innerHTML;
 }
 
+const savePngBtn = document.getElementById('save-png-btn') as HTMLButtonElement | null;
+
+savePngBtn?.addEventListener('click', () => {
+  if (!viewerInstance) return;
+  void viewerInstance.saveSVG().then(({ svg }) => {
+    vscode.postMessage({ type: 'export-svg', svg });
+  });
+});
+
 window.addEventListener('message', (event: MessageEvent) => {
   const msg = event.data as {
     type: string;
@@ -295,6 +304,7 @@ window.addEventListener('message', (event: MessageEvent) => {
       await v.importXML(msg.xml);
       afterLayout(() => {
         fitDiagramToViewport(v);
+        if (savePngBtn) savePngBtn.disabled = false;
         vscode.postMessage({ type: 'diagram-ready', seq: msg.seq });
       });
     } catch (err) {
