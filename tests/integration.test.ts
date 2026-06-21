@@ -590,6 +590,75 @@ describe('layout', () => {
       expect(seg2, `segment (${wps[i].x.toFixed(0)},${wps[i].y.toFixed(0)})→(${wps[i + 1].x.toFixed(0)},${wps[i + 1].y.toFixed(0)}) intersects bot-task-2`).toBe(false);
     }
   });
+  // RD-127 optimisation: when the target lane is clear of intermediate elements,
+  // the cross-lane gateway flow uses a 3-point L-path (down + horizontal) instead
+  // of the 5-point chanY elbow.
+  it('cross-lane gateway flow uses 3-point L-path when target lane is clear', async () => {
+    // Fixture: 2 lanes stacked vertically.
+    //   Top lane: start → gw  (gw is in a later ELK column than start)
+    //   Bot lane: target only  (no intermediate elements)
+    // Flow gw → target: gw exits BOTTOM; target lane is empty → 3-point L-path expected.
+    const ir = parseYamlToIr(`process:
+  id: rd127-opt-repro
+  name: RD-127-opt repro
+  pools:
+    - id: pool
+      name: Pool
+      lanes:
+        - id: lane-top
+          name: Top
+          elements:
+            - id: start
+              type: startEvent
+            - id: gw
+              type: parallelGateway
+              name: Decide
+        - id: lane-bot
+          name: Bot
+          elements:
+            - id: target
+              type: task
+              name: Target
+  flows:
+    - from: start
+      to: gw
+    - from: gw
+      to: target
+`);
+    const layout = await layoutProcess(ir);
+
+    const flow = layout.flows.find((f) => f.from === 'gw' && f.to === 'target');
+    expect(flow, 'gw→target flow not found').toBeDefined();
+
+    const gwB = layout.elements.get('gw')!;
+    const targetB = layout.elements.get('target')!;
+    const topBound = layout.laneBounds.get('lane-top')!;
+    const laneVerticalGap = 40; // default
+    const chanY = topBound.y + topBound.height + laneVerticalGap / 2;
+
+    const wps = flow!.waypoints;
+
+    // 3-point L-path: [gw-bottom, (ep.x, target-center-y), (target.x, target-center-y)]
+    expect(wps.length, 'expected 3-point path, got more').toBeLessThanOrEqual(3);
+    expect(wps.length).toBeGreaterThanOrEqual(2);
+
+    // No waypoint should lie at chanY — that would indicate the unnecessary kink.
+    for (const wp of wps) {
+      expect(Math.abs(wp.y - chanY), `waypoint y=${wp.y.toFixed(1)} is at chanY=${chanY.toFixed(1)}`).toBeGreaterThan(2);
+    }
+
+    // First waypoint: gateway bottom center.
+    const gwCX = gwB.x + gwB.width / 2;
+    const gwBottom = gwB.y + gwB.height;
+    expect(wps[0].x).toBeCloseTo(gwCX, 0);
+    expect(wps[0].y).toBeCloseTo(gwBottom, 0);
+
+    // Last waypoint: target left-center entry.
+    const last = wps[wps.length - 1];
+    expect(last.x).toBeCloseTo(targetB.x, 0);
+    expect(last.y).toBeCloseTo(targetB.y + targetB.height / 2, 0);
+  });
+
   // TX-023: direction-aware gateway port assignment (same-lane TOP/BOTTOM for vertical branches)
   it('TX-023 — same-lane gateway branches above/below exit TOP/BOTTOM vertices', async () => {
     // feature-release: gw-deploy-split (parallelGateway) in lane-infra
