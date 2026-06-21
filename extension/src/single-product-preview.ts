@@ -20,7 +20,7 @@ const OPEN_FILE_COMMAND = 'transitrixStudio.openComplianceFile';
 const REFRESH_COMMAND = 'transitrixStudio.refreshSingleProduct';
 
 export class SingleProductPreview {
-  readonly panelTitle = 'Compliance — Product';
+  readonly panelTitle = 'Compliance Product Preview';
   private panel: vscode.WebviewPanel | undefined;
   private trackedUri: string | undefined;
 

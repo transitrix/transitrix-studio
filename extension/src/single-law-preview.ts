@@ -21,7 +21,7 @@ const OPEN_FILE_COMMAND = 'transitrixStudio.openComplianceFile';
 const REFRESH_COMMAND = 'transitrixStudio.refreshSingleLaw';
 
 export class SingleLawPreview {
-  readonly panelTitle = 'Compliance — Law';
+  readonly panelTitle = 'Compliance Law Preview';
   private panel: vscode.WebviewPanel | undefined;
   private trackedUri: string | undefined;
 
