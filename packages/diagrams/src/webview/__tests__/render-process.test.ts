@@ -292,6 +292,37 @@ describe('renderProcessLayoutSvg — gateways', () => {
     expect(svg).toContain('class="bpmn-gateway"');
     expect(svg).toContain('class="bpmn-gateway-marker"');
   });
+
+  it('renders inclusive gateway as diamond with circle marker', () => {
+    const layout = makeLayout();
+    addElement(layout, { id: 'gw3', type: 'inclusiveGateway', name: 'Any?' }, {
+      x: 180, y: 75, width: 50, height: 50,
+    });
+    const svg = renderProcessLayoutSvg(layout);
+    expect(svg).toContain('class="bpmn-gateway"');
+    expect(svg).toMatch(/<circle[^>]+class="bpmn-gateway-marker"/);
+  });
+
+  it('inclusive gateway circle marker uses gateway-marker class (no fill)', () => {
+    const layout = makeLayout();
+    addElement(layout, { id: 'gw3', type: 'inclusiveGateway' }, {
+      x: 180, y: 75, width: 50, height: 50,
+    });
+    const svg = renderProcessLayoutSvg(layout);
+    // CSS class bpmn-gateway-marker has fill:none — no inline fill on the element
+    const circle = svg.match(/<circle[^>]+bpmn-gateway-marker[^>]*/)?.[0] ?? '';
+    expect(circle).not.toContain('fill=');
+  });
+
+  it('inclusive gateway renders label below shape', () => {
+    const layout = makeLayout();
+    addElement(layout, { id: 'gw3', type: 'inclusiveGateway', name: 'Any path?' }, {
+      x: 180, y: 75, width: 50, height: 50,
+    });
+    const svg = renderProcessLayoutSvg(layout);
+    expect(svg).toContain('Any path?');
+    expect(svg).toContain('bpmn-gateway-label');
+  });
 });
 
 describe('renderProcessLayoutSvg — data objects', () => {
@@ -312,6 +343,116 @@ describe('renderProcessLayoutSvg — data objects', () => {
     const svg = renderProcessLayoutSvg(layout);
     expect(svg).toContain('Invoice');
     expect(svg).toContain('bpmn-data-obj-label');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Intermediate events (P2)
+// ---------------------------------------------------------------------------
+
+describe('renderProcessLayoutSvg — intermediate message event', () => {
+  it('renders outer ring with bpmn-event-start class', () => {
+    const layout = makeLayout();
+    addElement(layout, { id: 'me1', type: 'intermediateMessageEvent', name: 'Receive' }, {
+      x: 200, y: 72, width: 36, height: 36,
+    });
+    const svg = renderProcessLayoutSvg(layout);
+    // Outer ring reuses the start-event circle
+    expect(svg).toMatch(/<circle[^>]+class="bpmn-event bpmn-event-start"/);
+  });
+
+  it('renders inner ring with bpmn-event-intermediate class', () => {
+    const layout = makeLayout();
+    addElement(layout, { id: 'me1', type: 'intermediateMessageEvent' }, {
+      x: 200, y: 72, width: 36, height: 36,
+    });
+    const svg = renderProcessLayoutSvg(layout);
+    expect(svg).toContain('class="bpmn-event-intermediate"');
+  });
+
+  it('renders envelope rect and fold path as bpmn-event-icon', () => {
+    const layout = makeLayout();
+    addElement(layout, { id: 'me1', type: 'intermediateMessageEvent' }, {
+      x: 200, y: 72, width: 36, height: 36,
+    });
+    const svg = renderProcessLayoutSvg(layout);
+    expect(svg).toContain('class="bpmn-event-icon"');
+    // Envelope body is a rect
+    expect(svg).toMatch(/<rect[^>]+bpmn-event-icon/);
+    // Envelope flap is a path with at least 2 M/L points
+    const iconPath = svg.match(/class="bpmn-event-icon"[^>]*d="([^"]+)"/)?.[1] ?? '';
+    expect(iconPath).toBeTruthy();
+  });
+
+  it('renders label below the shape', () => {
+    const layout = makeLayout();
+    addElement(layout, { id: 'me1', type: 'intermediateMessageEvent', name: 'Order Received' }, {
+      x: 200, y: 72, width: 36, height: 36,
+    });
+    const svg = renderProcessLayoutSvg(layout);
+    expect(svg).toContain('Order Received');
+    expect(svg).toContain('bpmn-event-label');
+  });
+
+  it('no font-style italic in intermediate message event output', () => {
+    const layout = makeLayout();
+    addElement(layout, { id: 'me1', type: 'intermediateMessageEvent', name: 'Wait' }, {
+      x: 200, y: 72, width: 36, height: 36,
+    });
+    const svg = renderProcessLayoutSvg(layout);
+    expect(svg).not.toContain('font-style');
+  });
+});
+
+describe('renderProcessLayoutSvg — intermediate timer event', () => {
+  it('renders outer ring with bpmn-event-start class', () => {
+    const layout = makeLayout();
+    addElement(layout, { id: 'te1', type: 'intermediateTimerEvent', name: 'Wait 1h' }, {
+      x: 200, y: 72, width: 36, height: 36,
+    });
+    const svg = renderProcessLayoutSvg(layout);
+    expect(svg).toMatch(/<circle[^>]+class="bpmn-event bpmn-event-start"/);
+  });
+
+  it('renders inner ring with bpmn-event-intermediate class', () => {
+    const layout = makeLayout();
+    addElement(layout, { id: 'te1', type: 'intermediateTimerEvent' }, {
+      x: 200, y: 72, width: 36, height: 36,
+    });
+    const svg = renderProcessLayoutSvg(layout);
+    expect(svg).toContain('class="bpmn-event-intermediate"');
+  });
+
+  it('renders clock face circle and two hand lines', () => {
+    const layout = makeLayout();
+    addElement(layout, { id: 'te1', type: 'intermediateTimerEvent' }, {
+      x: 200, y: 72, width: 36, height: 36,
+    });
+    const svg = renderProcessLayoutSvg(layout);
+    // Clock face circle
+    expect(svg).toMatch(/<circle[^>]+class="bpmn-event-icon"/);
+    // Two hand lines
+    const lines = svg.match(/<line[^>]+class="bpmn-event-icon"/g) ?? [];
+    expect(lines.length).toBe(2);
+  });
+
+  it('renders label below the shape', () => {
+    const layout = makeLayout();
+    addElement(layout, { id: 'te1', type: 'intermediateTimerEvent', name: 'Delay' }, {
+      x: 200, y: 72, width: 36, height: 36,
+    });
+    const svg = renderProcessLayoutSvg(layout);
+    expect(svg).toContain('Delay');
+    expect(svg).toContain('bpmn-event-label');
+  });
+
+  it('no font-style italic in intermediate timer event output', () => {
+    const layout = makeLayout();
+    addElement(layout, { id: 'te1', type: 'intermediateTimerEvent', name: 'Wait' }, {
+      x: 200, y: 72, width: 36, height: 36,
+    });
+    const svg = renderProcessLayoutSvg(layout);
+    expect(svg).not.toContain('font-style');
   });
 });
 

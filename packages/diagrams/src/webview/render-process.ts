@@ -120,6 +120,8 @@ export const BPMN_PROCESS_CSS = `
 .bpmn-assoc { fill: none; stroke: var(--ts-edge-stroke,#64748b); stroke-width: 1; stroke-dasharray: 4 2; }
 .bpmn-data-obj { fill: var(--ts-bg,#ffffff); stroke: var(--ts-node-stroke,#94a3b8); stroke-width: 1; }
 .bpmn-data-obj-label { fill: var(--ts-text-secondary,#64748b); font-size: 10px; text-anchor: middle; }
+.bpmn-event-intermediate { fill: none; stroke: var(--ts-node-stroke,#94a3b8); stroke-width: 1; }
+.bpmn-event-icon { fill: none; stroke: var(--ts-node-stroke,#94a3b8); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 `;
 
 // ---------------------------------------------------------------------------
@@ -217,6 +219,40 @@ function renderElement(el: ProcessFlowElement, b: ProcessBounds, ox: number, oy:
         `<path class="bpmn-gateway-marker" d="M ${r(cx)},${r(cy - 12)} L ${r(cx)},${r(cy + 12)} M ${r(cx - 12)},${r(cy)} L ${r(cx + 12)},${r(cy)}"/>`,
         belowLabelSvg(el.name, 'bpmn-gateway-label', cx, ey + b.height),
       ].join('\n');
+
+    case 'inclusiveGateway':
+      return [
+        `<path class="bpmn-gateway" d="M ${r(cx)},${r(ey)} L ${r(ex + b.width)},${r(cy)} L ${r(cx)},${r(ey + b.height)} L ${r(ex)},${r(cy)} Z"/>`,
+        `<circle class="bpmn-gateway-marker" cx="${r(cx)}" cy="${r(cy)}" r="${r(halfR * 0.4)}"/>`,
+        belowLabelSvg(el.name, 'bpmn-gateway-label', cx, ey + b.height),
+      ].join('\n');
+
+    case 'intermediateMessageEvent': {
+      const innerR = r(halfR - 4);
+      const eHW = r(halfR * 0.45);
+      const eHH = r(halfR * 0.3);
+      return [
+        `<circle class="bpmn-event bpmn-event-start" cx="${r(cx)}" cy="${r(cy)}" r="${r(halfR)}"/>`,
+        `<circle class="bpmn-event-intermediate" cx="${r(cx)}" cy="${r(cy)}" r="${innerR}"/>`,
+        `<rect class="bpmn-event-icon" x="${r(cx - eHW)}" y="${r(cy - eHH)}" width="${r(eHW * 2)}" height="${r(eHH * 2)}"/>`,
+        `<path class="bpmn-event-icon" d="M ${r(cx - eHW)},${r(cy - eHH)} L ${r(cx)},${r(cy)} L ${r(cx + eHW)},${r(cy - eHH)}"/>`,
+        belowLabelSvg(el.name, 'bpmn-event-label', cx, ey + b.height),
+      ].join('\n');
+    }
+
+    case 'intermediateTimerEvent': {
+      const innerR = r(halfR - 4);
+      const clockR = r(halfR * 0.5);
+      const handLen = r(halfR * 0.38);
+      return [
+        `<circle class="bpmn-event bpmn-event-start" cx="${r(cx)}" cy="${r(cy)}" r="${r(halfR)}"/>`,
+        `<circle class="bpmn-event-intermediate" cx="${r(cx)}" cy="${r(cy)}" r="${innerR}"/>`,
+        `<circle class="bpmn-event-icon" cx="${r(cx)}" cy="${r(cy)}" r="${clockR}"/>`,
+        `<line class="bpmn-event-icon" x1="${r(cx)}" y1="${r(cy)}" x2="${r(cx)}" y2="${r(cy - handLen)}"/>`,
+        `<line class="bpmn-event-icon" x1="${r(cx)}" y1="${r(cy)}" x2="${r(cx + r(handLen * 0.7))}" y2="${r(cy)}"/>`,
+        belowLabelSvg(el.name, 'bpmn-event-label', cx, ey + b.height),
+      ].join('\n');
+    }
 
     case 'dataObject': {
       const fold = Math.min(8, b.width / 3, b.height / 3);
