@@ -4,7 +4,7 @@ import * as vscode from 'vscode';
 
 import type { CompileFn } from './preview.js';
 import { CervinPreview } from './preview.js';
-import { ProcessPreview, type ProcessLayoutFn } from './process-preview.js';
+import { ProcessPreview, type ProcessLayoutFn, SAVE_BPMN_PROCESS_SVG_COMMAND } from './process-preview.js';
 import { GoalsPreview } from './goals-preview.js';
 import { FGCAPreview, FGAPreview } from './fgca-preview.js';
 import { ActivitiesPreview } from './activities-preview.js';
@@ -301,6 +301,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       }
       await blocksPreview.showOrReveal(doc);
     }),
+    vscode.commands.registerCommand(SAVE_BPMN_PROCESS_SVG_COMMAND, () =>
+      processPreview.saveAsSvg(),
+    ),
     vscode.commands.registerCommand('transitrixStudio.saveBlocksAsSvg', () =>
       blocksPreview.saveAsSvg(),
     ),
