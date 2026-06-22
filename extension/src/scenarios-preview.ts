@@ -9,9 +9,9 @@ import { StaticPreview } from './static-preview.js';
 // ── Types (used by render helpers) ───────────────────────────────────────────
 
 type ScenarioStatus = 'Draft' | 'Active' | 'Archived';
-type FactorRelevance = 'High' | 'Medium' | 'Low';
+type DriverRelevance = 'High' | 'Medium' | 'Low';
 
-interface FactorView { factor_id: string; relevance?: FactorRelevance; impact?: string }
+interface DriverView { factor_id: string; relevance?: DriverRelevance; impact?: string }
 
 interface ScenarioHeader {
   id: string;
@@ -20,7 +20,7 @@ interface ScenarioHeader {
   status: ScenarioStatus;
   created_at?: string;
   vision?: string;
-  factors_view?: FactorView[];
+  factors_view?: DriverView[];
   goals?: Array<{ goal_id: string }>;
   capabilities?: Array<{ capability_id: string }>;
   activities?: Array<{ activity_id: string }>;
@@ -43,7 +43,7 @@ const RELEVANCE_BADGE: Record<string, string> = {
   Low:    'badge-low',
 };
 
-function buildFactorsTable(factors: FactorView[] | undefined): string {
+function buildDriversTable(factors: DriverView[] | undefined): string {
   if (!factors || factors.length === 0) return '';
   const rows = factors.map(f => `<tr>
   <td class="col-factor-id">${escHtml(f.factor_id)}</td>
@@ -85,7 +85,7 @@ function buildScenarioBody(scn: ScenarioHeader): string {
 </section>`);
   }
 
-  blocks.push(buildFactorsTable(scn.factors_view));
+  blocks.push(buildDriversTable(scn.factors_view));
   blocks.push(buildRefSection('Goals',        extractIds(scn.goals, 'goal_id')));
   blocks.push(buildRefSection('Capabilities', extractIds(scn.capabilities, 'capability_id')));
   blocks.push(buildRefSection('Activities',   extractIds(scn.activities, 'activity_id')));

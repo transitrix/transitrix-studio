@@ -1,4 +1,4 @@
-export interface FactorItem {
+export interface DriverItem {
   id: number | string;
   name: string;
 }
@@ -38,12 +38,12 @@ export interface DiagramStyle {
 }
 
 /** The four columns of the FGCA diagram. */
-export type FGCAColumn = "factor" | "goal" | "change" | "activity";
+export type FGCAColumn = "driver" | "goal" | "change" | "activity";
 
-export const ALL_FGCA_COLUMNS: FGCAColumn[] = ["factor", "goal", "change", "activity"];
+export const ALL_FGCA_COLUMNS: FGCAColumn[] = ["driver", "goal", "change", "activity"];
 
 export const FGCA_COLUMN_LABELS: Record<FGCAColumn, string> = {
-  factor: "F",
+  driver: "D",
   goal: "G",
   change: "C",
   activity: "A",

@@ -9,7 +9,7 @@
 # for the worked "8h and degrading" finding.
 # No PESTLE category — PESTLE applies to external factors only.
 
-notation: factor
+notation: driver
 id: FACTOR-COMP-1
 name: "Support response time"
 type: internal

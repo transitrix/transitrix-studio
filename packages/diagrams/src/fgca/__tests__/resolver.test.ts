@@ -8,8 +8,8 @@ import { parseCanonicalFGCA } from '../parse-canonical.js';
 // ── Inline canon element store (mirrors strategy-2026 data split into per-element form) ─
 
 const ELEMENTS = [
-  { notation: 'factor', id: 'FACTOR-1', name: 'Competitive market pressure', type: 'external' },
-  { notation: 'factor', id: 'FACTOR-2', name: 'Digital adoption acceleration', type: 'external' },
+  { notation: 'driver', id: 'FACTOR-1', name: 'Competitive market pressure', type: 'external' },
+  { notation: 'driver', id: 'FACTOR-2', name: 'Digital adoption acceleration', type: 'external' },
   { notation: 'goal', id: 'GOAL-1', name: 'Grow revenue by 20%', factors: ['FACTOR-1', 'FACTOR-2'] },
   { notation: 'goal', id: 'GOAL-2', name: 'Reduce operational costs', factors: ['FACTOR-2'] },
   { notation: 'goal', id: 'GOAL-3', name: 'Improve customer retention', factors: ['FACTOR-1'] },

@@ -1,6 +1,6 @@
 // Chain-table model for the FGCA / FGA previews (vkgeorgia/strategy#137).
 //
-// The tree/chain preview (`layoutFGCAPreview`) shows Factor → Goal → Change →
+// The tree/chain preview (`layoutFGCAPreview`) shows Driver → Goal → Change →
 // Activity as columns of nodes joined by edges. This module produces the
 // *tabular* alternative: the same chain flattened into rows, with shared
 // parents collapsed into vertically-merged (rowspan) cells.
@@ -23,7 +23,7 @@
 
 import type { FGCAPreviewDoc } from './preview-layout.js';
 
-export type ChainColumn = 'factor' | 'goal' | 'change' | 'activity';
+export type ChainColumn = 'driver' | 'goal' | 'change' | 'activity';
 
 export interface ChainCell {
   /** Column-qualified identity (e.g. "goal:3") — stable, unique across columns. */
@@ -76,8 +76,8 @@ function sameCell(a: ChainCell | null, b: ChainCell | null): boolean {
 export function buildChainTable(doc: FGCAPreviewDoc, options: ChainTableOptions = {}): ChainTable {
   const { hideChanges = false } = options;
   const columns: ChainColumn[] = hideChanges
-    ? ['factor', 'goal', 'activity']
-    : ['factor', 'goal', 'change', 'activity'];
+    ? ['driver', 'goal', 'activity']
+    : ['driver', 'goal', 'change', 'activity'];
 
   const changes = doc.changes ?? [];
   const factorIds = new Set(doc.factors.map(f => f.id));
@@ -146,7 +146,7 @@ export function buildChainTable(doc: FGCAPreviewDoc, options: ChainTableOptions 
 
   // Phase 1 — factor-rooted paths.
   for (const f of doc.factors) {
-    const factorCell = cellOf('factor', f.id, f.name);
+    const factorCell = cellOf('driver', f.id, f.name);
     const goalsOfFactor = doc.goals.filter(g => (g.factor ?? []).some(ref => ref.id === f.id));
     if (goalsOfFactor.length === 0) {
       paths.push(pad([factorCell]));

@@ -36,7 +36,7 @@ describe('buildChainTable — worked example (FGCA)', () => {
 
   it('produces the spec grid with F1 spanning 3 and G2/C2 spanning 2', () => {
     const t = buildChainTable(doc);
-    expect(t.columns).toEqual<ChainColumn[]>(['factor', 'goal', 'change', 'activity']);
+    expect(t.columns).toEqual<ChainColumn[]>(['driver', 'goal', 'change', 'activity']);
     expect(asGrid(t)).toEqual([
       ['F1×3', 'G1', 'C1', 'A1'],
       ['·', 'G2×2', 'C2×2', 'A2'],
@@ -67,7 +67,7 @@ describe('buildChainTable — FGA (no Change column)', () => {
 
   it('emits three columns and merges Factor/Goal across the two activities', () => {
     const t = buildChainTable(doc, { hideChanges: true });
-    expect(t.columns).toEqual<ChainColumn[]>(['factor', 'goal', 'activity']);
+    expect(t.columns).toEqual<ChainColumn[]>(['driver', 'goal', 'activity']);
     expect(asGrid(t)).toEqual([
       ['F1×2', 'G1×2', 'A1'],
       ['·', '·', 'A2'],

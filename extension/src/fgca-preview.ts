@@ -33,14 +33,14 @@ import { snapshotFilename, buildSnapshotContent, extractViewMeta, listSnapshotFi
 // singular `goal_id`, `activity_ids`). This file only renders that doc —
 // FGA reuses the FGCA renderer with the Changes column hidden.
 
-interface FactorItem { id: number | string; name: string; }
+interface DriverItem { id: number | string; name: string; }
 interface GoalItem { id: number | string; name: string; level?: number; factor?: Array<{ id: number | string }>; }
 interface ChangeItem { id: number | string; name: string; goal_id: number | string; activity_ids: Array<number | string>; }
 interface ActivityItem { id: number | string; name: string; goal_id?: number | string | null; }
 
 interface FGCADoc {
   notation: string;
-  factors: FactorItem[];
+  factors: DriverItem[];
   goals: GoalItem[];
   changes?: ChangeItem[];
   activities: ActivityItem[];
@@ -70,7 +70,7 @@ function scopeInputsFromDoc(doc: FGCADoc): { goals: ScopeGoalOption[]; maxLevelP
 // is a no-op in table view (per #137) — the table always shows the full doc.
 
 const CHAIN_COLUMN_HEADERS: Record<ChainColumn, string> = {
-  factor: 'Factor', goal: 'Goal', change: 'Change', activity: 'Activity',
+  driver: 'Driver', goal: 'Goal', change: 'Change', activity: 'Activity',
 };
 
 const CHAIN_TABLE_CSS = `

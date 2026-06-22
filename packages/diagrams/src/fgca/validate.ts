@@ -1,4 +1,4 @@
-import type { FactorItem, GoalItem, BdnChangeWithActivities, ActivityItem } from './types.js';
+import type { DriverItem, GoalItem, BdnChangeWithActivities, ActivityItem } from './types.js';
 import type {
   ValidationError,
   ValidationWarning,
@@ -15,7 +15,7 @@ export type FGCAValidationResult = ValidationResult;
 export interface FGCADoc {
   notation: string;
   spec_version?: string;
-  factors: FactorItem[];
+  factors: DriverItem[];
   goals: GoalItem[];
   changes: BdnChangeWithActivities[];
   activities: ActivityItem[];

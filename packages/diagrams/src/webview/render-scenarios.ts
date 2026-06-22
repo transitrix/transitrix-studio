@@ -3,7 +3,7 @@
  * Mirrors `extension/src/scenarios-preview.ts`; emits a self-contained HTML
  * fragment for the JCEF host (Step 4 of ADR 0001).
  */
-import type { FactorView, ScenarioHeader } from '../scenarios/types.js';
+import type { DriverView, ScenarioHeader } from '../scenarios/types.js';
 import { escHtml } from './render-util.js';
 
 const STATUS_BADGE: Record<string, string> = {
@@ -18,7 +18,7 @@ const RELEVANCE_BADGE: Record<string, string> = {
   Low: 'badge-low',
 };
 
-function buildFactorsTable(factors: FactorView[] | undefined): string {
+function buildDriversTable(factors: DriverView[] | undefined): string {
   if (!factors || factors.length === 0) return '';
   const rows = factors
     .map(
@@ -63,7 +63,7 @@ export function renderScenarioHtml(scn: ScenarioHeader): string {
   <p class="scn-vision-text">${escHtml(scn.vision)}</p>
 </section>`);
   }
-  blocks.push(buildFactorsTable(scn.factors_view));
+  blocks.push(buildDriversTable(scn.factors_view));
   blocks.push(buildRefSection('Goals', extractIds(scn.goals, 'goal_id')));
   blocks.push(buildRefSection('Capabilities', extractIds(scn.capabilities, 'capability_id')));
   blocks.push(buildRefSection('Activities', extractIds(scn.activities, 'activity_id')));

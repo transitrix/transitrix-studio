@@ -26,7 +26,7 @@ import { generateSvgEmbedCss } from '../theme/index.js';
 import { escXml } from './render-util.js';
 
 const COL_LABELS: Record<FGCAPreviewColumn, string> = {
-  factor: 'Factors (F)',
+  driver: 'Drivers (D)',
   goal: 'Goals (G)',
   change: 'Changes (C)',
   activity: 'Activities (A)',

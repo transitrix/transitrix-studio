@@ -4,7 +4,7 @@ import { Handle, Position } from "reactflow";
 const NODE_WIDTH = 250;
 const NODE_HEIGHT = 80;
 
-export interface FGCAFactorNodeProps {
+export interface FGCADriverNodeProps {
   data: {
     id: number;
     name: string;
@@ -14,7 +14,7 @@ export interface FGCAFactorNodeProps {
   isConnectable?: boolean;
 }
 
-const FGCAFactorNode = memo(({ data, isConnectable }: FGCAFactorNodeProps) => (
+const FGCADriverNode = memo(({ data, isConnectable }: FGCADriverNodeProps) => (
   <div
     style={{
       background: "var(--ts-layer-factor)",
@@ -54,11 +54,11 @@ const FGCAFactorNode = memo(({ data, isConnectable }: FGCAFactorNodeProps) => (
       {data.name}
     </div>
     <div style={{ fontSize: "10px", color: "var(--ts-text-secondary)", marginTop: 2 }}>
-      F-{String(data.id).padStart(4, "0")}
+      D-{String(data.id).padStart(4, "0")}
     </div>
   </div>
 ));
 
-FGCAFactorNode.displayName = "FGCAFactorNode";
+FGCADriverNode.displayName = "FGCADriverNode";
 
-export default FGCAFactorNode;
+export default FGCADriverNode;

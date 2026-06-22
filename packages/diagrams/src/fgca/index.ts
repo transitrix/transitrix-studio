@@ -28,7 +28,7 @@ export {
   FGCA_COLUMN_LABELS,
 } from "./types";
 export type {
-  FactorItem,
+  DriverItem,
   GoalItem,
   BdnChangeWithActivities,
   ActivityItem,
@@ -38,7 +38,7 @@ export type {
 } from "./types";
 export { resolveFGCA, isFGCAViewDoc } from './resolver.js';
 export type { FGCAViewConfig, FGCACanonSources } from './resolver.js';
-export { default as FGCAFactorNode } from "./nodes/FGCAFactorNode";
+export { default as FGCADriverNode } from "./nodes/FGCAFactorNode";
 export { default as FGCAGoalNode } from "./nodes/FGCAGoalNode";
 export { default as FGCAChangeNode } from "./nodes/FGCAChangeNode";
 export { default as FGCAActivityNode } from "./nodes/FGCAActivityNode";

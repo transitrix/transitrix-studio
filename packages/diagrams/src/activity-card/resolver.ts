@@ -268,9 +268,10 @@ export function resolveActivityCard(
   }
 
   // ── Motivation chain — expand against canon DRIVER / GOAL / CHANGE elements ──
-  // Note: YAML corpus still uses `notation: factor` and `goal.factors` field names;
-  // the YAML keys are stable. The resolved TypeScript API uses "driver/driverIds".
-  const driverElems = collectByNotation(sources.elements, 'factor');
+  // Canon elements use `notation: driver`; `notation: factor` accepted for backward compat.
+  const driverElemsLegacy = collectByNotation(sources.elements, 'factor');
+  const driverElemsNew = collectByNotation(sources.elements, 'driver');
+  const driverElems = new Map([...driverElemsLegacy, ...driverElemsNew]);
   const goalElems = collectByNotation(sources.elements, 'goal');
   const changeElems = collectByNotation(sources.elements, 'change');
 

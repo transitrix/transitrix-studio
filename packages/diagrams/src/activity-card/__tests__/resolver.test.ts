@@ -41,7 +41,7 @@ const UNRELATED = {
   name: 'Other',
   parent: 'ACTIVITY-SOMETHING-ELSE-1',
 };
-const FACTOR = { notation: 'factor', id: 'FACTOR-EU-MDR-1', name: 'EU MDR regulation' };
+const FACTOR = { notation: 'driver', id: 'FACTOR-EU-MDR-1', name: 'EU MDR regulation' };
 const GOAL = { notation: 'goal', id: 'GOAL-EU-MARKET-1', name: 'Access EU market', factors: ['FACTOR-EU-MDR-1'] };
 const CHANGE = {
   notation: 'change',

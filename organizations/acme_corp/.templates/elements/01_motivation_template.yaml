@@ -4,7 +4,7 @@
 #   canon/elements/01_motivation/<plural-type>/<ID>.yaml
 #
 # TYPEs in this layer:
-#   FACTOR       notation: factor        folder factors/       fields: ELEMENT_PRIMITIVES.md §7.1
+#   FACTOR       notation: driver        folder factors/       fields: ELEMENT_PRIMITIVES.md §7.1
 #   GOAL         notation: goal          folder goals/         fields: §7.2
 #   CONSTRAINT   notation: constraint    folder constraints/   fields: §7.13
 #   REQUIREMENT  notation: requirement   folder requirements/  fields: notations/elements/15-requirement.md
