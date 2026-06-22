@@ -32,27 +32,24 @@ const COL_LABELS: Record<FGCAPreviewColumn, string> = {
   activity: 'Activities (A)',
 };
 
-export interface RenderFgcaOptions {
-  /** `'fga'` hides the Changes column; defaults to `'fgca'`. */
-  variant?: 'fgca' | 'fga';
-  /** Optional heading rendered as a left-anchored `text-header` line. */
-  title?: string;
-  /** Exit edge curvature; 1 = default, 0 = straight, higher = stronger arc. */
-  curvature?: number;
-  /** Entry curvature at the target node; defaults to `curvature` when omitted. */
-  entryCurvature?: number;
-}
+type FgcaLayout = ReturnType<typeof layoutFGCAPreview>;
 
-export function renderFgcaSvg(doc: FGCADoc, options: RenderFgcaOptions = {}): string {
-  const { variant = 'fgca', title = '', curvature = DEFAULT_EDGE_CURVATURE, entryCurvature } = options;
-  const hideChanges = variant === 'fga';
-
-  const { nodes, edges, columns, width, height } = layoutFGCAPreview(doc, { hideChanges });
-
-  if (nodes.length === 0) {
-    return `<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" viewBox="0 0 0 0"></svg>`;
-  }
-
+/**
+ * Canonical FGCA/FGA body — the column headers, node rects and edge paths that
+ * go inside the `<svg>`, shared verbatim by the VS Code preview (`buildSvg`)
+ * and the host-neutral wrapper below. Excludes the host-specific title block
+ * and the (identical) `<defs>` arrow marker. Coordinates are absolute (the
+ * layout's own); the VS Code path wraps this in a `translate(0, titleH)` group
+ * to make room for its title block, while the host-neutral wrapper renders it
+ * untranslated.
+ */
+export function renderFgcaBody(
+  columns: FgcaLayout['columns'],
+  nodes: FgcaLayout['nodes'],
+  edges: FgcaLayout['edges'],
+  curvature: number,
+  entryCurvature: number | undefined,
+): string {
   const headerSvg = columns
     .map(({ col, x }) =>
       [
@@ -102,6 +99,32 @@ export function renderFgcaSvg(doc: FGCADoc, options: RenderFgcaOptions = {}): st
     })
     .join('\n');
 
+  return `${headerSvg}\n${nodeSvg}\n${edgeSvg}`;
+}
+
+export interface RenderFgcaOptions {
+  /** `'fga'` hides the Changes column; defaults to `'fgca'`. */
+  variant?: 'fgca' | 'fga';
+  /** Optional heading rendered as a left-anchored `text-header` line. */
+  title?: string;
+  /** Exit edge curvature; 1 = default, 0 = straight, higher = stronger arc. */
+  curvature?: number;
+  /** Entry curvature at the target node; defaults to `curvature` when omitted. */
+  entryCurvature?: number;
+}
+
+export function renderFgcaSvg(doc: FGCADoc, options: RenderFgcaOptions = {}): string {
+  const { variant = 'fgca', title = '', curvature = DEFAULT_EDGE_CURVATURE, entryCurvature } = options;
+  const hideChanges = variant === 'fga';
+
+  const { nodes, edges, columns, width, height } = layoutFGCAPreview(doc, { hideChanges });
+
+  if (nodes.length === 0) {
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" viewBox="0 0 0 0"></svg>`;
+  }
+
+  const body = renderFgcaBody(columns, nodes, edges, curvature, entryCurvature);
+
   const titleSvg = title
     ? `<text class="text-header" x="${PAD}" y="${PAD - 6}">${escXml(title)}</text>`
     : '';
@@ -119,8 +142,6 @@ export function renderFgcaSvg(doc: FGCADoc, options: RenderFgcaOptions = {}): st
   </marker>
 </defs>
 ${titleSvg}
-${headerSvg}
-${nodeSvg}
-${edgeSvg}
+${body}
 </svg>`;
 }
