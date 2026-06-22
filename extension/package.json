@@ -88,6 +88,19 @@
           "default": false,
           "description": "Show experimental BPMN/SVG/PNG export commands (not finished yet)."
         },
+        "transitrix.bpmnRenderer": {
+          "type": "string",
+          "enum": [
+            "bpmn-io",
+            "custom"
+          ],
+          "enumDescriptions": [
+            "bpmn.io viewer (default — full BPMN interactivity)",
+            "Custom SVG emitter (experimental — static preview, faster load)"
+          ],
+          "default": "bpmn-io",
+          "description": "BPMN preview renderer. 'bpmn-io' uses the bpmn.io viewer; 'custom' uses the built-in SVG emitter (part of the custom process renderer programme)."
+        },
         "transitrix.theme": {
           "type": "string",
           "enum": [
