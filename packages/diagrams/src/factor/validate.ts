@@ -39,8 +39,8 @@ export function validateFactor(input: unknown, options: FactorValidateOptions = 
   if (!isCanonicalIdOfType(f.id, 'FACTOR')) {
     errors.push({ code: 'FACTOR-001', message: `id "${String(f.id)}" must match FACTOR-[<middle>-]<INTEGER>.`, path: 'id' });
   }
-  if (f.notation !== 'factor') {
-    errors.push({ code: 'FACTOR-001', message: 'notation must be the fixed value "factor".', path: 'notation' });
+  if (f.notation !== 'driver') {
+    errors.push({ code: 'FACTOR-001', message: 'notation must be the fixed value "driver".', path: 'notation' });
   }
   if (f.zone !== undefined && f.zone !== 'canon') {
     errors.push({ code: 'FACTOR-001', message: 'zone must be "canon" for a FACTOR.', path: 'zone' });

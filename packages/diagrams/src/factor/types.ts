@@ -17,7 +17,7 @@ export const FACTOR_PESTLE_CATEGORIES = [
 export type FactorPestleCategory = typeof FACTOR_PESTLE_CATEGORIES[number];
 
 export interface Factor {
-  notation: 'factor';
+  notation: 'driver';
   id: string;
   name: string;
   type?: FactorType;

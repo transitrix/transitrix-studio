@@ -4,7 +4,7 @@ import type { CanonCatalog } from '../../typed-id.js';
 
 function validExternal(): Record<string, unknown> {
   return {
-    notation: 'factor',
+    notation: 'driver',
     id: 'FACTOR-EU-REG-1',
     name: 'EU regulatory window',
     type: 'external',
@@ -22,7 +22,7 @@ function validExternal(): Record<string, unknown> {
 
 function validInternal(): Record<string, unknown> {
   return {
-    notation: 'factor',
+    notation: 'driver',
     id: 'FACTOR-COMP-1',
     name: 'Support response time',
     type: 'internal',
@@ -71,7 +71,7 @@ describe('validateFactor — FACTOR-001 (shape / id grammar)', () => {
   });
 
   it('flags a wrong notation tag and a non-canon zone', () => {
-    expect(codes({ ...validExternal(), notation: 'driver' })).toContain('FACTOR-001');
+    expect(codes({ ...validExternal(), notation: 'factor' })).toContain('FACTOR-001');
     expect(codes({ ...validExternal(), zone: 'sandbox' })).toContain('FACTOR-001');
   });
 
