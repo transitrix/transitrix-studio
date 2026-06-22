@@ -35,6 +35,10 @@
           "type": "array",
           "minItems": 1,
           "items": { "$ref": "#/definitions/flow" }
+        },
+        "associations": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/association" }
         }
       }
     }
@@ -95,7 +99,8 @@
             "parallelGateway",
             "inclusiveGateway",
             "intermediateMessageEvent",
-            "intermediateTimerEvent"
+            "intermediateTimerEvent",
+            "dataObject"
           ]
         },
         "name": { "type": "string" }
@@ -109,7 +114,8 @@
                   "startEvent",
                   "endEvent",
                   "intermediateMessageEvent",
-                  "intermediateTimerEvent"
+                  "intermediateTimerEvent",
+                  "dataObject"
                 ]
               }
             }
@@ -142,6 +148,25 @@
         "condition": { "type": "string", "minLength": 1 },
         "default": { "type": "boolean" },
         "name": { "type": "string", "minLength": 1 }
+      }
+    },
+    "association": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from", "to"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+        },
+        "from": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+        },
+        "to": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+        }
       }
     }
   }

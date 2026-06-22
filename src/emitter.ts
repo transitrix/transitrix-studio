@@ -27,6 +27,13 @@ function appendFlowNode(
   el: FlowElement,
   defaultFlowMap?: Map<string, string>,
 ): void {
+  if (el.type === 'dataObject') {
+    parent.ele('dataObject', { id: `DataObject_${el.id}` });
+    const refAttrs: Record<string, string> = { id: el.id, dataObjectRef: `DataObject_${el.id}` };
+    if (el.name) refAttrs.name = el.name;
+    parent.ele('dataObjectReference', refAttrs);
+    return;
+  }
   const attrs: Record<string, string> = { id: el.id };
   if (el.name) attrs.name = el.name;
   if (defaultFlowMap?.has(el.id)) {
@@ -107,6 +114,16 @@ export function emitBpmnXml(layout: LayoutIr): string {
     }
   }
 
+  const sortedAssociations = [...layout.associations].sort((a, b) => a.id.localeCompare(b.id));
+  for (const a of sortedAssociations) {
+    proc.ele('association', {
+      id: a.id,
+      sourceRef: a.from,
+      targetRef: a.to,
+      associationDirection: 'None',
+    });
+  }
+
   const diagram = definitions.ele('bpmndi:BPMNDiagram', { id: 'BPMNDiagram_1' });
   const plane = diagram.ele('bpmndi:BPMNPlane', {
     id: 'BPMNPlane_1',
@@ -172,6 +189,20 @@ export function emitBpmnXml(layout: LayoutIr): string {
       f.waypoints.length >= 2
         ? f.waypoints
         : defaultWaypoints(layout, f.from, f.to);
+    for (const p of wps) {
+      edge.ele('di:waypoint', { x: String(Math.round(p.x)), y: String(Math.round(p.y)) });
+    }
+  }
+
+  for (const a of sortedAssociations) {
+    const edge = plane.ele('bpmndi:BPMNEdge', {
+      id: `Edge_${a.id}`,
+      bpmnElement: a.id,
+    });
+    const wps =
+      a.waypoints.length >= 2
+        ? a.waypoints
+        : defaultWaypoints(layout, a.from, a.to);
     for (const p of wps) {
       edge.ele('di:waypoint', { x: String(Math.round(p.x)), y: String(Math.round(p.y)) });
     }

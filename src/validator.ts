@@ -445,9 +445,10 @@ const rule_CONN_001_ElementReachability: ValidationRule = {
 
     const findings: ValidationFinding[] = []
 
-    // Check each element (except start/end events)
+    // Check each element (except start/end events and data objects — data objects
+    // connect via associations, not sequence flows, so reachability does not apply)
     for (const el of allElements) {
-      if (el.type === 'startEvent' || el.type === 'endEvent') {
+      if (el.type === 'startEvent' || el.type === 'endEvent' || el.type === 'dataObject') {
         continue
       }
 
@@ -487,7 +488,8 @@ const rule_CONN_002_GraphConnectivity: ValidationRule = {
   severity: 'error',
   description: 'Process graph must be weakly connected (no isolated subgraphs)',
   validate(ir: ProcessIr): ValidationFinding[] {
-    const allElements = ir.lanes.flatMap(lane => lane.elements)
+    // Data objects connect via associations, not sequence flows — exclude from this check
+    const allElements = ir.lanes.flatMap(lane => lane.elements).filter(el => el.type !== 'dataObject')
     if (allElements.length <= 1) return []
 
     // Build undirected adjacency map
@@ -826,6 +828,9 @@ const rule_AP_FloatingElements: ValidationRule = {
     const allElements = ir.lanes.flatMap(lane => lane.elements)
 
     for (const el of allElements) {
+      // Data objects connect via associations — they are never in sequence flows by design
+      if (el.type === 'dataObject') continue
+
       const incoming = ir.flows.filter(f => f.to === el.id).length
       const outgoing = ir.flows.filter(f => f.from === el.id).length
 
@@ -1040,3 +1045,90 @@ const rule_SF_01_ValidFlowEndpoints: ValidationRule = {
 // Register sequence flow rules (RD-099, RD-100)
 validator.register(rule_SF_DUP_NoDuplicateFlows)
 validator.register(rule_SF_01_ValidFlowEndpoints)
+
+// ============================================================================
+// Association Rules (P0b — data objects)
+// ============================================================================
+
+const ACTIVITY_TYPES = new Set(['task', 'userTask', 'serviceTask'])
+
+/**
+ * ASC-001: Associations must connect a data object to an activity.
+ * Associations are the only edge type that may touch data objects; sequence flows may not.
+ * Each association must have exactly one data-object endpoint and one activity endpoint.
+ */
+const rule_ASC_001_AssociationEndpoints: ValidationRule = {
+  ruleId: 'ASC-001',
+  severity: 'error',
+  description: 'Associations must connect a data object to an activity (task/userTask/serviceTask)',
+  validate(ir: ProcessIr): ValidationFinding[] {
+    const findings: ValidationFinding[] = []
+    const elementMap = new Map(ir.lanes.flatMap(l => l.elements).map(el => [el.id, el]))
+
+    for (const assoc of ir.associations ?? []) {
+      const fromEl = elementMap.get(assoc.from)
+      const toEl = elementMap.get(assoc.to)
+      if (!fromEl || !toEl) continue // ASC-002 covers missing endpoints
+
+      const fromIsDataObject = fromEl.type === 'dataObject'
+      const toIsDataObject = toEl.type === 'dataObject'
+      const fromIsActivity = ACTIVITY_TYPES.has(fromEl.type)
+      const toIsActivity = ACTIVITY_TYPES.has(toEl.type)
+
+      const valid =
+        (fromIsDataObject && toIsActivity) || (fromIsActivity && toIsDataObject)
+
+      if (!valid) {
+        findings.push({
+          ruleId: 'ASC-001',
+          severity: 'error',
+          elementId: assoc.id,
+          message: `Association "${assoc.id}" must connect a data object to an activity (found "${fromEl.type}" → "${toEl.type}")`,
+          hint: 'Associations link data objects to activities (task, userTask, serviceTask). Use sequence flows between activities.',
+          docUrl: 'docs/validation.md#asc-001',
+        })
+      }
+    }
+    return findings
+  },
+}
+
+/**
+ * ASC-002: Association endpoints must reference existing elements.
+ */
+const rule_ASC_002_ValidAssociationEndpoints: ValidationRule = {
+  ruleId: 'ASC-002',
+  severity: 'error',
+  description: 'Association endpoints must reference existing elements',
+  validate(ir: ProcessIr): ValidationFinding[] {
+    const elementIds = new Set(ir.lanes.flatMap(l => l.elements.map(e => e.id)))
+    const findings: ValidationFinding[] = []
+
+    for (const assoc of ir.associations ?? []) {
+      if (!elementIds.has(assoc.from)) {
+        findings.push({
+          ruleId: 'ASC-002',
+          severity: 'error',
+          elementId: assoc.id,
+          message: `Association source element "${assoc.from}" does not exist`,
+          hint: 'Verify the source element ID is correct and exists in the process',
+          docUrl: 'docs/validation.md#asc-002',
+        })
+      }
+      if (!elementIds.has(assoc.to)) {
+        findings.push({
+          ruleId: 'ASC-002',
+          severity: 'error',
+          elementId: assoc.id,
+          message: `Association target element "${assoc.to}" does not exist`,
+          hint: 'Verify the target element ID is correct and exists in the process',
+          docUrl: 'docs/validation.md#asc-002',
+        })
+      }
+    }
+    return findings
+  },
+}
+
+validator.register(rule_ASC_001_AssociationEndpoints)
+validator.register(rule_ASC_002_ValidAssociationEndpoints)

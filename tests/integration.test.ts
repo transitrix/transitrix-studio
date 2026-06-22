@@ -159,6 +159,102 @@ describe('parser', () => {
   });
 });
 
+const DATA_OBJECT_YAML = `
+process:
+  id: do-test
+  name: Data Object Test
+  pools:
+    - id: pool1
+      name: Pool 1
+      lanes:
+        - id: lane1
+          name: Lane 1
+          elements:
+            - id: start1
+              type: startEvent
+            - id: task1
+              type: task
+              name: Process Order
+            - id: do1
+              type: dataObject
+              name: Order Data
+            - id: end1
+              type: endEvent
+  flows:
+    - from: start1
+      to: task1
+    - from: task1
+      to: end1
+  associations:
+    - from: do1
+      to: task1
+`;
+
+describe('data objects + associations', () => {
+  it('parses data object and association from YAML', () => {
+    const ir = parseYamlToIr(DATA_OBJECT_YAML);
+    const els = ir.lanes.flatMap((l) => l.elements);
+    expect(els.find((e) => e.id === 'do1')?.type).toBe('dataObject');
+    expect(ir.associations).toHaveLength(1);
+    expect(ir.associations![0]).toMatchObject({ from: 'do1', to: 'task1' });
+  });
+
+  it('auto-generates association id when omitted', () => {
+    const ir = parseYamlToIr(DATA_OBJECT_YAML);
+    expect(ir.associations![0].id).toBeTruthy();
+  });
+
+  it('association to unknown element throws', () => {
+    expect(() =>
+      parseYamlToIr(`
+process:
+  id: bad-assoc
+  name: Bad
+  pools:
+    - id: p
+      name: P
+      lanes:
+        - id: l
+          name: L
+          elements:
+            - id: s
+              type: startEvent
+            - id: e
+              type: endEvent
+  flows:
+    - from: s
+      to: e
+  associations:
+    - from: s
+      to: missing
+`),
+    ).toThrow(/Association references unknown element \(to\): missing/);
+  });
+
+  it('lays out data object and produces waypoints for association', async () => {
+    const ir = parseYamlToIr(DATA_OBJECT_YAML);
+    const layout = await layoutProcess(ir);
+    expect(layout.elements.has('do1')).toBe(true);
+    expect(layout.associations).toHaveLength(1);
+    expect(layout.associations[0].waypoints.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('emits DataObject + DataObjectReference + Association in BPMN XML', async () => {
+    const xml = await compileTransitrixYaml(DATA_OBJECT_YAML);
+    expect(xml).toContain('<dataObject');
+    expect(xml).toContain('<dataObjectReference');
+    expect(xml).toContain('<association');
+    expect(xml).toContain('associationDirection="None"');
+  });
+
+  it('BPMN XML passes bpmn-moddle round-trip with zero warnings', async () => {
+    const xml = await compileTransitrixYaml(DATA_OBJECT_YAML);
+    const moddle = new BpmnModdle();
+    const { warnings } = await moddle.fromXML(xml, 'bpmn:Definitions');
+    expect(warnings ?? []).toHaveLength(0);
+  });
+});
+
 describe('layout', () => {
   it('assigns geometry to every element via ELK', async () => {
     const yaml = readFileSync(sampleCervinPath, 'utf8');

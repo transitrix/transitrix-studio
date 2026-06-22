@@ -2,7 +2,7 @@ import { createRequire } from 'node:module';
 import { readFileSync } from 'node:fs';
 import yaml from 'js-yaml';
 
-import type { Bounds, ElementType, ProcessIr, SequenceFlowIr } from './ir.js';
+import type { AssociationIr, Bounds, ElementType, ProcessIr, SequenceFlowIr } from './ir.js';
 import { dslSchemaPath } from './schema-path.js';
 
 const SCHEMA = JSON.parse(readFileSync(dslSchemaPath(import.meta.url), 'utf8')) as object;
@@ -46,6 +46,7 @@ export interface YamlDocumentRoot {
       }[];
     }[];
     flows: { id?: string; from: string; to: string; condition?: string; default?: boolean; name?: string }[];
+    associations?: { id?: string; from: string; to: string }[];
   };
 }
 
@@ -130,6 +131,26 @@ function collectElements(doc: YamlDocumentRoot): ProcessIr {
     }
   }
 
+  const rawAssociations = p.associations ?? [];
+  const explicitAssocIds = new Set(rawAssociations.filter((a) => a.id != null).map((a) => a.id as string));
+  let autoAssocIdx = 1;
+  const associations: AssociationIr[] = rawAssociations.map((a) => {
+    let id: string;
+    if (a.id != null) {
+      id = a.id;
+    } else {
+      while (explicitAssocIds.has(`Association_${autoAssocIdx}`)) autoAssocIdx++;
+      id = `Association_${autoAssocIdx++}`;
+    }
+    if (!seen.has(a.from)) {
+      throw new Error(`Association references unknown element (from): ${a.from}`);
+    }
+    if (!seen.has(a.to)) {
+      throw new Error(`Association references unknown element (to): ${a.to}`);
+    }
+    return { id, from: a.from, to: a.to };
+  });
+
   return {
     id: p.id,
     name: p.name,
@@ -137,6 +158,7 @@ function collectElements(doc: YamlDocumentRoot): ProcessIr {
     poolName: pool.name,
     lanes,
     flows,
+    associations,
   };
 }
 
@@ -165,6 +187,8 @@ export function elkNodeSize(kind: ElementType): Bounds {
     case 'parallelGateway':
     case 'inclusiveGateway':
       return { x: 0, y: 0, width: 50, height: 50 };
+    case 'dataObject':
+      return { x: 0, y: 0, width: 36, height: 50 };
     default:
       return { x: 0, y: 0, width: 100, height: 80 };
   }

@@ -1153,6 +1153,114 @@ describe('Validator', () => {
     })
   })
 
+  // ============================================================================
+  // Association Rules (P0b)
+  // ============================================================================
+
+  describe('ASC-001: Association must connect data object to activity', () => {
+    function makeIrWithAssociation(fromType: string, toType: string): ProcessIr {
+      return {
+        id: 't', name: 'T', poolId: 'p1', poolName: 'P',
+        lanes: [{
+          id: 'l1', name: 'L',
+          elements: [
+            { id: 's1', type: 'startEvent', poolId: 'p1', laneId: 'l1' },
+            { id: 'task1', name: 'Task', type: fromType as ProcessIr['lanes'][0]['elements'][0]['type'], poolId: 'p1', laneId: 'l1' },
+            { id: 'do1', name: 'Data', type: toType as ProcessIr['lanes'][0]['elements'][0]['type'], poolId: 'p1', laneId: 'l1' },
+            { id: 'e1', type: 'endEvent', poolId: 'p1', laneId: 'l1' },
+          ],
+        }],
+        flows: [
+          { id: 'f1', from: 's1', to: 'task1' },
+          { id: 'f2', from: 'task1', to: 'e1' },
+        ],
+        associations: [{ id: 'a1', from: 'task1', to: 'do1' }],
+      }
+    }
+
+    test('passes for task → dataObject', () => {
+      const ir = makeIrWithAssociation('task', 'dataObject')
+      const report = validateProcess(ir, { enabledRules: new Set(['ASC-001']) })
+      expect(report.findings.filter(f => f.ruleId === 'ASC-001')).toHaveLength(0)
+    })
+
+    test('passes for dataObject → task', () => {
+      const ir: ProcessIr = {
+        id: 't', name: 'T', poolId: 'p1', poolName: 'P',
+        lanes: [{
+          id: 'l1', name: 'L',
+          elements: [
+            { id: 's1', type: 'startEvent', poolId: 'p1', laneId: 'l1' },
+            { id: 'task1', name: 'Task', type: 'task', poolId: 'p1', laneId: 'l1' },
+            { id: 'do1', name: 'Data', type: 'dataObject', poolId: 'p1', laneId: 'l1' },
+            { id: 'e1', type: 'endEvent', poolId: 'p1', laneId: 'l1' },
+          ],
+        }],
+        flows: [{ id: 'f1', from: 's1', to: 'task1' }, { id: 'f2', from: 'task1', to: 'e1' }],
+        associations: [{ id: 'a1', from: 'do1', to: 'task1' }],
+      }
+      const report = validateProcess(ir, { enabledRules: new Set(['ASC-001']) })
+      expect(report.findings.filter(f => f.ruleId === 'ASC-001')).toHaveLength(0)
+    })
+
+    test('fails when both endpoints are activities', () => {
+      const ir: ProcessIr = {
+        id: 't', name: 'T', poolId: 'p1', poolName: 'P',
+        lanes: [{
+          id: 'l1', name: 'L',
+          elements: [
+            { id: 's1', type: 'startEvent', poolId: 'p1', laneId: 'l1' },
+            { id: 'task1', name: 'T1', type: 'task', poolId: 'p1', laneId: 'l1' },
+            { id: 'task2', name: 'T2', type: 'task', poolId: 'p1', laneId: 'l1' },
+            { id: 'e1', type: 'endEvent', poolId: 'p1', laneId: 'l1' },
+          ],
+        }],
+        flows: [{ id: 'f1', from: 's1', to: 'task1' }, { id: 'f2', from: 'task1', to: 'task2' }, { id: 'f3', from: 'task2', to: 'e1' }],
+        associations: [{ id: 'a1', from: 'task1', to: 'task2' }],
+      }
+      const report = validateProcess(ir, { enabledRules: new Set(['ASC-001']) })
+      expect(report.findings.filter(f => f.ruleId === 'ASC-001')).toHaveLength(1)
+    })
+
+    test('data object does not trigger AP-FLOAT', () => {
+      const ir: ProcessIr = {
+        id: 't', name: 'T', poolId: 'p1', poolName: 'P',
+        lanes: [{
+          id: 'l1', name: 'L',
+          elements: [
+            { id: 's1', type: 'startEvent', poolId: 'p1', laneId: 'l1' },
+            { id: 'task1', name: 'Task', type: 'task', poolId: 'p1', laneId: 'l1' },
+            { id: 'do1', name: 'Data', type: 'dataObject', poolId: 'p1', laneId: 'l1' },
+            { id: 'e1', type: 'endEvent', poolId: 'p1', laneId: 'l1' },
+          ],
+        }],
+        flows: [{ id: 'f1', from: 's1', to: 'task1' }, { id: 'f2', from: 'task1', to: 'e1' }],
+        associations: [{ id: 'a1', from: 'do1', to: 'task1' }],
+      }
+      const report = validateProcess(ir, { enabledRules: new Set(['AP-FLOAT']) })
+      expect(report.findings.filter(f => f.ruleId === 'AP-FLOAT')).toHaveLength(0)
+    })
+
+    test('data object does not trigger CONN-001 or CONN-002', () => {
+      const ir: ProcessIr = {
+        id: 't', name: 'T', poolId: 'p1', poolName: 'P',
+        lanes: [{
+          id: 'l1', name: 'L',
+          elements: [
+            { id: 's1', type: 'startEvent', poolId: 'p1', laneId: 'l1' },
+            { id: 'task1', name: 'Task', type: 'task', poolId: 'p1', laneId: 'l1' },
+            { id: 'do1', name: 'Data', type: 'dataObject', poolId: 'p1', laneId: 'l1' },
+            { id: 'e1', type: 'endEvent', poolId: 'p1', laneId: 'l1' },
+          ],
+        }],
+        flows: [{ id: 'f1', from: 's1', to: 'task1' }, { id: 'f2', from: 'task1', to: 'e1' }],
+        associations: [{ id: 'a1', from: 'do1', to: 'task1' }],
+      }
+      const report = validateProcess(ir, { enabledRules: new Set(['CONN-001', 'CONN-002']) })
+      expect(report.findings.filter(f => ['CONN-001', 'CONN-002'].includes(f.ruleId))).toHaveLength(0)
+    })
+  })
+
 describe('Extended subset rules (P0a)', () => {
   test('SF-005 allows condition on flow from inclusive gateway', () => {
     const ir: ProcessIr = {
