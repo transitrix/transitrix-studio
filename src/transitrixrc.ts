@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs'
+import { readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { createRequire } from 'node:module'
 
@@ -72,9 +72,35 @@ function loadRcFile(rcPath: string, fileLabel: string): TransitrixrcConfig {
   }
 }
 
+interface RcCacheEntry {
+  mtimeMs: number
+  size: number
+  config: TransitrixrcConfig
+}
+
+/**
+ * Process-level cache keyed by the resolved `.transitrixrc` path. The compiler
+ * reads the config on every `compileTransitrixYamlWithLayout` call, so batch
+ * compiles (repo-validate over a whole tree, serve-ui, metrics regression) and
+ * the VS Code extension would otherwise re-read + JSON.parse + AJV-validate the
+ * same file hundreds of times. Cache hits are gated on the file's mtime+size so
+ * an edit in a long-lived host (the extension) is still picked up immediately.
+ */
+const rcCache = new Map<string, RcCacheEntry>()
+
+/**
+ * Drop the cached configs. Exported for tests, which write the same
+ * `.transitrixrc` path repeatedly and must not be subject to coarse filesystem
+ * mtime resolution.
+ */
+export function clearTransitrixrcCache(): void {
+  rcCache.clear()
+}
+
 /**
  * Load and parse the project config from `.transitrixrc` in the given
- * directory. Returns an empty config when the file is absent.
+ * directory. Returns an empty config when the file is absent. Results are
+ * cached per process and invalidated when the file's mtime or size changes.
  *
  * @param startPath Directory to search (default: current working directory)
  * @returns Validated config, or empty config if no file is found
@@ -82,10 +108,23 @@ function loadRcFile(rcPath: string, fileLabel: string): TransitrixrcConfig {
  */
 export function loadTransitrixrc(startPath: string = process.cwd()): TransitrixrcConfig {
   const transitrixPath = join(startPath, TRANSITRIXRC_FILE)
-  if (existsSync(transitrixPath)) {
-    return loadRcFile(transitrixPath, TRANSITRIXRC_FILE)
+  let stat: ReturnType<typeof statSync>
+  try {
+    stat = statSync(transitrixPath)
+  } catch {
+    // Absent (or unreadable) — behave as "no config" and forget any prior entry.
+    rcCache.delete(transitrixPath)
+    return {}
   }
-  return {}
+  const cached = rcCache.get(transitrixPath)
+  if (cached && cached.mtimeMs === stat.mtimeMs && cached.size === stat.size) {
+    return cached.config
+  }
+  // Parse/validate errors propagate without being cached, so they keep
+  // surfacing on every call until the file is fixed.
+  const config = loadRcFile(transitrixPath, TRANSITRIXRC_FILE)
+  rcCache.set(transitrixPath, { mtimeMs: stat.mtimeMs, size: stat.size, config })
+  return config
 }
 
 /**
