@@ -27,7 +27,7 @@
 import type {
   ActivityItem,
   BdnChangeWithActivities,
-  FactorItem,
+  DriverItem,
   GoalItem,
 } from './types.js';
 import type { FGCADoc } from './validate.js';
@@ -46,6 +46,8 @@ export interface CanonicalFGCAResult extends ValidationResult {
 // is fixed per layer; middle segments are optional; the terminal is a
 // positive integer with no leading zeros.
 const FACTOR_ID_RE = /^FACTOR(-[A-Z0-9][A-Z0-9_]*)*-\d+$/;
+const DRIVER_ID_RE = /^DRIVER(-[A-Z0-9][A-Z0-9_]*)*-\d+$/;
+const FACTOR_OR_DRIVER_ID_RE = /^(FACTOR|DRIVER)(-[A-Z0-9][A-Z0-9_]*)*-\d+$/;
 const GOAL_ID_RE = /^GOAL(-[A-Z0-9][A-Z0-9_]*)*-\d+$/;
 const CHANGE_ID_RE = /^CHANGE(-[A-Z0-9][A-Z0-9_]*)*-\d+$/;
 const ACTIVITY_ID_RE = /^ACTIVITY(-[A-Z0-9][A-Z0-9_]*)*-\d+$/;
@@ -173,7 +175,7 @@ export function parseCanonicalFGCA(input: unknown): CanonicalFGCAResult {
     return { id, name: isNonEmptyString(name) ? name : '' };
   }
 
-  factors.forEach((el, i) => checkLayerElement(el, `factors[${i}]`, FACTOR_ID_RE, factorIds));
+  factors.forEach((el, i) => checkLayerElement(el, `factors[${i}]`, FACTOR_OR_DRIVER_ID_RE, factorIds));
   goals.forEach((el, i) => checkLayerElement(el, `goals[${i}]`, GOAL_ID_RE, goalIds));
   changes.forEach((el, i) => checkLayerElement(el, `changes[${i}]`, CHANGE_ID_RE, changeIds));
   activities.forEach((el, i) => checkLayerElement(el, `activities[${i}]`, ACTIVITY_ID_RE, activityIds));
@@ -229,13 +231,13 @@ export function parseCanonicalFGCA(input: unknown): CanonicalFGCAResult {
   }
 
   // Layer entries (internal form).
-  const internalFactors: FactorItem[] = factors.map((el) => ({
+  const internalFactors: DriverItem[] = factors.map((el) => ({
     id: intId(String(el!['id'])),
     name: String(el!['name'] ?? ''),
   }));
 
   const internalGoals: GoalItem[] = goals.map((el, i) => {
-    const refIds = checkRefArray(el!, 'factors', factorIds, FACTOR_ID_RE, 'FGCA-008', `goals[${i}]`);
+    const refIds = checkRefArray(el!, 'factors', factorIds, FACTOR_OR_DRIVER_ID_RE, 'FGCA-008', `goals[${i}]`);
     return {
       id: intId(String(el!['id'])),
       name: String(el!['name'] ?? ''),

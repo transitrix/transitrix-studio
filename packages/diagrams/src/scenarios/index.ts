@@ -1,7 +1,7 @@
 export type {
   ScenarioStatus,
-  FactorRelevance,
-  FactorView,
+  DriverRelevance,
+  DriverView,
   GoalRef,
   CapabilityRef,
   ActivityRef,

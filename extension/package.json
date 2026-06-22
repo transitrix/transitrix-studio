@@ -150,7 +150,7 @@
           "minimum": 20,
           "maximum": 300,
           "default": 160,
-          "description": "FGCA preview: horizontal gap (px) between the Factor/Goal/Change/Activity columns."
+          "description": "FGCA preview: horizontal gap (px) between the Driver/Goal/Change/Activity columns."
         },
         "transitrix.spacing.fgca.verticalGap": {
           "type": "number",
@@ -164,7 +164,7 @@
           "minimum": 20,
           "maximum": 300,
           "default": 160,
-          "description": "FGA preview: horizontal gap (px) between the Factor/Goal/Activity columns."
+          "description": "FGA preview: horizontal gap (px) between the Driver/Goal/Activity columns."
         },
         "transitrix.spacing.fga.verticalGap": {
           "type": "number",

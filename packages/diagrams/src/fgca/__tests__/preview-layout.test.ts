@@ -25,7 +25,7 @@ const doc: FGCAPreviewDoc = {
 describe('layoutFGCAPreview', () => {
   it('lays out all four columns in order (FGCA)', () => {
     const layout = layoutFGCAPreview(doc);
-    expect(layout.columns.map(c => c.col)).toEqual(['factor', 'goal', 'change', 'activity']);
+    expect(layout.columns.map(c => c.col)).toEqual(['driver', 'goal', 'change', 'activity']);
     // 2 factors + 2 goals + 1 change + 2 activities
     expect(layout.nodes).toHaveLength(7);
     expect(layout.width).toBeGreaterThan(0);
@@ -40,7 +40,7 @@ describe('layoutFGCAPreview', () => {
 
   it('hideChanges (FGA) drops the Changes column and links goals to activities', () => {
     const layout = layoutFGCAPreview(doc, { hideChanges: true });
-    expect(layout.columns.map(c => c.col)).toEqual(['factor', 'goal', 'activity']);
+    expect(layout.columns.map(c => c.col)).toEqual(['driver', 'goal', 'activity']);
     // 2 factors + 2 goals + 2 activities
     expect(layout.nodes).toHaveLength(6);
     // F1→G1, F2→G2 (2), G1→A1, G2→A2 (2) = 4
@@ -70,7 +70,7 @@ describe('layoutFGCAPreview', () => {
 
   it('larger rowGap increases the gap between stacked nodes', () => {
     const gapOf = (rowGap: number) => {
-      const factors = layoutFGCAPreview(doc, { rowGap }).nodes.filter(n => n.col === 'factor');
+      const factors = layoutFGCAPreview(doc, { rowGap }).nodes.filter(n => n.col === 'driver');
       return factors[1].y - factors[0].y;
     };
     expect(gapOf(120)).toBeGreaterThan(gapOf(20));
@@ -86,15 +86,15 @@ describe('layoutFGCAPreview', () => {
       // root 10 → factor 1 (referenced by G10), change 20 (goal_id 10),
       // activity 30 (via change 20). G11/F2/A31 are dropped.
       const layout = layoutFGCAPreview(doc, { scope: { mode: 'root', rootGoalId: '10' } });
-      expect(idsOf(layout)).toEqual(new Set(['factor_1', 'goal_10', 'change_20', 'activity_30']));
+      expect(idsOf(layout)).toEqual(new Set(['driver_1', 'goal_10', 'change_20', 'activity_30']));
     });
 
     it("mode 'root' filters factors and activities to those touching the visible goal", () => {
       // root 11 → factor 2, activity 31 (direct goal link); no change touches G11.
       const layout = layoutFGCAPreview(doc, { scope: { mode: 'root', rootGoalId: '11' } });
-      expect(idsOf(layout)).toEqual(new Set(['factor_2', 'goal_11', 'activity_31']));
+      expect(idsOf(layout)).toEqual(new Set(['driver_2', 'goal_11', 'activity_31']));
       // F1, A30, C20 (which only touch the hidden G10) are excluded.
-      expect(layout.nodes.some(n => n.id === 'factor_1')).toBe(false);
+      expect(layout.nodes.some(n => n.id === 'driver_1')).toBe(false);
       expect(layout.nodes.some(n => n.id === 'activity_30')).toBe(false);
     });
 
@@ -112,7 +112,7 @@ describe('layoutFGCAPreview', () => {
         ],
       };
       const layout = layoutFGCAPreview(leveled, { scope: { mode: 'level', maxLevel: 0 } });
-      expect(idsOf(layout)).toEqual(new Set(['factor_1', 'goal_10', 'activity_30']));
+      expect(idsOf(layout)).toEqual(new Set(['driver_1', 'goal_10', 'activity_30']));
     });
 
     it("mode 'root' returns an empty layout when the root is absent", () => {

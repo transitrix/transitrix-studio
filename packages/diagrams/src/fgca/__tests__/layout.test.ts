@@ -9,12 +9,12 @@ beforeAll(() => {
 });
 
 import { buildFGCALayout } from "../layout";
-import type { FactorItem, GoalItem, BdnChangeWithActivities, ActivityItem } from "../types";
+import type { DriverItem, GoalItem, BdnChangeWithActivities, ActivityItem } from "../types";
 import { ALL_FGCA_COLUMNS } from "../types";
 
 const ALL_COLS = new Set(ALL_FGCA_COLUMNS);
 
-const factors: FactorItem[] = [
+const factors: DriverItem[] = [
   { id: 1, name: "Digital growth" },
   { id: 2, name: "Talent shortage" },
 ];
@@ -50,16 +50,16 @@ describe("buildFGCALayout — all columns visible", () => {
 
   it("assigns correct node types", () => {
     const types = nodes.map((n) => n.type);
-    expect(types.filter((t) => t === "fgcaFactor")).toHaveLength(factors.length);
+    expect(types.filter((t) => t === "fgcaDriver")).toHaveLength(factors.length);
     expect(types.filter((t) => t === "fgcaGoal")).toHaveLength(goals.length);
     expect(types.filter((t) => t === "fgcaChange")).toHaveLength(changes.length);
     expect(types.filter((t) => t === "fgcaActivity")).toHaveLength(activities.length);
   });
 
   it("creates Factor→Goal edges", () => {
-    const fgEdges = edges.filter((e) => e.source.startsWith("factor_") && e.target.startsWith("goal_"));
+    const fgEdges = edges.filter((e) => e.source.startsWith("driver_") && e.target.startsWith("goal_"));
     expect(fgEdges).toHaveLength(2);
-    expect(fgEdges.find((e) => e.source === "factor_1" && e.target === "goal_10")).toBeTruthy();
+    expect(fgEdges.find((e) => e.source === "driver_1" && e.target === "goal_10")).toBeTruthy();
   });
 
   it("creates Goal→Change edges", () => {
@@ -85,7 +85,7 @@ describe("buildFGCALayout — all columns visible", () => {
   });
 
   it("encodes F-XXXX label format via id in node data", () => {
-    const factorNode = nodes.find((n) => n.id === "factor_1");
+    const factorNode = nodes.find((n) => n.id === "driver_1");
     expect(String(factorNode?.data.id).padStart(4, "0")).toBe("0001");
   });
 
@@ -95,16 +95,16 @@ describe("buildFGCALayout — all columns visible", () => {
   });
 });
 
-describe("buildFGCALayout — Factor column hidden", () => {
-  const cols = new Set(ALL_FGCA_COLUMNS.filter((c) => c !== "factor"));
+describe("buildFGCALayout — Driver column hidden", () => {
+  const cols = new Set(ALL_FGCA_COLUMNS.filter((c) => c !== "driver"));
   const { nodes, edges } = buildFGCALayout({ factors, goals, changes, activities, visibleColumns: cols });
 
-  it("produces no factor nodes", () => {
-    expect(nodes.filter((n) => n.type === "fgcaFactor")).toHaveLength(0);
+  it("produces no driver nodes", () => {
+    expect(nodes.filter((n) => n.type === "fgcaDriver")).toHaveLength(0);
   });
 
-  it("produces no Factor→Goal edges", () => {
-    expect(edges.filter((e) => e.source.startsWith("factor_"))).toHaveLength(0);
+  it("produces no Driver→Goal edges", () => {
+    expect(edges.filter((e) => e.source.startsWith("driver_"))).toHaveLength(0);
   });
 
   it("still produces Goal and downstream nodes", () => {
@@ -150,7 +150,7 @@ describe("buildFGCALayout — columns are positioned left to right", () => {
   const { nodes } = buildFGCALayout({ factors, goals, changes, activities, visibleColumns: ALL_COLS });
 
   it("factor column x < goal column x", () => {
-    const f = nodes.find((n) => n.type === "fgcaFactor")!;
+    const f = nodes.find((n) => n.type === "fgcaDriver")!;
     const g = nodes.find((n) => n.type === "fgcaGoal")!;
     expect(f.position.x).toBeLessThan(g.position.x);
   });

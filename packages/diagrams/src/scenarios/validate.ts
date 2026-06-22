@@ -1,10 +1,10 @@
-import type { ScenarioStatus, FactorRelevance } from './types.js';
+import type { ScenarioStatus, DriverRelevance } from './types.js';
 import type { ValidationError, ValidationWarning, ValidationResult } from '../validation-types.js';
 
 export type { ValidationError, ValidationWarning, ValidationResult };
 
 const VALID_STATUSES = new Set<ScenarioStatus>(['Draft', 'Active', 'Archived']);
-const VALID_RELEVANCE = new Set<FactorRelevance>(['High', 'Medium', 'Low']);
+const VALID_RELEVANCE = new Set<DriverRelevance>(['High', 'Medium', 'Low']);
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 interface RefSpec {
@@ -84,7 +84,7 @@ export function validateScenario(input: unknown): ValidationResult {
           if (seen.has(fid)) errors.push({ code: 'SCN-013', message: `Duplicate factor_id: "${fid}"` });
           seen.add(fid);
         }
-        if (f['relevance'] !== undefined && !VALID_RELEVANCE.has(f['relevance'] as FactorRelevance)) {
+        if (f['relevance'] !== undefined && !VALID_RELEVANCE.has(f['relevance'] as DriverRelevance)) {
           errors.push({ code: 'SCN-006', message: `${idx}: relevance "${f['relevance']}" must be one of: High, Medium, Low` });
         }
       }

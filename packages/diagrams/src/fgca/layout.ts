@@ -1,7 +1,7 @@
 import type { Node, Edge } from "reactflow";
 import { Position, MarkerType } from "reactflow";
 import type {
-  FactorItem,
+  DriverItem,
   GoalItem,
   BdnChangeWithActivities,
   ActivityItem,
@@ -18,14 +18,14 @@ export const ROW_GAP = 24;
 
 /** Default background colours per column. */
 export const COLUMN_BG: Record<FGCAColumn, string> = {
-  factor: "#fef3c7",
+  driver: "#fef3c7",
   goal: "#e0e7ff",
   change: "#dbeafe",
   activity: "#d4edda",
 };
 
 export interface FGCALayoutInput {
-  factors: FactorItem[];
+  factors: DriverItem[];
   goals: GoalItem[];
   changes: BdnChangeWithActivities[];
   activities: ActivityItem[];
@@ -66,12 +66,12 @@ export function buildFGCALayout({
   const edgeStyle = { strokeWidth: edgeWidth, stroke: edgeColor };
   const baseNodeStyle = { borderColor: nodeBorderColor, borderWidth: nodeBorderWidth, borderStyle: "solid" };
 
-  if (visibleColumns.has("factor")) {
+  if (visibleColumns.has("driver")) {
     factors.forEach((f, i) => {
       nodes.push({
-        id: `factor_${f.id}`,
-        type: "fgcaFactor",
-        position: { x: colX["factor"]!, y: i * (NODE_HEIGHT + ROW_GAP) },
+        id: `driver_${f.id}`,
+        type: "fgcaDriver",
+        position: { x: colX["driver"]!, y: i * (NODE_HEIGHT + ROW_GAP) },
         data: { id: f.id, name: f.name, ...baseNodeStyle },
         sourcePosition: Position.Right,
         targetPosition: Position.Left,
@@ -132,13 +132,13 @@ export function buildFGCALayout({
     });
   }
 
-  // Factor→Goal edges (via embedded factor[] on each goal)
-  if (visibleColumns.has("factor") && visibleColumns.has("goal")) {
+  // Driver→Goal edges (via embedded factor[] on each goal)
+  if (visibleColumns.has("driver") && visibleColumns.has("goal")) {
     goals.forEach((g) => {
       g.factor?.forEach((f) => {
         edges.push({
-          id: `edge_f${f.id}_g${g.id}`,
-          source: `factor_${f.id}`,
+          id: `edge_d${f.id}_g${g.id}`,
+          source: `driver_${f.id}`,
           target: `goal_${g.id}`,
           markerEnd: { type: MarkerType.ArrowClosed },
           type: "smoothstep",

@@ -86,7 +86,9 @@ export function resolveFGCA(
   const changesConf = isObject(vc['changes']) ? vc['changes'] : {};
   const activitiesConf = isObject(vc['activities']) ? vc['activities'] : {};
 
-  const factorElems = collectByNotation(sources.elements, 'factor');
+  const factorElemsLegacy = collectByNotation(sources.elements, 'factor');
+  const factorElemsNew = collectByNotation(sources.elements, 'driver');
+  const factorElems = new Map([...factorElemsLegacy, ...factorElemsNew]);
   const goalElems = collectByNotation(sources.elements, 'goal');
   const changeElems = collectByNotation(sources.elements, 'change');
   const activityElems = collectByNotation(sources.elements, 'activity');

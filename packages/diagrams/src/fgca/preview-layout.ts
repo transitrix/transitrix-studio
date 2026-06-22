@@ -9,7 +9,7 @@
 
 import type { Scope } from '../scope.js';
 
-export type FGCAPreviewColumn = 'factor' | 'goal' | 'change' | 'activity';
+export type FGCAPreviewColumn = 'driver' | 'goal' | 'change' | 'activity';
 
 export interface FGCAPreviewFactor {
   id: number | string;
@@ -144,11 +144,11 @@ export function layoutFGCAPreview(
 
   const colStride = FGCA_NODE_W + colGap;
   const cols: FGCAPreviewColumn[] = hideChanges
-    ? ['factor', 'goal', 'activity']
-    : ['factor', 'goal', 'change', 'activity'];
+    ? ['driver', 'goal', 'activity']
+    : ['driver', 'goal', 'change', 'activity'];
   const changes = doc.changes ?? [];
   const colItems: Record<FGCAPreviewColumn, Array<{ id: string; label: string }>> = {
-    factor:   doc.factors.map(f => ({ id: `factor_${f.id}`,     label: f.name })),
+    driver:   doc.factors.map(f => ({ id: `driver_${f.id}`,     label: f.name })),
     goal:     doc.goals.map(g   => ({ id: `goal_${g.id}`,       label: g.name })),
     change:   changes.map(c     => ({ id: `change_${c.id}`,     label: c.name })),
     activity: doc.activities.map(a => ({ id: `activity_${a.id}`, label: a.name })),
@@ -180,7 +180,7 @@ export function layoutFGCAPreview(
   }
 
   for (const g of doc.goals) {
-    for (const f of (g.factor ?? [])) addEdge(`factor_${f.id}`, `goal_${g.id}`);
+    for (const f of (g.factor ?? [])) addEdge(`driver_${f.id}`, `goal_${g.id}`);
   }
   if (hideChanges) {
     const connectedViaChange = new Set<number | string>();

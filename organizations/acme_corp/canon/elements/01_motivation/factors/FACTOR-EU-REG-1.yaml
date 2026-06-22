@@ -8,7 +8,7 @@
 # a moving timeline) would live on ASSESSMENT records that assesses this FACTOR.
 # `category: legal` per PESTLE — binding regulations / law.
 
-notation: factor
+notation: driver
 id: FACTOR-EU-REG-1
 name: "EU regulatory window for market entry"
 type: external

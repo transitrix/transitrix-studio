@@ -1,9 +1,9 @@
 export type ScenarioStatus = 'Draft' | 'Active' | 'Archived';
-export type FactorRelevance = 'High' | 'Medium' | 'Low';
+export type DriverRelevance = 'High' | 'Medium' | 'Low';
 
-export interface FactorView {
+export interface DriverView {
   factor_id: string;
-  relevance?: FactorRelevance;
+  relevance?: DriverRelevance;
   impact?: string;
 }
 
@@ -21,7 +21,7 @@ export interface ScenarioHeader {
   status: ScenarioStatus;
   created_at?: string;
   vision?: string;
-  factors_view?: FactorView[];
+  factors_view?: DriverView[];
   goals?: GoalRef[];
   capabilities?: CapabilityRef[];
   activities?: ActivityRef[];

@@ -67,7 +67,7 @@ export async function scanComplianceCanon(): Promise<ScannedCanon> {
 const SILENT_NOTATIONS = new Set([
   // Element notations
   'activity', 'actor', 'assessment', 'business_object', 'change', 'constraint',
-  'equipment', 'factor', 'goal', 'registry', 'relation', 'role', 'rule',
+  'driver', 'equipment', 'factor', 'goal', 'registry', 'relation', 'role', 'rule',
   'stakeholder', 'target-state',
   // View / diagram notations
   'activities', 'activity-card', 'applications', 'blocks', 'bpmn',
