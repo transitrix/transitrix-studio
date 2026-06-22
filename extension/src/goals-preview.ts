@@ -7,12 +7,12 @@ import { TITLE_BLOCK_H, titleBlockSvg, todayIso } from './svg-title-block.js';
 import {
   layoutGoalTree,
   type GoalTreeLayout,
-} from '../../packages/diagrams/src/goals/index.js';
-import { renderGoalsLayoutSvg } from '../../packages/diagrams/src/webview/render-goals.js';
-import { parseCanonicalGoals } from '../../packages/diagrams/src/goals/parse-canonical.js';
-import { coerceDatesToIsoStrings } from '../../packages/diagrams/src/yaml-normalize.js';
-import { DEFAULT_EDGE_CURVATURE } from '../../packages/diagrams/src/edge-path.js';
-import { checkScopeRoot } from '../../packages/diagrams/src/scope.js';
+} from '@transitrix/diagrams/goals';
+import { renderGoalsLayoutSvg } from '@transitrix/diagrams/webview/render-goals.js';
+import { parseCanonicalGoals } from '@transitrix/diagrams/goals/parse-canonical.js';
+import { coerceDatesToIsoStrings } from '@transitrix/diagrams/yaml-normalize.js';
+import { DEFAULT_EDGE_CURVATURE } from '@transitrix/diagrams/edge-path.js';
+import { checkScopeRoot } from '@transitrix/diagrams/scope.js';
 import { readSpacing, readCurvature, readEntryCurvature, readScope, applyControlMessage, OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND, OPEN_SCOPE_SETTINGS_COMMAND } from './spacing-config.js';
 import { genNonce, buildControlsPanel, buildControlsScript, type ControlsModel, type ScopeGoalOption } from './preview-controls.js';
 

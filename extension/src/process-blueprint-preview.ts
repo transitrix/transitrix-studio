@@ -13,13 +13,13 @@ import {
   type ProcessBlueprintFile,
   type ProcessBlueprintLayout,
   type RowId,
-} from '../../packages/diagrams/src/process-blueprint/index.js';
-import { coerceDatesToIsoStrings } from '../../packages/diagrams/src/yaml-normalize.js';
+} from '@transitrix/diagrams/process-blueprint';
+import { coerceDatesToIsoStrings } from '@transitrix/diagrams/yaml-normalize.js';
 import { savePngFromSvg, copyPngFromSvg } from './png-export.js';
 import { scanComplianceCanon, type ScannedCanon } from './compliance-scan.js';
 import { genNonce } from './preview-controls.js';
-import { escXml } from '../../packages/diagrams/src/webview/render-util.js';
-import { renderProcessBlueprintBody } from '../../packages/diagrams/src/webview/render-process-blueprint.js';
+import { escXml } from '@transitrix/diagrams/webview/render-util.js';
+import { renderProcessBlueprintBody } from '@transitrix/diagrams/webview/render-process-blueprint.js';
 
 /**
  * Wrap the shared canonical blueprint body (`renderProcessBlueprintBody`) with

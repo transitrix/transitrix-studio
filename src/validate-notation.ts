@@ -23,21 +23,21 @@
 
 import yaml from 'js-yaml';
 import type { ValidationReport, ValidationFinding } from './validator-types.js';
-import { coerceDatesToIsoStrings } from '../packages/diagrams/src/yaml-normalize.js';
-import { parseCanonicalGoals } from '../packages/diagrams/src/goals/parse-canonical.js';
+import { coerceDatesToIsoStrings } from '@transitrix/diagrams/yaml-normalize.js';
+import { parseCanonicalGoals } from '@transitrix/diagrams/goals/parse-canonical.js';
 import {
   parseCanonicalFGCA,
   parseCanonicalFGA,
-} from '../packages/diagrams/src/fgca/parse-canonical.js';
-import { validateActivities } from '../packages/diagrams/src/activities/validate.js';
-import { validateActivityCard } from '../packages/diagrams/src/activity-card/validate.js';
-import { validateProcessBlueprint } from '../packages/diagrams/src/process-blueprint/validate.js';
-import { validateNestedBlocks } from '../packages/diagrams/src/blocks/validate.js';
-import { validateApplicationsCatalogue } from '../packages/diagrams/src/applications/validate.js';
-import { validateCapabilityMap } from '../packages/diagrams/src/capability-map/validate.js';
-import { validateProductsCatalogue } from '../packages/diagrams/src/products/validate.js';
-import { validateScenario } from '../packages/diagrams/src/scenarios/validate.js';
-import { validateProcessMap } from '../packages/diagrams/src/process-map/validate.js';
+} from '@transitrix/diagrams/fgca/parse-canonical.js';
+import { validateActivities } from '@transitrix/diagrams/activities/validate.js';
+import { validateActivityCard } from '@transitrix/diagrams/activity-card/validate.js';
+import { validateProcessBlueprint } from '@transitrix/diagrams/process-blueprint/validate.js';
+import { validateNestedBlocks } from '@transitrix/diagrams/blocks/validate.js';
+import { validateApplicationsCatalogue } from '@transitrix/diagrams/applications/validate.js';
+import { validateCapabilityMap } from '@transitrix/diagrams/capability-map/validate.js';
+import { validateProductsCatalogue } from '@transitrix/diagrams/products/validate.js';
+import { validateScenario } from '@transitrix/diagrams/scenarios/validate.js';
+import { validateProcessMap } from '@transitrix/diagrams/process-map/validate.js';
 
 /** The shape every notation validator returns: code/message findings split into
  *  blocking errors and advisory warnings. The concrete result types carry extra

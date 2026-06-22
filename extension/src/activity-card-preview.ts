@@ -10,9 +10,9 @@ import {
   layoutActivityCard,
   type ActivityCardDoc,
   type ActivityCardLayout,
-} from '../../packages/diagrams/src/activity-card/index.js';
-import { coerceDatesToIsoStrings } from '../../packages/diagrams/src/yaml-normalize.js';
-import { renderActivityCardBody } from '../../packages/diagrams/src/webview/render-activity-card.js';
+} from '@transitrix/diagrams/activity-card';
+import { coerceDatesToIsoStrings } from '@transitrix/diagrams/yaml-normalize.js';
+import { renderActivityCardBody } from '@transitrix/diagrams/webview/render-activity-card.js';
 import {
   type CanonDocs,
   findCanonRoot,

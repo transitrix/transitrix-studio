@@ -1,23 +1,23 @@
 import * as path from 'node:path';
-import { escXml } from '../../packages/diagrams/src/webview/render-util.js';
+import { escXml } from '@transitrix/diagrams/webview/render-util.js';
 import * as vscode from 'vscode';
 import yaml from 'js-yaml';
 import { buildDiagramFrame, prepareSvgForExport, type ThemeId, OPEN_THEME_COMMAND } from './diagram-frame.js';
 import { TITLE_BLOCK_H, titleBlockSvg, todayIso } from './svg-title-block.js';
 import { loadCanon, findCanonRoot, isUnderCanon, type CanonDocs } from './canon-loader.js';
-import { parseCanonicalFGCA, parseCanonicalFGA } from '../../packages/diagrams/src/fgca/parse-canonical.js';
-import { resolveFGCA, isFGCAViewDoc } from '../../packages/diagrams/src/fgca/resolver.js';
+import { parseCanonicalFGCA, parseCanonicalFGA } from '@transitrix/diagrams/fgca/parse-canonical.js';
+import { resolveFGCA, isFGCAViewDoc } from '@transitrix/diagrams/fgca/resolver.js';
 import {
   layoutFGCAPreview,
   FGCA_PAD as PAD,
   FGCA_DEFAULT_COL_GAP,
   FGCA_DEFAULT_ROW_GAP,
-} from '../../packages/diagrams/src/fgca/preview-layout.js';
-import { DEFAULT_EDGE_CURVATURE } from '../../packages/diagrams/src/edge-path.js';
-import { renderFgcaBody } from '../../packages/diagrams/src/webview/render-fgca.js';
-import { buildChainTable, type ChainTable, type ChainColumn } from '../../packages/diagrams/src/fgca/chain-table.js';
-import { coerceDatesToIsoStrings } from '../../packages/diagrams/src/yaml-normalize.js';
-import { checkScopeRoot, type Scope } from '../../packages/diagrams/src/scope.js';
+} from '@transitrix/diagrams/fgca/preview-layout.js';
+import { DEFAULT_EDGE_CURVATURE } from '@transitrix/diagrams/edge-path.js';
+import { renderFgcaBody } from '@transitrix/diagrams/webview/render-fgca.js';
+import { buildChainTable, type ChainTable, type ChainColumn } from '@transitrix/diagrams/fgca/chain-table.js';
+import { coerceDatesToIsoStrings } from '@transitrix/diagrams/yaml-normalize.js';
+import { checkScopeRoot, type Scope } from '@transitrix/diagrams/scope.js';
 import { savePngFromSvg, copyPngFromSvg } from './png-export.js';
 import { readSpacing, readCurvature, readEntryCurvature, readScope, readView, applyControlMessage, OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND, OPEN_SCOPE_SETTINGS_COMMAND } from './spacing-config.js';
 import { genNonce, buildControlsPanel, buildControlsScript, buildViewToggle, buildCaptureButton, buildTimelineStrip, type ControlsModel, type ScopeGoalOption, type SnapshotMarker, type SnapshotMessage } from './preview-controls.js';

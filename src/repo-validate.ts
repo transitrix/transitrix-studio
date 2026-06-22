@@ -18,7 +18,7 @@ import {
   type RepoDoc,
   type RepoFinding,
   type RepoModelInput,
-} from '../packages/diagrams/src/repo-validate/index.js';
+} from '@transitrix/diagrams/repo-validate';
 import {
   validateNotationDoc,
   isFileValidatableNotation,

@@ -1,9 +1,9 @@
-import { escHtml } from '../../packages/diagrams/src/webview/render-util.js';
+import { escHtml } from '@transitrix/diagrams/webview/render-util.js';
 import * as vscode from 'vscode';
 import yaml from 'js-yaml';
 import { buildDiagramFrame, extractDiagramMeta, CATALOGUE_STYLES, type ThemeId, OPEN_THEME_COMMAND } from './diagram-frame.js';
-import { coerceDatesToIsoStrings } from '../../packages/diagrams/src/yaml-normalize.js';
-import { validateScenario } from '../../packages/diagrams/src/scenarios/validate.js';
+import { coerceDatesToIsoStrings } from '@transitrix/diagrams/yaml-normalize.js';
+import { validateScenario } from '@transitrix/diagrams/scenarios/validate.js';
 import { StaticPreview } from './static-preview.js';
 
 // ── Types (used by render helpers) ───────────────────────────────────────────

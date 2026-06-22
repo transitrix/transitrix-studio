@@ -1,9 +1,9 @@
-import { generateWebviewCss, type ThemeId } from '../../packages/diagrams/src/theme/index.js';
-import { escXml } from '../../packages/diagrams/src/webview/render-util.js';
+import { generateWebviewCss, type ThemeId } from '@transitrix/diagrams/theme';
+import { escXml } from '@transitrix/diagrams/webview/render-util.js';
 export { escXml };
-import type { AssertionStatus } from '../../packages/diagrams/src/assertion/types.js';
-import type { ViewScore } from '../../packages/diagrams/src/confidence/index.js';
-import { computeDeadlineStatus } from '../../packages/diagrams/src/compliance/impact.js';
+import type { AssertionStatus } from '@transitrix/diagrams/assertion/types.js';
+import type { ViewScore } from '@transitrix/diagrams/confidence';
+import { computeDeadlineStatus } from '@transitrix/diagrams/compliance/impact.js';
 import { ERROR_BLOCK_CSS, buildErrorHtml, WARN_BLOCK_CSS, buildWarnHtml } from './diagram-frame.js';
 
 // Shared HTML rendering for the script-less compliance views — the single-law

@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import type { Scope } from '../../packages/diagrams/src/scope.js';
+import type { Scope } from '@transitrix/diagrams/scope.js';
 import type { ControlMessage, PreviewView } from './preview-controls.js';
 
 // Per-notation spacing controls (vkgeorgia/strategy#75). PR1 persists the

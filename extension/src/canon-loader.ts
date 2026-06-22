@@ -1,7 +1,7 @@
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 import yaml from 'js-yaml';
-import { coerceDatesToIsoStrings } from '../../packages/diagrams/src/yaml-normalize.js';
+import { coerceDatesToIsoStrings } from '@transitrix/diagrams/yaml-normalize.js';
 
 // Shared filesystem layer for the canon/ element + relation store.
 //
