@@ -8,7 +8,7 @@
 // It is still type-checked by `npm run compile` (the root program has no
 // rootDir restriction).
 
-import { writeFileSync, readFileSync, readdirSync, mkdtempSync, rmSync } from 'node:fs';
+import { writeFileSync, readFileSync, readdirSync, statSync, mkdtempSync, rmSync } from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
 import { spawnSync } from 'node:child_process';
@@ -32,6 +32,42 @@ function flagValue(argv: string[], name: string): string | undefined {
 }
 
 /**
+ * Per-file size cap for the recursive YAML scan. Compliance docs and
+ * view-configs are small (KBs); a multi-megabyte file under `--root` is either
+ * a mistake or hostile input, and reading it fully into memory + parsing with
+ * js-yaml would be an unbounded cost. Files above this cap are skipped with a
+ * stderr note rather than read.
+ */
+export const MAX_YAML_BYTES = 2 * 1024 * 1024; // 2 MiB
+
+/** Directories never worth descending into during the canon scan. */
+const IGNORED_SCAN_DIRS = new Set(['node_modules', '.git']);
+
+/** True for `*.yaml`/`*.yml` paths that don't live under an ignored directory. */
+function isScannableYaml(rel: string): boolean {
+  if (!/\.ya?ml$/i.test(rel)) return false;
+  return !rel.split(/[\\/]/).some(seg => IGNORED_SCAN_DIRS.has(seg));
+}
+
+/**
+ * Read + parse a YAML file, skipping (with a stderr note) anything larger than
+ * `maxBytes`. Returns `undefined` on a skip or any read/parse failure, so
+ * callers can simply ignore it.
+ */
+export function readYamlBounded(filePath: string, maxBytes: number = MAX_YAML_BYTES): unknown {
+  try {
+    const { size } = statSync(filePath);
+    if (size > maxBytes) {
+      console.error(`[export-compliance] skipping ${filePath}: ${size} bytes exceeds ${maxBytes}-byte cap`);
+      return undefined;
+    }
+    return yaml.load(readFileSync(filePath, 'utf-8'));
+  } catch {
+    return undefined;
+  }
+}
+
+/**
  * CV-6: loads a named view-config YAML from a registry directory.
  * Tries `<registry>/<id>.compliance-impact.view.yaml` then `<registry>/<id>.yaml`.
  * Falls back to scanning `<root>` for a file whose `id` field matches.
@@ -50,26 +86,20 @@ function loadViewConfigRaw(registry: string | undefined, reportId: string, root:
     path.join(root, `${reportId}.yaml`),
   );
   for (const candidate of candidates) {
-    try {
-      const raw = yaml.load(readFileSync(candidate, 'utf-8'));
-      return raw;
-    } catch { /* try next */ }
+    const raw = readYamlBounded(candidate);
+    if (raw !== undefined) return raw;
   }
   // Scan root for a view-config file whose id matches
   try {
     const entries = readdirSync(root, { recursive: true }) as string[];
     for (const rel of entries) {
-      if (typeof rel !== 'string') continue;
-      if (!/\.ya?ml$/i.test(rel)) continue;
-      if (rel.split(/[\\/]/).includes('node_modules')) continue;
-      try {
-        const raw = yaml.load(readFileSync(path.join(root, rel), 'utf-8'));
-        if (raw && typeof raw === 'object') {
-          const r = raw as Record<string, unknown>;
-          const inner = r.view && typeof r.view === 'object' ? r.view as Record<string, unknown> : r;
-          if (inner.id === reportId) return raw;
-        }
-      } catch { /* skip */ }
+      if (typeof rel !== 'string' || !isScannableYaml(rel)) continue;
+      const raw = readYamlBounded(path.join(root, rel));
+      if (raw && typeof raw === 'object') {
+        const r = raw as Record<string, unknown>;
+        const inner = r.view && typeof r.view === 'object' ? r.view as Record<string, unknown> : r;
+        if (inner.id === reportId) return raw;
+      }
     }
   } catch { /* no root scan */ }
   return null;
@@ -86,14 +116,9 @@ function scanCanonFs(root: string): ComplianceCanon {
     return canon;
   }
   for (const rel of entries) {
-    if (typeof rel !== 'string' || !/\.ya?ml$/i.test(rel)) continue;
-    if (rel.split(/[\\/]/).includes('node_modules')) continue;
-    let parsed: unknown;
-    try {
-      parsed = yaml.load(readFileSync(path.join(root, rel), 'utf-8'));
-    } catch {
-      continue;
-    }
+    if (typeof rel !== 'string' || !isScannableYaml(rel)) continue;
+    const parsed = readYamlBounded(path.join(root, rel));
+    if (parsed === undefined) continue;
     ingestComplianceDoc(canon, parsed);
   }
   return canon;
