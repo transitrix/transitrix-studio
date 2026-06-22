@@ -181,7 +181,7 @@ export class CervinPreview {
 <head>
   <meta charset="UTF-8" />
   <meta http-equiv="Content-Security-Policy"
-    content="default-src 'none'; style-src ${cspSource} 'unsafe-inline'; script-src ${cspSource}; font-src ${cspSource}; img-src ${cspSource} blob: data:; connect-src ${cspSource} https:;">
+    content="default-src 'none'; style-src ${cspSource} 'unsafe-inline'; script-src ${cspSource}; font-src ${cspSource}; img-src ${cspSource} blob: data:; connect-src ${cspSource};">
   <link rel="stylesheet" href="${cssDiagram}" />
   <link rel="stylesheet" href="${cssBpmn}" />
   <style>
