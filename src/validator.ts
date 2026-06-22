@@ -1,4 +1,5 @@
 import type { ProcessIr } from './ir.js'
+import { INTERMEDIATE_EVENT_TYPES } from './ir.js'
 import type {
   ValidationFinding,
   ValidationReport,
@@ -559,13 +560,13 @@ const rule_SF_005_ConditionSourceRestriction: ValidationRule = {
     for (const flow of ir.flows) {
       if (flow.condition) {
         const sourceEl = elementMap.get(flow.from)
-        if (sourceEl && !['task', 'userTask', 'serviceTask', 'exclusiveGateway'].includes(sourceEl.type)) {
+        if (sourceEl && !['task', 'userTask', 'serviceTask', 'exclusiveGateway', 'inclusiveGateway'].includes(sourceEl.type)) {
           findings.push({
             ruleId: 'SF-005',
             severity: 'error',
             elementId: flow.id,
             message: `Flow "${flow.id}" with condition cannot originate from "${sourceEl.type}"`,
-            hint: 'Condition expressions are only allowed on flows from Activities (task, userTask, serviceTask) or XOR gateways',
+            hint: 'Condition expressions are only allowed on flows from Activities (task, userTask, serviceTask) or XOR/inclusive gateways',
             docUrl: 'docs/validation.md#sf-005',
           })
         }
@@ -591,13 +592,13 @@ const rule_SF_006_DefaultFlowSourceRestriction: ValidationRule = {
     for (const flow of ir.flows) {
       if (flow.default) {
         const sourceEl = elementMap.get(flow.from)
-        if (sourceEl && !['task', 'userTask', 'serviceTask', 'exclusiveGateway'].includes(sourceEl.type)) {
+        if (sourceEl && !['task', 'userTask', 'serviceTask', 'exclusiveGateway', 'inclusiveGateway'].includes(sourceEl.type)) {
           findings.push({
             ruleId: 'SF-006',
             severity: 'error',
             elementId: flow.id,
             message: `Flow "${flow.id}" marked as default cannot originate from "${sourceEl.type}"`,
-            hint: 'Default flow marker is only allowed on flows from Activities (task, userTask, serviceTask) or XOR gateways',
+            hint: 'Default flow marker is only allowed on flows from Activities (task, userTask, serviceTask) or XOR/inclusive gateways',
             docUrl: 'docs/validation.md#sf-006',
           })
         }
@@ -757,6 +758,55 @@ const rule_GW_AND_004_NoConditionsOnParallelSplit: ValidationRule = {
 validator.register(rule_GW_XOR_001_SingleInSingleOutForbidden)
 validator.register(rule_GW_XOR_002_SplitConstraints)
 validator.register(rule_GW_AND_004_NoConditionsOnParallelSplit)
+
+// ============================================================================
+// Intermediate Event Rules (IE-NNN)
+// ============================================================================
+
+/**
+ * IE-001: Intermediate (catch) events must have at least one incoming and one
+ * outgoing flow. They sit mid-flow, so a missing endpoint means the token is
+ * stranded — distinct from start/end events which are intentionally one-sided.
+ */
+const rule_IE_001_IntermediateConnectivity: ValidationRule = {
+  ruleId: 'IE-001',
+  severity: 'error',
+  description: 'Intermediate events must have at least one incoming and one outgoing flow',
+  validate(ir: ProcessIr): ValidationFinding[] {
+    const intermediateEvents = ir.lanes
+      .flatMap((lane) => lane.elements)
+      .filter((el) => INTERMEDIATE_EVENT_TYPES.has(el.type))
+
+    const findings: ValidationFinding[] = []
+    for (const event of intermediateEvents) {
+      const incoming = ir.flows.filter((flow) => flow.to === event.id).length
+      const outgoing = ir.flows.filter((flow) => flow.from === event.id).length
+
+      if (incoming === 0 || outgoing === 0) {
+        const issues: string[] = []
+        if (incoming === 0) issues.push('no incoming')
+        if (outgoing === 0) issues.push('no outgoing')
+        findings.push({
+          ruleId: 'IE-001',
+          severity: 'error',
+          elementId: event.id,
+          message: `Intermediate event "${event.name || event.id}" must have incoming and outgoing flows (${issues.join(', ')})`,
+          hint:
+            incoming === 0 && outgoing === 0
+              ? 'Connect this intermediate event to both a predecessor and successor'
+              : incoming === 0
+                ? 'Connect a flow from the previous element to this intermediate event'
+                : 'Connect a flow from this intermediate event to the next element',
+          docUrl: 'docs/validation.md#ie-001',
+        })
+      }
+    }
+    return findings
+  },
+}
+
+// Register intermediate event rules
+validator.register(rule_IE_001_IntermediateConnectivity)
 
 // ============================================================================
 // Anti-pattern Warning Rules (RD-107 onwards)

@@ -92,7 +92,10 @@
             "userTask",
             "serviceTask",
             "exclusiveGateway",
-            "parallelGateway"
+            "parallelGateway",
+            "inclusiveGateway",
+            "intermediateMessageEvent",
+            "intermediateTimerEvent"
           ]
         },
         "name": { "type": "string" }
@@ -100,7 +103,16 @@
       "allOf": [
         {
           "if": {
-            "properties": { "type": { "enum": ["startEvent", "endEvent"] } }
+            "properties": {
+              "type": {
+                "enum": [
+                  "startEvent",
+                  "endEvent",
+                  "intermediateMessageEvent",
+                  "intermediateTimerEvent"
+                ]
+              }
+            }
           },
           "then": { "properties": { "name": {} } },
           "else": {

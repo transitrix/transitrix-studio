@@ -1152,3 +1152,85 @@ describe('Validator', () => {
       expect(report.summary.infoCount).toBe(0)
     })
   })
+
+describe('Extended subset rules (P0a)', () => {
+  test('SF-005 allows condition on flow from inclusive gateway', () => {
+    const ir: ProcessIr = {
+      id: 't', name: 'T', poolId: 'p1', poolName: 'P',
+      lanes: [{
+        id: 'l1', name: 'L',
+        elements: [
+          { id: 's1', name: 'S', type: 'startEvent', poolId: 'p1', laneId: 'l1' },
+          { id: 'ig', name: 'Split', type: 'inclusiveGateway', poolId: 'p1', laneId: 'l1' },
+          { id: 'e1', name: 'E', type: 'endEvent', poolId: 'p1', laneId: 'l1' },
+        ],
+      }],
+      flows: [
+        { id: 'f1', from: 's1', to: 'ig' },
+        { id: 'f2', from: 'ig', to: 'e1', condition: 'needsIt' },
+      ],
+    }
+    const report = validateProcess(ir, { enabledRules: new Set(['SF-005']) })
+    expect(report.findings.filter(f => f.ruleId === 'SF-005')).toHaveLength(0)
+  })
+
+  test('SF-006 allows default flow from inclusive gateway', () => {
+    const ir: ProcessIr = {
+      id: 't', name: 'T', poolId: 'p1', poolName: 'P',
+      lanes: [{
+        id: 'l1', name: 'L',
+        elements: [
+          { id: 's1', name: 'S', type: 'startEvent', poolId: 'p1', laneId: 'l1' },
+          { id: 'ig', name: 'Split', type: 'inclusiveGateway', poolId: 'p1', laneId: 'l1' },
+          { id: 'e1', name: 'E', type: 'endEvent', poolId: 'p1', laneId: 'l1' },
+        ],
+      }],
+      flows: [
+        { id: 'f1', from: 's1', to: 'ig' },
+        { id: 'f2', from: 'ig', to: 'e1', default: true },
+      ],
+    }
+    const report = validateProcess(ir, { enabledRules: new Set(['SF-006']) })
+    expect(report.findings.filter(f => f.ruleId === 'SF-006')).toHaveLength(0)
+  })
+
+  test('IE-001 passes when intermediate event has incoming and outgoing', () => {
+    const ir: ProcessIr = {
+      id: 't', name: 'T', poolId: 'p1', poolName: 'P',
+      lanes: [{
+        id: 'l1', name: 'L',
+        elements: [
+          { id: 's1', name: 'S', type: 'startEvent', poolId: 'p1', laneId: 'l1' },
+          { id: 'm1', name: 'Await', type: 'intermediateMessageEvent', poolId: 'p1', laneId: 'l1' },
+          { id: 'e1', name: 'E', type: 'endEvent', poolId: 'p1', laneId: 'l1' },
+        ],
+      }],
+      flows: [
+        { id: 'f1', from: 's1', to: 'm1' },
+        { id: 'f2', from: 'm1', to: 'e1' },
+      ],
+    }
+    const report = validateProcess(ir, { enabledRules: new Set(['IE-001']) })
+    expect(report.findings.filter(f => f.ruleId === 'IE-001')).toHaveLength(0)
+  })
+
+  test('IE-001 fails when intermediate event has no outgoing', () => {
+    const ir: ProcessIr = {
+      id: 't', name: 'T', poolId: 'p1', poolName: 'P',
+      lanes: [{
+        id: 'l1', name: 'L',
+        elements: [
+          { id: 's1', name: 'S', type: 'startEvent', poolId: 'p1', laneId: 'l1' },
+          { id: 'tm', name: 'Wait', type: 'intermediateTimerEvent', poolId: 'p1', laneId: 'l1' },
+        ],
+      }],
+      flows: [
+        { id: 'f1', from: 's1', to: 'tm' },
+      ],
+    }
+    const report = validateProcess(ir, { enabledRules: new Set(['IE-001']) })
+    const findings = report.findings.filter(f => f.ruleId === 'IE-001')
+    expect(findings).toHaveLength(1)
+    expect(findings[0].message).toMatch(/no outgoing/)
+  })
+})
