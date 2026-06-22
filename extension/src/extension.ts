@@ -4,6 +4,7 @@ import * as vscode from 'vscode';
 
 import type { CompileFn } from './preview.js';
 import { CervinPreview } from './preview.js';
+import { ProcessPreview, type ProcessLayoutFn } from './process-preview.js';
 import { GoalsPreview } from './goals-preview.js';
 import { FGCAPreview, FGAPreview } from './fgca-preview.js';
 import { ActivitiesPreview } from './activities-preview.js';
@@ -113,6 +114,22 @@ async function loadCompiler(ext: vscode.ExtensionContext): Promise<CompileFn> {
   };
 }
 
+async function loadProcessLayoutFn(ext: vscode.ExtensionContext): Promise<ProcessLayoutFn> {
+  const compilerPath = path.join(ext.extensionPath, 'compiler', 'compiler.js');
+  const compilerHref = pathToFileURL(compilerPath).href;
+  // Node.js module cache means this import() re-uses the already-loaded module
+  // when loadCompiler() has run first — no double-load overhead.
+  const mod = (await import(compilerHref)) as {
+    compileTransitrixYamlWithLayout: (yaml: string) => Promise<{ layout: unknown; validation: ValidationReport }>;
+  };
+  return async (yaml: string) => {
+    const result = await mod.compileTransitrixYamlWithLayout(yaml);
+    // LayoutIr is structurally compatible with ProcessDiagramLayout — safe cast.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return { layout: result.layout as any, validation: result.validation };
+  };
+}
+
 function notYet(label: string): void {
   void vscode.window.showInformationMessage(
     `${label} export isn't available for the BPMN preview yet. ` +
@@ -169,6 +186,21 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const preview = new CervinPreview(context.extensionUri, (yaml: string) =>
     compiler().then((c) => c(yaml)),
   );
+
+  let processLayoutPromise: Promise<ProcessLayoutFn> | undefined;
+  function processLayoutFn(): Promise<ProcessLayoutFn> {
+    if (!processLayoutPromise) {
+      processLayoutPromise = loadProcessLayoutFn(context).catch((err) => {
+        processLayoutPromise = undefined;
+        throw err;
+      });
+    }
+    return processLayoutPromise;
+  }
+  const processPreview = new ProcessPreview((yaml: string) =>
+    processLayoutFn().then((fn) => fn(yaml)),
+  );
+
   const goalsPreview = new GoalsPreview(context.extensionUri);
   const fgcaPreview = new FGCAPreview(context.extensionUri);
   const fgaPreview = new FGAPreview(context.extensionUri);
@@ -197,7 +229,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       );
       return;
     }
-    await preview.showOrReveal(doc);
+    const renderer = vscode.workspace.getConfiguration('transitrix').get<string>('bpmnRenderer', 'bpmn-io');
+    if (renderer === 'custom') {
+      await processPreview.showOrReveal(doc);
+    } else {
+      await preview.showOrReveal(doc);
+    }
   };
 
   // Command namespaces (intentional split, kept for compatibility):
@@ -487,6 +524,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       if (isCoverageMetricFile(doc)) { void coverageMetricPreview.refreshSaved(doc); return; }
       if (!documentMatchesCervinSource(doc)) return;
       void preview.refreshSaved(doc);
+      void processPreview.refreshSaved(doc);
     }),
     vscode.workspace.onDidOpenTextDocument(async (doc) => {
       if (isGoalsFile(doc)) { await goalsPreview.showOrReveal(doc); return; }
