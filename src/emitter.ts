@@ -1,7 +1,13 @@
 import { create } from 'xmlbuilder2';
 
-import type { FlowElement, LayoutIr } from './ir.js';
+import type { ElementType, FlowElement, LayoutIr } from './ir.js';
 import { transitrixPackageVersion } from './package-version.js';
+
+/** Intermediate catch events emit as `<intermediateCatchEvent>` with a typed event definition child. */
+const INTERMEDIATE_EVENT_DEFINITIONS: Partial<Record<ElementType, string>> = {
+  intermediateMessageEvent: 'messageEventDefinition',
+  intermediateTimerEvent: 'timerEventDefinition',
+};
 
 const BPMN_MODEL = 'http://www.omg.org/spec/BPMN/20100524/MODEL';
 const BPMN_DI = 'http://www.omg.org/spec/BPMN/20100524/DI';
@@ -25,6 +31,11 @@ function appendFlowNode(
   if (el.name) attrs.name = el.name;
   if (defaultFlowMap?.has(el.id)) {
     attrs.default = defaultFlowMap.get(el.id)!;
+  }
+  const eventDefinition = INTERMEDIATE_EVENT_DEFINITIONS[el.type];
+  if (eventDefinition) {
+    parent.ele('intermediateCatchEvent', attrs).ele(eventDefinition);
+    return;
   }
   parent.ele(el.type, attrs);
 }

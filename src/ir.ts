@@ -5,9 +5,22 @@ export type ElementType =
   | 'userTask'
   | 'serviceTask'
   | 'exclusiveGateway'
-  | 'parallelGateway';
+  | 'parallelGateway'
+  | 'inclusiveGateway'
+  | 'intermediateMessageEvent'
+  | 'intermediateTimerEvent';
 
-export const GATEWAY_TYPES = new Set(['exclusiveGateway', 'parallelGateway']);
+export const GATEWAY_TYPES = new Set([
+  'exclusiveGateway',
+  'parallelGateway',
+  'inclusiveGateway',
+]);
+
+/** Intermediate catch events render as a circle and route like ordinary mid-flow nodes. */
+export const INTERMEDIATE_EVENT_TYPES = new Set([
+  'intermediateMessageEvent',
+  'intermediateTimerEvent',
+]);
 
 export interface FlowElement {
   id: string;

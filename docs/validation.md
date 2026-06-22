@@ -406,9 +406,9 @@ Semantic validation for BPMN 2.0 sequence flow constraints, including routing re
 
 ### SF-005: Condition expressions only on Activity or XOR gateway outgoing flows (RD-104)
 - **Severity**: error
-- **Description**: Sequence flows with condition expressions are only allowed when sourced from Activity elements (tasks: task, userTask, serviceTask) or XOR (exclusive) gateways. Conditions on flows from other element types (events, parallel/inclusive gateways, etc.) are not evaluated and indicate a modeling error.
-- **BPMN Rule**: Per BPMN 2.0 specification, conditions are evaluated at split points (XOR gateways and activities with outgoing conditional flows).
-- **Implementation**: For each flow with a condition expression, checks that the source element type is one of: `task`, `userTask`, `serviceTask`, `exclusiveGateway`.
+- **Description**: Sequence flows with condition expressions are only allowed when sourced from Activity elements (tasks: task, userTask, serviceTask) or XOR (exclusive) / inclusive gateways. Conditions on flows from other element types (events, parallel gateways, etc.) are not evaluated and indicate a modeling error.
+- **BPMN Rule**: Per BPMN 2.0 specification, conditions are evaluated at split points (XOR/inclusive gateways and activities with outgoing conditional flows).
+- **Implementation**: For each flow with a condition expression, checks that the source element type is one of: `task`, `userTask`, `serviceTask`, `exclusiveGateway`, `inclusiveGateway`.
 - **Remediation**: Either (a) remove the condition expression from the flow, or (b) ensure the flow originates from an Activity or XOR gateway.
 - **Example Finding**:
   ```json
@@ -423,9 +423,9 @@ Semantic validation for BPMN 2.0 sequence flow constraints, including routing re
 
 ### SF-006: Default flow marker only on Activity or XOR gateway outgoing flows (RD-104)
 - **Severity**: error
-- **Description**: The default flow marker (the flow that routes tokens when no conditions match) is only valid on flows sourced from Activity elements or XOR gateways. Other element types do not have conditional branching semantics.
-- **BPMN Rule**: Per BPMN 2.0, the default attribute is evaluated at split points (XOR gateways and conditional activities).
-- **Implementation**: For each flow marked as default (`flow.default === true`), checks that the source element type is one of: `task`, `userTask`, `serviceTask`, `exclusiveGateway`.
+- **Description**: The default flow marker (the flow that routes tokens when no conditions match) is only valid on flows sourced from Activity elements or XOR / inclusive gateways. Other element types do not have conditional branching semantics.
+- **BPMN Rule**: Per BPMN 2.0, the default attribute is evaluated at split points (XOR/inclusive gateways and conditional activities).
+- **Implementation**: For each flow marked as default (`flow.default === true`), checks that the source element type is one of: `task`, `userTask`, `serviceTask`, `exclusiveGateway`, `inclusiveGateway`.
 - **Remediation**: Remove the default marker from the flow, or move the flow to originate from an Activity or XOR gateway.
 - **Example Finding**:
   ```json
@@ -452,6 +452,27 @@ Semantic validation for BPMN 2.0 sequence flow constraints, including routing re
     "elementId": "flow-conflict",
     "message": "Flow \"flow-conflict\" cannot have both default marker and condition expression",
     "hint": "A flow must be either the default route (default: true) or have a condition, not both"
+  }
+  ```
+
+## Intermediate Event Rules (IE)
+
+Semantic validation for BPMN 2.0 intermediate (catch) events — `intermediateMessageEvent`, `intermediateTimerEvent`.
+
+### IE-001: Intermediate events have incoming and outgoing flows
+- **Severity**: error
+- **Description**: Intermediate catch events sit mid-flow, so they must have at least one incoming and at least one outgoing flow. A missing endpoint strands the token. This is distinct from start events (no incoming) and end events (no outgoing), which are intentionally one-sided.
+- **BPMN Rule**: Per BPMN 2.0, intermediate catch events have exactly one incoming and one outgoing sequence flow in normal (non-boundary) usage.
+- **Implementation**: For each intermediate event, counts incoming and outgoing flows; fails if either is zero.
+- **Remediation**: Connect the intermediate event to both a predecessor and a successor.
+- **Example Finding**:
+  ```json
+  {
+    "ruleId": "IE-001",
+    "severity": "error",
+    "elementId": "wait",
+    "message": "Intermediate event \"Wait\" must have incoming and outgoing flows (no outgoing)",
+    "hint": "Connect a flow from this intermediate event to the next element"
   }
   ```
 

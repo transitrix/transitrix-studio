@@ -158,9 +158,12 @@ export function elkNodeSize(kind: ElementType): Bounds {
   switch (kind) {
     case 'startEvent':
     case 'endEvent':
+    case 'intermediateMessageEvent':
+    case 'intermediateTimerEvent':
       return { x: 0, y: 0, width: 36, height: 36 };
     case 'exclusiveGateway':
     case 'parallelGateway':
+    case 'inclusiveGateway':
       return { x: 0, y: 0, width: 50, height: 50 };
     default:
       return { x: 0, y: 0, width: 100, height: 80 };

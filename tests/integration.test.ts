@@ -1007,6 +1007,99 @@ process:
   });
 });
 
+describe('extended subset — inclusive gateway + intermediate events (P0a)', () => {
+  const extendedYaml = `
+process:
+  id: extended-subset
+  name: Extended Subset
+  pools:
+    - id: pool1
+      name: Pool 1
+      lanes:
+        - id: lane1
+          name: Lane 1
+          elements:
+            - id: start
+              type: startEvent
+              name: Start
+            - id: split
+              type: inclusiveGateway
+              name: Split
+            - id: taskA
+              type: task
+              name: Task A
+            - id: taskB
+              type: task
+              name: Task B
+            - id: join
+              type: inclusiveGateway
+              name: Join
+            - id: notify
+              type: intermediateMessageEvent
+              name: Await message
+            - id: wait
+              type: intermediateTimerEvent
+              name: Wait
+            - id: end
+              type: endEvent
+              name: End
+  flows:
+    - id: f1
+      from: start
+      to: split
+    - id: f2
+      from: split
+      to: taskA
+      condition: 'needsA'
+    - id: f3
+      from: split
+      to: taskB
+      condition: 'needsB'
+    - id: f4
+      from: taskA
+      to: join
+    - id: f5
+      from: taskB
+      to: join
+    - id: f6
+      from: join
+      to: notify
+    - id: f7
+      from: notify
+      to: wait
+    - id: f8
+      from: wait
+      to: end
+`;
+
+  it('parses inclusive gateways and intermediate events into the IR', () => {
+    const ir = parseYamlToIr(extendedYaml);
+    const byId = new Map(ir.lanes.flatMap((l) => l.elements).map((e) => [e.id, e]));
+    expect(byId.get('split')?.type).toBe('inclusiveGateway');
+    expect(byId.get('notify')?.type).toBe('intermediateMessageEvent');
+    expect(byId.get('wait')?.type).toBe('intermediateTimerEvent');
+  });
+
+  it('emits inclusive gateway and intermediate catch events as valid BPMN 2.0', async () => {
+    const xml = await compileTransitrixYaml(extendedYaml);
+    expect(xml).toContain('inclusiveGateway');
+    expect(xml).toContain('intermediateCatchEvent');
+    expect(xml).toContain('messageEventDefinition');
+    expect(xml).toContain('timerEventDefinition');
+
+    const moddle = new BpmnModdle();
+    const { rootElement, warnings } = await moddle.fromXML(xml, 'bpmn:Definitions');
+    expect(rootElement).toBeDefined();
+    expect(warnings ?? []).toEqual([]);
+  });
+
+  it('allows conditional flows out of an inclusive gateway', async () => {
+    const xml = await compileTransitrixYaml(extendedYaml);
+    expect(xml).toContain('sourceRef="split"');
+    expect(xml).toContain('conditionExpression');
+  });
+});
+
 describe('schema consistency (RD-098)', () => {
   it('bpmn-dsl.schema.json is identical in root and extension directories', () => {
     const rootSchema = readFileSync(join(repoRoot, 'schemas', 'bpmn-dsl.schema.json'), 'utf8');
