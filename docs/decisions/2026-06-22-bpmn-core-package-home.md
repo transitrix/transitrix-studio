@@ -1,5 +1,5 @@
 ---
-status: proposed
+status: accepted
 date: 2026-06-22
 scope: transitrix-studio
 supersedes: none
@@ -67,13 +67,22 @@ does not over-promise.
 
 ## Decision
 
-**This ADR records direction only — no code moves here. Status is `proposed`;
-Valerii gates the move and its release timing.**
+**Accepted. This ADR records direction only — no code moves here. Valerii gates
+the move's execution and its release timing.**
 
-Adopt a **dedicated workspace package `@transitrix/bpmn-core`** (under
+Adopt a **dedicated, workspace-only package `@transitrix/bpmn-core`** (under
 `packages/bpmn-core/`) as the home for the BPMN compile/layout/emit/validate
 core, mirroring the structure and packaging conventions of
 `@transitrix/diagrams`.
+
+**Workspace-only — not a published library.** Unlike `@transitrix/diagrams`,
+`@transitrix/bpmn-core` is **not published to npm** and is **not versioned as a
+public library**. It exists purely as the in-repo home for the existing
+bpmn.io (bpmn-js) render path and as the **legacy / compatibility layer** for
+scenarios that require full BPMN 2.0 interoperability (e.g. Camunda
+import/export, should adopters ever request it). The primary render path for new
+process diagrams becomes a custom renderer — see
+[`2026-06-22-custom-process-renderer.md`](2026-06-22-custom-process-renderer.md).
 
 Rationale for a *separate* package rather than folding into
 `@transitrix/diagrams`:
@@ -103,10 +112,14 @@ findings) unchanged.
 
 ## Consequences
 
-- A new published-shape package joins the workspace; its version tracks the
-  methodology release like `@transitrix/diagrams` (the `SCHEMA_VERSION` contract
-  in [`../adr/0003-diagrams-schema-version-contract.md`](../adr/0003-diagrams-schema-version-contract.md)
-  may be extended to cover it).
+- A new **workspace-only** package joins the monorepo. It is not published to
+  npm and carries no public-library version contract — the `SCHEMA_VERSION`
+  contract ([`../adr/0003-diagrams-schema-version-contract.md`](../adr/0003-diagrams-schema-version-contract.md))
+  applies to the methodology-notation library, not to this BPMN tooling layer.
+- A custom cross-functional diagram renderer (see ADR
+  [`2026-06-22-custom-process-renderer.md`](2026-06-22-custom-process-renderer.md))
+  becomes the primary render path for new process diagrams. This package is the
+  fallback for full BPMN 2.0 compatibility only.
 - The extension gains a type-checked dependency on the core: breaking changes
   fail at build time instead of in the installed VSIX.
 - The packaging script still installs runtime deps into `extension/node_modules/`;
