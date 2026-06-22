@@ -1,17 +1,30 @@
 /**
  * VS Code preview panel for the BPMN process notation using the custom SVG
- * emitter from @transitrix/diagrams (custom process renderer programme, P1).
+ * emitter from @transitrix/diagrams (custom process renderer programme, P1–P3).
  *
  * Active when `transitrix.bpmnRenderer` is set to `"custom"`. The default
  * bpmn.io path (CervinPreview) is unaffected.
+ *
+ * P3: migrated to buildDiagramFrame for zoom/pan parity with all other
+ * diagram previews.
  */
 
 import * as path from 'node:path';
 import * as vscode from 'vscode';
-import { renderProcessLayoutSvg, type ProcessDiagramLayout } from '@transitrix/diagrams/webview/render-process.js';
+import {
+  renderProcessLayoutSvg,
+  type ProcessDiagramLayout,
+} from '@transitrix/diagrams/webview/render-process.js';
 import { escXml } from '@transitrix/diagrams/webview/render-util.js';
-import { getBaseResetCss } from '@transitrix/diagrams/theme';
+import {
+  buildDiagramFrame,
+  prepareSvgForExport,
+  OPEN_THEME_COMMAND,
+  type ThemeId,
+} from './diagram-frame.js';
 import type { ValidationReport } from './types.js';
+
+export const SAVE_BPMN_PROCESS_SVG_COMMAND = 'transitrixStudio.saveBpmnProcessAsSvg';
 
 /** Function that parses + lays out a BPMN YAML document. */
 export type ProcessLayoutFn = (yaml: string) => Promise<{
@@ -25,6 +38,7 @@ export class ProcessPreview {
 
   private panel: vscode.WebviewPanel | undefined;
   private trackedUri: string | undefined;
+  private lastSvg = '';
 
   constructor(private readonly layoutFn: ProcessLayoutFn) {}
 
@@ -43,11 +57,16 @@ export class ProcessPreview {
         'processCustomPreview',
         `${this.panelTitle} — ${path.basename(doc.fileName)}`,
         { viewColumn: vscode.ViewColumn.Beside, preserveFocus: false },
-        { enableScripts: false, retainContextWhenHidden: true },
+        {
+          enableScripts: false,
+          enableCommandUris: true,
+          retainContextWhenHidden: true,
+        },
       );
       this.panel.onDidDispose(() => {
         this.panel = undefined;
         this.trackedUri = undefined;
+        this.lastSvg = '';
       });
     }
 
@@ -59,67 +78,61 @@ export class ProcessPreview {
     await this.pushDocument(doc);
   }
 
+  async saveAsSvg(): Promise<void> {
+    if (!this.lastSvg) {
+      vscode.window.showWarningMessage('No diagram rendered yet. Open a *.bpmn.transitrix.yaml file first.');
+      return;
+    }
+    const sourceUri = this.trackedUri ? vscode.Uri.parse(this.trackedUri) : undefined;
+    const stem = sourceUri
+      ? path.basename(sourceUri.fsPath).replace(/\.(bpmn|cervin)\.(transitrix|cervin)\.yaml$/, '')
+      : 'diagram';
+    const defaultUri = sourceUri
+      ? vscode.Uri.file(path.join(path.dirname(sourceUri.fsPath), `${stem}.svg`))
+      : vscode.Uri.file(`${stem}.svg`);
+    const target = await vscode.window.showSaveDialog({ defaultUri, filters: { 'SVG Image': ['svg'] } });
+    if (!target) return;
+    const themeId = vscode.workspace.getConfiguration('transitrix').get<ThemeId>('theme', 'transitrix');
+    const svg = prepareSvgForExport(this.lastSvg, themeId);
+    await vscode.workspace.fs.writeFile(target, Buffer.from(svg, 'utf-8'));
+    vscode.window.showInformationMessage(`Saved: ${path.basename(target.fsPath)}`);
+  }
+
   private async pushDocument(doc: vscode.TextDocument): Promise<void> {
     if (!this.panel) return;
     const filename = path.basename(doc.fileName);
+    const themeId = vscode.workspace.getConfiguration('transitrix').get<ThemeId>('theme', 'transitrix');
     try {
       const { layout, validation } = await this.layoutFn(doc.getText());
-      const title = `<text class="text-header" x="16" y="22">${escXml(filename)}</text>`;
-      const svg = renderProcessLayoutSvg(layout, { title, topInset: 32 });
-      this.panel.webview.html = this.buildHtml(svg, filename, validation);
+      const svg = renderProcessLayoutSvg(layout);
+      this.lastSvg = svg;
+
+      const errors = validation.findings.filter((f) => f.severity === 'error');
+      const warnings = validation.findings.filter((f) => f.severity === 'warning');
+      const errorMsg = errors.length > 0
+        ? errors.map((e) => escXml(e.message)).join('\n')
+        : '';
+      const warningMsgs = warnings.map((w) => w.message);
+
+      this.panel.webview.html = buildDiagramFrame({
+        filename,
+        notation: 'BPMN Process',
+        svgContent: svg,
+        errorMsg,
+        warnings: warningMsgs,
+        themeId,
+        saveSvgCommand: SAVE_BPMN_PROCESS_SVG_COMMAND,
+        themeCommand: OPEN_THEME_COMMAND,
+      });
     } catch (err) {
-      const msg = err instanceof Error ? escXml(err.message) : escXml(String(err));
-      this.panel.webview.html = this.buildErrorHtml(filename, msg);
+      this.lastSvg = '';
+      const msg = err instanceof Error ? err.message : String(err);
+      this.panel.webview.html = buildDiagramFrame({
+        filename,
+        notation: 'BPMN Process',
+        errorMsg: msg,
+        themeId,
+      });
     }
-  }
-
-  private buildHtml(svg: string, filename: string, report: ValidationReport): string {
-    const errors = report.findings.filter((f) => f.severity === 'error');
-    const warns = report.findings.filter((f) => f.severity === 'warning');
-
-    const errorBanner =
-      errors.length > 0
-        ? `<div class="banner banner-error"><strong>${errors.length} error${errors.length > 1 ? 's' : ''}:</strong> ${errors.map((e) => escXml(e.message)).join(' · ')}</div>`
-        : '';
-    const warnBanner =
-      warns.length > 0
-        ? `<div class="banner banner-warn">${warns.length} warning${warns.length > 1 ? 's' : ''}</div>`
-        : '';
-
-    return `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${escXml(filename)}</title>
-<style>
-${getBaseResetCss()}
-body { margin: 0; overflow: auto; background: var(--vscode-editor-background, #fff); }
-.banner { padding: 6px 12px; font-size: 12px; font-family: var(--vscode-font-family, sans-serif); }
-.banner-error { background: var(--vscode-inputValidation-errorBackground, #f8d7da); color: var(--vscode-inputValidation-errorForeground, #721c24); }
-.banner-warn  { background: var(--vscode-inputValidation-warningBackground, #fff3cd); color: var(--vscode-inputValidation-warningForeground, #856404); }
-.diagram-wrap { padding: 0; }
-</style>
-</head>
-<body>
-${errorBanner}${warnBanner}
-<div class="diagram-wrap">${svg}</div>
-</body>
-</html>`;
-  }
-
-  private buildErrorHtml(filename: string, message: string): string {
-    return `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>${escXml(filename)}</title>
-<style>body { margin: 16px; font-family: monospace; }</style>
-</head>
-<body>
-<p style="color:red"><strong>Compile error</strong></p>
-<pre>${message}</pre>
-</body>
-</html>`;
   }
 }
