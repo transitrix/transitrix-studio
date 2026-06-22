@@ -1,14 +1,14 @@
 import * as vscode from 'vscode';
-import { escXml } from '../../packages/diagrams/src/webview/render-util.js';
+import { escXml } from '@transitrix/diagrams/webview/render-util.js';
 import yaml from 'js-yaml';
-import { generateWebviewCss, type ThemeId } from '../../packages/diagrams/src/theme/index.js';
+import { generateWebviewCss, type ThemeId } from '@transitrix/diagrams/theme';
 import {
   parseCoverageMetricConfig,
   buildCoverageMatrix,
   type CoverageMatrix,
   type CoverageRow,
   type RagStatus,
-} from '../../packages/diagrams/src/compliance/coverage-metric.js';
+} from '@transitrix/diagrams/compliance/coverage-metric.js';
 import { scanComplianceCanon, openComplianceFile } from './compliance-scan.js';
 import type { ScannedCanon } from './compliance-scan.js';
 import { WARN_BLOCK_CSS, buildWarnHtml, ERROR_BLOCK_CSS, buildErrorHtml } from './diagram-frame.js';

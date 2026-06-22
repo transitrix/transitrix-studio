@@ -17,6 +17,9 @@ import type { ValidationReport, ValidationFinding } from './validator-types.js';
 import { parseYamlToIr } from './parser.js';
 import { validateProcess } from './validator.js';
 import type { ProcessIr } from './ir.js';
+import { runRepoValidate, reportRepoFindings, repoScopeHasErrors } from './repo-validate.js';
+import { isFileValidatableNotation, loadNotationYaml, validateNotationDoc } from './validate-notation.js';
+import { handleExportComplianceCommand } from './export-compliance.js';
 
 function printUsage(): void {
   console.error(`Transitrix Studio CLI — usage:
@@ -282,29 +285,6 @@ async function handleValidateCommand(argv: string[]): Promise<void> {
   // Repo scope (#141): whole-canon checks on the @transitrix/diagrams model.
   if (scope === 'repo') {
     const repoRoot = root ?? process.cwd();
-    // Lazy import keeps the @transitrix/diagrams source out of the
-    // rootDir-restricted emit build (see repo-validate.ts header).
-    const repoModule = './repo-validate.js';
-    type RepoFinding = { scope: 'repo'; id: string; message: string };
-    type ViewFinding = {
-      file: string;
-      notation: string;
-      ruleId: string;
-      severity: 'error' | 'warning';
-      message: string;
-    };
-    type RepoScopeResult = {
-      canon: RepoFinding[];
-      views: ViewFinding[];
-      skipped: Array<{ file: string; notation: string }>;
-    };
-    const { runRepoValidate, reportRepoFindings, repoScopeHasErrors } = (await import(
-      repoModule
-    )) as {
-      runRepoValidate: (root: string) => RepoScopeResult;
-      reportRepoFindings: (root: string, result: RepoScopeResult, useJson: boolean) => void;
-      repoScopeHasErrors: (result: RepoScopeResult) => boolean;
-    };
     const result = runRepoValidate(repoRoot);
     reportRepoFindings(repoRoot, result, useJson);
     if (repoScopeHasErrors(result)) {
@@ -348,19 +328,10 @@ async function handleValidateCommand(argv: string[]): Promise<void> {
   // the IR path below.
   const probedNotation = probeNotation(fileText);
   if (probedNotation && probedNotation !== 'bpmn') {
-    // Hand-typed dynamic import (not `typeof import(...)`) so this @transitrix/
-    // diagrams-importing module stays out of the rootDir-restricted emit build —
-    // same pattern as the repo-scope handler above.
-    const nvModule = './validate-notation.js';
-    const nv = (await import(nvModule)) as {
-      isFileValidatableNotation: (notation: string) => boolean;
-      loadNotationYaml: (text: string) => unknown;
-      validateNotationDoc: (notation: string, data: unknown) => ValidationReport;
-    };
-    if (nv.isFileValidatableNotation(probedNotation)) {
+    if (isFileValidatableNotation(probedNotation)) {
       let data: unknown;
       try {
-        data = nv.loadNotationYaml(fileText);
+        data = loadNotationYaml(fileText);
       } catch (e) {
         const err = e as Error;
         if (useJson) {
@@ -379,7 +350,7 @@ async function handleValidateCommand(argv: string[]): Promise<void> {
         }
         process.exit(1);
       }
-      const report = nv.validateNotationDoc(probedNotation, data);
+      const report = validateNotationDoc(probedNotation, data);
       emitFileReport(src, report, useJson, probedNotation);
       if (!report.isValid) {
         process.exit(1);
@@ -533,15 +504,6 @@ try {
   } else if (subcommand === 'validate') {
     await handleValidateCommand(process.argv.slice(3));
   } else if (subcommand === 'export-compliance') {
-    // Loaded lazily through a computed specifier: the handler imports the
-    // @transitrix/diagrams *source*, which the rootDir-restricted emit build
-    // (tsconfig.build.json) must not pull into its program. A non-literal
-    // specifier keeps tsc from statically including it; tsx transpiles it at
-    // dev runtime. (`npm run compile` still type-checks the handler file.)
-    const handlerModule = './export-compliance.js';
-    const { handleExportComplianceCommand } = (await import(handlerModule)) as {
-      handleExportComplianceCommand: (argv: string[]) => Promise<void>;
-    };
     await handleExportComplianceCommand(process.argv.slice(3));
   } else if (subcommand === 'migrate') {
     await handleMigrateCommand(process.argv.slice(3));

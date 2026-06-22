@@ -1,7 +1,7 @@
 import * as path from 'node:path';
 import { promises as fsp } from 'node:fs';
 import * as vscode from 'vscode';
-import { getBaseResetCss } from '../../packages/diagrams/src/theme/index.js';
+import { getBaseResetCss } from '@transitrix/diagrams/theme';
 import { rasterizeSvgToPng } from './raster.js';
 
 import type { LayoutMetrics, ValidationReport } from './types.js';

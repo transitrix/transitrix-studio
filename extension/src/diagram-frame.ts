@@ -1,7 +1,7 @@
-import type { ThemeId } from '../../packages/diagrams/src/theme/index.js';
-import { generateWebviewCss, generateSvgEmbedCss } from '../../packages/diagrams/src/theme/index.js';
+import type { ThemeId } from '@transitrix/diagrams/theme';
+import { generateWebviewCss, generateSvgEmbedCss } from '@transitrix/diagrams/theme';
 import { CONTROLS_PANEL_CSS, SNAPSHOT_TOOLBAR_CSS } from './preview-controls.js';
-import { escXml } from '../../packages/diagrams/src/webview/render-util.js';
+import { escXml } from '@transitrix/diagrams/webview/render-util.js';
 
 export type { ThemeId };
 

@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import { escXml } from '../../packages/diagrams/src/webview/render-util.js';
+import { escXml } from '@transitrix/diagrams/webview/render-util.js';
 
 // In-preview interactive control panel for the spacing / curvature / scope
 // previews (vkgeorgia/strategy#75 / #76 / #77 — PR2).

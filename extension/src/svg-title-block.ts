@@ -14,7 +14,7 @@
 // interactive preview, and the right behaviour for exported SVG files
 // (the title travels with the diagram outside VS Code).
 
-import { escXml } from '../../packages/diagrams/src/webview/render-util.js';
+import { escXml } from '@transitrix/diagrams/webview/render-util.js';
 
 export const TITLE_BLOCK_H = 60;
 

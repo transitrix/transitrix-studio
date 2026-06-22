@@ -1,5 +1,5 @@
 import * as path from 'node:path';
-import { escXml } from '../../packages/diagrams/src/webview/render-util.js';
+import { escXml } from '@transitrix/diagrams/webview/render-util.js';
 import * as vscode from 'vscode';
 import yaml from 'js-yaml';
 import { buildDiagramFrame, prepareSvgForExport, type ThemeId, OPEN_THEME_COMMAND } from './diagram-frame.js';
@@ -15,10 +15,10 @@ import {
   type ActivitiesLayoutOptions,
   type GanttLayout,
   type GanttResult,
-} from '../../packages/diagrams/src/activities/index.js';
-import { coerceDatesToIsoStrings } from '../../packages/diagrams/src/yaml-normalize.js';
-import { DEFAULT_EDGE_CURVATURE } from '../../packages/diagrams/src/edge-path.js';
-import { renderActivitiesNetworkBody, ACTIVITIES_NETWORK_DEFS } from '../../packages/diagrams/src/webview/render-activities.js';
+} from '@transitrix/diagrams/activities';
+import { coerceDatesToIsoStrings } from '@transitrix/diagrams/yaml-normalize.js';
+import { DEFAULT_EDGE_CURVATURE } from '@transitrix/diagrams/edge-path.js';
+import { renderActivitiesNetworkBody, ACTIVITIES_NETWORK_DEFS } from '@transitrix/diagrams/webview/render-activities.js';
 import { savePngFromSvg, copyPngFromSvg } from './png-export.js';
 import { readSpacing, readCurvature, readEntryCurvature, applyControlMessage, OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND } from './spacing-config.js';
 import { genNonce, buildControlsPanel, buildControlsScript } from './preview-controls.js';

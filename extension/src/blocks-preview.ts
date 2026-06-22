@@ -10,9 +10,9 @@ import {
   iterateBlocks,
   type BlocksFile,
   type BlocksLayout,
-} from '../../packages/diagrams/src/blocks/index.js';
-import { coerceDatesToIsoStrings } from '../../packages/diagrams/src/yaml-normalize.js';
-import { renderBlocksLayoutSvg } from '../../packages/diagrams/src/webview/render-blocks.js';
+} from '@transitrix/diagrams/blocks';
+import { coerceDatesToIsoStrings } from '@transitrix/diagrams/yaml-normalize.js';
+import { renderBlocksLayoutSvg } from '@transitrix/diagrams/webview/render-blocks.js';
 
 
 // Pad reserved around the diagram; mirrors `PAD` in the shared emitter

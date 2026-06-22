@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import yaml from 'js-yaml';
-import { emptyCanon, ingestComplianceDoc, type ComplianceCanon } from '../../packages/diagrams/src/compliance/index.js';
+import { emptyCanon, ingestComplianceDoc, type ComplianceCanon } from '@transitrix/diagrams/compliance';
 
 // Workspace scanner for the compliance views (vkgeorgia/strategy#84). The
 // compliance matrix (Phase 2), the single-law / single-product views (Phase 3)

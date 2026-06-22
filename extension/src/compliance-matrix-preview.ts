@@ -1,13 +1,13 @@
 import * as vscode from 'vscode';
-import { escXml } from '../../packages/diagrams/src/webview/render-util.js';
-import { generateWebviewCss, type ThemeId } from '../../packages/diagrams/src/theme/index.js';
+import { escXml } from '@transitrix/diagrams/webview/render-util.js';
+import { generateWebviewCss, type ThemeId } from '@transitrix/diagrams/theme';
 import {
   buildComplianceMatrix,
   filterComplianceMatrix,
   type ComplianceMatrix,
   type MatrixFilter,
-} from '../../packages/diagrams/src/compliance-matrix/index.js';
-import type { AssertionStatus } from '../../packages/diagrams/src/assertion/types.js';
+} from '@transitrix/diagrams/compliance-matrix';
+import type { AssertionStatus } from '@transitrix/diagrams/assertion/types.js';
 import { genNonce, colWidthPxFromSetting, colWidthRootCss } from './preview-controls.js';
 import { scanComplianceCanon } from './compliance-scan.js';
 import type { ScannedCanon } from './compliance-scan.js';

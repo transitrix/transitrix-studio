@@ -24,7 +24,7 @@ import {
   renderImpactMarkdown,
   type ComplianceCanon,
   type ReportScope,
-} from '../packages/diagrams/src/compliance/index.js';
+} from '@transitrix/diagrams/compliance';
 
 function flagValue(argv: string[], name: string): string | undefined {
   const i = argv.indexOf(name);

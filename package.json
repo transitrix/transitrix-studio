@@ -29,9 +29,10 @@
     "node": ">=20"
   },
   "scripts": {
-    "compile": "tsc --noEmit",
+    "compile": "npm run build:diagrams && tsc --noEmit",
     "compile:extension": "tsc -p extension/tsconfig.json --noEmit",
-    "build": "tsc -p tsconfig.build.json",
+    "build": "npm run build:diagrams && tsc -p tsconfig.build.json",
+    "build:diagrams": "npm --workspace packages/diagrams run build",
     "build:webview": "node scripts/build-webview.mjs",
     "build:webview-bundle": "node scripts/build-webview-bundle.mjs",
     "extension:bundle": "node scripts/build-extension-bundle.mjs",

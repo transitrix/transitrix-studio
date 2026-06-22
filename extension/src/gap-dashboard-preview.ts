@@ -1,10 +1,10 @@
 import * as path from 'node:path';
 import * as vscode from 'vscode';
-import { type ThemeId } from '../../packages/diagrams/src/theme/index.js';
-import { buildComplianceIndex, buildGapReport, scoreComplianceView, type GapReport } from '../../packages/diagrams/src/compliance/index.js';
+import { type ThemeId } from '@transitrix/diagrams/theme';
+import { buildComplianceIndex, buildGapReport, scoreComplianceView, type GapReport } from '@transitrix/diagrams/compliance';
 import { scanComplianceCanon } from './compliance-scan.js';
 import { complianceShell, deadlineBadge, escXml, openLink, statusBadge } from './compliance-render.js';
-import type { ViewScore } from '../../packages/diagrams/src/confidence/index.js';
+import type { ViewScore } from '@transitrix/diagrams/confidence';
 
 // Gap dashboard (vkgeorgia/strategy#84 Phase 4). A repo-wide operational view
 // for compliance owners: requirements with no assertion, assertions with a

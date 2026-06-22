@@ -1,16 +1,16 @@
 import * as vscode from 'vscode';
-import { escXml } from '../../packages/diagrams/src/webview/render-util.js';
+import { escXml } from '@transitrix/diagrams/webview/render-util.js';
 import yaml from 'js-yaml';
-import { generateWebviewCss, type ThemeId } from '../../packages/diagrams/src/theme/index.js';
+import { generateWebviewCss, type ThemeId } from '@transitrix/diagrams/theme';
 import {
   buildImpactMatrix,
   type ImpactColumn,
   type ImpactViewConfig,
   type ImpactMatrix,
   type ImpactCell,
-} from '../../packages/diagrams/src/compliance/impact.js';
-import type { AssertionStatus } from '../../packages/diagrams/src/assertion/types.js';
-import type { IndexRequirement, DeadlineStatus } from '../../packages/diagrams/src/compliance/types.js';
+} from '@transitrix/diagrams/compliance/impact.js';
+import type { AssertionStatus } from '@transitrix/diagrams/assertion/types.js';
+import type { IndexRequirement, DeadlineStatus } from '@transitrix/diagrams/compliance/types.js';
 import { genNonce, colWidthPxFromSetting, colWidthRootCss } from './preview-controls.js';
 import { scanComplianceCanon, openComplianceFile } from './compliance-scan.js';
 import type { ScannedCanon } from './compliance-scan.js';

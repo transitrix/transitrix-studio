@@ -1,8 +1,8 @@
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 import yaml from 'js-yaml';
-import { type ThemeId } from '../../packages/diagrams/src/theme/index.js';
-import { buildComplianceIndex, buildProductView, scoreComplianceView, type ProductView } from '../../packages/diagrams/src/compliance/index.js';
+import { type ThemeId } from '@transitrix/diagrams/theme';
+import { buildComplianceIndex, buildProductView, scoreComplianceView, type ProductView } from '@transitrix/diagrams/compliance';
 import { scanComplianceCanon } from './compliance-scan.js';
 import { complianceShell, deadlineBadge, escXml, openLink, statusBadge } from './compliance-render.js';
 
