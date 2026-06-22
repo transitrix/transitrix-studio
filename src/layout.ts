@@ -1,7 +1,7 @@
 import { createRequire } from 'node:module';
 import type { ELK, ElkNode } from 'elkjs/lib/elk-api.js';
 
-import type { Bounds, LayoutIr, ProcessIr, PositionedSequenceFlow, SequenceFlowIr } from './ir.js';
+import type { Bounds, LayoutIr, ProcessIr, PositionedSequenceFlow, PositionedAssociation, SequenceFlowIr } from './ir.js';
 import { GATEWAY_TYPES } from './ir.js';
 import { mergeLayoutDiagramOptions, type LayoutDiagramOptions } from './layout-options.js';
 import { elkNodeSize } from './parser.js';
@@ -725,5 +725,15 @@ export async function layoutProcess(
 
   flows.sort((a, b) => a.id.localeCompare(b.id));
 
-  return { process: ir, elements, laneBounds, poolBounds, flows };
+  const associations: PositionedAssociation[] = (ir.associations ?? []).map((a) => {
+    const fb = elements.get(a.from);
+    const tb = elements.get(a.to);
+    return {
+      ...a,
+      waypoints: fb && tb ? diagonalFallbackRects(fb, tb) : [],
+    };
+  });
+  associations.sort((a, b) => a.id.localeCompare(b.id));
+
+  return { process: ir, elements, laneBounds, poolBounds, flows, associations };
 }

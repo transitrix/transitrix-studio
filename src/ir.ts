@@ -8,7 +8,8 @@ export type ElementType =
   | 'parallelGateway'
   | 'inclusiveGateway'
   | 'intermediateMessageEvent'
-  | 'intermediateTimerEvent';
+  | 'intermediateTimerEvent'
+  | 'dataObject';
 
 export const GATEWAY_TYPES = new Set([
   'exclusiveGateway',
@@ -21,6 +22,8 @@ export const INTERMEDIATE_EVENT_TYPES = new Set([
   'intermediateMessageEvent',
   'intermediateTimerEvent',
 ]);
+
+export const DATA_OBJECT_TYPES = new Set(['dataObject']);
 
 export interface FlowElement {
   id: string;
@@ -39,6 +42,12 @@ export interface SequenceFlowIr {
   name?: string;
 }
 
+export interface AssociationIr {
+  id: string;
+  from: string;
+  to: string;
+}
+
 export interface ProcessIr {
   id: string;
   name: string;
@@ -50,6 +59,7 @@ export interface ProcessIr {
     elements: FlowElement[];
   }[];
   flows: SequenceFlowIr[];
+  associations?: AssociationIr[];
 }
 
 export interface Bounds {
@@ -67,10 +77,15 @@ export interface PositionedSequenceFlow extends SequenceFlowIr {
   waypoints: { x: number; y: number }[];
 }
 
+export interface PositionedAssociation extends AssociationIr {
+  waypoints: { x: number; y: number }[];
+}
+
 export interface LayoutIr {
   process: ProcessIr;
   elements: Map<string, Bounds>;
   laneBounds: Map<string, Bounds>;
   poolBounds: Bounds;
   flows: PositionedSequenceFlow[];
+  associations: PositionedAssociation[];
 }

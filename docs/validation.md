@@ -713,3 +713,37 @@ Default state:
 - `AP-NO-DEFAULT`: warning, enabled by default
 - `AP-IMPLICIT-JOIN`: warning, enabled by default
 - `AP-GW-AS-TASK`: warning, **disabled by default** — enable with `"warn"`
+
+## Association Rules (P0b)
+
+Association rules govern the `associations` array in the process DSL, which connects data objects to activities using dashed undirected edges (BPMN 2.0 `<association>`). Associations are distinct from sequence flows and do not participate in token routing.
+
+### ASC-001: Associations must connect a data object to an activity
+
+- **Severity**: error
+- **Description**: Each entry in `associations` must have exactly one `dataObject` endpoint and one activity endpoint (`task`, `userTask`, or `serviceTask`). Associations between two activities or two data objects are invalid — use sequence flows between activities, and model data dependencies as `dataObject ↔ activity` associations only.
+- **Example Finding**:
+  ```json
+  {
+    "ruleId": "ASC-001",
+    "severity": "error",
+    "elementId": "assoc1",
+    "message": "Association \"assoc1\" must connect a data object to an activity (found \"task\" → \"task\")",
+    "hint": "Associations link data objects to activities. Use sequence flows between activities."
+  }
+  ```
+
+### ASC-002: Association endpoints must reference existing elements
+
+- **Severity**: error
+- **Description**: Both `from` and `to` of an association must reference element IDs that exist in the process. This is a defensive check — the parser already validates endpoints at parse time.
+- **Example Finding**:
+  ```json
+  {
+    "ruleId": "ASC-002",
+    "severity": "error",
+    "elementId": "assoc2",
+    "message": "Association source element \"missing\" does not exist",
+    "hint": "Verify the source element ID is correct and exists in the process"
+  }
+  ```
