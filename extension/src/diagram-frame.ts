@@ -1,38 +1,17 @@
 import type { ThemeId } from '@transitrix/diagrams/theme';
 import { generateWebviewCss, generateSvgEmbedCss } from '@transitrix/diagrams/theme';
 import { CONTROLS_PANEL_CSS, SNAPSHOT_TOOLBAR_CSS } from './preview-controls.js';
-import { escXml } from '@transitrix/diagrams/webview/render-util.js';
+import { escXml, extractDiagramMeta } from '@transitrix/diagrams/webview/render-util.js';
 
 export type { ThemeId };
 
 /** Command ID for the "Theme…" toolbar button — opens a QuickPick to change the global diagram theme. */
 export const OPEN_THEME_COMMAND = 'transitrixStudio.changeTheme';
 
-/**
- * Extracts standard diagram-level metadata from a raw parsed YAML object.
- *
- * Per CONTRACT §1.1, every notation stores its canonical metadata at the root level:
- *   name:         "Human-readable diagram title"  # required
- *   generated_at: "YYYY-MM-DD"                    # optional
- *
- * Backward-compat reads: `title` (legacy alias for `name`), `date` (legacy alias
- * for `generated_at`), and `description`/`version` which are not in the standard
- * but widely present in existing files.
- */
-export function extractDiagramMeta(raw: Record<string, unknown>): {
-  title: string | undefined;
-  subtitle: string | undefined;
-  date: string | undefined;
-  version: string | undefined;
-} {
-  const name = typeof raw['name'] === 'string' ? raw['name'] : undefined;
-  const title = name ?? (typeof raw['title'] === 'string' ? raw['title'] : undefined);
-  const subtitle = typeof raw['description'] === 'string' ? raw['description'] : undefined;
-  const genAt = typeof raw['generated_at'] === 'string' ? raw['generated_at'] : undefined;
-  const date = genAt ?? (typeof raw['date'] === 'string' ? raw['date'] : undefined);
-  const version = raw['version'] !== undefined ? String(raw['version']) : undefined;
-  return { title, subtitle, date, version };
-}
+// Diagram-level metadata reading now lives host-neutrally in @transitrix/diagrams
+// (review E) so the VS Code chrome and the webview bundle share one reader.
+// Re-exported here so the *-preview.ts callers keep their existing import site.
+export { extractDiagramMeta };
 
 /**
  * Injects a <style> block with all --ts-* CSS variable definitions into an SVG string,
