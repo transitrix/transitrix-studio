@@ -16,3 +16,4 @@ implementation PRs follow) · **superseded** (replaced by a later ADR).
 |---|---|---|---|
 | 2026-06-11 | [Validation runtime convergence (Studio side)](2026-06-11-validation-runtime-convergence.md) | accepted | transitrix-studio |
 | 2026-06-14 | [Migrate CLI: recipe-source transport](2026-06-14-migrate-recipe-source.md) | accepted | hub #201 |
+| 2026-06-22 | [A package home for the BPMN core](2026-06-22-bpmn-core-package-home.md) | proposed | transitrix-studio |
