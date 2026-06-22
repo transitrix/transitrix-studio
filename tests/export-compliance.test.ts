@@ -1,12 +1,15 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { SpawnSyncReturns } from 'node:child_process';
+import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 
 vi.mock('node:child_process', () => ({
   spawnSync: vi.fn(),
 }));
 
 import { spawnSync } from 'node:child_process';
-import { runWeasyPrint, WEASYPRINT_TIMEOUT_MS } from '../src/export-compliance.js';
+import { runWeasyPrint, readYamlBounded, MAX_YAML_BYTES, WEASYPRINT_TIMEOUT_MS } from '../src/export-compliance.js';
 
 function mockSpawnResult(
   partial: Partial<SpawnSyncReturns<string>>,
@@ -46,5 +49,41 @@ describe('runWeasyPrint', () => {
     if (!result.ok) {
       expect(result.message).toContain('timed out after 5s');
     }
+  });
+});
+
+describe('readYamlBounded', () => {
+  let dir: string;
+
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), 'export-compliance-test-'));
+  });
+
+  afterEach(() => {
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('parses a YAML file under the size cap', () => {
+    const f = join(dir, 'doc.yaml');
+    writeFileSync(f, 'id: my-report\nname: Demo\n');
+    expect(readYamlBounded(f)).toEqual({ id: 'my-report', name: 'Demo' });
+  });
+
+  it('skips a file larger than the cap (returns undefined)', () => {
+    const f = join(dir, 'huge.yaml');
+    writeFileSync(f, `id: x\npayload: "${'A'.repeat(64)}"\n`);
+    // Force a skip with a tiny cap rather than writing megabytes.
+    const warn = vi.spyOn(console, 'error').mockImplementation(() => {});
+    expect(readYamlBounded(f, 8)).toBeUndefined();
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('exceeds 8-byte cap'));
+    warn.mockRestore();
+  });
+
+  it('returns undefined for a missing file', () => {
+    expect(readYamlBounded(join(dir, 'nope.yaml'))).toBeUndefined();
+  });
+
+  it('exposes a generous default cap', () => {
+    expect(MAX_YAML_BYTES).toBe(2 * 1024 * 1024);
   });
 });
