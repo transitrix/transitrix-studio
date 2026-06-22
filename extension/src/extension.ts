@@ -229,7 +229,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       );
       return;
     }
-    const renderer = vscode.workspace.getConfiguration('transitrix').get<string>('bpmnRenderer', 'bpmn-io');
+    const renderer = vscode.workspace.getConfiguration('transitrix').get<string>('bpmnRenderer', 'custom');
     if (renderer === 'custom') {
       await processPreview.showOrReveal(doc);
     } else {

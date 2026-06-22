@@ -1,5 +1,16 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+
+- **BPMN preview — custom renderer is now the default.** `transitrix.bpmnRenderer` defaults to `"custom"` (the built-in SVG emitter) instead of `"bpmn-io"`. The custom renderer supports the full v1 element subset: swimlanes, tasks, XOR/AND/inclusive gateways, start/end events, intermediate message and timer events, data objects with association edges, and conditional sequence flows. Zoom (50–200%) and pan work via the shared preview controls consistent with all other Transitrix notations.
+
+  To revert to the legacy bpmn.io viewer (full BPMN 2.0 interactivity), set in your VS Code settings:
+  ```json
+  "transitrix.bpmnRenderer": "bpmn-io"
+  ```
+
 ## [2.1.1] — 2026-06-20
 
 ### Fixed

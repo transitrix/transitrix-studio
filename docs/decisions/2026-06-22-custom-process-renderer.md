@@ -143,5 +143,7 @@ bpmn-js-specific interactions are carried over for v1.
 - CV-3 and future compliance overlays draw on a renderer we control end to end.
 - The v1 subset requires additive model work (new element types + association
   edges) in `@transitrix/bpmn-core` before the emitter is feature-complete.
-- Until the custom renderer reaches subset parity, the bpmn.io path remains the
-  active render path — this is a phased replacement, not a big-bang switch.
+- **P4 complete (2026-06-22):** The v1 subset is shipped and the custom renderer
+  is now the default (`transitrix.bpmnRenderer` defaults to `"custom"`). The
+  bpmn.io path remains available as a legacy opt-in for users who need full
+  BPMN 2.0 interactivity (`"transitrix.bpmnRenderer": "bpmn-io"`).

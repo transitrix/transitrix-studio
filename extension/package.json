@@ -95,11 +95,11 @@
             "custom"
           ],
           "enumDescriptions": [
-            "bpmn.io viewer (default — full BPMN interactivity)",
-            "Custom SVG emitter (experimental — static preview, faster load)"
+            "bpmn.io viewer (legacy opt-in — full BPMN 2.0 interactivity; set this to revert to the old renderer)",
+            "Custom SVG emitter — default since v2.2.0 (static preview, shared theme, zoom/pan controls)"
           ],
-          "default": "bpmn-io",
-          "description": "BPMN preview renderer. 'bpmn-io' uses the bpmn.io viewer; 'custom' uses the built-in SVG emitter (part of the custom process renderer programme)."
+          "default": "custom",
+          "description": "BPMN preview renderer. 'custom' (default) uses the built-in SVG emitter consistent with all other Transitrix notations. Set to 'bpmn-io' to revert to the legacy bpmn.io viewer (full BPMN 2.0 interactivity)."
         },
         "transitrix.theme": {
           "type": "string",
