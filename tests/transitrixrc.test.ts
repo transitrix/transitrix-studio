@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import {
   loadCervinrc,
   loadTransitrixrc,
+  clearTransitrixrcCache,
   assertNoCriticalRuleDowngrade,
   mergeConfigWithDefaults,
 } from '../src/transitrixrc.js'
@@ -13,6 +14,7 @@ describe('transitrixrc config loader', () => {
   const testDir = '/tmp/transitrixrc-loader-test'
 
   beforeEach(() => {
+    clearTransitrixrcCache()
     mkdirSync(testDir, { recursive: true })
   })
 
@@ -218,6 +220,7 @@ describe('loadTransitrixrc (Cervin deprecation P7)', () => {
   const testDir = '/tmp/transitrixrc-test'
 
   beforeEach(() => {
+    clearTransitrixrcCache()
     mkdirSync(testDir, { recursive: true })
   })
 
@@ -247,5 +250,30 @@ describe('loadTransitrixrc (Cervin deprecation P7)', () => {
   it('loadCervinrc is an alias that still resolves .transitrixrc', () => {
     writeFileSync(join(testDir, '.transitrixrc'), JSON.stringify({ rules: { 'AP-001': 'off' } }))
     expect(loadCervinrc(testDir).rules).toEqual({ 'AP-001': 'off' })
+  })
+
+  it('caches an unchanged file (same instance on repeat reads)', () => {
+    writeFileSync(join(testDir, '.transitrixrc'), JSON.stringify({ rules: { 'AP-001': 'off' } }))
+    const first = loadTransitrixrc(testDir)
+    const second = loadTransitrixrc(testDir)
+    expect(second).toBe(first)
+  })
+
+  it('re-reads when the file content changes', () => {
+    const rcPath = join(testDir, '.transitrixrc')
+    writeFileSync(rcPath, JSON.stringify({ rules: { 'AP-001': 'off' } }))
+    expect(loadTransitrixrc(testDir).rules).toEqual({ 'AP-001': 'off' })
+    // A different-sized payload invalidates the cache even at coarse mtime
+    // resolution.
+    writeFileSync(rcPath, JSON.stringify({ rules: { 'AP-001': 'warn', 'AP-002': 'off' } }))
+    expect(loadTransitrixrc(testDir).rules).toEqual({ 'AP-001': 'warn', 'AP-002': 'off' })
+  })
+
+  it('forgets the cached config once the file is removed', () => {
+    const rcPath = join(testDir, '.transitrixrc')
+    writeFileSync(rcPath, JSON.stringify({ rules: { 'AP-001': 'off' } }))
+    expect(loadTransitrixrc(testDir).rules).toEqual({ 'AP-001': 'off' })
+    rmSync(rcPath)
+    expect(loadTransitrixrc(testDir)).toEqual({})
   })
 })
