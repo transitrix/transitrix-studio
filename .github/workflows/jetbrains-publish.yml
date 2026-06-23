@@ -1,11 +1,11 @@
 name: JetBrains Marketplace — publish
 
-# Triggered on every GitHub Release to sign and publish the IntelliJ plugin
-# via `./gradlew publishPlugin`.
+# Triggered on every GitHub Release. Derives pluginVersion automatically from
+# the release tag (v2.2.0 → 2.2.0) so the JetBrains plugin version always
+# mirrors the VS Code extension version — no manual bump needed.
 #
-# The IntelliJ plugin version is set in intellij/gradle.properties
-# (pluginVersion) and is versioned independently from the VS Code extension.
-# Bump it there before cutting a release that includes IntelliJ changes.
+# For manual dispatch, supply the `version` input explicitly (e.g. "2.2.0").
+# If omitted on dispatch, the value in intellij/gradle.properties is used as-is.
 #
 # Prerequisites (one-time maintainer setup — see intellij/PUBLISHING.md):
 #   - CERTIFICATE_CHAIN      — contents of chain.crt (PEM)
@@ -20,7 +20,11 @@ name: JetBrains Marketplace — publish
 on:
   release:
     types: [published]
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Plugin version to publish (e.g. 2.2.0). Leave blank to use gradle.properties value.'
+        required: false
 
 permissions:
   contents: read
@@ -33,6 +37,19 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Set plugin version
+        run: |
+          if [ "${{ github.event_name }}" = "release" ]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          elif [ -n "${{ inputs.version }}" ]; then
+            VERSION="${{ inputs.version }}"
+          else
+            echo "Using version from gradle.properties (workflow_dispatch, no version input)"
+            exit 0
+          fi
+          sed -i "s/^pluginVersion = .*/pluginVersion = $VERSION/" intellij/gradle.properties
+          echo "Plugin version set to: $VERSION"
 
       - name: Verify secrets are set
         env:
