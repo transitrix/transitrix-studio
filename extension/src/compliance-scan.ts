@@ -71,7 +71,7 @@ const SILENT_NOTATIONS = new Set([
   'stakeholder', 'target-state',
   // View / diagram notations
   'activities', 'activity-card', 'applications', 'blocks', 'bpmn',
-  'capability-map', 'compliance-impact', 'coverage-metric', 'fga', 'fgca',
+  'capability-map', 'compliance-impact', 'coverage-metric', 'dga', 'dgca', 'fga', 'fgca',
   'goals', 'issues', 'process-blueprint', 'process-map', 'products', 'scenarios',
 ]);
 

@@ -51,7 +51,7 @@ const FACTOR_OR_DRIVER_ID_RE = /^(FACTOR|DRIVER)(-[A-Z0-9][A-Z0-9_]*)*-\d+$/;
 const GOAL_ID_RE = /^GOAL(-[A-Z0-9][A-Z0-9_]*)*-\d+$/;
 const CHANGE_ID_RE = /^CHANGE(-[A-Z0-9][A-Z0-9_]*)*-\d+$/;
 const ACTIVITY_ID_RE = /^ACTIVITY(-[A-Z0-9][A-Z0-9_]*)*-\d+$/;
-const FGCA_DOC_ID_RE = /^FGCA(-[A-Z0-9][A-Z0-9_]*)*-\d+$/;
+const FGCA_DOC_ID_RE = /^(FGCA|DGCA)(-[A-Z0-9][A-Z0-9_]*)*-\d+$/;
 const CONSTRAINT_ID_RE = /^CONSTRAINT(-[A-Z0-9][A-Z0-9_]*)*-\d+$/;
 
 function isNonEmptyString(v: unknown): v is string {
@@ -86,17 +86,20 @@ export function parseCanonicalFGCA(input: unknown): CanonicalFGCAResult {
 
   const raw = input as Record<string, unknown>;
 
-  if ('notation' in raw && raw['notation'] !== 'fgca') {
+  if ('notation' in raw && raw['notation'] !== 'fgca' && raw['notation'] !== 'dgca') {
     return {
       valid: false,
       errors: [
         {
           code: 'FGCA-001',
-          message: `notation must be "fgca", got "${String(raw['notation'])}"`,
+          message: `notation must be "dgca" (or legacy "fgca"), got "${String(raw['notation'])}"`,
         },
       ],
       warnings,
     };
+  }
+  if ('notation' in raw && raw['notation'] === 'fgca') {
+    warnings.push({ code: 'FGCA-001', message: 'notation "fgca" is deprecated — rename to "dgca"' });
   }
 
   // FGCA-002 — document id (optional in v1.4 per the canonical spec? — spec
@@ -315,7 +318,7 @@ export function parseCanonicalFGCA(input: unknown): CanonicalFGCAResult {
   if (errors.length > 0) return { valid: false, errors, warnings };
 
   const parsed: FGCADoc = {
-    notation: 'fgca',
+    notation: (raw['notation'] as string) ?? 'dgca',
     spec_version: typeof raw['spec_version'] === 'string' ? (raw['spec_version'] as string) : undefined,
     factors: internalFactors,
     goals: internalGoals,
@@ -326,7 +329,7 @@ export function parseCanonicalFGCA(input: unknown): CanonicalFGCAResult {
   return { valid: true, errors, warnings, parsed };
 }
 
-const FGA_DOC_ID_RE = /^FGA(-[A-Z0-9][A-Z0-9_]*)*-\d+$/;
+const FGA_DOC_ID_RE = /^(FGA|DGA)(-[A-Z0-9][A-Z0-9_]*)*-\d+$/;
 
 /** On success, the internal-form FGCADoc derived from canonical FGA input. */
 export interface CanonicalFGAResult extends ValidationResult {
@@ -355,10 +358,10 @@ export function parseCanonicalFGA(input: unknown): CanonicalFGAResult {
     return { valid: false, errors: [{ code: 'FGA-001', message: 'document root is not an object' }], warnings: [] };
   }
   const raw = input as Record<string, unknown>;
-  if ('notation' in raw && raw['notation'] !== 'fga') {
+  if ('notation' in raw && raw['notation'] !== 'fga' && raw['notation'] !== 'dga') {
     return {
       valid: false,
-      errors: [{ code: 'FGA-001', message: `notation must be "fga", got "${String(raw['notation'])}"` }],
+      errors: [{ code: 'FGA-001', message: `notation must be "dga" (or legacy "fga"), got "${String(raw['notation'])}"` }],
       warnings: [],
     };
   }
@@ -377,7 +380,7 @@ export function parseCanonicalFGA(input: unknown): CanonicalFGAResult {
   // changes. Per-layer / per-ref checks all reuse the FGCA implementation;
   // codes are remapped on the way out. FGCA-009 / 010 / 014 (changes-related)
   // are unreachable here because `changes` is empty.
-  const synth = { ...raw, notation: 'fgca', id: 'FGCA-FROM-FGA-1', changes: [] };
+  const synth = { ...raw, notation: 'dgca', id: 'DGCA-FROM-DGA-1', changes: [] };
   const r = parseCanonicalFGCA(synth);
   const remap: Record<string, string> = {
     'FGCA-001': 'FGA-001',

@@ -1,0 +1,46 @@
+notation: dga
+spec_version: "0.1"
+
+id: DGA-STRATEGY-2026
+name: "Strategy 2026"
+description: "Driver–Goal–Activity view for the 2026 strategic plan. Changes layer omitted — activities map directly to goals."
+period: "2026"
+version: "0.1"
+date: "2026-05-26"
+author: Transitrix
+
+factors:
+  - id: DRIVER-MARKET-1
+    name: "Market growth opportunity in new geographies"
+    type: external
+  - id: DRIVER-REG-1
+    name: "Increasing regulatory pressure (GDPR, data residency)"
+    type: external
+  - id: DRIVER-TECH-1
+    name: "Internal shift to cloud-native architecture"
+    type: internal
+
+goals:
+  - id: GOAL-MARKET-1
+    name: "Expand market share"
+    factors: [DRIVER-MARKET-1, DRIVER-TECH-1]
+  - id: GOAL-COMPLIANCE-1
+    name: "Achieve full regulatory compliance"
+    factors: [DRIVER-REG-1]
+  - id: GOAL-PLATFORM-1
+    name: "Modernise platform"
+    factors: [DRIVER-TECH-1]
+
+activities:
+  - id: ACTIVITY-MARKET-1
+    name: "Launch in two new regions"
+    goals: [GOAL-MARKET-1]
+  - id: ACTIVITY-MARKET-2
+    name: "Partner channel programme"
+    goals: [GOAL-MARKET-1]
+  - id: ACTIVITY-COMPLIANCE-1
+    name: "GDPR gap assessment"
+    goals: [GOAL-COMPLIANCE-1]
+  - id: ACTIVITY-PLATFORM-1
+    name: "Migrate to cloud-native stack"
+    goals: [GOAL-PLATFORM-1]

@@ -123,9 +123,9 @@ function fgcaControlsModel(
 
 interface ChainPreviewParams {
   /** Toolbar / frame notation label. */
-  notation: 'FGCA' | 'FGA';
+  notation: 'DGCA' | 'DGA' | 'FGCA' | 'FGA';
   /** Settings namespace + view key (`transitrix.{spacing,curvature,scope,view}.<this>`). */
-  viewNotation: 'fgca' | 'fga';
+  viewNotation: 'dgca' | 'dga' | 'fgca' | 'fga';
   /** FGA hides the Change column. */
   hideChanges: boolean;
   /** SVG title-block heading (tree view). */
@@ -256,7 +256,7 @@ ${body}
 // ── FGCAPreview webview class ────────────────────────────────────────────────────────────────────────────
 
 export class FGCAPreview {
-  readonly panelTitle = 'FGCA Preview';
+  readonly panelTitle = 'DGCA Preview';
   private panel: vscode.WebviewPanel | undefined;
   private trackedUri: string | undefined;
   private lastSvg = '';
@@ -283,11 +283,11 @@ export class FGCAPreview {
           enableScripts: true,
           retainContextWhenHidden: true,
           localResourceRoots: [vscode.Uri.joinPath(this.extensionUri, 'media')],
-          enableCommandUris: ['transitrixStudio.saveFGCAAsSvg', 'transitrixStudio.saveFGCAAsPng', 'transitrixStudio.copyFGCAAsPng', OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND, OPEN_SCOPE_SETTINGS_COMMAND, OPEN_THEME_COMMAND],
+          enableCommandUris: ['transitrixStudio.saveDGCAAsSvg', 'transitrixStudio.saveDGCAAsPng', 'transitrixStudio.copyDGCAAsPng', OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND, OPEN_SCOPE_SETTINGS_COMMAND, OPEN_THEME_COMMAND],
         },
       );
       this.panel.webview.onDidReceiveMessage(async (m) => {
-        if (m.type === 'transitrix:control') { void applyControlMessage('fgca', m); }
+        if (m.type === 'transitrix:control') { void applyControlMessage('dgca', m); }
         if (m.type === 'transitrix:snapshot') { await this.handleSnapshotMessage(m as SnapshotMessage); }
       });
       this.panel.onDidDispose(() => { this.panel = undefined; this.trackedUri = undefined; });
@@ -427,11 +427,11 @@ export class FGCAPreview {
 
     const { html, svg } = renderChainPreview(
       {
-        notation: 'FGCA', viewNotation: 'fgca', hideChanges: false,
-        heading: 'FGCA — Factor → Goal → Change → Activity',
-        saveSvgCommand: 'transitrixStudio.saveFGCAAsSvg',
-        savePngCommand: 'transitrixStudio.saveFGCAAsPng',
-        copyPngCommand: 'transitrixStudio.copyFGCAAsPng',
+        notation: 'DGCA', viewNotation: 'dgca', hideChanges: false,
+        heading: 'DGCA — Driver → Goal → Change → Activity',
+        saveSvgCommand: 'transitrixStudio.saveDGCAAsSvg',
+        savePngCommand: 'transitrixStudio.saveDGCAAsPng',
+        copyPngCommand: 'transitrixStudio.copyDGCAAsPng',
         snapshotMarkers: markers,
       },
       parsedDoc, warnings, errorMsg, docVersion, docDate, filename, themeId,
@@ -444,13 +444,13 @@ export class FGCAPreview {
     return {
       rawSvg: this.lastSvg || undefined,
       themeId: vscode.workspace.getConfiguration('transitrix').get<ThemeId>('theme', 'transitrix'),
-      emptyMessage: 'No diagram rendered yet. Open a *.fgca.transitrix.yaml file first.',
+      emptyMessage: 'No diagram rendered yet. Open a *.dgca.transitrix.yaml file first.',
     };
   }
 
   saveAsPng(): Promise<void> {
     const sourceUri = this.trackedUri ? vscode.Uri.parse(this.trackedUri) : undefined;
-    return savePngFromSvg({ ...this.pngTarget(), sourceUri, stripExt: /\.fgca\.transitrix\.yaml$/ });
+    return savePngFromSvg({ ...this.pngTarget(), sourceUri, stripExt: /\.(dgca|fgca)\.transitrix\.yaml$/ });
   }
 
   copyAsPng(): Promise<void> {
@@ -459,12 +459,12 @@ export class FGCAPreview {
 
   async saveAsSvg(): Promise<void> {
     if (!this.lastSvg) {
-      vscode.window.showWarningMessage('No diagram rendered yet. Open a *.fgca.transitrix.yaml file first.');
+      vscode.window.showWarningMessage('No diagram rendered yet. Open a *.dgca.transitrix.yaml file first.');
       return;
     }
     const sourceUri = this.trackedUri ? vscode.Uri.parse(this.trackedUri) : undefined;
     const stem = sourceUri
-      ? path.basename(sourceUri.fsPath).replace(/\.fgca\.transitrix\.yaml$/, '')
+      ? path.basename(sourceUri.fsPath).replace(/\.(dgca|fgca)\.transitrix\.yaml$/, '')
       : 'diagram';
     const defaultUri = sourceUri
       ? vscode.Uri.file(path.join(path.dirname(sourceUri.fsPath), `${stem}.svg`))
@@ -481,7 +481,7 @@ export class FGCAPreview {
 // ── FGAPreview webview class ──────────────────────────────────────────────────────────────────────────────
 
 export class FGAPreview {
-  readonly panelTitle = 'FGA Preview';
+  readonly panelTitle = 'DGA Preview';
   private panel: vscode.WebviewPanel | undefined;
   private trackedUri: string | undefined;
   private lastSvg = '';
@@ -508,11 +508,11 @@ export class FGAPreview {
           enableScripts: true,
           retainContextWhenHidden: true,
           localResourceRoots: [vscode.Uri.joinPath(this.extensionUri, 'media')],
-          enableCommandUris: ['transitrixStudio.saveFGAAsSvg', 'transitrixStudio.saveFGAAsPng', 'transitrixStudio.copyFGAAsPng', OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND, OPEN_SCOPE_SETTINGS_COMMAND, OPEN_THEME_COMMAND],
+          enableCommandUris: ['transitrixStudio.saveDGAAsSvg', 'transitrixStudio.saveDGAAsPng', 'transitrixStudio.copyDGAAsPng', OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND, OPEN_SCOPE_SETTINGS_COMMAND, OPEN_THEME_COMMAND],
         },
       );
       this.panel.webview.onDidReceiveMessage(async (m) => {
-        if (m.type === 'transitrix:control') { void applyControlMessage('fga', m); }
+        if (m.type === 'transitrix:control') { void applyControlMessage('dga', m); }
         if (m.type === 'transitrix:snapshot') { await this.handleSnapshotMessage(m as SnapshotMessage); }
       });
       this.panel.onDidDispose(() => { this.panel = undefined; this.trackedUri = undefined; });
@@ -636,11 +636,11 @@ export class FGAPreview {
 
     const { html, svg } = renderChainPreview(
       {
-        notation: 'FGA', viewNotation: 'fga', hideChanges: true,
-        heading: 'FGA — Factor → Goal → Activity',
-        saveSvgCommand: 'transitrixStudio.saveFGAAsSvg',
-        savePngCommand: 'transitrixStudio.saveFGAAsPng',
-        copyPngCommand: 'transitrixStudio.copyFGAAsPng',
+        notation: 'DGA', viewNotation: 'dga', hideChanges: true,
+        heading: 'DGA — Driver → Goal → Activity',
+        saveSvgCommand: 'transitrixStudio.saveDGAAsSvg',
+        savePngCommand: 'transitrixStudio.saveDGAAsPng',
+        copyPngCommand: 'transitrixStudio.copyDGAAsPng',
         snapshotMarkers: markers,
       },
       parsedDoc, warnings, errorMsg, docVersion, docDate, filename, themeId,
@@ -653,13 +653,13 @@ export class FGAPreview {
     return {
       rawSvg: this.lastSvg || undefined,
       themeId: vscode.workspace.getConfiguration('transitrix').get<ThemeId>('theme', 'transitrix'),
-      emptyMessage: 'No diagram rendered yet. Open a *.fga.transitrix.yaml file first.',
+      emptyMessage: 'No diagram rendered yet. Open a *.dga.transitrix.yaml file first.',
     };
   }
 
   saveAsPng(): Promise<void> {
     const sourceUri = this.trackedUri ? vscode.Uri.parse(this.trackedUri) : undefined;
-    return savePngFromSvg({ ...this.pngTarget(), sourceUri, stripExt: /\.fga\.transitrix\.yaml$/ });
+    return savePngFromSvg({ ...this.pngTarget(), sourceUri, stripExt: /\.(dga|fga)\.transitrix\.yaml$/ });
   }
 
   copyAsPng(): Promise<void> {
@@ -668,12 +668,12 @@ export class FGAPreview {
 
   async saveAsSvg(): Promise<void> {
     if (!this.lastSvg) {
-      vscode.window.showWarningMessage('No diagram rendered yet. Open a *.fga.transitrix.yaml file first.');
+      vscode.window.showWarningMessage('No diagram rendered yet. Open a *.dga.transitrix.yaml file first.');
       return;
     }
     const sourceUri = this.trackedUri ? vscode.Uri.parse(this.trackedUri) : undefined;
     const stem = sourceUri
-      ? path.basename(sourceUri.fsPath).replace(/\.fga\.transitrix\.yaml$/, '')
+      ? path.basename(sourceUri.fsPath).replace(/\.(dga|fga)\.transitrix\.yaml$/, '')
       : 'diagram';
     const defaultUri = sourceUri
       ? vscode.Uri.file(path.join(path.dirname(sourceUri.fsPath), `${stem}.svg`))

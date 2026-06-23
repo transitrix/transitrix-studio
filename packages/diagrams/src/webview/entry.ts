@@ -91,6 +91,8 @@ export interface RenderResult {
  */
 export type NotationKind =
   | 'goals'
+  | 'dgca'
+  | 'dga'
   | 'fgca'
   | 'fga'
   | 'activities'
@@ -105,6 +107,8 @@ export type NotationKind =
 
 const SUPPORTED_KINDS: readonly NotationKind[] = [
   'goals',
+  'dgca',
+  'dga',
   'fgca',
   'fga',
   'activities',
@@ -182,12 +186,13 @@ function dispatchValidate(kind: NotationKind, doc: unknown): RenderResult {
       }
       return r;
     }
-    // FGCA and FGA share the canonical parse + renderer; only the layer
-    // visibility differs (FGA collapses the Change column). Both carry the
-    // parsed `FGCADoc` on the result's `parsed` field when valid.
+    // DGCA and DGA are the canonical new names; FGCA/FGA are accepted as
+    // deprecated aliases. All four share the same parse + renderer; only the
+    // Change column visibility differs (DGA/FGA collapse it).
+    case 'dgca':
     case 'fgca': {
       const v = parseCanonicalFGCA(doc);
-      const r = emptyResult('fgca', v.valid ? 'ok' : 'error');
+      const r = emptyResult(kind, v.valid ? 'ok' : 'error');
       r.errors.push(...v.errors);
       r.warnings.push(...v.warnings);
       if (v.valid && v.parsed) {
@@ -195,9 +200,10 @@ function dispatchValidate(kind: NotationKind, doc: unknown): RenderResult {
       }
       return r;
     }
+    case 'dga':
     case 'fga': {
       const v = parseCanonicalFGA(doc);
-      const r = emptyResult('fga', v.valid ? 'ok' : 'error');
+      const r = emptyResult(kind, v.valid ? 'ok' : 'error');
       r.errors.push(...v.errors);
       r.warnings.push(...v.warnings);
       if (v.valid && v.parsed) {

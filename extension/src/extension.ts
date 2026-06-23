@@ -46,6 +46,14 @@ function isGoalsFile(doc: vscode.TextDocument): boolean {
   return doc.fileName.endsWith('.goals.transitrix.yaml');
 }
 
+function isDGCAFile(doc: vscode.TextDocument): boolean {
+  return doc.fileName.endsWith('.dgca.transitrix.yaml');
+}
+
+function isDGAFile(doc: vscode.TextDocument): boolean {
+  return doc.fileName.endsWith('.dga.transitrix.yaml');
+}
+
 function isFGCAFile(doc: vscode.TextDocument): boolean {
   return doc.fileName.endsWith('.fgca.transitrix.yaml');
 }
@@ -269,18 +277,34 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       }
       await goalsPreview.showOrReveal(doc);
     }),
+    vscode.commands.registerCommand('transitrixStudio.previewDGCA', async () => {
+      const doc = vscode.window.activeTextEditor?.document;
+      if (!doc || (!isDGCAFile(doc) && !isFGCAFile(doc))) {
+        vscode.window.showWarningMessage('Open a *.dgca.transitrix.yaml file first.');
+        return;
+      }
+      await fgcaPreview.showOrReveal(doc);
+    }),
+    vscode.commands.registerCommand('transitrixStudio.previewDGA', async () => {
+      const doc = vscode.window.activeTextEditor?.document;
+      if (!doc || (!isDGAFile(doc) && !isFGAFile(doc))) {
+        vscode.window.showWarningMessage('Open a *.dga.transitrix.yaml file first.');
+        return;
+      }
+      await fgaPreview.showOrReveal(doc);
+    }),
     vscode.commands.registerCommand('transitrixStudio.previewFGCA', async () => {
       const doc = vscode.window.activeTextEditor?.document;
-      if (!doc || !isFGCAFile(doc)) {
-        vscode.window.showWarningMessage('Open a *.fgca.transitrix.yaml file first.');
+      if (!doc || (!isFGCAFile(doc) && !isDGCAFile(doc))) {
+        vscode.window.showWarningMessage('Open a *.fgca.transitrix.yaml (or *.dgca.transitrix.yaml) file first.');
         return;
       }
       await fgcaPreview.showOrReveal(doc);
     }),
     vscode.commands.registerCommand('transitrixStudio.previewFGA', async () => {
       const doc = vscode.window.activeTextEditor?.document;
-      if (!doc || !isFGAFile(doc)) {
-        vscode.window.showWarningMessage('Open a *.fga.transitrix.yaml file first.');
+      if (!doc || (!isFGAFile(doc) && !isDGAFile(doc))) {
+        vscode.window.showWarningMessage('Open a *.fga.transitrix.yaml (or *.dga.transitrix.yaml) file first.');
         return;
       }
       await fgaPreview.showOrReveal(doc);
@@ -310,6 +334,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand('transitrixStudio.saveGoalsAsSvg', () =>
       goalsPreview.saveAsSvg(),
     ),
+    vscode.commands.registerCommand('transitrixStudio.saveDGCAAsSvg', () =>
+      fgcaPreview.saveAsSvg(),
+    ),
+    vscode.commands.registerCommand('transitrixStudio.saveDGAAsSvg', () =>
+      fgaPreview.saveAsSvg(),
+    ),
     vscode.commands.registerCommand('transitrixStudio.saveFGCAAsSvg', () =>
       fgcaPreview.saveAsSvg(),
     ),
@@ -325,6 +355,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand('transitrixStudio.copyBlocksAsPng', () => blocksPreview.copyAsPng()),
     vscode.commands.registerCommand('transitrixStudio.saveGoalsAsPng', () => goalsPreview.saveAsPng()),
     vscode.commands.registerCommand('transitrixStudio.copyGoalsAsPng', () => goalsPreview.copyAsPng()),
+    vscode.commands.registerCommand('transitrixStudio.saveDGCAAsPng', () => fgcaPreview.saveAsPng()),
+    vscode.commands.registerCommand('transitrixStudio.copyDGCAAsPng', () => fgcaPreview.copyAsPng()),
+    vscode.commands.registerCommand('transitrixStudio.saveDGAAsPng', () => fgaPreview.saveAsPng()),
+    vscode.commands.registerCommand('transitrixStudio.copyDGAAsPng', () => fgaPreview.copyAsPng()),
     vscode.commands.registerCommand('transitrixStudio.saveFGCAAsPng', () => fgcaPreview.saveAsPng()),
     vscode.commands.registerCommand('transitrixStudio.copyFGCAAsPng', () => fgcaPreview.copyAsPng()),
     vscode.commands.registerCommand('transitrixStudio.saveFGAAsPng', () => fgaPreview.saveAsPng()),
@@ -513,8 +547,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         void gapDashboardPreview.refresh();
       }
       if (isGoalsFile(doc)) { void goalsPreview.refreshSaved(doc); return; }
-      if (isFGCAFile(doc)) { void fgcaPreview.refreshSaved(doc); return; }
-      if (isFGAFile(doc)) { void fgaPreview.refreshSaved(doc); return; }
+      if (isDGCAFile(doc) || isFGCAFile(doc)) { void fgcaPreview.refreshSaved(doc); return; }
+      if (isDGAFile(doc) || isFGAFile(doc)) { void fgaPreview.refreshSaved(doc); return; }
       if (isActivitiesFile(doc)) { void activitiesPreview.refreshSaved(doc); return; }
       if (isBlocksFile(doc)) { void blocksPreview.refreshSaved(doc); return; }
       if (isApplicationsFile(doc)) { void applicationsPreview.refreshSaved(doc); return; }
@@ -531,8 +565,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     }),
     vscode.workspace.onDidOpenTextDocument(async (doc) => {
       if (isGoalsFile(doc)) { await goalsPreview.showOrReveal(doc); return; }
-      if (isFGCAFile(doc)) { await fgcaPreview.showOrReveal(doc); return; }
-      if (isFGAFile(doc)) { await fgaPreview.showOrReveal(doc); return; }
+      if (isDGCAFile(doc) || isFGCAFile(doc)) { await fgcaPreview.showOrReveal(doc); return; }
+      if (isDGAFile(doc) || isFGAFile(doc)) { await fgaPreview.showOrReveal(doc); return; }
       if (isActivitiesFile(doc)) { await activitiesPreview.showOrReveal(doc); return; }
       if (isBlocksFile(doc)) { await blocksPreview.showOrReveal(doc); return; }
       if (isApplicationsFile(doc)) { await applicationsPreview.showOrReveal(doc); return; }
