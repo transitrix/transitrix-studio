@@ -13,8 +13,9 @@ export const FUNCTIONAL = {
   info:    '#1d6fa8',
 } as const;
 
-/** Fill colors for FGCA notation columns. */
+/** Fill colors for FGCA/DGCA notation columns. */
 export const LAYER_COLORS = {
+  driver:   { light: '#fef3c7', dark: '#292108', hc: '#f59e0b' },
   factor:   { light: '#fef3c7', dark: '#292108', hc: '#f59e0b' },
   goal:     { light: '#e0e7ff', dark: '#1e1b4b', hc: '#818cf8' },
   change:   { light: '#dbeafe', dark: '#0c2042', hc: '#60a5fa' },
@@ -112,6 +113,7 @@ export const CSS_VAR = {
   statusInfoFg:     '--ts-status-info-fg',
   statusErrorBg:    '--ts-status-error-bg',
   statusErrorFg:    '--ts-status-error-fg',
+  layerDriver:      '--ts-layer-driver',
   layerFactor:      '--ts-layer-factor',
   layerGoal:        '--ts-layer-goal',
   layerChange:      '--ts-layer-change',

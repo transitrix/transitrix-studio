@@ -17,7 +17,7 @@ export interface FGCADriverNodeProps {
 const FGCADriverNode = memo(({ data, isConnectable }: FGCADriverNodeProps) => (
   <div
     style={{
-      background: "var(--ts-layer-factor)",
+      background: "var(--ts-layer-driver)",
       width: NODE_WIDTH,
       height: NODE_HEIGHT,
       padding: "6px 8px",

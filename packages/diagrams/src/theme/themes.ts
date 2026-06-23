@@ -77,6 +77,7 @@ function diagramVars(variant: 'light' | 'dark' | 'hc'): string {
   const mat = MATURITY_COLORS[variant];
   const levelVars = lv.map((c, i) => `--ts-level-${i}:${c}`).join(';') + ';';
   return [
+    `${CSS_VAR.layerDriver}:${lc.driver[variant]}`,
     `${CSS_VAR.layerFactor}:${lc.factor[variant]}`,
     `${CSS_VAR.layerGoal}:${lc.goal[variant]}`,
     `${CSS_VAR.layerChange}:${lc.change[variant]}`,
@@ -131,6 +132,7 @@ function diagramClassCss(): string {
   // contract every notation preview honours so the catalogue reads as one
   // visual family.
   return `.diagram-node{stroke:var(${cv.nodeStroke});stroke-width:1;}
+.layer-driver{fill:var(${cv.layerDriver});}
 .layer-factor{fill:var(${cv.layerFactor});}
 .layer-goal{fill:var(${cv.layerGoal});}
 .layer-change{fill:var(${cv.layerChange});}
