@@ -437,7 +437,7 @@ export async function layoutProcess(
   //   causing vertical overlap.  A Y-sweep guarantees elkNodeSpacing between them.
   // Step C converts local Y to absolute positions and computes lane / pool bounds.
 
-  const laneOriginX = o.poolPad + o.participantLabelBand;
+  const laneOriginX = o.poolOriginX + o.participantLabelBand;
 
   // Step A — lane-local positions (Y relative to lane top).
   type LocalItem = { id: string; x: number; localY: number; width: number; height: number };
@@ -520,8 +520,8 @@ export async function layoutProcess(
 
   const innerBottom = yCursor - o.laneVerticalGap;
   const participantW =
-    o.poolPad * 2 + o.participantLabelBand + o.laneLabelWidth + contentW + o.laneContentRightPad;
-  const participantH = innerBottom + o.poolPad;
+    o.participantLabelBand + o.laneLabelWidth + contentW + o.laneContentRightPad;
+  const participantH = innerBottom - o.poolOriginY;
 
   const poolBounds: Bounds = {
     x: o.poolOriginX,
@@ -531,7 +531,7 @@ export async function layoutProcess(
   };
 
   for (const lb of laneBounds.values()) {
-    lb.width = participantW - 2 * o.poolPad;
+    lb.width = participantW - o.participantLabelBand;
   }
 
   // Step D — swimlane axis snap.

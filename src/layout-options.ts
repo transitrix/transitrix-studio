@@ -25,12 +25,12 @@ export interface LayoutDiagramOptions {
 }
 
 export const DEFAULT_LAYOUT_DIAGRAM_OPTIONS: LayoutDiagramOptions = {
-  poolPad: 40,
+  poolPad: 12,
   poolOriginX: 12,
   poolOriginY: 12,
-  participantLabelBand: 48,
-  laneLabelWidth: 72,
-  laneVerticalGap: 40,
+  participantLabelBand: 20,
+  laneLabelWidth: 44,
+  laneVerticalGap: 0,
   laneContentRightPad: 40,
   elkNodeSpacing: 52,
   elkLayerSpacing: 88,
