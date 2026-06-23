@@ -473,11 +473,13 @@ describe('renderProcessLayoutSvg — sequence flows', () => {
     expect(svg).toContain('class="arrow-fill"');
   });
 
-  it('adds dashed class to conditional flows', () => {
+  it('renders conditional flows as solid lines (BPMN 2.0 — no dashes on seq-flow)', () => {
     const layout = makeLayout();
     layout.flows[0] = { ...layout.flows[0], condition: 'approved == true' };
     const svg = renderProcessLayoutSvg(layout);
-    expect(svg).toContain('bpmn-seq-flow bpmn-seq-cond');
+    // Conditional flows are solid per BPMN 2.0; the marker-only default-flow convention applies instead.
+    expect(svg).not.toContain('bpmn-seq-cond');
+    expect(svg).toContain('bpmn-seq-flow');
   });
 
   it('skips flows with fewer than 2 waypoints', () => {
