@@ -120,6 +120,11 @@
           ]
         },
         "name": { "type": "string" },
+        "performed_by_role": {
+          "type": "string",
+          "pattern": "^ROLE-",
+          "description": "Canonical ROLE-… element ID for the actor performing this specific element (overrides lane default)."
+        },
         "supported_by_application": {
           "type": "string",
           "description": "Canonical APPLICATION-… element ID for the supporting system for this specific element (overrides lane default)."
