@@ -186,7 +186,7 @@ export class GoalsPreview {
     return {
       rawSvg: this.lastSvg || undefined,
       themeId: vscode.workspace.getConfiguration('transitrix').get<ThemeId>('theme', 'transitrix'),
-      emptyMessage: 'No diagram rendered yet. Open a *.goals.transitrix.yaml file first.',
+      emptyMessage: 'No diagram rendered yet. Open a *.goals.transitrix.yaml or *.dgca.transitrix.yaml (with notation: goals) file first.',
     };
   }
 
@@ -204,7 +204,7 @@ export class GoalsPreview {
 
   async saveAsSvg(): Promise<void> {
     if (!this.lastSvg) {
-      vscode.window.showWarningMessage('No diagram rendered yet. Open a *.goals.transitrix.yaml file first.');
+      vscode.window.showWarningMessage('No diagram rendered yet. Open a *.goals.transitrix.yaml or *.dgca.transitrix.yaml (with notation: goals) file first.');
       return;
     }
     const sourceUri = this.trackedUri ? vscode.Uri.parse(this.trackedUri) : undefined;

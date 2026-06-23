@@ -102,6 +102,13 @@ function isCoverageMetricFile(doc: vscode.TextDocument): boolean {
   return doc.fileName.endsWith('.coverage-metric.transitrix.yaml');
 }
 
+function probeDocNotation(doc: vscode.TextDocument): string | undefined {
+  const lines = Math.min(doc.lineCount, 20);
+  const header = doc.getText(new vscode.Range(0, 0, lines, 0));
+  const m = /^notation:\s+([^\s#]+)/m.exec(header);
+  return m?.[1];
+}
+
 async function loadCompiler(ext: vscode.ExtensionContext): Promise<CompileFn> {
   const compilerPath = path.join(ext.extensionPath, 'compiler', 'compiler.js');
   const metricsPath = path.join(ext.extensionPath, 'compiler', 'metrics.js');
@@ -271,8 +278,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     aliasOf('cervin.exportBpmn', 'transitrix.exportBpmn', () => notYet('.bpmn')),
     vscode.commands.registerCommand('transitrixStudio.previewGoals', async () => {
       const doc = vscode.window.activeTextEditor?.document;
-      if (!doc || !isGoalsFile(doc)) {
-        vscode.window.showWarningMessage('Open a *.goals.transitrix.yaml file first.');
+      const isGoals = doc && (isGoalsFile(doc) || (isDGCAFile(doc) && probeDocNotation(doc) === 'goals'));
+      if (!isGoals) {
+        vscode.window.showWarningMessage('Open a *.goals.transitrix.yaml or *.dgca.transitrix.yaml (with notation: goals) file first.');
         return;
       }
       await goalsPreview.showOrReveal(doc);
@@ -311,8 +319,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     }),
     vscode.commands.registerCommand('transitrixStudio.previewActivities', async () => {
       const doc = vscode.window.activeTextEditor?.document;
-      if (!doc || !isActivitiesFile(doc)) {
-        vscode.window.showWarningMessage('Open a *.activities.transitrix.yaml file first.');
+      const isActivities = doc && (isActivitiesFile(doc) || (isDGCAFile(doc) && probeDocNotation(doc) === 'activities'));
+      if (!isActivities) {
+        vscode.window.showWarningMessage('Open a *.activities.transitrix.yaml or *.dgca.transitrix.yaml (with notation: activities) file first.');
         return;
       }
       await activitiesPreview.showOrReveal(doc);
@@ -547,7 +556,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         void gapDashboardPreview.refresh();
       }
       if (isGoalsFile(doc)) { void goalsPreview.refreshSaved(doc); return; }
-      if (isDGCAFile(doc) || isFGCAFile(doc)) { void fgcaPreview.refreshSaved(doc); return; }
+      if (isDGCAFile(doc) || isFGCAFile(doc)) {
+        const notation = isDGCAFile(doc) ? probeDocNotation(doc) : undefined;
+        if (notation === 'goals') { void goalsPreview.refreshSaved(doc); return; }
+        if (notation === 'activities') { void activitiesPreview.refreshSaved(doc); return; }
+        void fgcaPreview.refreshSaved(doc); return;
+      }
       if (isDGAFile(doc) || isFGAFile(doc)) { void fgaPreview.refreshSaved(doc); return; }
       if (isActivitiesFile(doc)) { void activitiesPreview.refreshSaved(doc); return; }
       if (isBlocksFile(doc)) { void blocksPreview.refreshSaved(doc); return; }
@@ -565,7 +579,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     }),
     vscode.workspace.onDidOpenTextDocument(async (doc) => {
       if (isGoalsFile(doc)) { await goalsPreview.showOrReveal(doc); return; }
-      if (isDGCAFile(doc) || isFGCAFile(doc)) { await fgcaPreview.showOrReveal(doc); return; }
+      if (isDGCAFile(doc) || isFGCAFile(doc)) {
+        const notation = isDGCAFile(doc) ? probeDocNotation(doc) : undefined;
+        if (notation === 'goals') { await goalsPreview.showOrReveal(doc); return; }
+        if (notation === 'activities') { await activitiesPreview.showOrReveal(doc); return; }
+        await fgcaPreview.showOrReveal(doc); return;
+      }
       if (isDGAFile(doc) || isFGAFile(doc)) { await fgaPreview.showOrReveal(doc); return; }
       if (isActivitiesFile(doc)) { await activitiesPreview.showOrReveal(doc); return; }
       if (isBlocksFile(doc)) { await blocksPreview.showOrReveal(doc); return; }
