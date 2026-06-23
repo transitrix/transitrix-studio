@@ -21,6 +21,14 @@ const CROSS_LANE_EDGE_OVERLAP_EPSILON_PX = 4;
  *  `elkDiagramPadding` (default 44 px) so the arc stays inside the lane band. */
 const BACKWARD_LOOP_CLEARANCE_PX = 32;
 
+/** Rotated lane/pool caption sizing — keep in sync with render-process.ts HEADER_* constants. */
+const LANE_LABEL_AXIS_PAD = 32;
+const LANE_LABEL_CHAR_W = 6.5;
+
+function minLaneHeightForLabel(name: string): number {
+  return name.length * LANE_LABEL_CHAR_W + 2 * LANE_LABEL_AXIS_PAD;
+}
+
 /** Vertical spread step between multiple forward flows leaving the same source
  *  element in the same lane.  Prevents arrows from overlapping at split gateways. */
 const MULTI_EXIT_OFFSET_STEP_PX = 8;
@@ -451,7 +459,7 @@ export async function layoutProcess(
       if (!gb) continue;
       items.push({
         id: el.id,
-        x: laneOriginX + o.laneLabelWidth + (gb.x - globalMinX),
+        x: laneOriginX + o.laneLabelWidth + o.laneContentLeftPad + (gb.x - globalMinX),
         // Ensure at least elkDiagramPadding of top margin so backward arc clearance
         // (BACKWARD_LOOP_CLEARANCE_PX = 32) always stays inside the lane boundary.
         localY: Math.max((ld.localY.get(el.id) ?? 0) + ld.envY, o.elkDiagramPadding),
@@ -492,6 +500,7 @@ export async function layoutProcess(
 
   for (const ld of laneData) {
     const items = laneLocalItems.get(ld.laneId) ?? [];
+    const laneDef = ir.lanes.find((l) => l.id === ld.laneId);
 
     for (const item of items) {
       elements.set(item.id, {
@@ -506,12 +515,13 @@ export async function layoutProcess(
       ? Math.max(...items.map((item) => item.localY + item.height))
       : 0;
     // Add bottom padding matching the top padding (envY) to keep lanes symmetric.
-    const laneHeight = Math.max(ld.height, contentBottom + ld.envY);
+    const labelMinH = laneDef ? minLaneHeightForLabel(laneDef.name) : 0;
+    const laneHeight = Math.max(ld.height, contentBottom + ld.envY, labelMinH);
 
     laneBounds.set(ld.laneId, {
       x: laneOriginX,
       y: yCursor,
-      width: o.laneLabelWidth + contentW + o.laneContentRightPad,
+      width: o.laneLabelWidth + o.laneContentLeftPad + contentW + o.laneContentRightPad,
       height: laneHeight,
     });
 
@@ -520,7 +530,7 @@ export async function layoutProcess(
 
   const innerBottom = yCursor - o.laneVerticalGap;
   const participantW =
-    o.participantLabelBand + o.laneLabelWidth + contentW + o.laneContentRightPad;
+    o.participantLabelBand + o.laneLabelWidth + o.laneContentLeftPad + contentW + o.laneContentRightPad;
   const participantH = innerBottom - o.poolOriginY;
 
   const poolBounds: Bounds = {

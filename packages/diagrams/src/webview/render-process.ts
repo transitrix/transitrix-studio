@@ -87,7 +87,13 @@ export interface RenderProcessOptions {
 // ---------------------------------------------------------------------------
 
 /** Width of the lane-name column (px). Matches the laneLabelWidth default. */
-const LANE_LABEL_BAND = 28;
+const LANE_LABEL_BAND = 44;
+
+/** End margin (px) along the header height axis for rotated pool/lane captions. */
+const HEADER_LABEL_AXIS_PAD = 32;
+
+/** Estimated horizontal advance (px) per character at the header label font size. */
+const HEADER_LABEL_CHAR_W = 6.5;
 
 /** Maximum characters per wrapped line inside a task box. */
 const TASK_CHARS = 14;
@@ -136,6 +142,19 @@ export const BPMN_PROCESS_CSS = `
 
 function r(n: number): number {
   return Math.round(n);
+}
+
+/** Truncate at a word boundary so rotated header labels never break mid-word. */
+function wordTruncate(text: string, maxChars: number): string {
+  if (text.length <= maxChars) return text;
+  const cut = text.slice(0, maxChars - 1);
+  const lastSpace = cut.lastIndexOf(' ');
+  return (lastSpace > maxChars / 2 ? cut.slice(0, lastSpace) : cut) + '…';
+}
+
+function fitRotatedHeaderText(name: string, spanPx: number): string {
+  const maxChars = Math.max(4, Math.floor(spanPx / HEADER_LABEL_CHAR_W));
+  return wordTruncate(name, maxChars);
 }
 
 function wrapTaskName(name: string): string[] {
@@ -331,10 +350,11 @@ function renderPoolLanes(layout: ProcessDiagramLayout, ox: number, oy: number): 
   parts.push(`<rect class="bpmn-pool-name" x="${px}" y="${py}" width="${poolNameW}" height="${ph}"/>`);
 
   const pLX = r(px + poolNameW / 2);
-  const pLY = r(py + ph / 2);
+  const poolLabelSpan = Math.max(ph - 2 * HEADER_LABEL_AXIS_PAD, 0);
+  const pLY = r(py + HEADER_LABEL_AXIS_PAD + poolLabelSpan / 2);
   parts.push(
     `<text class="bpmn-pool-label" text-anchor="middle" dominant-baseline="central"` +
-    ` transform="rotate(-90,${pLX},${pLY})" x="${pLX}" y="${pLY}">${escXml(process.poolName)}</text>`,
+    ` transform="rotate(-90,${pLX},${pLY})" x="${pLX}" y="${pLY}">${escXml(fitRotatedHeaderText(process.poolName, poolLabelSpan))}</text>`,
   );
 
   for (const lane of process.lanes) {
@@ -349,10 +369,11 @@ function renderPoolLanes(layout: ProcessDiagramLayout, ox: number, oy: number): 
     parts.push(`<rect class="bpmn-lane-header" x="${lx}" y="${ly}" width="${LANE_LABEL_BAND}" height="${lh}"/>`);
 
     const lLX = r(lx + LANE_LABEL_BAND / 2);
-    const lLY = r(ly + lh / 2);
+    const laneLabelSpan = Math.max(lh - 2 * HEADER_LABEL_AXIS_PAD, 0);
+    const lLY = r(ly + HEADER_LABEL_AXIS_PAD + laneLabelSpan / 2);
     parts.push(
       `<text class="bpmn-lane-label" text-anchor="middle" dominant-baseline="central"` +
-      ` transform="rotate(-90,${lLX},${lLY})" x="${lLX}" y="${lLY}">${escXml(lane.name)}</text>`,
+      ` transform="rotate(-90,${lLX},${lLY})" x="${lLX}" y="${lLY}">${escXml(fitRotatedHeaderText(lane.name, laneLabelSpan))}</text>`,
     );
   }
 
