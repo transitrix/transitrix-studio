@@ -4,7 +4,7 @@
  * Part of the custom process renderer programme (ADR 2026-06-22).
  * P1: skeleton emitter — current DSL element subset: tasks, user/service tasks,
  * XOR/AND gateways, start/end events, data objects, sequence flows (with
- * optional conditional dashes), and association edges.
+ * default-flow markers), and association edges.
  *
  * Single-emitter unification (review C): `renderProcessBody` is the canonical
  * body shared by every host. Callers wrap it with a host-specific title block
@@ -87,13 +87,19 @@ export interface RenderProcessOptions {
 // ---------------------------------------------------------------------------
 
 /** Width of the lane-name column (px). Matches the laneLabelWidth default. */
-const LANE_LABEL_BAND = 72;
+const LANE_LABEL_BAND = 28;
 
 /** Maximum characters per wrapped line inside a task box. */
 const TASK_CHARS = 14;
 
 /** Line height for wrapped task-name text (px). */
 const TASK_LINE_H = 14;
+
+/** Maximum characters per line for below-element labels (events, gateways). */
+const LABEL_CHARS = 18;
+
+/** Line height for multi-line below-element labels (px). */
+const LABEL_LINE_H = 13;
 
 // ---------------------------------------------------------------------------
 // BPMN-specific CSS — no font-style:italic per CLAUDE.md design rule
@@ -116,7 +122,7 @@ export const BPMN_PROCESS_CSS = `
 .bpmn-gateway-marker { stroke: var(--ts-node-stroke,#94a3b8); stroke-width: 2.5; stroke-linecap: round; fill: none; }
 .bpmn-gateway-label { fill: var(--ts-text-secondary,#64748b); font-size: 10px; text-anchor: middle; }
 .bpmn-seq-flow { fill: none; stroke: var(--ts-edge-stroke,#64748b); stroke-width: 1.5; }
-.bpmn-seq-cond { stroke-dasharray: 6 3; }
+.bpmn-default-mark { stroke: var(--ts-edge-stroke,#64748b); stroke-width: 1.5; stroke-linecap: round; }
 .bpmn-assoc { fill: none; stroke: var(--ts-edge-stroke,#64748b); stroke-width: 1; stroke-dasharray: 4 2; }
 .bpmn-data-obj { fill: var(--ts-bg,#ffffff); stroke: var(--ts-node-stroke,#94a3b8); stroke-width: 1; }
 .bpmn-data-obj-label { fill: var(--ts-text-secondary,#64748b); font-size: 10px; text-anchor: middle; }
@@ -168,17 +174,49 @@ function taskNameSvg(name: string | undefined, cx: number, cy: number): string {
   return `<text class="bpmn-task-name">${tspans}</text>`;
 }
 
-function belowLabelSvg(name: string | undefined, cls: string, cx: number, belowY: number): string {
+function wrapBelowLabel(name: string): string[] {
+  const words = name.split(/\s+/).filter(Boolean);
+  const allLines: string[] = [];
+  let cur = '';
+  for (const word of words) {
+    const tok = word.length > LABEL_CHARS ? word.slice(0, LABEL_CHARS - 1) + '…' : word;
+    const test = cur ? `${cur} ${tok}` : tok;
+    if (test.length <= LABEL_CHARS) {
+      cur = test;
+    } else {
+      if (cur) allLines.push(cur);
+      cur = tok;
+    }
+  }
+  if (cur) allLines.push(cur);
+  if (allLines.length === 0) return [name.slice(0, LABEL_CHARS)];
+  if (allLines.length <= 3) return allLines;
+  const lines = allLines.slice(0, 3);
+  const last = lines[2];
+  lines[2] = last.length + 1 <= LABEL_CHARS ? last + '…' : last.slice(0, LABEL_CHARS - 1) + '…';
+  return lines;
+}
+
+function belowLabelSvg(name: string | undefined, cls: string, cx: number, belowY: number, minX = 0): string {
   if (!name) return '';
-  const label = name.length > 18 ? name.slice(0, 17) + '…' : name;
-  return `<text class="${cls}" x="${r(cx)}" y="${r(belowY + 12)}">${escXml(label)}</text>`;
+  const lines = wrapBelowLabel(name);
+  const halfW = Math.max(...lines.map((l) => l.length)) * 3;
+  const textX = minX > 0 ? Math.max(cx, minX + halfW + 2) : cx;
+  const startY = r(belowY + 12);
+  if (lines.length === 1) {
+    return `<text class="${cls}" x="${r(textX)}" y="${startY}">${escXml(lines[0])}</text>`;
+  }
+  const tspans = lines
+    .map((ln, i) => `<tspan x="${r(textX)}" dy="${i === 0 ? 0 : LABEL_LINE_H}">${escXml(ln)}</tspan>`)
+    .join('');
+  return `<text class="${cls}" x="${r(textX)}" y="${startY}">${tspans}</text>`;
 }
 
 // ---------------------------------------------------------------------------
 // Element renderer
 // ---------------------------------------------------------------------------
 
-function renderElement(el: ProcessFlowElement, b: ProcessBounds, ox: number, oy: number): string {
+function renderElement(el: ProcessFlowElement, b: ProcessBounds, ox: number, oy: number, minLabelX = 0): string {
   const ex = b.x + ox;
   const ey = b.y + oy;
   const cx = ex + b.width / 2;
@@ -189,13 +227,13 @@ function renderElement(el: ProcessFlowElement, b: ProcessBounds, ox: number, oy:
     case 'startEvent':
       return [
         `<circle class="bpmn-event bpmn-event-start" cx="${r(cx)}" cy="${r(cy)}" r="${r(halfR)}"/>`,
-        belowLabelSvg(el.name, 'bpmn-event-label', cx, ey + b.height),
+        belowLabelSvg(el.name, 'bpmn-event-label', cx, ey + b.height, minLabelX),
       ].join('\n');
 
     case 'endEvent':
       return [
         `<circle class="bpmn-event bpmn-event-end" cx="${r(cx)}" cy="${r(cy)}" r="${r(halfR - 2)}"/>`,
-        belowLabelSvg(el.name, 'bpmn-event-label', cx, ey + b.height),
+        belowLabelSvg(el.name, 'bpmn-event-label', cx, ey + b.height, minLabelX),
       ].join('\n');
 
     case 'task':
@@ -210,21 +248,21 @@ function renderElement(el: ProcessFlowElement, b: ProcessBounds, ox: number, oy:
       return [
         `<path class="bpmn-gateway" d="M ${r(cx)},${r(ey)} L ${r(ex + b.width)},${r(cy)} L ${r(cx)},${r(ey + b.height)} L ${r(ex)},${r(cy)} Z"/>`,
         `<path class="bpmn-gateway-marker" d="M ${r(cx - 10)},${r(cy - 10)} L ${r(cx + 10)},${r(cy + 10)} M ${r(cx + 10)},${r(cy - 10)} L ${r(cx - 10)},${r(cy + 10)}"/>`,
-        belowLabelSvg(el.name, 'bpmn-gateway-label', cx, ey + b.height),
+        belowLabelSvg(el.name, 'bpmn-gateway-label', cx, ey + b.height, minLabelX),
       ].join('\n');
 
     case 'parallelGateway':
       return [
         `<path class="bpmn-gateway" d="M ${r(cx)},${r(ey)} L ${r(ex + b.width)},${r(cy)} L ${r(cx)},${r(ey + b.height)} L ${r(ex)},${r(cy)} Z"/>`,
         `<path class="bpmn-gateway-marker" d="M ${r(cx)},${r(cy - 12)} L ${r(cx)},${r(cy + 12)} M ${r(cx - 12)},${r(cy)} L ${r(cx + 12)},${r(cy)}"/>`,
-        belowLabelSvg(el.name, 'bpmn-gateway-label', cx, ey + b.height),
+        belowLabelSvg(el.name, 'bpmn-gateway-label', cx, ey + b.height, minLabelX),
       ].join('\n');
 
     case 'inclusiveGateway':
       return [
         `<path class="bpmn-gateway" d="M ${r(cx)},${r(ey)} L ${r(ex + b.width)},${r(cy)} L ${r(cx)},${r(ey + b.height)} L ${r(ex)},${r(cy)} Z"/>`,
         `<circle class="bpmn-gateway-marker" cx="${r(cx)}" cy="${r(cy)}" r="${r(halfR * 0.4)}"/>`,
-        belowLabelSvg(el.name, 'bpmn-gateway-label', cx, ey + b.height),
+        belowLabelSvg(el.name, 'bpmn-gateway-label', cx, ey + b.height, minLabelX),
       ].join('\n');
 
     case 'intermediateMessageEvent': {
@@ -236,7 +274,7 @@ function renderElement(el: ProcessFlowElement, b: ProcessBounds, ox: number, oy:
         `<circle class="bpmn-event-intermediate" cx="${r(cx)}" cy="${r(cy)}" r="${innerR}"/>`,
         `<rect class="bpmn-event-icon" x="${r(cx - eHW)}" y="${r(cy - eHH)}" width="${r(eHW * 2)}" height="${r(eHH * 2)}"/>`,
         `<path class="bpmn-event-icon" d="M ${r(cx - eHW)},${r(cy - eHH)} L ${r(cx)},${r(cy)} L ${r(cx + eHW)},${r(cy - eHH)}"/>`,
-        belowLabelSvg(el.name, 'bpmn-event-label', cx, ey + b.height),
+        belowLabelSvg(el.name, 'bpmn-event-label', cx, ey + b.height, minLabelX),
       ].join('\n');
     }
 
@@ -250,7 +288,7 @@ function renderElement(el: ProcessFlowElement, b: ProcessBounds, ox: number, oy:
         `<circle class="bpmn-event-icon" cx="${r(cx)}" cy="${r(cy)}" r="${clockR}"/>`,
         `<line class="bpmn-event-icon" x1="${r(cx)}" y1="${r(cy)}" x2="${r(cx)}" y2="${r(cy - handLen)}"/>`,
         `<line class="bpmn-event-icon" x1="${r(cx)}" y1="${r(cy)}" x2="${r(cx + r(handLen * 0.7))}" y2="${r(cy)}"/>`,
-        belowLabelSvg(el.name, 'bpmn-event-label', cx, ey + b.height),
+        belowLabelSvg(el.name, 'bpmn-event-label', cx, ey + b.height, minLabelX),
       ].join('\n');
     }
 
@@ -259,7 +297,7 @@ function renderElement(el: ProcessFlowElement, b: ProcessBounds, ox: number, oy:
       return [
         `<path class="bpmn-data-obj" d="M ${r(ex)},${r(ey)} L ${r(ex + b.width - fold)},${r(ey)} L ${r(ex + b.width)},${r(ey + fold)} L ${r(ex + b.width)},${r(ey + b.height)} L ${r(ex)},${r(ey + b.height)} Z"/>`,
         `<path class="bpmn-data-obj" fill="none" d="M ${r(ex + b.width - fold)},${r(ey)} L ${r(ex + b.width - fold)},${r(ey + fold)} L ${r(ex + b.width)},${r(ey + fold)}"/>`,
-        belowLabelSvg(el.name, 'bpmn-data-obj-label', cx, ey + b.height),
+        belowLabelSvg(el.name, 'bpmn-data-obj-label', cx, ey + b.height, minLabelX),
       ].join('\n');
     }
 
@@ -329,7 +367,7 @@ function renderPoolLanes(layout: ProcessDiagramLayout, ox: number, oy: number): 
  * Canonical body emitter, shared by every host (VS Code, JCEF, static export).
  *
  * Renders: pool + lane structure, all flow elements, sequence flows (with
- * optional conditional dashes), and association edges. The `<defs>` block
+ * default-flow markers), and association edges. The `<defs>` block
  * containing the arrowhead marker is included so the body is self-contained.
  *
  * @param layout - Positioned process layout (output of `layoutProcess`).
@@ -343,30 +381,67 @@ export function renderProcessBody(
 ): string {
   const parts: string[] = [];
 
+  // Build clip-path rects for every lane so element labels can't bleed into the
+  // lane-name header strip on the left.
+  const laneClipDefs = layout.process.lanes.map((lane) => {
+    const lb = layout.laneBounds.get(lane.id);
+    if (!lb) return '';
+    const clipId = `bpmn-lc-${escXml(lane.id)}`;
+    const cx2 = r(lb.x + ox + LANE_LABEL_BAND);
+    const cy2 = r(lb.y + oy);
+    const cw  = r(lb.width - LANE_LABEL_BAND);
+    const ch  = r(lb.height);
+    return `  <clipPath id="${clipId}"><rect x="${cx2}" y="${cy2}" width="${cw}" height="${ch}"/></clipPath>`;
+  }).filter(Boolean).join('\n');
+
   parts.push(
     `<defs>\n` +
     `  <marker id="bpmn-arrow" viewBox="0 0 10 10" refX="9" refY="5"` +
     ` markerWidth="8" markerHeight="8" orient="auto">\n` +
     `    <path d="M 0 0 L 10 5 L 0 10 z" class="arrow-fill"/>\n` +
     `  </marker>\n` +
+    (laneClipDefs ? laneClipDefs + '\n' : '') +
     `</defs>`,
   );
 
   parts.push(renderPoolLanes(layout, ox, oy));
 
   for (const lane of layout.process.lanes) {
+    const lb = layout.laneBounds.get(lane.id);
+    const clipId = lb ? `bpmn-lc-${escXml(lane.id)}` : undefined;
+    const laneContentX = lb ? lb.x + ox + LANE_LABEL_BAND : 0;
+    if (clipId) parts.push(`<g clip-path="url(#${clipId})">`);
     for (const el of lane.elements) {
       const b = layout.elements.get(el.id);
       if (!b) continue;
-      parts.push(renderElement(el, b, ox, oy));
+      parts.push(renderElement(el, b, ox, oy, laneContentX));
     }
+    if (clipId) parts.push('</g>');
   }
 
   for (const flow of layout.flows) {
     if (flow.waypoints.length < 2) continue;
     const pts = flow.waypoints.map((p) => `${r(p.x + ox)},${r(p.y + oy)}`).join(' ');
-    const condCls = flow.condition ? ' bpmn-seq-cond' : '';
-    parts.push(`<polyline class="bpmn-seq-flow${condCls}" points="${pts}" marker-end="url(#bpmn-arrow)"/>`);
+    parts.push(`<polyline class="bpmn-seq-flow" points="${pts}" marker-end="url(#bpmn-arrow)"/>`);
+    if (flow.default) {
+      const p0 = flow.waypoints[0];
+      const p1 = flow.waypoints[1];
+      const dx = p1.x - p0.x;
+      const dy = p1.y - p0.y;
+      const len = Math.sqrt(dx * dx + dy * dy);
+      if (len >= 1) {
+        const nx = dx / len;
+        const ny = dy / len;
+        const HALF = 5;
+        const OFFSET = 8;
+        const cx = p0.x + ox + nx * OFFSET;
+        const cy = p0.y + oy + ny * OFFSET;
+        // Perpendicular slash: marks the default outflow per BPMN 2.0 §10.3.3
+        parts.push(
+          `<line class="bpmn-default-mark" x1="${r(cx - ny * HALF)}" y1="${r(cy + nx * HALF)}" x2="${r(cx + ny * HALF)}" y2="${r(cy - nx * HALF)}"/>`,
+        );
+      }
+    }
   }
 
   for (const assoc of layout.associations) {
