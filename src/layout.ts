@@ -451,7 +451,7 @@ export async function layoutProcess(
       if (!gb) continue;
       items.push({
         id: el.id,
-        x: laneOriginX + o.laneLabelWidth + (gb.x - globalMinX),
+        x: laneOriginX + o.laneLabelWidth + o.laneContentLeftPad + (gb.x - globalMinX),
         // Ensure at least elkDiagramPadding of top margin so backward arc clearance
         // (BACKWARD_LOOP_CLEARANCE_PX = 32) always stays inside the lane boundary.
         localY: Math.max((ld.localY.get(el.id) ?? 0) + ld.envY, o.elkDiagramPadding),
@@ -511,7 +511,7 @@ export async function layoutProcess(
     laneBounds.set(ld.laneId, {
       x: laneOriginX,
       y: yCursor,
-      width: o.laneLabelWidth + contentW + o.laneContentRightPad,
+      width: o.laneLabelWidth + o.laneContentLeftPad + contentW + o.laneContentRightPad,
       height: laneHeight,
     });
 
@@ -520,7 +520,7 @@ export async function layoutProcess(
 
   const innerBottom = yCursor - o.laneVerticalGap;
   const participantW =
-    o.participantLabelBand + o.laneLabelWidth + contentW + o.laneContentRightPad;
+    o.participantLabelBand + o.laneLabelWidth + o.laneContentLeftPad + contentW + o.laneContentRightPad;
   const participantH = innerBottom - o.poolOriginY;
 
   const poolBounds: Bounds = {

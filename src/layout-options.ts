@@ -16,6 +16,8 @@ export interface LayoutDiagramOptions {
   laneVerticalGap: number;
   /** Extra padding inside a lane strip on the right (after ELK content). */
   laneContentRightPad: number;
+  /** Extra padding before the first ELK column inside a lane (after the lane-name column). */
+  laneContentLeftPad: number;
   /** `elk.spacing.nodeNode` — horizontal spacing between nodes. */
   elkNodeSpacing: number;
   /** `elk.layered.spacing.nodeNodeBetweenLayers` — spacing between Sugiyama layers. */
@@ -28,10 +30,11 @@ export const DEFAULT_LAYOUT_DIAGRAM_OPTIONS: LayoutDiagramOptions = {
   poolPad: 12,
   poolOriginX: 12,
   poolOriginY: 12,
-  participantLabelBand: 20,
+  participantLabelBand: 44,
   laneLabelWidth: 44,
   laneVerticalGap: 0,
   laneContentRightPad: 40,
+  laneContentLeftPad: 32,
   elkNodeSpacing: 52,
   elkLayerSpacing: 88,
   elkDiagramPadding: 44,
@@ -63,6 +66,7 @@ export function mergeLayoutDiagramOptions(
     laneLabelWidth: pick('laneLabelWidth'),
     laneVerticalGap: pick('laneVerticalGap'),
     laneContentRightPad: pick('laneContentRightPad'),
+    laneContentLeftPad: pick('laneContentLeftPad'),
     elkNodeSpacing: pick('elkNodeSpacing'),
     elkLayerSpacing: pick('elkLayerSpacing'),
     elkDiagramPadding: pick('elkDiagramPadding'),
@@ -86,6 +90,7 @@ const LAYOUT_KEYS: (keyof LayoutDiagramOptions)[] = [
   'laneLabelWidth',
   'laneVerticalGap',
   'laneContentRightPad',
+  'laneContentLeftPad',
   'elkNodeSpacing',
   'elkLayerSpacing',
   'elkDiagramPadding',
