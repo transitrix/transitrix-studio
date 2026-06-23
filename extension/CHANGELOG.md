@@ -1,21 +1,38 @@
 # Transitrix Studio — changelog
 
-## 2.2.0 — 2026-06-21
+## 2.2.0 — 2026-06-24
 
-BPMN diagram polish: PNG export, unified diagram styles, left-face entry for cross-lane flows, entity IDs in nodes.
+Custom BPMN renderer by default, DGCA/DGA notation rename, Blocks IDs, and BPMN preview layout polish from hand-testing.
 
 ### Added
 
-- **BPMN preview — Save as PNG.** Export the rendered BPMN diagram to a `.png` file directly from the preview toolbar.
-- **Entity IDs in diagram nodes.** FGCA, FGA, and Activities nodes now show the entity ID below the name in grey, matching the Goal tree convention.
+- **BPMN preview — custom SVG renderer is the default.** `transitrix.bpmnRenderer` defaults to `"custom"` (built-in emitter with shared theme, zoom/pan). Set `"bpmn-io"` to revert to the legacy interactive viewer.
+- **BPMN preview — `transitrix.bpmn.laneGap` setting.** Vertical spacing between swimlanes (0–200 px); toolbar **Spacing…** opens BPMN settings.
+- **BPMN SVG renderer — default-flow marker, label wrap, lane clip.** Per BPMN 2.0, default outflows show a perpendicular slash; conditional flows are solid; below-element labels word-wrap; lane clip-path prevents label bleed into the header column.
+- **Blocks preview — block IDs in the diagram.** Leaf blocks show name + ID; container blocks show `(ID)` in the header line.
+- **Auto-open previews** for BPMN, compliance-impact, single law, and single product files on open (in addition to existing notations).
+- **DGCA / DGA notation** (renamed from FGCA / FGA). New canonical file extensions `*.dgca.transitrix.yaml` and `*.dga.transitrix.yaml`; legacy `fgca` / `fga` keys still accepted with deprecation warnings through 1.x.
+- **Driver terminology** in FGCA/DGCA column (factor → driver) — validator, types, and CSS class alignment.
+- **BPMN preview — Save as PNG.** Export the rendered BPMN diagram to a `.png` file from the preview toolbar.
+- **Entity IDs in diagram nodes.** FGCA/DGA, FGA/DGA, and Activities nodes show the entity ID below the name in grey.
 
 ### Fixed
 
-- **BPMN cross-lane gateway flows — left-face entry.** Arrows from gateway bottom/top exit ports now always enter the target block from the left face. Previously they could enter from the top or bottom depending on the gateway's position relative to the target.
-- **BPMN edge routing polish.** Corrected kinks in same-lane top/bottom exit routes, fixed `defaultFlow` attribute handling, and tightened preview layout.
-- **Activities diagram — unified node style.** Fill colour, stroke colour, stroke width, and corner radius now match Goal tree / FGA / FGCA out of the box.
-- **Preview panel titles** — standardised to `[Type] Preview — filename` pattern across all notations.
-- **Process Blueprint** — restored correct PNG export layout; uniform title block across all previews.
+- **BPMN preview title-bar action** uses `registerTextEditorCommand` so **Open Preview** works when focus is in the webview panel.
+- **`.dgca.transitrix.yaml` routing** — goals/activities files open the correct preview by `notation:` header, not always the DGCA tree.
+- **BPMN layout — compact pool/lane defaults** and **`laneContentLeftPad`** so start-event labels centre under the shape.
+- **BPMN header captions** — wider pool band, end padding on rotated pool/lane titles, min lane height from caption length when the name is longer than the content row.
+- **`transitrix.bpmn.laneGap` default is 0** (was 40 via settings override of layout).
+- **CLI** — `dgca` / `dga` validator keys and help text.
+- **BPMN cross-lane gateway flows — left-face entry** and same-lane routing kinks / `defaultFlow` XML attribute handling.
+- **Activities diagram — unified node style** with Goal tree / DGCA / DGA previews.
+- **Preview panel titles** — `[Type] Preview — filename` pattern; Process Blueprint PNG export layout restored.
+- **BPMN DSL schema** — root `name` / `generated_at` (CONTRACT §1.1); lane/element `performed_by_role` and `supported_by_application`.
+- **VSIX build** — `extension:prep` runs `build:diagrams` so packaged previews include fresh `@transitrix/diagrams` bundles.
+
+### Changed
+
+- **Tighter BPMN pool/lane geometry** — reduced outer padding and lane-name column; sequence-flow rendering no longer uses dashed condition styling.
 
 ## 2.1.1 — 2026-06-20
 

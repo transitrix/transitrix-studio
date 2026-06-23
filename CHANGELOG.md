@@ -1,15 +1,27 @@
 # Changelog
 
-## [Unreleased]
+## [2.2.0] — 2026-06-24
 
-### Changed
+### Added
 
-- **BPMN preview — custom renderer is now the default.** `transitrix.bpmnRenderer` defaults to `"custom"` (the built-in SVG emitter) instead of `"bpmn-io"`. The custom renderer supports the full v1 element subset: swimlanes, tasks, XOR/AND/inclusive gateways, start/end events, intermediate message and timer events, data objects with association edges, and conditional sequence flows. Zoom (50–200%) and pan work via the shared preview controls consistent with all other Transitrix notations.
+- **BPMN preview — custom SVG renderer is the default** (`transitrix.bpmnRenderer`: `"custom"`). Set `"bpmn-io"` to revert to the legacy bpmn.io viewer.
+- **BPMN preview — `transitrix.bpmn.laneGap` setting** (0–200 px between swimlanes).
+- **BPMN SVG renderer** — default-flow marker, word-wrapped below-element labels, lane clip-path; solid conditional sequence flows.
+- **Blocks preview** — block IDs in nested block diagrams.
+- **Auto-open previews** for BPMN, compliance-impact, single law, and single product files.
+- **DGCA / DGA notation** (renamed from FGCA / FGA); legacy keys accepted with deprecation warnings through 1.x.
+- **Driver terminology** (factor → driver) in DGCA column validators and rendering.
+- **BPMN Save as PNG** from the preview toolbar.
+- **Entity IDs** below node names in DGCA/DGA, FGA/DGA, and Activities diagrams.
 
-  To revert to the legacy bpmn.io viewer (full BPMN 2.0 interactivity), set in your VS Code settings:
-  ```json
-  "transitrix.bpmnRenderer": "bpmn-io"
-  ```
+### Fixed
+
+- BPMN **Open Preview** from the editor title bar when webview has focus.
+- DGCA files routed to the correct preview by `notation:` header.
+- BPMN layout polish: compact pool/lane geometry, start-event label inset, rotated header caption padding, min lane height for long lane names, `laneGap` default 0.
+- BPMN cross-lane routing, `defaultFlow` XML, Activities node styling, preview title pattern, Process Blueprint PNG export.
+- BPMN DSL schema: `name`, `generated_at`, `performed_by_role`, `supported_by_application`.
+- CLI `dgca` / `dga` validator keys; `extension:prep` runs `build:diagrams` before VSIX packaging.
 
 ## [2.1.1] — 2026-06-20
 
