@@ -21,6 +21,8 @@ object TransitrixNotation {
      */
     private val SUFFIX_TO_KIND: List<Pair<String, String>> = listOf(
         ".goals.transitrix.yaml" to "goals",
+        ".dgca.transitrix.yaml" to "dgca",
+        ".dga.transitrix.yaml" to "dga",
         ".fgca.transitrix.yaml" to "fgca",
         ".fga.transitrix.yaml" to "fga",
         ".activities.transitrix.yaml" to "activities",
