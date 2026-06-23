@@ -4,7 +4,7 @@ import * as vscode from 'vscode';
 
 import type { CompileFn } from './preview.js';
 import { CervinPreview } from './preview.js';
-import { ProcessPreview, type ProcessLayoutFn, SAVE_BPMN_PROCESS_SVG_COMMAND } from './process-preview.js';
+import { ProcessPreview, type ProcessLayoutFn, SAVE_BPMN_PROCESS_SVG_COMMAND, OPEN_BPMN_SETTINGS_COMMAND } from './process-preview.js';
 import { GoalsPreview } from './goals-preview.js';
 import { FGCAPreview, FGAPreview } from './fgca-preview.js';
 import { ActivitiesPreview } from './activities-preview.js';
@@ -148,10 +148,17 @@ async function loadProcessLayoutFn(ext: vscode.ExtensionContext): Promise<Proces
   // Node.js module cache means this import() re-uses the already-loaded module
   // when loadCompiler() has run first — no double-load overhead.
   const mod = (await import(compilerHref)) as {
-    compileTransitrixYamlWithLayout: (yaml: string) => Promise<{ layout: unknown; validation: ValidationReport }>;
+    compileTransitrixYamlWithLayout: (
+      yaml: string,
+      options?: { layout?: { laneVerticalGap?: number } },
+    ) => Promise<{ layout: unknown; validation: ValidationReport }>;
   };
   return async (yaml: string) => {
-    const result = await mod.compileTransitrixYamlWithLayout(yaml);
+    const laneGap = vscode.workspace.getConfiguration('transitrix').get<number>('bpmn.laneGap');
+    const layoutOptions = (laneGap !== undefined && Number.isFinite(laneGap))
+      ? { layout: { laneVerticalGap: laneGap } }
+      : undefined;
+    const result = await mod.compileTransitrixYamlWithLayout(yaml, layoutOptions);
     // LayoutIr is structurally compatible with ProcessDiagramLayout — safe cast.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return { layout: result.layout as any, validation: result.validation };
@@ -500,6 +507,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       const doc = vscode.window.activeTextEditor?.document;
       if (doc && isCoverageMetricFile(doc)) await coverageMetricPreview.showOrReveal(doc);
     }),
+    vscode.commands.registerCommand(OPEN_BPMN_SETTINGS_COMMAND, () =>
+      vscode.commands.executeCommand('workbench.action.openSettings', 'transitrix.bpmn'),
+    ),
     vscode.commands.registerCommand(OPEN_SPACING_SETTINGS_COMMAND, () =>
       vscode.commands.executeCommand('workbench.action.openSettings', SPACING_CONFIG_SECTION),
     ),
@@ -530,8 +540,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     // and this handler rebuilds the webview HTML from the tracked document.
     vscode.workspace.onDidChangeConfiguration((e) => {
       const isThemeChange = e.affectsConfiguration('transitrix.theme');
+      const isBpmnChange = e.affectsConfiguration('transitrix.bpmn');
+      if (isBpmnChange) void processPreview.refreshConfig();
       if (
         !isThemeChange &&
+        !isBpmnChange &&
         !e.affectsConfiguration(SPACING_CONFIG_SECTION) &&
         !e.affectsConfiguration(CURVATURE_CONFIG_SECTION) &&
         !e.affectsConfiguration(ENTRY_CURVATURE_CONFIG_SECTION) &&

@@ -92,6 +92,13 @@
           "default": false,
           "description": "Show experimental BPMN/SVG/PNG export commands (not finished yet)."
         },
+        "transitrix.bpmn.laneGap": {
+          "type": "number",
+          "default": 40,
+          "minimum": 0,
+          "maximum": 200,
+          "description": "Vertical gap (px) between swimlanes in the BPMN preview. Change takes effect on the next file save or when the preview re-renders."
+        },
         "transitrix.bpmnRenderer": {
           "type": "string",
           "enum": [
