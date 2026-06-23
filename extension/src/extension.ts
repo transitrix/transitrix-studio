@@ -102,6 +102,19 @@ function isCoverageMetricFile(doc: vscode.TextDocument): boolean {
   return doc.fileName.endsWith('.coverage-metric.transitrix.yaml');
 }
 
+function isComplianceImpactFile(doc: vscode.TextDocument): boolean {
+  return doc.fileName.endsWith('.compliance-impact.transitrix.yaml')
+    || doc.fileName.endsWith('.compliance-impact.view.yaml');
+}
+
+function isSingleLawFile(doc: vscode.TextDocument): boolean {
+  return /^(LAW|REGULATION|POLICY|INTERNAL_STANDARD)-.*\.ya?ml$/i.test(path.basename(doc.fileName));
+}
+
+function isSingleProductFile(doc: vscode.TextDocument): boolean {
+  return /^PRODUCT-.*\.ya?ml$/i.test(path.basename(doc.fileName));
+}
+
 function probeDocNotation(doc: vscode.TextDocument): string | undefined {
   const lines = Math.min(doc.lineCount, 20);
   const header = doc.getText(new vscode.Range(0, 0, lines, 0));
@@ -235,21 +248,25 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const gapDashboardPreview = new GapDashboardPreview(context.extensionUri);
   const coverageMetricPreview = new CoverageMetricPreview(context.extensionUri);
 
-  const openPreviewHandler = async (): Promise<void> => {
-    const doc = vscode.window.activeTextEditor?.document;
-    const exts = getConfiguredExtensions();
-    if (!doc || !documentMatchesCervinSource(doc)) {
-      vscode.window.showWarningMessage(
-        `Open a file with one of these suffixes: ${formatExtensionHint(exts)} (configure with transitrix.fileExtensions).`,
-      );
-      return;
-    }
+  async function openBpmnPreviewForDocument(doc: vscode.TextDocument): Promise<void> {
     const renderer = vscode.workspace.getConfiguration('transitrix').get<string>('bpmnRenderer', 'custom');
     if (renderer === 'custom') {
       await processPreview.showOrReveal(doc);
     } else {
       await preview.showOrReveal(doc);
     }
+  }
+
+  const openPreviewHandler = async (editor: vscode.TextEditor): Promise<void> => {
+    const doc = editor.document;
+    if (!documentMatchesCervinSource(doc)) {
+      const exts = getConfiguredExtensions();
+      vscode.window.showWarningMessage(
+        `Open a file with one of these suffixes: ${formatExtensionHint(exts)} (configure with transitrix.fileExtensions).`,
+      );
+      return;
+    }
+    await openBpmnPreviewForDocument(doc);
   };
 
   // Command namespaces (intentional split, kept for compatibility):
@@ -267,12 +284,15 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     });
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('transitrix.openPreview', openPreviewHandler),
+    vscode.commands.registerTextEditorCommand('transitrix.openPreview', openPreviewHandler),
     vscode.commands.registerCommand('transitrix.exportSvg', () => notYet('SVG')),
     vscode.commands.registerCommand('transitrix.exportPng', () => preview.saveAsPng()),
     vscode.commands.registerCommand('transitrix.exportBpmn', () => notYet('.bpmn')),
     vscode.commands.registerCommand('transitrixStudio.saveBpmnAsPng', () => preview.saveAsPng()),
-    aliasOf('cervin.openPreview', 'transitrix.openPreview', openPreviewHandler),
+    vscode.commands.registerTextEditorCommand('cervin.openPreview', (editor) => {
+      noteCervinCommandDeprecation('cervin.openPreview', 'transitrix.openPreview');
+      return openPreviewHandler(editor);
+    }),
     aliasOf('cervin.exportSvg', 'transitrix.exportSvg', () => notYet('SVG')),
     aliasOf('cervin.exportPng', 'transitrix.exportPng', () => preview.saveAsPng()),
     aliasOf('cervin.exportBpmn', 'transitrix.exportBpmn', () => notYet('.bpmn')),
@@ -596,6 +616,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       if (isProcessBlueprintFile(doc)) { await processBlueprintPreview.showOrReveal(doc); return; }
       if (isActivityCardFile(doc)) { await activityCardPreview.showOrReveal(doc); return; }
       if (isCoverageMetricFile(doc)) { await coverageMetricPreview.showOrReveal(doc); return; }
+      if (isComplianceImpactFile(doc)) { await complianceImpactPreview.showOrReveal(); return; }
+      if (isSingleLawFile(doc)) { await singleLawPreview.showOrReveal(doc); return; }
+      if (isSingleProductFile(doc)) { await singleProductPreview.showOrReveal(doc); return; }
+      if (documentMatchesCervinSource(doc)) { await openBpmnPreviewForDocument(doc); return; }
     }),
   );
 }
