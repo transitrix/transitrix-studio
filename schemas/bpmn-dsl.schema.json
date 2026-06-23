@@ -75,6 +75,14 @@
           "type": "array",
           "minItems": 1,
           "items": { "$ref": "#/definitions/element" }
+        },
+        "performed_by_role": {
+          "type": "string",
+          "description": "Canonical ROLE-… element ID for the actor responsible for this lane."
+        },
+        "supported_by_application": {
+          "type": "string",
+          "description": "Canonical APPLICATION-… element ID for the default supporting system in this lane."
         }
       }
     },
@@ -103,7 +111,11 @@
             "dataObject"
           ]
         },
-        "name": { "type": "string" }
+        "name": { "type": "string" },
+        "supported_by_application": {
+          "type": "string",
+          "description": "Canonical APPLICATION-… element ID for the supporting system for this specific element (overrides lane default)."
+        }
       },
       "allOf": [
         {
