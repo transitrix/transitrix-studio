@@ -25,6 +25,7 @@ import {
 import type { ValidationReport } from './types.js';
 
 export const SAVE_BPMN_PROCESS_SVG_COMMAND = 'transitrixStudio.saveBpmnProcessAsSvg';
+export const OPEN_BPMN_SETTINGS_COMMAND = 'transitrixStudio.openBpmnSettings';
 
 /** Function that parses + lays out a BPMN YAML document. */
 export type ProcessLayoutFn = (yaml: string) => Promise<{
@@ -59,7 +60,7 @@ export class ProcessPreview {
         { viewColumn: vscode.ViewColumn.Beside, preserveFocus: false },
         {
           enableScripts: false,
-          enableCommandUris: true,
+          enableCommandUris: [SAVE_BPMN_PROCESS_SVG_COMMAND, OPEN_BPMN_SETTINGS_COMMAND, OPEN_THEME_COMMAND],
           retainContextWhenHidden: true,
         },
       );
@@ -76,6 +77,12 @@ export class ProcessPreview {
   async refreshSaved(doc: vscode.TextDocument): Promise<void> {
     if (!this.isShowingDocument(doc.uri)) return;
     await this.pushDocument(doc);
+  }
+
+  async refreshConfig(): Promise<void> {
+    if (!this.panel || !this.trackedUri) return;
+    const doc = vscode.workspace.textDocuments.find((d) => d.uri.toString() === this.trackedUri);
+    if (doc) await this.pushDocument(doc);
   }
 
   async saveAsSvg(): Promise<void> {
@@ -122,11 +129,14 @@ export class ProcessPreview {
         warnings: warningMsgs,
         themeId,
         saveSvgCommand: SAVE_BPMN_PROCESS_SVG_COMMAND,
+        spacingCommand: OPEN_BPMN_SETTINGS_COMMAND,
         themeCommand: OPEN_THEME_COMMAND,
       });
     } catch (err) {
       this.lastSvg = '';
-      const msg = err instanceof Error ? err.message : String(err);
+      const base = err instanceof Error ? err.message : String(err);
+      const details = (err as { errors?: string[] }).errors;
+      const msg = details?.length ? `${base}\n${details.join('\n')}` : base;
       this.panel.webview.html = buildDiagramFrame({
         filename,
         notation: 'BPMN Process',
