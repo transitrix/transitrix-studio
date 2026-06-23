@@ -42,7 +42,9 @@ export interface YamlDocumentRoot {
       lanes: {
         id: string;
         name: string;
-        elements: { id: string; type: string; name?: string }[];
+        elements: { id: string; type: string; name?: string; supported_by_application?: string }[];
+        performed_by_role?: string;
+        supported_by_application?: string;
       }[];
     }[];
     flows: { id?: string; from: string; to: string; condition?: string; default?: boolean; name?: string }[];
