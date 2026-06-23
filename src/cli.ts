@@ -39,7 +39,7 @@ function printUsage(): void {
   <compile> — YAML → BPMN 2.0 XML with layout metrics.
   metrics   — layout quality metrics (with --json for CI).
   validate  — validation only (no XML output; exit 1 on errors). Default scope
-              is a single file: BPMN, or a diagram notation (goals, fgca, fga,
+              is a single file: BPMN, or a diagram notation (goals, dgca, dga,
               activities, activity-card, process-blueprint, blocks) routed by its
               notation: field — the same checks the Studio preview shows.
               --scope=repo runs whole-canon checks (referential integrity,
@@ -274,7 +274,7 @@ async function handleValidateCommand(argv: string[]): Promise<void> {
     console.error('');
     console.error('file scope — single-file structural/semantic validation (default).');
     console.error('             BPMN, or a diagram notation routed by its notation: field');
-    console.error('             (goals, fgca, fga, activities, activity-card,');
+    console.error('             (goals, dgca, dga, activities, activity-card,');
     console.error('             process-blueprint, blocks) — same checks as the preview.');
     console.error('repo scope — whole-canon checks (referential integrity, atomicity,');
     console.error('             id uniqueness, policy) over <root> (default: cwd).');
