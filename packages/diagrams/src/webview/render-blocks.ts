@@ -19,6 +19,11 @@ import { escXml } from './render-util.js';
 
 const PAD = 24;
 
+// Approximate character width (px) at text-primary size (12px/600).
+const CHAR_W = 7;
+// Approximate character width (px) at text-id size (10px/600) — used for ID suffix.
+const CHAR_W_ID = 6;
+
 export interface RenderBlocksOptions {
   title?: string;
 }
@@ -36,25 +41,43 @@ function levelClassForDepth(depth: number): string {
   return `level-${idx}`;
 }
 
-function truncate(text: string, maxChars: number): string {
+/** Truncate at a word boundary so labels never break in the middle of a word. */
+function wordTruncate(text: string, maxChars: number): string {
   if (text.length <= maxChars) return text;
-  return text.slice(0, Math.max(0, maxChars - 1)) + '…';
+  const cut = text.slice(0, maxChars - 1);
+  const lastSpace = cut.lastIndexOf(' ');
+  return (lastSpace > maxChars / 2 ? cut.slice(0, lastSpace) : cut) + '…';
 }
 
 function emitBlockSvg(b: LaidOutBlock, ox: number, oy: number, parts: string[]): void {
   const cls = levelClassForDepth(b.depth);
+  const cx = b.x + ox + b.width / 2;
   parts.push(
     `<rect class="diagram-node ${cls}" x="${b.x + ox}" y="${b.y + oy}" width="${b.width}" height="${b.height}" rx="6"/>`,
   );
 
-  // Header label, centred horizontally within the block's header strip.
-  const headerY = b.y + oy + b.headerHeight / 2;
-  const maxChars = Math.max(4, Math.floor(b.width / 8));
-  parts.push(
-    `<text class="text-header" x="${b.x + ox + b.width / 2}" y="${headerY}" text-anchor="middle" dominant-baseline="central">${escXml(truncate(b.name, maxChars))}</text>`,
-  );
-
-  for (const c of b.children) emitBlockSvg(c, ox, oy, parts);
+  const isLeaf = b.children.length === 0;
+  if (isLeaf) {
+    // Leaf block: name on upper line, ID on lower line — both centred.
+    const nameY = b.y + oy + Math.round(b.height * 0.38);
+    const idY = b.y + oy + Math.round(b.height * 0.66);
+    const maxChars = Math.max(4, Math.floor(b.width / CHAR_W));
+    parts.push(
+      `<text class="text-primary" x="${cx}" y="${nameY}" text-anchor="middle" dominant-baseline="central">${escXml(wordTruncate(b.name, maxChars))}</text>`,
+      `<text class="text-id" x="${cx}" y="${idY}" text-anchor="middle" dominant-baseline="central">${escXml(b.id)}</text>`,
+    );
+  } else {
+    // Container block: name + (ID) on the single header line; ID in grey.
+    const headerY = b.y + oy + b.headerHeight / 2;
+    const idSuffix = ` (${b.id})`;
+    const idSuffixW = idSuffix.length * CHAR_W_ID;
+    const nameMaxChars = Math.max(4, Math.floor((b.width - idSuffixW) / CHAR_W));
+    const nameText = wordTruncate(b.name, nameMaxChars);
+    parts.push(
+      `<text class="text-primary" x="${cx}" y="${headerY}" text-anchor="middle" dominant-baseline="central">${escXml(nameText)}<tspan fill="var(--ts-text-secondary, #64748b)" font-size="10" font-weight="600">${escXml(idSuffix)}</tspan></text>`,
+    );
+    for (const c of b.children) emitBlockSvg(c, ox, oy, parts);
+  }
 }
 
 export interface RenderBlocksLayoutOptions {
