@@ -35,9 +35,12 @@ export function validateFGCADoc(input: unknown): FGCAValidationResult {
     errors.push({ code: 'MISSING_NOTATION', message: 'notation field is required' });
     return { valid: false, errors, warnings };
   }
-  if (raw.notation !== 'fgca') {
-    errors.push({ code: 'WRONG_NOTATION', message: `notation must be "fgca", got "${String(raw.notation)}"` });
+  if (raw.notation !== 'fgca' && raw.notation !== 'dgca') {
+    errors.push({ code: 'WRONG_NOTATION', message: `notation must be "dgca" (or legacy "fgca"), got "${String(raw.notation)}"` });
     return { valid: false, errors, warnings };
+  }
+  if (raw.notation === 'fgca') {
+    warnings.push({ code: 'DEPRECATED_NOTATION', message: 'notation "fgca" is deprecated — rename to "dgca"' });
   }
 
   if (!Array.isArray(raw.factors)) errors.push({ code: 'SCHEMA_INVALID', message: 'factors must be an array', path: 'factors' });

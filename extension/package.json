@@ -24,6 +24,8 @@
     "archimate",
     "goals",
     "goal-tree",
+    "dgca",
+    "dga",
     "fgca",
     "fga",
     "activity-network",
@@ -52,6 +54,8 @@
     "workspaceContains:**/*.cervin.yaml",
     "workspaceContains:**/*.bpmn.transitrix.yaml",
     "workspaceContains:**/*.goals.transitrix.yaml",
+    "workspaceContains:**/*.dgca.transitrix.yaml",
+    "workspaceContains:**/*.dga.transitrix.yaml",
     "workspaceContains:**/*.fgca.transitrix.yaml",
     "workspaceContains:**/*.fga.transitrix.yaml",
     "workspaceContains:**/*.activities.transitrix.yaml",
@@ -145,6 +149,34 @@
           "default": 24,
           "description": "Goals preview: vertical gap (px) between stacked goal nodes."
         },
+        "transitrix.spacing.dgca.horizontalGap": {
+          "type": "number",
+          "minimum": 20,
+          "maximum": 300,
+          "default": 160,
+          "description": "DGCA preview: horizontal gap (px) between the Driver/Goal/Change/Activity columns."
+        },
+        "transitrix.spacing.dgca.verticalGap": {
+          "type": "number",
+          "minimum": 20,
+          "maximum": 300,
+          "default": 20,
+          "description": "DGCA preview: vertical gap (px) between stacked nodes within a column."
+        },
+        "transitrix.spacing.dga.horizontalGap": {
+          "type": "number",
+          "minimum": 20,
+          "maximum": 300,
+          "default": 160,
+          "description": "DGA preview: horizontal gap (px) between the Driver/Goal/Activity columns."
+        },
+        "transitrix.spacing.dga.verticalGap": {
+          "type": "number",
+          "minimum": 20,
+          "maximum": 300,
+          "default": 20,
+          "description": "DGA preview: vertical gap (px) between stacked nodes within a column."
+        },
         "transitrix.spacing.fgca.horizontalGap": {
           "type": "number",
           "minimum": 20,
@@ -194,6 +226,20 @@
           "default": 1,
           "description": "Goals preview: edge curvature. 0 = straight lines, 1 = default, higher = stronger arc."
         },
+        "transitrix.curvature.dgca": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 3,
+          "default": 1,
+          "description": "DGCA preview: edge curvature. 0 = straight lines, 1 = default, higher = stronger arc."
+        },
+        "transitrix.curvature.dga": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 3,
+          "default": 1,
+          "description": "DGA preview: edge curvature. 0 = straight lines, 1 = default, higher = stronger arc."
+        },
         "transitrix.curvature.fgca": {
           "type": "number",
           "minimum": 0,
@@ -221,6 +267,20 @@
           "maximum": 3,
           "default": 1,
           "description": "Goals preview: curvature of the arrow at the point it enters a node. Defaults to transitrix.curvature.goals when equal to 1."
+        },
+        "transitrix.entryCurvature.dgca": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 3,
+          "default": 1,
+          "description": "DGCA preview: curvature of the arrow at the point it enters a node. Defaults to transitrix.curvature.dgca when equal to 1."
+        },
+        "transitrix.entryCurvature.dga": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 3,
+          "default": 1,
+          "description": "DGA preview: curvature of the arrow at the point it enters a node. Defaults to transitrix.curvature.dga when equal to 1."
         },
         "transitrix.entryCurvature.fgca": {
           "type": "number",
@@ -254,6 +314,28 @@
           "default": -1,
           "description": "Goals preview: scope to a level cap. Show only goals at this level and above (e.g. 1 = top two levels). -1 = no cap. Ignored when a scope root id is set."
         },
+        "transitrix.scope.dgca.rootId": {
+          "type": "string",
+          "default": "",
+          "description": "DGCA preview: scope to a single goal. Set the goal id to show only that goal plus the drivers/changes/activities connected to it. Empty = show all. Takes precedence over the level cap."
+        },
+        "transitrix.scope.dgca.maxLevel": {
+          "type": "integer",
+          "minimum": -1,
+          "default": -1,
+          "description": "DGCA preview: scope to a goal-level cap. Show only goals at this level and above, plus their connected drivers/changes/activities. -1 = no cap. Ignored when a scope root id is set."
+        },
+        "transitrix.scope.dga.rootId": {
+          "type": "string",
+          "default": "",
+          "description": "DGA preview: scope to a single goal. Set the goal id to show only that goal plus the drivers/activities connected to it. Empty = show all. Takes precedence over the level cap."
+        },
+        "transitrix.scope.dga.maxLevel": {
+          "type": "integer",
+          "minimum": -1,
+          "default": -1,
+          "description": "DGA preview: scope to a goal-level cap. Show only goals at this level and above, plus their connected drivers/activities. -1 = no cap. Ignored when a scope root id is set."
+        },
         "transitrix.scope.fgca.rootId": {
           "type": "string",
           "default": "",
@@ -275,6 +357,24 @@
           "minimum": -1,
           "default": -1,
           "description": "FGA preview: scope to a goal-level cap. Show only goals at this level and above, plus their connected factors/activities. -1 = no cap. Ignored when a scope root id is set."
+        },
+        "transitrix.view.dgca": {
+          "type": "string",
+          "enum": [
+            "tree",
+            "table"
+          ],
+          "default": "tree",
+          "description": "DGCA preview: 'tree' renders the Driver→Goal→Change→Activity chain diagram; 'table' renders the chain flattened into a table with merged cells. Toggle live from the preview toolbar."
+        },
+        "transitrix.view.dga": {
+          "type": "string",
+          "enum": [
+            "tree",
+            "table"
+          ],
+          "default": "tree",
+          "description": "DGA preview: 'tree' renders the Driver→Goal→Activity chain diagram; 'table' renders the chain flattened into a table with merged cells. Toggle live from the preview toolbar."
         },
         "transitrix.view.fgca": {
           "type": "string",
@@ -318,6 +418,28 @@
         ],
         "extensions": [
           ".goals.transitrix.yaml"
+        ],
+        "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "transitrix-dgca",
+        "aliases": [
+          "Transitrix DGCA",
+          "Driver-Goal-Change-Activity"
+        ],
+        "extensions": [
+          ".dgca.transitrix.yaml"
+        ],
+        "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "transitrix-dga",
+        "aliases": [
+          "Transitrix DGA",
+          "Driver-Goal-Activity"
+        ],
+        "extensions": [
+          ".dga.transitrix.yaml"
         ],
         "configuration": "./language-configuration.json"
       },
@@ -469,14 +591,26 @@
         "icon": "$(type-hierarchy)"
       },
       {
+        "command": "transitrixStudio.previewDGCA",
+        "title": "Transitrix: Preview DGCA diagram",
+        "category": "Transitrix",
+        "icon": "$(type-hierarchy)"
+      },
+      {
+        "command": "transitrixStudio.previewDGA",
+        "title": "Transitrix: Preview DGA diagram",
+        "category": "Transitrix",
+        "icon": "$(type-hierarchy)"
+      },
+      {
         "command": "transitrixStudio.previewFGCA",
-        "title": "Transitrix: Preview FGCA diagram",
+        "title": "Transitrix: Preview FGCA diagram (deprecated — use DGCA)",
         "category": "Transitrix",
         "icon": "$(type-hierarchy)"
       },
       {
         "command": "transitrixStudio.previewFGA",
-        "title": "Transitrix: Preview FGA diagram",
+        "title": "Transitrix: Preview FGA diagram (deprecated — use DGA)",
         "category": "Transitrix",
         "icon": "$(type-hierarchy)"
       },
@@ -505,14 +639,26 @@
         "icon": "$(save)"
       },
       {
+        "command": "transitrixStudio.saveDGCAAsSvg",
+        "title": "Transitrix: Save DGCA diagram as SVG",
+        "category": "Transitrix",
+        "icon": "$(save)"
+      },
+      {
+        "command": "transitrixStudio.saveDGAAsSvg",
+        "title": "Transitrix: Save DGA diagram as SVG",
+        "category": "Transitrix",
+        "icon": "$(save)"
+      },
+      {
         "command": "transitrixStudio.saveFGCAAsSvg",
-        "title": "Transitrix: Save FGCA diagram as SVG",
+        "title": "Transitrix: Save FGCA diagram as SVG (deprecated)",
         "category": "Transitrix",
         "icon": "$(save)"
       },
       {
         "command": "transitrixStudio.saveFGAAsSvg",
-        "title": "Transitrix: Save FGA diagram as SVG",
+        "title": "Transitrix: Save FGA diagram as SVG (deprecated)",
         "category": "Transitrix",
         "icon": "$(save)"
       },
@@ -607,23 +753,43 @@
         "category": "Transitrix"
       },
       {
+        "command": "transitrixStudio.saveDGCAAsPng",
+        "title": "Transitrix: Save DGCA diagram as PNG",
+        "category": "Transitrix"
+      },
+      {
+        "command": "transitrixStudio.copyDGCAAsPng",
+        "title": "Transitrix: Copy DGCA diagram as PNG",
+        "category": "Transitrix"
+      },
+      {
+        "command": "transitrixStudio.saveDGAAsPng",
+        "title": "Transitrix: Save DGA diagram as PNG",
+        "category": "Transitrix"
+      },
+      {
+        "command": "transitrixStudio.copyDGAAsPng",
+        "title": "Transitrix: Copy DGA diagram as PNG",
+        "category": "Transitrix"
+      },
+      {
         "command": "transitrixStudio.saveFGCAAsPng",
-        "title": "Transitrix: Save FGCA diagram as PNG",
+        "title": "Transitrix: Save FGCA diagram as PNG (deprecated)",
         "category": "Transitrix"
       },
       {
         "command": "transitrixStudio.copyFGCAAsPng",
-        "title": "Transitrix: Copy FGCA diagram as PNG",
+        "title": "Transitrix: Copy FGCA diagram as PNG (deprecated)",
         "category": "Transitrix"
       },
       {
         "command": "transitrixStudio.saveFGAAsPng",
-        "title": "Transitrix: Save FGA diagram as PNG",
+        "title": "Transitrix: Save FGA diagram as PNG (deprecated)",
         "category": "Transitrix"
       },
       {
         "command": "transitrixStudio.copyFGAAsPng",
-        "title": "Transitrix: Copy FGA diagram as PNG",
+        "title": "Transitrix: Copy FGA diagram as PNG (deprecated)",
         "category": "Transitrix"
       },
       {
@@ -761,6 +927,16 @@
           "group": "navigation@-10"
         },
         {
+          "when": "resourceFilename =~ /\\.dgca\\.transitrix\\.yaml$/",
+          "command": "transitrixStudio.previewDGCA",
+          "group": "navigation@-10"
+        },
+        {
+          "when": "resourceFilename =~ /\\.dga\\.transitrix\\.yaml$/",
+          "command": "transitrixStudio.previewDGA",
+          "group": "navigation@-10"
+        },
+        {
           "when": "resourceFilename =~ /\\.fgca\\.transitrix\\.yaml$/",
           "command": "transitrixStudio.previewFGCA",
           "group": "navigation@-10"
@@ -798,6 +974,16 @@
         {
           "when": "activeWebviewPanelId == goalsPreview",
           "command": "transitrixStudio.saveGoalsAsSvg",
+          "group": "navigation@-9"
+        },
+        {
+          "when": "resourceFilename =~ /\\.dgca\\.transitrix\\.yaml$/",
+          "command": "transitrixStudio.saveDGCAAsSvg",
+          "group": "navigation@-9"
+        },
+        {
+          "when": "resourceFilename =~ /\\.dga\\.transitrix\\.yaml$/",
+          "command": "transitrixStudio.saveDGAAsSvg",
           "group": "navigation@-9"
         },
         {

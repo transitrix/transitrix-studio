@@ -1,0 +1,56 @@
+# DGA chain — direct driver → goal → activity for the compliance workstream,
+# where the transformation step is implicit. Notation spec: notations/views/03-dga.md.
+
+notation: dga
+spec_version: "0.1"
+
+id: DGA-COMPLIANCE-1
+name: "EU Compliance 2026"
+description: >
+  Driver → Goal → Activity chain for the GDPR/NIS2 compliance workstream.
+  Changes layer omitted — activities map directly to the compliance goal.
+period: "2026"
+generated_at: "2026-06-23"
+author: "Acme Compliance Office"
+
+factors:
+  - id: DRIVER-EU-REG-1
+    name: "EU regulatory window for market entry"
+    type: external
+    category: legal
+    references_constraint: [CONSTRAINT-GDPR-RESIDENCY-1]
+    valid_from: "2026-06-23"
+    valid_to: null
+
+goals:
+  - id: GOAL-EU-1
+    name: "Launch in 3 EU markets under full GDPR/NIS2 compliance"
+    factors: [DRIVER-EU-REG-1]
+    valid_from: "2026-06-23"
+    valid_to: null
+
+activities:
+  - id: ACTIVITY-DISCOVERY-1
+    name: "GDPR & NIS2 gap assessment"
+    goals: [GOAL-EU-1]
+    owner: ROLE-DPO-1
+    status: "Done"
+    due_date: "2026-03-31"
+    valid_from: "2026-06-23"
+    valid_to: null
+  - id: ACTIVITY-CRM-EU-1
+    name: "Implement EU-localised CRM rollout"
+    goals: [GOAL-EU-1]
+    owner: ROLE-SALES-1
+    status: "In Progress"
+    due_date: "2026-09-30"
+    valid_from: "2026-06-23"
+    valid_to: null
+  - id: ACTIVITY-SUPPORT-1
+    name: "Stand up data-subject-request handling"
+    goals: [GOAL-EU-1]
+    owner: ROLE-DPO-1
+    status: "In Progress"
+    due_date: "2026-08-31"
+    valid_from: "2026-06-23"
+    valid_to: null

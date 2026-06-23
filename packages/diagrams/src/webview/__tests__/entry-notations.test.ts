@@ -26,6 +26,8 @@ interface Fixture {
 // example per notation is enough to prove the dispatch + renderer wiring.
 const FIXTURES: Fixture[] = [
   { kind: 'goals', file: 'goals/strategy-2026.goals.transitrix.yaml', markup: 'svg' },
+  { kind: 'dgca', file: 'dgca/strategy-2026.dgca.transitrix.yaml', markup: 'svg' },
+  { kind: 'dga', file: 'dga/strategy-2026.dga.transitrix.yaml', markup: 'svg' },
   { kind: 'fgca', file: 'fgca/strategy-2026.fgca.transitrix.yaml', markup: 'svg' },
   { kind: 'fga', file: 'fga/strategy-2026.fga.transitrix.yaml', markup: 'svg' },
   { kind: 'activities', file: 'activities/platform-launch.activities.transitrix.yaml', markup: 'svg' },
