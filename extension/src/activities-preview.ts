@@ -630,7 +630,7 @@ export class ActivitiesPreview {
     const hasNetwork = Boolean(this.lastNetworkSvg);
     const hasGantt = Boolean(this.lastGanttSvg);
     if (!hasNetwork && !hasGantt) {
-      vscode.window.showWarningMessage('No diagram rendered yet. Open a *.activities.transitrix.yaml file first.');
+      vscode.window.showWarningMessage('No diagram rendered yet. Open a *.activities.transitrix.yaml or *.dgca.transitrix.yaml (with notation: activities) file first.');
       return undefined;
     }
     if (hasNetwork && hasGantt) {
@@ -659,7 +659,7 @@ export class ActivitiesPreview {
       sourceUri,
       stripExt: /\.activities\.transitrix\.yaml$/,
       viewSuffix: `-${view}`,
-      emptyMessage: 'No diagram rendered yet. Open a *.activities.transitrix.yaml file first.',
+      emptyMessage: 'No diagram rendered yet. Open a *.activities.transitrix.yaml or *.dgca.transitrix.yaml (with notation: activities) file first.',
     });
   }
 
@@ -672,7 +672,7 @@ export class ActivitiesPreview {
       rawSvg: rawSvg || undefined,
       themeId,
       notationCss: ACTIVITIES_DIAGRAM_CSS,
-      emptyMessage: 'No diagram rendered yet. Open a *.activities.transitrix.yaml file first.',
+      emptyMessage: 'No diagram rendered yet. Open a *.activities.transitrix.yaml or *.dgca.transitrix.yaml (with notation: activities) file first.',
     });
   }
 
@@ -680,7 +680,7 @@ export class ActivitiesPreview {
     const hasNetwork = Boolean(this.lastNetworkSvg);
     const hasGantt = Boolean(this.lastGanttSvg);
     if (!hasNetwork && !hasGantt) {
-      vscode.window.showWarningMessage('No diagram rendered yet. Open a *.activities.transitrix.yaml file first.');
+      vscode.window.showWarningMessage('No diagram rendered yet. Open a *.activities.transitrix.yaml or *.dgca.transitrix.yaml (with notation: activities) file first.');
       return;
     }
 
