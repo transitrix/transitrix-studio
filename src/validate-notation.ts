@@ -55,7 +55,9 @@ type NotationValidator = (input: unknown) => NotationValidationResult;
 const VALIDATORS: Record<string, NotationValidator> = {
   // Group A — validator lives in the shared package and is the one the preview calls.
   goals: parseCanonicalGoals,
+  dgca: parseCanonicalFGCA,
   fgca: parseCanonicalFGCA,
+  dga: parseCanonicalFGA,
   fga: parseCanonicalFGA,
   activities: validateActivities,
   'activity-card': validateActivityCard,

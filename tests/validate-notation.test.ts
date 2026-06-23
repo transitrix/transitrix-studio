@@ -25,7 +25,9 @@ const corpusRoot = join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'no
 // Group A — shared package validators already used by the preview before Phase B.
 const GROUP_A = [
   'goals',
+  'dgca',
   'fgca',
+  'dga',
   'fga',
   'activities',
   'activity-card',
