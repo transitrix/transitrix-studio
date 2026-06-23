@@ -15,6 +15,14 @@
       "type": "string",
       "description": "Notation spec version this document conforms to. Reserved per CONTRACT.md; accepted but not enforced."
     },
+    "name": {
+      "type": "string",
+      "description": "Human-readable document name (CONTRACT.md §1.1)."
+    },
+    "generated_at": {
+      "type": "string",
+      "description": "Date generated or last revised — quoted ISO 8601 (CONTRACT.md §1.1)."
+    },
     "process": {
       "type": "object",
       "additionalProperties": false,
