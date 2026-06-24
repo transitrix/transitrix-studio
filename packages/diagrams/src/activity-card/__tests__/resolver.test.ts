@@ -233,6 +233,29 @@ describe('resolveActivityCard', () => {
     expect(r.errors.some((e) => e.code === 'PC-001')).toBe(true);
   });
 
+  it('PC-001 diagnostic discloses paths searched and actionable hint (#344)', () => {
+    const r = resolveActivityCard(CARD, { elements: [FACTOR, GOAL, CHANGE], relations });
+    const pc001 = r.errors.find((e) => e.code === 'PC-001');
+    expect(pc001).toBeDefined();
+    // Must disclose both searched paths (§7 PC-001)
+    expect(pc001!.message).toContain('canon/elements/**');
+    expect(pc001!.message).toContain('canon/views/activities/**');
+    // Must include actionable hint with expected file pattern (§7 PC-001)
+    expect(pc001!.message).toContain('notation: activity');
+    expect(pc001!.message).toContain(`id: "${CARD.activity_card.project}"`);
+  });
+
+  it('resolves without PC-001 when project activity lives in a deep canon/elements subfolder (#344)', () => {
+    // Regression: the resolver must accept elements regardless of which subfolder
+    // they were loaded from (e.g. canon/elements/05_implementation/activities/).
+    // The resolver is filesystem-free, so we simulate the deep-path scenario by
+    // including the PROJECT element in the elements pool — just as loadCanon does
+    // after walking canon/elements/** recursively.
+    const r = resolveActivityCard(CARD, sources);
+    expect(r.valid, JSON.stringify(r.errors)).toBe(true);
+    expect(r.errors.some((e) => e.code === 'PC-001')).toBe(false);
+  });
+
   it('resolves activity_type and status from the Activity element', () => {
     const r = resolveActivityCard(CARD, {
       elements: [{ ...PROJECT, activity_type: 'programme', status: 'on_track' }, CHILD, FACTOR, GOAL, CHANGE],

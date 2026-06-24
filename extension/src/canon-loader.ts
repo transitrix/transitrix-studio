@@ -69,14 +69,21 @@ export function findCanonRootPath(filePath: string): string | undefined {
 }
 
 /**
- * Returns true when `savedFilePath` is inside the `elements/` or `relations/`
- * subtrees of `canonRootPath`.
+ * Returns true when `savedFilePath` is inside the `elements/`, `relations/`,
+ * or `views/activities/` subtrees of `canonRootPath`.
+ * The `views/activities/` subtree is the secondary fallback for activity
+ * elements (§6.1) — changes there trigger an activity-card re-render too.
  */
 export function isUnderCanonPath(canonRootPath: string, savedFilePath: string): boolean {
   const elementsRoot = path.join(canonRootPath, 'elements');
   const relationsRoot = path.join(canonRootPath, 'relations');
+  const viewActivitiesRoot = path.join(canonRootPath, 'views', 'activities');
   const savedDir = path.dirname(savedFilePath);
-  return savedDir.startsWith(elementsRoot) || savedDir.startsWith(relationsRoot);
+  return (
+    savedDir.startsWith(elementsRoot) ||
+    savedDir.startsWith(relationsRoot) ||
+    savedDir.startsWith(viewActivitiesRoot)
+  );
 }
 
 // ── vscode.Uri wrappers ────────────────────────────────────────────────────
@@ -99,6 +106,26 @@ export function isUnderCanon(canonRoot: vscode.Uri, savedUri: vscode.Uri): boole
 }
 
 // ── FS loader ─────────────────────────────────────────────────────────────
+
+/**
+ * Extract individual activity objects from an activities VIEW document
+ * (`notation: activities`). Each item in the top-level `activities:` array is
+ * returned as a synthetic element with `notation: 'activity'` added, so the
+ * activity-card resolver's `collectByNotation` can find them.
+ * Files that are NOT activities-view documents are returned as-is (they may
+ * be standalone `notation: activity` element files placed under views/).
+ *
+ * Used for the `canon/views/activities/**` secondary fallback (§6.1).
+ */
+export function extractViewActivities(doc: unknown): unknown[] {
+  if (!doc || typeof doc !== 'object' || Array.isArray(doc)) return [doc];
+  const d = doc as Record<string, unknown>;
+  if (d['notation'] !== 'activities') return [doc]; // standalone element — return as-is
+  const arr = d['activities'];
+  if (!Array.isArray(arr)) return []; // malformed view — nothing to extract
+  return arr.filter((item) => item && typeof item === 'object' && !Array.isArray(item))
+    .map((item) => ({ notation: 'activity', ...(item as Record<string, unknown>) }));
+}
 
 /** Recursively read + parse every `*.yaml` document under `root` into `out`. */
 export async function readYamlDocsUnder(
@@ -146,6 +173,30 @@ export async function loadCanon(fileUri: vscode.Uri): Promise<CanonDocs> {
 
   await readYamlDocsUnder(vscode.Uri.joinPath(canonRoot, 'elements'), elements, warnings);
   await readYamlDocsUnder(vscode.Uri.joinPath(canonRoot, 'relations'), relations, warnings);
+
+  // Secondary fallback (§6.1): if the org keeps activities in view files under
+  // canon/views/activities/, extract individual activity items and add them to
+  // the element pool so the resolver can find them. A warning is emitted for
+  // each view-sourced activity found — the canonical home is canon/elements/.
+  const viewActivityDocs: unknown[] = [];
+  await readYamlDocsUnder(
+    vscode.Uri.joinPath(canonRoot, 'views', 'activities'),
+    viewActivityDocs,
+    warnings,
+  );
+  for (const doc of viewActivityDocs) {
+    const extracted = extractViewActivities(doc);
+    for (const act of extracted) {
+      elements.push(act);
+      const a = act as Record<string, unknown>;
+      if (typeof a['id'] === 'string') {
+        warnings.push(
+          `Activity "${a['id']}" resolved via canon/views/activities/ (secondary fallback) — ` +
+          `move the element to canon/elements/ for canonical storage.`,
+        );
+      }
+    }
+  }
 
   if (elements.length === 0) {
     warnings.push('No element documents found under canon/elements — element references cannot resolve.');

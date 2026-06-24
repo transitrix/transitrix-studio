@@ -168,11 +168,17 @@ export function resolveActivityCard(
   const activities = collectByNotation(sources.elements, 'activity');
   const projectRec = activities.get(projectId);
 
-  // PC-001 — project must resolve to an admitted ACTIVITY element in canon.
+  // PC-001 — project must resolve to an admitted ACTIVITY element after
+  // exhausting the canonical resolution scope (§6.1): canon/elements/**
+  // recursively first, then canon/views/activities/** as secondary fallback.
   if (!projectRec) {
     errors.push({
       code: 'PC-001',
-      message: `activity_card.project "${projectId}" does not resolve to an ACTIVITY element in the canon element store`,
+      message:
+        `activity_card.project "${projectId}" not found after searching ` +
+        `canon/elements/** and canon/views/activities/** — ` +
+        `add a YAML file with notation: activity and id: "${projectId}" ` +
+        `(e.g. canon/elements/05_implementation/activities/${projectId}.yaml)`,
     });
     return { valid: false, errors, warnings };
   }
