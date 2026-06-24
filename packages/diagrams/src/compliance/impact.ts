@@ -70,6 +70,16 @@ export interface ImpactColumn {
   label: string;
   /** Display name for the subject (product/process name, not the id). */
   subjectName?: string;
+  /** Which subjects pool this column derives from (product / process / capability).
+   *  Used to enforce the subject type label invariant (§5.2, COMPIMP-010). */
+  subjectType: 'product' | 'process' | 'capability';
+}
+
+/** A structural validation finding emitted by the matrix builder. */
+export interface ImpactFinding {
+  code: string;
+  severity: 'error' | 'warning';
+  message: string;
 }
 
 /**
@@ -82,9 +92,13 @@ export interface ImpactColumn {
  *   - `'product-stage-task'` — one column per (subject, stage, task) triple;
  *     pass `objectDetails` with stages that carry `tasks[]` (built via
  *     `extractObjectDetails` + `extractProcessFlowTasks` + `mergeStageTaskDetails`).
+ *   - `'process'` / `'process-stage'` / `'process-stage-task'` — process-centric
+ *     equivalents used when `view.subjects.processes` is the sole entry point
+ *     (§7.1 process compliance variant). Avoids COMPIMP-010 for process subjects.
  */
 export interface ImpactGrouping {
-  columns: 'product' | 'product-stage' | 'product-stage-task';
+  columns: 'product' | 'product-stage' | 'product-stage-task'
+         | 'process' | 'process-stage' | 'process-stage-task';
 }
 
 /**
@@ -221,7 +235,10 @@ export function parseImpactViewConfig(raw: unknown): ParseImpactViewConfigResult
       ? (v.grouping as Record<string, unknown>)
       : null;
   const rawColumns = typeof rawGrouping?.columns === 'string' ? rawGrouping.columns : undefined;
-  const VALID_COLUMNS = new Set<string>(['product', 'product-stage', 'product-stage-task']);
+  const VALID_COLUMNS = new Set<string>([
+    'product', 'product-stage', 'product-stage-task',
+    'process', 'process-stage', 'process-stage-task',
+  ]);
   const normalizedColumns: ImpactGrouping['columns'] | undefined =
     rawColumns === 'object-details' ? 'product-stage'   // backward-compat alias
     : rawColumns === 'object' ? 'product'               // backward-compat alias
@@ -337,6 +354,8 @@ export interface ImpactMatrix {
    * Empty array when no requirement in the column has a `derived_from`.
    */
   obligationsLane: string[][];
+  /** Structural validation findings emitted during matrix build (COMPIMP-009, COMPIMP-010, etc.). */
+  findings: ImpactFinding[];
 }
 
 const DEFAULT_NO_OBLIGATION_LABEL = 'No mapped obligation (current model)';
@@ -432,18 +451,48 @@ function aggregateStatus(assertions: IndexAssertion[]): AssertionStatus {
 
 // ── Column builder helpers (CV-3a) ──────────────────────────────────────────
 
-function buildProductColumns(config: ImpactViewConfig, namedItems: { id: string; name: string }[]): ImpactColumn[] {
+function buildProductColumns(
+  config: ImpactViewConfig,
+  namedItems: { id: string; name: string }[],
+  isCombined: boolean,
+): ImpactColumn[] {
   const nameMap = new Map(namedItems.map(p => [p.id, p.name]));
-  const subjects = [
-    ...(config.subjects.products ?? []),
-    ...(config.subjects.processes ?? []),
-    ...(config.subjects.capabilities ?? []),
-  ];
-  return subjects.map(id => ({ subjectId: id, label: id, subjectName: nameMap.get(id) }));
+  const cols: ImpactColumn[] = [];
+  for (const id of (config.subjects.products ?? [])) {
+    cols.push({
+      subjectId: id,
+      label: isCombined ? `[PRODUCT] ${id}` : id,
+      subjectName: nameMap.get(id),
+      subjectType: 'product',
+    });
+  }
+  for (const id of (config.subjects.processes ?? [])) {
+    cols.push({
+      subjectId: id,
+      label: isCombined ? `[PROCESS] ${id}` : id,
+      subjectName: nameMap.get(id),
+      subjectType: 'process',
+    });
+  }
+  for (const id of (config.subjects.capabilities ?? [])) {
+    cols.push({
+      subjectId: id,
+      label: id,
+      subjectName: nameMap.get(id),
+      subjectType: 'capability',
+    });
+  }
+  return cols;
 }
 
-function buildObjectDetailColumns(config: ImpactViewConfig, objectDetails: ObjectDetailInput[]): ImpactColumn[] {
+function buildObjectDetailColumns(
+  config: ImpactViewConfig,
+  objectDetails: ObjectDetailInput[],
+  isCombined: boolean,
+): ImpactColumn[] {
   const detailMap = new Map<string, ObjectDetailDef[]>(objectDetails.map(d => [d.objectId, d.details]));
+  const productSet = new Set(config.subjects.products ?? []);
+  const processSet = new Set(config.subjects.processes ?? []);
   const subjects = [
     ...(config.subjects.products ?? []),
     ...(config.subjects.processes ?? []),
@@ -451,12 +500,15 @@ function buildObjectDetailColumns(config: ImpactViewConfig, objectDetails: Objec
   ];
   const cols: ImpactColumn[] = [];
   for (const subjectId of subjects) {
+    const subjectType: 'product' | 'process' | 'capability' =
+      productSet.has(subjectId) ? 'product' : processSet.has(subjectId) ? 'process' : 'capability';
+    const badge = isCombined && subjectType !== 'capability' ? `[${subjectType.toUpperCase()}] ` : '';
     const details = detailMap.get(subjectId);
     if (!details || details.length === 0) {
-      cols.push({ subjectId, label: subjectId });
+      cols.push({ subjectId, label: `${badge}${subjectId}`, subjectType });
     } else {
       for (const detail of details) {
-        cols.push({ subjectId, stageId: detail.id, label: `${subjectId}:${detail.id}` });
+        cols.push({ subjectId, stageId: detail.id, label: `${badge}${subjectId}:${detail.id}`, subjectType });
       }
     }
   }
@@ -469,8 +521,14 @@ function buildObjectDetailColumns(config: ImpactViewConfig, objectDetails: Objec
  * per-task columns `{ subjectId, stageId, taskId, label: subjectId:stageId:taskId }`.
  * Stages with no tasks fall back to a single stage-grain column.
  */
-function buildTaskColumns(config: ImpactViewConfig, objectDetails: ObjectDetailInput[]): ImpactColumn[] {
+function buildTaskColumns(
+  config: ImpactViewConfig,
+  objectDetails: ObjectDetailInput[],
+  isCombined: boolean,
+): ImpactColumn[] {
   const detailMap = new Map<string, ObjectDetailDef[]>(objectDetails.map(d => [d.objectId, d.details]));
+  const productSet = new Set(config.subjects.products ?? []);
+  const processSet = new Set(config.subjects.processes ?? []);
   const subjects = [
     ...(config.subjects.products ?? []),
     ...(config.subjects.processes ?? []),
@@ -478,21 +536,24 @@ function buildTaskColumns(config: ImpactViewConfig, objectDetails: ObjectDetailI
   ];
   const cols: ImpactColumn[] = [];
   for (const subjectId of subjects) {
+    const subjectType: 'product' | 'process' | 'capability' =
+      productSet.has(subjectId) ? 'product' : processSet.has(subjectId) ? 'process' : 'capability';
+    const badge = isCombined && subjectType !== 'capability' ? `[${subjectType.toUpperCase()}] ` : '';
     const stages = detailMap.get(subjectId);
     if (!stages || stages.length === 0) {
-      cols.push({ subjectId, label: subjectId });
+      cols.push({ subjectId, label: `${badge}${subjectId}`, subjectType });
     } else {
       for (const stage of stages) {
         if (!stage.tasks || stage.tasks.length === 0) {
-          // Stage with no tasks: fall back to stage-grain column.
-          cols.push({ subjectId, stageId: stage.id, label: `${subjectId}:${stage.id}` });
+          cols.push({ subjectId, stageId: stage.id, label: `${badge}${subjectId}:${stage.id}`, subjectType });
         } else {
           for (const task of stage.tasks) {
             cols.push({
               subjectId,
               stageId: stage.id,
               taskId: task.id,
-              label: `${subjectId}:${stage.id}:${task.id}`,
+              label: `${badge}${subjectId}:${stage.id}:${task.id}`,
+              subjectType,
             });
           }
         }
@@ -559,12 +620,35 @@ export function buildImpactMatrix(
 
   const grain = config.grouping?.columns ?? 'product';
   const hasDetails = objectDetails !== undefined && objectDetails.length > 0;
+  const hasProducts = (config.subjects.products?.length ?? 0) > 0;
+  const hasProcesses = (config.subjects.processes?.length ?? 0) > 0;
+  // Combined = both products and processes are explicit entry points (§7.1).
+  const isCombined = hasProducts && hasProcesses;
+
   const columns: ImpactColumn[] =
-    grain === 'product-stage-task' && hasDetails
-      ? buildTaskColumns(config, objectDetails!)
-      : (grain === 'product-stage' || (grain as string) === 'object-details') && hasDetails
-        ? buildObjectDetailColumns(config, objectDetails!)
-        : buildProductColumns(config, [...(canon.products ?? []), ...(canon.subjects ?? [])]);
+    (grain === 'product-stage-task' || grain === 'process-stage-task') && hasDetails
+      ? buildTaskColumns(config, objectDetails!, isCombined)
+      : (grain === 'product-stage' || grain === 'process-stage' || (grain as string) === 'object-details') && hasDetails
+        ? buildObjectDetailColumns(config, objectDetails!, isCombined)
+        : buildProductColumns(config, [...(canon.products ?? []), ...(canon.subjects ?? [])], isCombined);
+
+  // ── Structural validation (COMPIMP-009, COMPIMP-010) ───────────────────
+  const findings: ImpactFinding[] = [];
+  if (!hasProducts && hasProcesses &&
+      (grain === 'product' || grain === 'product-stage' || grain === 'product-stage-task')) {
+    findings.push({
+      code: 'COMPIMP-009',
+      severity: 'warning',
+      message: `view.grouping.columns is '${grain}' but view.subjects.products is absent and subjects.processes is the only entry point. Consider using '${grain.replace('product', 'process')}' for a process-centric view.`,
+    });
+  }
+  if (hasProcesses && (grain === 'product-stage' || grain === 'product-stage-task')) {
+    findings.push({
+      code: 'COMPIMP-010',
+      severity: 'error',
+      message: `view.grouping.columns is '${grain}' but view.subjects.processes has entries — product-stage semantics applied to process columns violate the subject type label invariant (§5.2). Use '${grain.replace('product', 'process')}' for process columns.`,
+    });
+  }
 
   const allowedStatuses = new Set<AssertionStatus>(
     config.status_display?.show ?? ['compliant', 'partial', 'non_compliant', 'under_review', 'pending_owner', 'n_a'],
@@ -653,6 +737,7 @@ export function buildImpactMatrix(
         config.empty_cells?.no_obligation_applies_label ?? DEFAULT_NO_OBLIGATION_APPLIES_LABEL,
     },
     obligationsLane,
+    findings,
   };
 }
 

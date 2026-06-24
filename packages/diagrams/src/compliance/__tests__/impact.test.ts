@@ -839,3 +839,155 @@ describe('mergeStageTaskDetails', () => {
     expect(merged.details[1].tasks).toBeUndefined();
   });
 });
+
+// ── COMPIMP-010 — subject type label invariant (#345) ────────────────────────
+
+describe('COMPIMP-010 — subject type label invariant (#345)', () => {
+  it('process-only view: columns carry subjectType=process and plain ID labels (regression)', () => {
+    const canon = emptyCanon();
+    canon.subjects.push({ id: 'PROCESS-CS-1', name: 'Customer Support' });
+    canon.requirements.push({ id: 'REQ-1', name: 'R1' });
+    canon.assertions.push({ id: 'ASS-1', about: 'REQ-1', subject: 'PROCESS-CS-1', status: 'compliant' });
+    const matrix = buildImpactMatrix(canon, {
+      id: 'V', name: 'Process-only',
+      subjects: { processes: ['PROCESS-CS-1'] },
+      obligations: {},
+    });
+    expect(matrix.columns).toHaveLength(1);
+    expect(matrix.columns[0].subjectType).toBe('process');
+    // Process-only: label is just the ID — no [PRODUCT] prefix (regression)
+    expect(matrix.columns[0].label).toBe('PROCESS-CS-1');
+    expect(matrix.columns[0].label).not.toContain('[PRODUCT]');
+    expect(matrix.cells[0][0].status).toBe('compliant');
+  });
+
+  it('product-only view: columns carry subjectType=product and plain ID labels', () => {
+    const canon = emptyCanon();
+    canon.products.push({ id: 'PRODUCT-A-1', name: 'Product A' });
+    canon.requirements.push({ id: 'REQ-1', name: 'R1' });
+    canon.assertions.push({ id: 'ASS-1', about: 'REQ-1', subject: 'PRODUCT-A-1', status: 'compliant' });
+    const matrix = buildImpactMatrix(canon, {
+      id: 'V', name: 'Product-only',
+      subjects: { products: ['PRODUCT-A-1'] },
+      obligations: {},
+    });
+    expect(matrix.columns[0].subjectType).toBe('product');
+    expect(matrix.columns[0].label).toBe('PRODUCT-A-1');
+    expect(matrix.columns[0].label).not.toContain('[PROCESS]');
+    expect(matrix.findings).toHaveLength(0);
+  });
+
+  it('combined view: product columns carry [PRODUCT] badge; process columns carry [PROCESS] badge', () => {
+    const canon = emptyCanon();
+    canon.products.push({ id: 'PRODUCT-A-1', name: 'Product A' });
+    canon.subjects.push({ id: 'PROCESS-CS-1', name: 'Customer Support' });
+    canon.requirements.push({ id: 'REQ-1', name: 'R1' });
+    const matrix = buildImpactMatrix(canon, {
+      id: 'V', name: 'Combined',
+      subjects: { products: ['PRODUCT-A-1'], processes: ['PROCESS-CS-1'] },
+      obligations: {},
+    });
+    expect(matrix.columns).toHaveLength(2);
+    const prodCol = matrix.columns.find(c => c.subjectId === 'PRODUCT-A-1')!;
+    const procCol = matrix.columns.find(c => c.subjectId === 'PROCESS-CS-1')!;
+    expect(prodCol.subjectType).toBe('product');
+    expect(prodCol.label).toBe('[PRODUCT] PRODUCT-A-1');
+    expect(procCol.subjectType).toBe('process');
+    expect(procCol.label).toBe('[PROCESS] PROCESS-CS-1');
+  });
+
+  it('combined view: markdown renders [PRODUCT] / [PROCESS] column headers', () => {
+    const canon = emptyCanon();
+    canon.products.push({ id: 'PRODUCT-A-1', name: 'Product A' });
+    canon.subjects.push({ id: 'PROCESS-CS-1', name: 'Customer Support' });
+    canon.requirements.push({ id: 'REQ-1', name: 'R1' });
+    const matrix = buildImpactMatrix(canon, {
+      id: 'V', name: 'Combined',
+      subjects: { products: ['PRODUCT-A-1'], processes: ['PROCESS-CS-1'] },
+      obligations: {},
+    });
+    const md = renderImpactMarkdown(matrix);
+    expect(md).toContain('[PRODUCT] PRODUCT-A-1');
+    expect(md).toContain('[PROCESS] PROCESS-CS-1');
+  });
+
+  it('capability column always has subjectType=capability', () => {
+    const canon = emptyCanon();
+    canon.subjects.push({ id: 'CAPABILITY-CRM-1', name: 'CRM' });
+    const matrix = buildImpactMatrix(canon, {
+      id: 'V', name: 'Cap',
+      subjects: { capabilities: ['CAPABILITY-CRM-1'] },
+      obligations: {},
+    });
+    expect(matrix.columns[0].subjectType).toBe('capability');
+  });
+
+  it('COMPIMP-009 warning: product-* grouping with process-only subjects', () => {
+    const canon = emptyCanon();
+    canon.subjects.push({ id: 'PROCESS-CS-1', name: 'CS' });
+    const matrix = buildImpactMatrix(canon, {
+      id: 'V', name: 'V',
+      subjects: { processes: ['PROCESS-CS-1'] },
+      obligations: {},
+      grouping: { columns: 'product' },
+    });
+    const c009 = matrix.findings.find(f => f.code === 'COMPIMP-009');
+    expect(c009).toBeDefined();
+    expect(c009!.severity).toBe('warning');
+    expect(c009!.message).toContain('process');
+  });
+
+  it('COMPIMP-010 error: product-stage grouping with process subjects', () => {
+    const canon = emptyCanon();
+    canon.subjects.push({ id: 'PROCESS-CS-1', name: 'CS' });
+    const matrix = buildImpactMatrix(
+      canon,
+      {
+        id: 'V', name: 'V',
+        subjects: { processes: ['PROCESS-CS-1'] },
+        obligations: {},
+        grouping: { columns: 'product-stage' },
+      },
+      [{ objectId: 'PROCESS-CS-1', details: [{ id: 'STAGE-A', name: 'Stage A' }] }],
+    );
+    const c010 = matrix.findings.find(f => f.code === 'COMPIMP-010');
+    expect(c010).toBeDefined();
+    expect(c010!.severity).toBe('error');
+    expect(c010!.message).toContain('process-stage');
+  });
+
+  it('no COMPIMP-010 when process-stage grouping is used for process subjects', () => {
+    const canon = emptyCanon();
+    canon.subjects.push({ id: 'PROCESS-CS-1', name: 'CS' });
+    const matrix = buildImpactMatrix(
+      canon,
+      {
+        id: 'V', name: 'V',
+        subjects: { processes: ['PROCESS-CS-1'] },
+        obligations: {},
+        grouping: { columns: 'process-stage' },
+      },
+      [{ objectId: 'PROCESS-CS-1', details: [{ id: 'STAGE-A', name: 'Stage A' }] }],
+    );
+    expect(matrix.findings.some(f => f.code === 'COMPIMP-010')).toBe(false);
+  });
+
+  it('parseImpactViewConfig accepts process-centric column values', () => {
+    for (const col of ['process', 'process-stage', 'process-stage-task'] as const) {
+      const r = parseImpactViewConfig({ id: 'V', name: 'V', subjects: {}, grouping: { columns: col } });
+      expect(r.ok).toBe(true);
+      if (r.ok) expect(r.config.grouping?.columns).toBe(col);
+    }
+  });
+
+  it('matrix.findings is empty for a conformant product-only view', () => {
+    const canon = emptyCanon();
+    canon.products.push({ id: 'PRODUCT-A-1', name: 'Product A' });
+    const matrix = buildImpactMatrix(canon, {
+      id: 'V', name: 'V',
+      subjects: { products: ['PRODUCT-A-1'] },
+      obligations: {},
+    });
+    expect(matrix.findings).toEqual([]);
+  });
+});
