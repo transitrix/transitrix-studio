@@ -14,6 +14,7 @@ import {
   relationsOfType,
   relationsFrom,
   relationsTo,
+  extractViewActivities,
   type CanonDocs,
 } from '../extension/src/canon-loader.js';
 
@@ -87,7 +88,12 @@ describe('isUnderCanonPath', () => {
     expect(isUnderCanonPath(canonRoot, saved)).toBe(true);
   });
 
-  it('returns false for a file outside elements/ and relations/', () => {
+  it('returns true for a file inside views/activities/ (#344 fallback)', () => {
+    const saved = join(canonRoot, 'views', 'activities', 'q1.activities.transitrix.yaml');
+    expect(isUnderCanonPath(canonRoot, saved)).toBe(true);
+  });
+
+  it('returns false for a file outside elements/, relations/, or views/activities/', () => {
     const saved = join(canonRoot, 'cards', 'my-card.yaml');
     expect(isUnderCanonPath(canonRoot, saved)).toBe(false);
   });
@@ -95,6 +101,43 @@ describe('isUnderCanonPath', () => {
   it('returns false for a sibling of canon/', () => {
     const saved = ['', 'org', 'views', 'my-card.yaml'].join(sep);
     expect(isUnderCanonPath(canonRoot, saved)).toBe(false);
+  });
+});
+
+// ── extractViewActivities (#344) ─────────────────────────────────────────────
+
+describe('extractViewActivities', () => {
+  it('extracts items from an activities view doc with notation: activity added', () => {
+    const doc = {
+      notation: 'activities',
+      activities: [
+        { id: 'ACTIVITY-EU-GAP-1', name: 'Gap analysis', duration: 5 },
+        { id: 'ACTIVITY-EU-AUDIT-1', name: 'NB audit', start_date: '2026-06-01' },
+      ],
+    };
+    const out = extractViewActivities(doc);
+    expect(out).toHaveLength(2);
+    expect(out[0]).toMatchObject({ notation: 'activity', id: 'ACTIVITY-EU-GAP-1', name: 'Gap analysis' });
+    expect(out[1]).toMatchObject({ notation: 'activity', id: 'ACTIVITY-EU-AUDIT-1' });
+  });
+
+  it('returns the doc as-is when notation is not activities (standalone element file)', () => {
+    const doc = { notation: 'activity', id: 'ACTIVITY-EU-1', name: 'Project', valid_from: '2026-01-01' };
+    const out = extractViewActivities(doc);
+    expect(out).toHaveLength(1);
+    expect(out[0]).toBe(doc);
+  });
+
+  it('returns empty array when activities: is missing or not an array', () => {
+    expect(extractViewActivities({ notation: 'activities' })).toHaveLength(0);
+    expect(extractViewActivities({ notation: 'activities', activities: null })).toHaveLength(0);
+  });
+
+  it('skips non-object items in the activities array', () => {
+    const doc = { notation: 'activities', activities: ['bad', null, { id: 'ACTIVITY-OK-1' }] };
+    const out = extractViewActivities(doc);
+    expect(out).toHaveLength(1);
+    expect((out[0] as Record<string, unknown>)['id']).toBe('ACTIVITY-OK-1');
   });
 });
 
