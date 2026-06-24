@@ -146,10 +146,14 @@ function parseViewConfigRaw(raw: unknown): ImpactViewConfig | null {
     v.empty_cells && typeof v.empty_cells === 'object' && !Array.isArray(v.empty_cells)
       ? (v.empty_cells as Record<string, unknown>)
       : {};
+  const VALID_RT = new Set(['product', 'process', 'combined']);
   return {
     id: v.id,
     name: v.name,
     description: typeof v.description === 'string' ? v.description : undefined,
+    report_type: typeof v.report_type === 'string' && VALID_RT.has(v.report_type)
+      ? (v.report_type as ImpactViewConfig['report_type'])
+      : undefined,
     subjects: {
       products: Array.isArray(subjects.products)
         ? (subjects.products as unknown[]).filter((x): x is string => typeof x === 'string')
@@ -592,16 +596,30 @@ export class ComplianceImpactPreview {
     obligationsLane: string[][],
     showObligationsLane: boolean,
   ): string {
+    // Show explicit type chips only in combined views where both PRODUCT and
+    // PROCESS columns are present — so the reader can distinguish types at a
+    // glance even when columns carry human-readable names (§5.2 invariant).
+    const hasProdCols = columns.some(c => c.subjectType === 'product');
+    const hasProcCols = columns.some(c => c.subjectType === 'process');
+    const isCombinedView = hasProdCols && hasProcCols;
+
     const head =
       '<tr>\n      <th class="ci-corner"></th>\n      ' +
       columns
-        .map(col =>
-          '<th class="ci-col"><div class="ci-col-name">' +
-          escXml(col.subjectName ?? col.label) +
-          '</div>' +
-          (col.subjectName ? '<div class="ci-col-id">' + escXml(col.label) + '</div>' : '') +
-          '</th>',
-        )
+        .map(col => {
+          const typeChip = isCombinedView && col.subjectType !== 'capability'
+            ? '<span class="ci-type-chip ci-type-' + col.subjectType + '">' + col.subjectType.toUpperCase() + '</span>'
+            : '';
+          return (
+            '<th class="ci-col">' +
+            typeChip +
+            '<div class="ci-col-name">' +
+            escXml(col.subjectName ?? col.label) +
+            '</div>' +
+            (col.subjectName ? '<div class="ci-col-id">' + escXml(col.label) + '</div>' : '') +
+            '</th>'
+          );
+        })
         .join('') +
       '\n    </tr>';
     const laneRow = showObligationsLane
@@ -740,8 +758,8 @@ export class ComplianceImpactPreview {
 }
 
 const IMPACT_CSS = `
-body { padding: 0; }
-#toolbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 16px; border-bottom: 1px solid var(--ts-border, #cbd5e1); flex-wrap: wrap; }
+body { padding: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+#toolbar { flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 16px; border-bottom: 1px solid var(--ts-border, #cbd5e1); flex-wrap: wrap; }
 .toolbar-label { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: 700; color: var(--ts-header-text, #0f172a); }
 .toolbar-actions { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
 .toolbar-btn { cursor: pointer; user-select: none; font-size: 11px; padding: 1px 8px; border-radius: 4px; color: var(--ts-text-muted, #64748b); white-space: nowrap; text-decoration: none; }
@@ -751,12 +769,15 @@ body { padding: 0; }
 .ci-config { font-size: 11px; color: var(--ts-text-muted, #64748b); padding-left: 4px; border-left: 1px solid var(--ts-border, #cbd5e1); margin-left: 4px; }
 .ci-config code { background: var(--ts-bg-subtle, #f1f5f9); padding: 1px 4px; border-radius: 3px; }
 .ci-filter-sep { flex-basis: 100%; height: 0; }
-#ci-filters { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 16px; border-bottom: 1px solid var(--ts-border, #cbd5e1); font-size: 11px; }
+#ci-filters { flex-shrink: 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 16px; border-bottom: 1px solid var(--ts-border, #cbd5e1); font-size: 11px; }
 .ci-filter-label { font-weight: 600; color: var(--ts-text, #0f172a); margin-left: 8px; }
 .ci-filter-label:first-child { margin-left: 0; }
 .ci-chip { display: inline-flex; align-items: center; gap: 4px; color: var(--ts-text-muted, #64748b); cursor: pointer; }
 .ci-col-width-select { font-size: 11px; font-family: var(--vscode-font-family, sans-serif); color: var(--vscode-input-foreground, #333); background: var(--vscode-input-background, #fff); border: 1px solid var(--vscode-input-border, var(--ts-border, #cbd5e1)); border-radius: 3px; padding: 1px 4px; }
-#ci-grid-wrap { overflow: auto; padding: 12px 16px 24px; }
+#ci-grid-wrap { flex: 1 1 0; overflow: auto; padding: 12px 16px 24px; min-height: 0; }
+.ci-type-chip { display: inline-block; padding: 1px 5px; border-radius: 3px; font-size: 9px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 3px; }
+.ci-type-product { color: #1e40af; background: #dbeafe; }
+.ci-type-process { color: #065f46; background: #d1fae5; }
 #ci-grid { border-collapse: collapse; font-size: 12px; }
 #ci-grid th, #ci-grid td { border: 1px solid var(--ts-border, #cbd5e1); }
 .ci-corner { background: transparent; border: none; }
