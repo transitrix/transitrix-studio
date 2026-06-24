@@ -1,5 +1,23 @@
 # Changelog
 
+## [2.3.0] — 2026-06-24
+
+### Added
+
+- **`transitrix validate` — canonical notation extensions accepted without `--ext`.**
+  All canonical file extensions (`.goals.transitrix.yaml`, `.dgca.transitrix.yaml`, etc.) are now in the default accepted list, derived automatically from the validator registry.
+  When a file has a canonical extension but no `notation:` field, the CLI emits a targeted hint ("add `notation: dgca` to the file") instead of the generic extension error.
+- **Compliance-impact — PRODUCT/PROCESS subject type label invariant (§5.2, COMPIMP-009/010).**
+  `ImpactColumn` now carries `subjectType: 'product' | 'process' | 'capability'` end-to-end.
+  Combined views (both `subjects.products` and `subjects.processes` set) render column headers with `[PRODUCT]` / `[PROCESS]` badges so subject types are always distinguishable.
+  `ImpactGrouping.columns` accepts the three process-centric variants (`process`, `process-stage`, `process-stage-task`) for the §7.1 process compliance report.
+  `ImpactMatrix.findings` carries COMPIMP-009 (warning) and COMPIMP-010 (error) structural diagnostics.
+
+### Fixed
+
+- **Activity Card — PC-001 diagnostic is now actionable.** When the project activity element is absent from the canon scope, the error message discloses the paths searched (`canon/elements/**` and `canon/views/activities/**`) and suggests the exact YAML fields to add.
+- **IntelliJ plugin — version auto-derived from release tag.** The plugin version is no longer hardcoded; it is read from the `v2.x.y` release tag at build time. DGCA/DGA notation keys also registered.
+
 ## [2.2.0] — 2026-06-24
 
 ### Added
