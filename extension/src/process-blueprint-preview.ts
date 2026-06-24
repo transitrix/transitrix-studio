@@ -21,12 +21,56 @@ import { genNonce } from './preview-controls.js';
 import { escXml } from '@transitrix/diagrams/webview/render-util.js';
 import { renderProcessBlueprintBody } from '@transitrix/diagrams/webview/render-process-blueprint.js';
 
+const LEGEND_H = 44;
+
+function buildChipLegendSvgElements(x: number, y: number, totalWidth: number): string {
+  const midY = y + LEGEND_H / 2;
+  const CHIP_W = 60, CHIP_H = 20, CHIP_RX = 5;
+  const chipY = midY - CHIP_H / 2;
+  const hPad = 16;
+  const chipLabelGap = 8;
+  const itemGap = 16;
+
+  const parts: string[] = [];
+  parts.push(`<line x1="${x}" y1="${y}" x2="${x + totalWidth}" y2="${y}" stroke="var(--ts-border,#cbd5e1)" stroke-width="1"/>`);
+
+  let cx = x + hPad;
+  parts.push(`<text x="${cx}" y="${midY}" dominant-baseline="central" class="text-muted" style="font-size:10px;font-weight:700;letter-spacing:0.08em">LEGEND</text>`);
+  cx += 56;
+
+  const items: Array<{ modClass?: string; dash?: boolean; badge?: boolean; label: string }> = [
+    { label: 'Compliant' },
+    { dash: true, label: 'New since last report' },
+    { modClass: 'compliance-gap', label: 'Compliance gap' },
+    { modClass: 'compliance-deadline', badge: true, label: 'Deadline risk' },
+  ];
+
+  for (const item of items) {
+    cx += itemGap;
+    const cls = `diagram-node level-5 compliance-chip${item.modClass ? ' ' + item.modClass : ''}`;
+    const dashAttr = item.dash ? ` stroke-dasharray="4 2"` : '';
+    parts.push(`<rect class="${escXml(cls)}" x="${cx}" y="${chipY}" width="${CHIP_W}" height="${CHIP_H}" rx="${CHIP_RX}"${dashAttr}/>`);
+    parts.push(`<text class="text-pill" x="${cx + CHIP_W / 2}" y="${midY}" text-anchor="middle" dominant-baseline="central" style="font-size:9px">ID</text>`);
+    if (item.badge) {
+      const bx = cx + CHIP_W - 4;
+      const by = chipY + 4;
+      parts.push(`<circle class="compliance-badge" cx="${bx}" cy="${by}" r="5"/>`);
+      parts.push(`<text class="compliance-badge-text" x="${bx}" y="${by}" text-anchor="middle" dominant-baseline="central" style="font-size:7px">!</text>`);
+    }
+    cx += CHIP_W + chipLabelGap;
+    parts.push(`<text x="${cx}" y="${midY}" dominant-baseline="central" class="text-primary" style="font-size:12px">${escXml(item.label)}</text>`);
+    cx += item.label.length * 7;
+  }
+
+  return parts.join('\n');
+}
+
 /**
  * Wrap the shared canonical blueprint body (`renderProcessBlueprintBody`) with
  * the VS Code title block. The body itself is rendered identically for the
  * JCEF host by `renderProcessBlueprintSvg` in the diagrams package.
  */
-function layoutToSvg(layout: ProcessBlueprintLayout, filename?: string, date?: string, version?: string): string {
+function layoutToSvg(layout: ProcessBlueprintLayout, filename?: string, date?: string, version?: string, withLegend = false): string {
   const pad = 24;
   const showTitle = filename != null && date != null;
   const titleH = showTitle ? TITLE_BLOCK_H : 0;
@@ -34,15 +78,18 @@ function layoutToSvg(layout: ProcessBlueprintLayout, filename?: string, date?: s
   const th = layout.bounds.height;
   const w = tw + pad * 2;
   const h = th + pad * 2 + titleH;
+  const totalH = withLegend ? h + LEGEND_H : h;
   const ox = pad;
   const oy = pad + titleH;
 
   const body = renderProcessBlueprintBody(layout, ox, oy);
 
   const titleSvg = showTitle ? titleBlockSvg('Process Blueprint', filename!, date!, pad, pad, version) : '';
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+  const legendElements = withLegend ? buildChipLegendSvgElements(0, h, w) : '';
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${totalH}" viewBox="0 0 ${w} ${totalH}">
 ${titleSvg}
 ${body}
+${legendElements}
 </svg>`;
 }
 
@@ -262,11 +309,13 @@ if(det){var st=vscode.getState()||{};if(st.txBpCtlOpen)det.open=true;
   legendBtn.textContent='Legend';
   var st2=vscode.getState()||{};
   if(st2.txBpLegendHidden){legendBtn.classList.add('bp-hidden');document.body.classList.add('bp-legend-hidden');}
+  vscode.postMessage({type:'transitrix:bp-legend',visible:!st2.txBpLegendHidden});
   legendBtn.addEventListener('click',function(){
     var hiding=!legendBtn.classList.contains('bp-hidden');
     legendBtn.classList.toggle('bp-hidden',hiding);
     document.body.classList.toggle('bp-legend-hidden',hiding);
     var s=vscode.getState()||{};s.txBpLegendHidden=hiding;vscode.setState(s);
+    vscode.postMessage({type:'transitrix:bp-legend',visible:!hiding});
   });
   var actions=document.querySelector('#toolbar .toolbar-actions');
   if(actions){
@@ -378,6 +427,8 @@ export class ProcessBlueprintPreview {
   private panel: vscode.WebviewPanel | undefined;
   private trackedUri: string | undefined;
   private lastSvg = '';
+  private lastSvgWithLegend = '';
+  private legendVisible = true;
   private hiddenRows = new Set<string>();
   private hiddenStages = new Set<string>();
   private lastYamlText = '';
@@ -418,6 +469,10 @@ export class ProcessBlueprintPreview {
       this.panel.webview.onDidReceiveMessage(async (msg: unknown) => {
         if (!msg || typeof msg !== 'object') return;
         const m = msg as Record<string, unknown>;
+        if (m['type'] === 'transitrix:bp-legend') {
+          this.legendVisible = Boolean(m['visible']);
+          return;
+        }
         if (m['type'] !== 'transitrix:bp-toggle') return;
         const kind = m['kind'] as string;
         const id = m['id'] as string;
@@ -458,6 +513,7 @@ export class ProcessBlueprintPreview {
 
   private async buildHtml(yamlText: string, filename: string): Promise<string> {
     let svgContent = '';
+    this.lastSvgWithLegend = '';
     let errorMsg = '';
     let warnings: string[] = [];
     let controlsPanel = '';
@@ -564,6 +620,7 @@ export class ProcessBlueprintPreview {
 
         // Append the drill-down panel and visual legend when compliance chips are present.
         if (layout.complianceRow) {
+          this.lastSvgWithLegend = layoutToSvg(layout, filename, docDate, docVersion, true);
           svgContent = svgContent + CHIP_DETAIL_PANEL_HTML + CHIP_LEGEND_HTML;
         }
       }
@@ -597,8 +654,9 @@ export class ProcessBlueprintPreview {
   }
 
   private pngTarget() {
+    const svg = (this.legendVisible && this.lastSvgWithLegend) || this.lastSvg || undefined;
     return {
-      rawSvg: this.lastSvg || undefined,
+      rawSvg: svg,
       themeId: vscode.workspace.getConfiguration('transitrix').get<ThemeId>('theme', 'transitrix'),
       notationCss: BLUEPRINT_CSS + CHIP_DETAIL_CSS,
       emptyMessage: 'No diagram rendered yet. Open a *.process-blueprint.transitrix.yaml file first.',
@@ -615,7 +673,8 @@ export class ProcessBlueprintPreview {
   }
 
   async saveAsSvg(): Promise<void> {
-    if (!this.lastSvg) {
+    const svgSource = (this.legendVisible && this.lastSvgWithLegend) || this.lastSvg;
+    if (!svgSource) {
       vscode.window.showWarningMessage('No diagram rendered yet. Open a *.process-blueprint.transitrix.yaml file first.');
       return;
     }
@@ -629,7 +688,7 @@ export class ProcessBlueprintPreview {
     const target = await vscode.window.showSaveDialog({ defaultUri, filters: { 'SVG Image': ['svg'] } });
     if (!target) return;
     const themeId = vscode.workspace.getConfiguration('transitrix').get<ThemeId>('theme', 'transitrix');
-    const svg = prepareSvgForExport(this.lastSvg, themeId);
+    const svg = prepareSvgForExport(svgSource, themeId);
     await vscode.workspace.fs.writeFile(target, Buffer.from(svg, 'utf-8'));
     vscode.window.showInformationMessage(`Saved: ${path.basename(target.fsPath)}`);
   }
