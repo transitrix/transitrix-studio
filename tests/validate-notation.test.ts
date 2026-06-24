@@ -10,6 +10,8 @@ import {
   loadNotationYaml,
   notationOf,
   FILE_VALIDATABLE_NOTATIONS,
+  CANONICAL_NOTATION_FILE_EXTENSIONS,
+  inferNotationFromFilename,
 } from '../src/validate-notation.js';
 // Imported directly to prove the CLI dispatch mirrors the validator the VS Code
 // preview uses — same findings, no drift (vkgeorgia/strategy#258).
@@ -51,6 +53,31 @@ function fixtures(notation: string): string[] {
     .filter((f) => f.endsWith('.transitrix.yaml'))
     .map((f) => join(corpusRoot, notation, f));
 }
+
+describe('validate-notation — canonical extension helpers (#343)', () => {
+  it('CANONICAL_NOTATION_FILE_EXTENSIONS has one entry per validatable notation', () => {
+    expect(CANONICAL_NOTATION_FILE_EXTENSIONS).toHaveLength(FILE_VALIDATABLE_NOTATIONS.length);
+    for (const notation of FILE_VALIDATABLE_NOTATIONS) {
+      expect(CANONICAL_NOTATION_FILE_EXTENSIONS).toContain(`.${notation}.transitrix.yaml`);
+    }
+  });
+
+  it('inferNotationFromFilename matches canonical extensions', () => {
+    expect(inferNotationFromFilename('foo/bar.dgca.transitrix.yaml')).toBe('dgca');
+    expect(inferNotationFromFilename('foo/bar.goals.transitrix.yaml')).toBe('goals');
+    expect(inferNotationFromFilename('foo/bar.capability-map.transitrix.yaml')).toBe('capability-map');
+    expect(inferNotationFromFilename('foo/bar.activity-card.transitrix.yaml')).toBe('activity-card');
+    // Windows backslash paths
+    expect(inferNotationFromFilename('foo\\bar.dgca.transitrix.yaml')).toBe('dgca');
+  });
+
+  it('inferNotationFromFilename returns undefined for non-canonical names', () => {
+    expect(inferNotationFromFilename('foo.bpmn.transitrix.yaml')).toBeUndefined();
+    expect(inferNotationFromFilename('foo.yaml')).toBeUndefined();
+    expect(inferNotationFromFilename('foo.unknown.transitrix.yaml')).toBeUndefined();
+    expect(inferNotationFromFilename('foo.dgca.yaml')).toBeUndefined(); // missing .transitrix
+  });
+});
 
 describe('validate-notation — dispatch (#258)', () => {
   it('recognises all Group A and Group B notations', () => {

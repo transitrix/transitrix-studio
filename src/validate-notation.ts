@@ -74,6 +74,23 @@ const VALIDATORS: Record<string, NotationValidator> = {
 /** Notation field values the CLI can validate per file. */
 export const FILE_VALIDATABLE_NOTATIONS = Object.keys(VALIDATORS);
 
+/** Canonical file extensions the validate command accepts without `--ext`, one
+ *  per notation key: `.goals.transitrix.yaml`, `.dgca.transitrix.yaml`, etc. */
+export const CANONICAL_NOTATION_FILE_EXTENSIONS: readonly string[] =
+  FILE_VALIDATABLE_NOTATIONS.map((n) => `.${n}.transitrix.yaml`);
+
+/** Return the notation inferred from the file's canonical extension (e.g.
+ *  `foo.dgca.transitrix.yaml` → `"dgca"`), or `undefined` for non-canonical
+ *  names. Used by the validate command to give a helpful error when a canonical
+ *  extension file is missing its `notation:` field. */
+export function inferNotationFromFilename(filePath: string): string | undefined {
+  const lower = filePath.replace(/\\/g, '/').toLowerCase();
+  for (const notation of FILE_VALIDATABLE_NOTATIONS) {
+    if (lower.endsWith(`.${notation}.transitrix.yaml`)) return notation;
+  }
+  return undefined;
+}
+
 /** True when `transitrix validate <file>` has a per-notation validator for this
  *  notation — i.e. it can reproduce the preview's error block. */
 export function isFileValidatableNotation(notation: string): boolean {
