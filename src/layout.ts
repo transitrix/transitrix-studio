@@ -494,13 +494,30 @@ export async function layoutProcess(
   }
 
   // Step C — absolute positions, lane bounds, pool bounds.
+  // Sub-pass C1: compute individual lane heights to allow optional equalization.
+  const rawLaneHeights = new Map<string, number>();
+  for (const ld of laneData) {
+    const items = laneLocalItems.get(ld.laneId) ?? [];
+    const laneDef = ir.lanes.find((l) => l.id === ld.laneId);
+    const contentBottom = items.length > 0
+      ? Math.max(...items.map((item) => item.localY + item.height))
+      : 0;
+    const labelMinH = laneDef ? minLaneHeightForLabel(laneDef.name) : 0;
+    rawLaneHeights.set(ld.laneId, Math.max(ld.height, contentBottom + ld.envY, labelMinH));
+  }
+  // When uniformLaneHeight is on, all lanes in the pool share the tallest height.
+  const uniformH = o.uniformLaneHeight && rawLaneHeights.size > 0
+    ? Math.max(...rawLaneHeights.values())
+    : undefined;
+
+  // Sub-pass C2: set absolute element positions and lane bounds using final heights.
   let yCursor = o.poolPad;
   const elements = new Map<string, Bounds>();
   const laneBounds = new Map<string, Bounds>();
 
   for (const ld of laneData) {
     const items = laneLocalItems.get(ld.laneId) ?? [];
-    const laneDef = ir.lanes.find((l) => l.id === ld.laneId);
+    const laneHeight = uniformH ?? rawLaneHeights.get(ld.laneId)!;
 
     for (const item of items) {
       elements.set(item.id, {
@@ -510,13 +527,6 @@ export async function layoutProcess(
         height: item.height,
       });
     }
-
-    const contentBottom = items.length > 0
-      ? Math.max(...items.map((item) => item.localY + item.height))
-      : 0;
-    // Add bottom padding matching the top padding (envY) to keep lanes symmetric.
-    const labelMinH = laneDef ? minLaneHeightForLabel(laneDef.name) : 0;
-    const laneHeight = Math.max(ld.height, contentBottom + ld.envY, labelMinH);
 
     laneBounds.set(ld.laneId, {
       x: laneOriginX,

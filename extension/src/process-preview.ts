@@ -22,24 +22,51 @@ import {
   OPEN_THEME_COMMAND,
   type ThemeId,
 } from './diagram-frame.js';
+import { genNonce } from './preview-controls.js';
 import type { ValidationReport } from './types.js';
 
 export const SAVE_BPMN_PROCESS_SVG_COMMAND = 'transitrixStudio.saveBpmnProcessAsSvg';
 export const OPEN_BPMN_SETTINGS_COMMAND = 'transitrixStudio.openBpmnSettings';
 
+export interface BpmnDisplayOpts {
+  uniformLaneHeight?: boolean;
+}
+
 /** Function that parses + lays out a BPMN YAML document. */
-export type ProcessLayoutFn = (yaml: string) => Promise<{
+export type ProcessLayoutFn = (yaml: string, opts?: BpmnDisplayOpts) => Promise<{
   layout: ProcessDiagramLayout;
   validation: ValidationReport;
 }>;
 
-/** VS Code static preview panel backed by the custom SVG emitter. */
+function buildBpmnControls(nonce: string, uniformLaneHeight: boolean): { panel: string; script: string } {
+  const checked = uniformLaneHeight ? ' checked' : '';
+  const panel = `<details class="tx-ctl" id="tx-bpmn-ctl">
+  <summary>Display</summary>
+  <div class="tx-ctl-body">
+    <div class="tx-ctl-row"><label><input type="checkbox" id="tx-bpmn-uniform-lanes"${checked}> Equalize lane heights</label></div>
+  </div>
+</details>`;
+  const script = `<script nonce="${nonce}">
+(function(){
+var vscode=acquireVsCodeApi();
+var cb=document.getElementById('tx-bpmn-uniform-lanes');
+if(cb){cb.addEventListener('change',function(){vscode.postMessage({type:'transitrix:bpmn-toggle',kind:'uniform-lane-height',value:cb.checked});});}
+var det=document.getElementById('tx-bpmn-ctl');
+if(det){var st=vscode.getState()||{};if(st.txBpCtlOpen)det.open=true;
+  det.addEventListener('toggle',function(){var s=vscode.getState()||{};s.txBpCtlOpen=det.open;vscode.setState(s);});}
+}());
+<\/script>`;
+  return { panel, script };
+}
+
+/** VS Code interactive preview panel backed by the custom SVG emitter. */
 export class ProcessPreview {
   readonly panelTitle = 'BPMN Preview';
 
   private panel: vscode.WebviewPanel | undefined;
   private trackedUri: string | undefined;
   private lastSvg = '';
+  private uniformLaneHeight = false;
 
   constructor(private readonly layoutFn: ProcessLayoutFn) {}
 
@@ -59,7 +86,7 @@ export class ProcessPreview {
         `${this.panelTitle} — ${path.basename(doc.fileName)}`,
         { viewColumn: vscode.ViewColumn.Beside, preserveFocus: false },
         {
-          enableScripts: false,
+          enableScripts: true,
           enableCommandUris: [SAVE_BPMN_PROCESS_SVG_COMMAND, OPEN_BPMN_SETTINGS_COMMAND, OPEN_THEME_COMMAND],
           retainContextWhenHidden: true,
         },
@@ -68,6 +95,18 @@ export class ProcessPreview {
         this.panel = undefined;
         this.trackedUri = undefined;
         this.lastSvg = '';
+      });
+      this.panel.webview.onDidReceiveMessage(async (msg: unknown) => {
+        if (!msg || typeof msg !== 'object') return;
+        const m = msg as Record<string, unknown>;
+        if (m['type'] !== 'transitrix:bpmn-toggle') return;
+        if (m['kind'] === 'uniform-lane-height') {
+          this.uniformLaneHeight = Boolean(m['value']);
+        }
+        if (this.panel && this.trackedUri) {
+          const doc = vscode.workspace.textDocuments.find((d) => d.uri.toString() === this.trackedUri);
+          if (doc) await this.pushDocument(doc);
+        }
       });
     }
 
@@ -110,7 +149,7 @@ export class ProcessPreview {
     const filename = path.basename(doc.fileName);
     const themeId = vscode.workspace.getConfiguration('transitrix').get<ThemeId>('theme', 'transitrix');
     try {
-      const { layout, validation } = await this.layoutFn(doc.getText());
+      const { layout, validation } = await this.layoutFn(doc.getText(), { uniformLaneHeight: this.uniformLaneHeight });
       const svg = renderProcessLayoutSvg(layout);
       this.lastSvg = svg;
 
@@ -120,6 +159,8 @@ export class ProcessPreview {
         ? errors.map((e) => escXml(e.message)).join('\n')
         : '';
       const warningMsgs = warnings.map((w) => w.message);
+      const nonce = genNonce();
+      const { panel: controlsPanel, script: controlsScript } = buildBpmnControls(nonce, this.uniformLaneHeight);
 
       this.panel.webview.html = buildDiagramFrame({
         filename,
@@ -131,6 +172,7 @@ export class ProcessPreview {
         saveSvgCommand: SAVE_BPMN_PROCESS_SVG_COMMAND,
         spacingCommand: OPEN_BPMN_SETTINGS_COMMAND,
         themeCommand: OPEN_THEME_COMMAND,
+        interactive: { nonce, controlsPanel, controlsScript },
       });
     } catch (err) {
       this.lastSvg = '';

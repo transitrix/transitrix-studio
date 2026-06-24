@@ -24,6 +24,8 @@ export interface LayoutDiagramOptions {
   elkLayerSpacing: number;
   /** Uniform `elk.padding` around the subgraph inside a lane. */
   elkDiagramPadding: number;
+  /** When true, all swimlanes in a pool are rendered at the same height (max of individual heights). */
+  uniformLaneHeight: boolean;
 }
 
 export const DEFAULT_LAYOUT_DIAGRAM_OPTIONS: LayoutDiagramOptions = {
@@ -38,6 +40,7 @@ export const DEFAULT_LAYOUT_DIAGRAM_OPTIONS: LayoutDiagramOptions = {
   elkNodeSpacing: 52,
   elkLayerSpacing: 88,
   elkDiagramPadding: 44,
+  uniformLaneHeight: false,
 };
 
 const BOUNDS = { min: 0, max: 800 } as const;
@@ -52,7 +55,8 @@ export function mergeLayoutDiagramOptions(
 ): LayoutDiagramOptions {
   const d = DEFAULT_LAYOUT_DIAGRAM_OPTIONS;
   if (!partial) return { ...d };
-  const pick = (k: keyof LayoutDiagramOptions): number => {
+  type NumericKey = keyof Omit<LayoutDiagramOptions, 'uniformLaneHeight'>;
+  const pick = (k: NumericKey): number => {
     const v = partial[k];
     if (v === undefined) return d[k];
     if (typeof v !== 'number' || !Number.isFinite(v)) return d[k];
@@ -70,6 +74,7 @@ export function mergeLayoutDiagramOptions(
     elkNodeSpacing: pick('elkNodeSpacing'),
     elkLayerSpacing: pick('elkLayerSpacing'),
     elkDiagramPadding: pick('elkDiagramPadding'),
+    uniformLaneHeight: typeof partial.uniformLaneHeight === 'boolean' ? partial.uniformLaneHeight : d.uniformLaneHeight,
   };
 }
 
@@ -82,7 +87,7 @@ function asFiniteNumber(value: unknown): number | undefined {
   return undefined;
 }
 
-const LAYOUT_KEYS: (keyof LayoutDiagramOptions)[] = [
+const LAYOUT_KEYS: (keyof Omit<LayoutDiagramOptions, 'uniformLaneHeight'>)[] = [
   'poolPad',
   'poolOriginX',
   'poolOriginY',
