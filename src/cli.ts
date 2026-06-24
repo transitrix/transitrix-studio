@@ -18,7 +18,13 @@ import { parseYamlToIr } from './parser.js';
 import { validateProcess } from './validator.js';
 import type { ProcessIr } from './ir.js';
 import { runRepoValidate, reportRepoFindings, repoScopeHasErrors } from './repo-validate.js';
-import { isFileValidatableNotation, loadNotationYaml, validateNotationDoc } from './validate-notation.js';
+import {
+  isFileValidatableNotation,
+  loadNotationYaml,
+  validateNotationDoc,
+  CANONICAL_NOTATION_FILE_EXTENSIONS,
+  inferNotationFromFilename,
+} from './validate-notation.js';
 import { handleExportComplianceCommand } from './export-compliance.js';
 
 function printUsage(): void {
@@ -265,7 +271,15 @@ async function handleValidateCommand(argv: string[]): Promise<void> {
   }
 
   const { scope, root, positional, extList, wantsHelp } = parsed;
-  const exts = extList.length > 0 ? extList : DEFAULT_TRANSITRIX_FILE_EXTENSIONS;
+  // Default extension list for validate: BPMN + all canonical notation extensions.
+  // Notation files are already routed by their notation: field before the extension
+  // gate, so this expanded default mainly prevents a confusing error message when a
+  // canonical-extension file is missing its notation: field.
+  const validateDefaultExts = [
+    ...DEFAULT_TRANSITRIX_FILE_EXTENSIONS,
+    ...CANONICAL_NOTATION_FILE_EXTENSIONS,
+  ];
+  const exts = extList.length > 0 ? extList : validateDefaultExts;
   const useJson = argv.includes('--json');
 
   if (wantsHelp) {
@@ -273,9 +287,11 @@ async function handleValidateCommand(argv: string[]): Promise<void> {
     console.error(`       transitrix validate --scope=repo [--root <dir>] [--json]`);
     console.error('');
     console.error('file scope — single-file structural/semantic validation (default).');
-    console.error('             BPMN, or a diagram notation routed by its notation: field');
-    console.error('             (goals, dgca, dga, activities, activity-card,');
-    console.error('             process-blueprint, blocks) — same checks as the preview.');
+    console.error('             BPMN, or any diagram notation routed by its notation: field');
+    console.error('             (goals, dgca, dga, fgca, fga, activities, activity-card,');
+    console.error('             process-blueprint, blocks, applications, capability-map,');
+    console.error('             products, scenarios, process-map) — same checks as the preview.');
+    console.error('             Canonical notation extensions are accepted without --ext.');
     console.error('repo scope — whole-canon checks (referential integrity, atomicity,');
     console.error('             id uniqueness, policy) over <root> (default: cwd).');
     console.error('Exits with code 1 if any findings.');
@@ -377,11 +393,38 @@ async function handleValidateCommand(argv: string[]): Promise<void> {
   }
 
   // ----- BPMN / no-notation path -----
-  // The extension gate only applies here; diagram notations are routed above by
-  // their notation field regardless of filename.
+  // Diagram notations are routed above by their notation: field regardless of
+  // filename, so the extension gate here only affects BPMN files and files whose
+  // notation: field could not be determined (missing or not a string).
+  //
+  // Special case: if the filename has a canonical notation extension but the
+  // notation: field is absent or wrong, give a targeted error rather than the
+  // generic extension list.
+  const extNotation = inferNotationFromFilename(src);
+  if (extNotation && !probedNotation) {
+    if (useJson) {
+      console.log(
+        JSON.stringify(
+          {
+            valid: false,
+            message: `missing notation: field — add 'notation: ${extNotation}' to the file`,
+          },
+          null,
+          2,
+        ),
+      );
+    } else {
+      console.error(`✗ ${src}`);
+      console.error();
+      console.error(`Missing notation: field — add 'notation: ${extNotation}' to the file.`);
+      console.error();
+    }
+    process.exit(1);
+  }
   if (!inputMatchesExtension(src, exts)) {
+    const canonical = validateDefaultExts.join(', ');
     console.error(
-      `transitrix: input file must end with one of: ${exts.join(', ')} (or pass --ext)`,
+      `transitrix validate: unrecognised file extension — canonical extensions: ${canonical} (or use --ext)`,
     );
     process.exit(1);
   }
