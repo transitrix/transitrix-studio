@@ -23,6 +23,8 @@ export interface ActivityItem {
   name: string;
   goal_id?: number | string | null;
   activity_type_id?: number;
+  /** Canonical values: initiative | programme | project | work_package. Unknown values pass through without error. */
+  type?: string;
 }
 
 export interface ActivityTypeItem {

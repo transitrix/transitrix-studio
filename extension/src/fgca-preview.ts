@@ -70,7 +70,7 @@ function scopeInputsFromDoc(doc: FGCADoc): { goals: ScopeGoalOption[]; maxLevelP
 // is a no-op in table view (per #137) — the table always shows the full doc.
 
 const CHAIN_COLUMN_HEADERS: Record<ChainColumn, string> = {
-  driver: 'Driver', goal: 'Goal', change: 'Change', activity: 'Activity',
+  driver: 'Driver', goal: 'Goal', change: 'Change', activity: 'Action',
 };
 
 const CHAIN_TABLE_CSS = `
@@ -428,7 +428,7 @@ export class FGCAPreview {
     const { html, svg } = renderChainPreview(
       {
         notation: 'DGCA', viewNotation: 'dgca', hideChanges: false,
-        heading: 'DGCA — Driver → Goal → Change → Activity',
+        heading: 'DGCA — Driver → Goal → Change → Action',
         saveSvgCommand: 'transitrixStudio.saveDGCAAsSvg',
         savePngCommand: 'transitrixStudio.saveDGCAAsPng',
         copyPngCommand: 'transitrixStudio.copyDGCAAsPng',
