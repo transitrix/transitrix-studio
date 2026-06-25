@@ -425,15 +425,14 @@ function buildTreeHtml(doc: ActivityDoc, filename: string, date: string, version
     const meta = metaParts.length
       ? `<span class="tree-node-meta">${metaParts.join(' · ')}</span>`
       : '';
-    const idSpan = `<span class="tree-node-id">${escXml(act.id)}</span>`;
-    const nameSpan = `<span class="tree-node-name">${escXml(act.name)}</span>`;
+    const label = `<div class="tree-node-label"><span class="tree-node-name">${escXml(act.name)}</span><span class="tree-node-id">${escXml(act.id)}</span></div>`;
 
     if (kids.length === 0) {
-      return `<div class="tree-node tree-leaf" style="${indent}"><div class="tree-node-row">${idSpan}${nameSpan}${badge}${meta}</div></div>`;
+      return `<div class="tree-node tree-leaf" style="${indent}"><div class="tree-node-row">${label}${badge}${meta}</div></div>`;
     }
     const openAttr = activityTypeLevel(act.activity_type) <= 3 ? ' open' : '';
     const kidsHtml = kids.map((k) => renderNode(k, depth + 1)).join('');
-    return `<details class="tree-node"${openAttr}><summary class="tree-node-row" style="${indent}">${idSpan}${nameSpan}${badge}${meta}</summary>${kidsHtml}</details>`;
+    return `<details class="tree-node"${openAttr}><summary class="tree-node-row" style="${indent}">${label}${badge}${meta}</summary>${kidsHtml}</details>`;
   }
 
   const allIds = new Set(activities.map((a) => a.id));
@@ -603,8 +602,9 @@ const ACTIVITIES_WEBVIEW_CSS = `
   details[open].tree-node > summary.tree-node-row::before { transform: rotate(90deg); display: inline-block; }
   .tree-node-row:hover { background: var(--ts-bg-subtle, #f1f5f9); }
   .tree-leaf .tree-node-row { padding-left: calc(8px + 13px); }
-  .tree-node-id { font-size: 10px; color: var(--ts-text-muted, #64748b); font-family: monospace; flex-shrink: 0; }
-  .tree-node-name { font-size: 13px; color: var(--ts-text, #0f172a); flex: 1; min-width: 0; }
+  .tree-node-label { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+  .tree-node-name { font-size: 13px; color: var(--ts-text, #0f172a); }
+  .tree-node-id { font-size: 11px; color: var(--ts-text-muted, #64748b); font-family: var(--vscode-editor-font-family, monospace); }
   .tree-node-meta { font-size: 11px; color: var(--ts-text-muted, #64748b); white-space: nowrap; }
   .tree-badge { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 10px; white-space: nowrap; flex-shrink: 0; }
   .tree-badge-initiative,
