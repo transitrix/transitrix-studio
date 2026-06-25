@@ -46,9 +46,17 @@ export function validateFGCADoc(input: unknown): FGCAValidationResult {
   if (!Array.isArray(raw.factors)) errors.push({ code: 'SCHEMA_INVALID', message: 'factors must be an array', path: 'factors' });
   if (!Array.isArray(raw.goals)) errors.push({ code: 'SCHEMA_INVALID', message: 'goals must be an array', path: 'goals' });
   if (!Array.isArray(raw.changes)) errors.push({ code: 'SCHEMA_INVALID', message: 'changes must be an array', path: 'changes' });
-  if (!Array.isArray(raw.activities)) errors.push({ code: 'SCHEMA_INVALID', message: 'activities must be an array', path: 'activities' });
+  // Accept canonical `actions:` or deprecated `activities:`; warn on the latter.
+  const hasActions = Array.isArray(raw.actions);
+  const hasActivities = Array.isArray(raw.activities);
+  if (!hasActions && !hasActivities) {
+    errors.push({ code: 'SCHEMA_INVALID', message: 'actions must be an array', path: 'actions' });
+  } else if ('activities' in raw) {
+    warnings.push({ code: 'DEPRECATED_NOTATION', message: '"activities" key is deprecated — rename to "actions"' });
+  }
   if (errors.length > 0) return { valid: false, errors, warnings };
 
+  const actionsArr = (hasActions ? raw.actions : raw.activities) as unknown[];
   const doc = raw as unknown as FGCADoc;
   const collectIds = (arr: unknown[]): Set<number | string> => {
     const out = new Set<number | string>();
@@ -62,7 +70,7 @@ export function validateFGCADoc(input: unknown): FGCAValidationResult {
   };
   const factorIds = collectIds(doc.factors as unknown as unknown[]);
   const goalIds = collectIds(doc.goals as unknown as unknown[]);
-  const activityIds = collectIds(doc.activities as unknown as unknown[]);
+  const activityIds = collectIds(actionsArr);
 
   for (let i = 0; i < doc.factors.length; i++) {
     const f = doc.factors[i] as unknown;
@@ -114,15 +122,15 @@ export function validateFGCADoc(input: unknown): FGCAValidationResult {
     }
   }
 
-  for (let i = 0; i < doc.activities.length; i++) {
-    const a = doc.activities[i] as unknown;
+  for (let i = 0; i < actionsArr.length; i++) {
+    const a = actionsArr[i];
     if (!a || typeof a !== 'object') {
-      errors.push({ code: 'SCHEMA_INVALID', message: 'activity entry must be an object', path: `activities[${i}]` });
+      errors.push({ code: 'SCHEMA_INVALID', message: 'action entry must be an object', path: `actions[${i}]` });
       continue;
     }
-    const activity = a as { id?: unknown; name?: unknown };
-    if (typeof activity.id !== 'number' && typeof activity.id !== 'string') errors.push({ code: 'SCHEMA_INVALID', message: 'activity id must be a number or string', path: `activities[${i}]` });
-    if (typeof activity.name !== 'string' || !activity.name.trim()) errors.push({ code: 'EMPTY_NAME', message: `Activity ${String(activity.id)} has empty name`, path: `activities[${i}]` });
+    const action = a as { id?: unknown; name?: unknown };
+    if (typeof action.id !== 'number' && typeof action.id !== 'string') errors.push({ code: 'SCHEMA_INVALID', message: 'action id must be a number or string', path: `actions[${i}]` });
+    if (typeof action.name !== 'string' || !action.name.trim()) errors.push({ code: 'EMPTY_NAME', message: `Action ${String(action.id)} has empty name`, path: `actions[${i}]` });
   }
 
   return { valid: errors.length === 0, errors, warnings };

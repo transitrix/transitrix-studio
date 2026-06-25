@@ -122,12 +122,16 @@ export function parseCanonicalFGCA(input: unknown): CanonicalFGCAResult {
   const factorsRaw = asObjectArray(raw['factors']);
   const goalsRaw = asObjectArray(raw['goals']);
   const changesRaw = asObjectArray(raw['changes']);
-  const activitiesRaw = asObjectArray(raw['activities']);
+  // Accept canonical `actions:` or deprecated `activities:`; warn on the latter.
+  const activitiesRaw = asObjectArray(raw['actions']) ?? asObjectArray(raw['activities']);
+  if ('activities' in raw && !('actions' in raw)) {
+    warnings.push({ code: 'FGCA-001', message: '"activities" key is deprecated — rename to "actions"' });
+  }
 
   if (factorsRaw === null) errors.push({ code: 'FGCA-004', message: 'factors must be an array', path: 'factors' });
   if (goalsRaw === null) errors.push({ code: 'FGCA-004', message: 'goals must be an array', path: 'goals' });
   if (changesRaw === null) errors.push({ code: 'FGCA-004', message: 'changes must be an array', path: 'changes' });
-  if (activitiesRaw === null) errors.push({ code: 'FGCA-004', message: 'activities must be an array', path: 'activities' });
+  if (activitiesRaw === null) errors.push({ code: 'FGCA-004', message: 'actions must be an array', path: 'actions' });
 
   if (errors.length > 0) return { valid: false, errors, warnings };
 
@@ -288,11 +292,13 @@ export function parseCanonicalFGCA(input: unknown): CanonicalFGCAResult {
   });
 
   const internalActivities: ActivityItem[] = activities.map((el, i) => {
-    const goalRefs = checkRefArray(el!, 'goals', goalIds, GOAL_ID_RE, 'FGCA-011', `activities[${i}]`);
+    const goalRefs = checkRefArray(el!, 'goals', goalIds, GOAL_ID_RE, 'FGCA-011', `actions[${i}]`);
+    const typeVal = typeof el!['type'] === 'string' ? el!['type'] : undefined;
     return {
       id: intId(String(el!['id'])),
       name: String(el!['name'] ?? ''),
       goal_id: goalRefs.length > 0 ? intId(goalRefs[0]) : null,
+      ...(typeVal !== undefined ? { type: typeVal } : {}),
     };
   });
 

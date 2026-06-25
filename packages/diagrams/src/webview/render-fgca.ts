@@ -29,7 +29,7 @@ const COL_LABELS: Record<FGCAPreviewColumn, string> = {
   driver: 'Drivers (D)',
   goal: 'Goals (G)',
   change: 'Changes (C)',
-  activity: 'Activities (A)',
+  activity: 'Actions (A)',
 };
 
 type FgcaLayout = ReturnType<typeof layoutFGCAPreview>;
