@@ -990,4 +990,71 @@ describe('COMPIMP-010 — subject type label invariant (#345)', () => {
     });
     expect(matrix.findings).toEqual([]);
   });
+
+  it('COMPIMP-011 error: report_type=product with subjects.processes strips process columns', () => {
+    const canon = emptyCanon();
+    canon.products.push({ id: 'PRODUCT-A-1', name: 'Product A' });
+    canon.subjects.push({ id: 'PROCESS-CS-1', name: 'Customer Support' });
+    const matrix = buildImpactMatrix(canon, {
+      id: 'V', name: 'V',
+      report_type: 'product',
+      subjects: { products: ['PRODUCT-A-1'], processes: ['PROCESS-CS-1'] },
+      obligations: {},
+    });
+    // COMPIMP-011 fires
+    const c011 = matrix.findings.find(f => f.code === 'COMPIMP-011');
+    expect(c011).toBeDefined();
+    expect(c011!.severity).toBe('error');
+    // Spurious PROCESS column is stripped
+    expect(matrix.columns).toHaveLength(1);
+    expect(matrix.columns[0].subjectType).toBe('product');
+    expect(matrix.columns[0].subjectId).toBe('PRODUCT-A-1');
+  });
+
+  it('COMPIMP-011 error: report_type=process with subjects.products strips product columns', () => {
+    const canon = emptyCanon();
+    canon.products.push({ id: 'PRODUCT-A-1', name: 'Product A' });
+    canon.subjects.push({ id: 'PROCESS-CS-1', name: 'Customer Support' });
+    const matrix = buildImpactMatrix(canon, {
+      id: 'V', name: 'V',
+      report_type: 'process',
+      subjects: { products: ['PRODUCT-A-1'], processes: ['PROCESS-CS-1'] },
+      obligations: {},
+    });
+    const c011 = matrix.findings.find(f => f.code === 'COMPIMP-011');
+    expect(c011).toBeDefined();
+    expect(c011!.severity).toBe('error');
+    // Spurious PRODUCT column is stripped
+    expect(matrix.columns).toHaveLength(1);
+    expect(matrix.columns[0].subjectType).toBe('process');
+    expect(matrix.columns[0].subjectId).toBe('PROCESS-CS-1');
+  });
+
+  it('report_type=combined allows both product and process columns without COMPIMP-011', () => {
+    const canon = emptyCanon();
+    canon.products.push({ id: 'PRODUCT-A-1', name: 'Product A' });
+    canon.subjects.push({ id: 'PROCESS-CS-1', name: 'Customer Support' });
+    const matrix = buildImpactMatrix(canon, {
+      id: 'V', name: 'V',
+      report_type: 'combined',
+      subjects: { products: ['PRODUCT-A-1'], processes: ['PROCESS-CS-1'] },
+      obligations: {},
+    });
+    expect(matrix.findings.some(f => f.code === 'COMPIMP-011')).toBe(false);
+    expect(matrix.columns).toHaveLength(2);
+  });
+
+  it('parseImpactViewConfig round-trips report_type', () => {
+    for (const rt of ['product', 'process', 'combined'] as const) {
+      const r = parseImpactViewConfig({ id: 'V', name: 'V', report_type: rt, subjects: {}, obligations: {} });
+      expect(r.ok).toBe(true);
+      if (r.ok) expect(r.config.report_type).toBe(rt);
+    }
+  });
+
+  it('parseImpactViewConfig ignores unknown report_type values', () => {
+    const r = parseImpactViewConfig({ id: 'V', name: 'V', report_type: 'unknown-type', subjects: {}, obligations: {} });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.config.report_type).toBeUndefined();
+  });
 });

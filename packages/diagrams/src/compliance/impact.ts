@@ -118,6 +118,15 @@ export interface ImpactViewConfig {
   name: string;
   description?: string;
   /**
+   * Declares the subject scope of the view (§4, COMPIMP-011 enforcement).
+   * `product`  — covers products only; `subjects.processes` MUST be absent.
+   * `process`  — covers processes directly; `subjects.products` MUST be absent.
+   * `combined` — both subject types allowed; column headers carry explicit badges.
+   * Omitting the field preserves backward-compatible behaviour (auto-detected
+   * from `subjects.*` presence).
+   */
+  report_type?: 'product' | 'process' | 'combined';
+  /**
    * ISO 8601 date of the last report snapshot (YYYY-MM-DD).
    * Populated automatically by the CLI on each run and stored back to the
    * view-config file, giving CV-3 its "new since last run" signal.
@@ -245,10 +254,16 @@ export function parseImpactViewConfig(raw: unknown): ParseImpactViewConfigResult
     : VALID_COLUMNS.has(rawColumns ?? '') ? (rawColumns as ImpactGrouping['columns'])
     : undefined;
 
+  const VALID_REPORT_TYPES = new Set(['product', 'process', 'combined']);
+  const rawReportType = typeof v.report_type === 'string' ? v.report_type : undefined;
+
   const config: ImpactViewConfig = {
     id: v.id as string,
     name: v.name as string,
     description: typeof v.description === 'string' ? v.description : undefined,
+    report_type: rawReportType && VALID_REPORT_TYPES.has(rawReportType)
+      ? (rawReportType as ImpactViewConfig['report_type'])
+      : undefined,
     snapshot_at: typeof v.snapshot_at === 'string' ? v.snapshot_at : undefined,
     subjects: {
       products: Array.isArray(subjects.products)
@@ -625,14 +640,14 @@ export function buildImpactMatrix(
   // Combined = both products and processes are explicit entry points (§7.1).
   const isCombined = hasProducts && hasProcesses;
 
-  const columns: ImpactColumn[] =
+  let columns: ImpactColumn[] =
     (grain === 'product-stage-task' || grain === 'process-stage-task') && hasDetails
       ? buildTaskColumns(config, objectDetails!, isCombined)
       : (grain === 'product-stage' || grain === 'process-stage' || (grain as string) === 'object-details') && hasDetails
         ? buildObjectDetailColumns(config, objectDetails!, isCombined)
         : buildProductColumns(config, [...(canon.products ?? []), ...(canon.subjects ?? [])], isCombined);
 
-  // ── Structural validation (COMPIMP-009, COMPIMP-010) ───────────────────
+  // ── Structural validation (COMPIMP-009, COMPIMP-010, COMPIMP-011) ──────
   const findings: ImpactFinding[] = [];
   if (!hasProducts && hasProcesses &&
       (grain === 'product' || grain === 'product-stage' || grain === 'product-stage-task')) {
@@ -648,6 +663,24 @@ export function buildImpactMatrix(
       severity: 'error',
       message: `view.grouping.columns is '${grain}' but view.subjects.processes has entries — product-stage semantics applied to process columns violate the subject type label invariant (§5.2). Use '${grain.replace('product', 'process')}' for process columns.`,
     });
+  }
+  // COMPIMP-011: report_type contract — strip cross-type columns and emit an
+  // error when the declared scope contradicts the subjects actually present.
+  if (config.report_type === 'product' && hasProcesses) {
+    findings.push({
+      code: 'COMPIMP-011',
+      severity: 'error',
+      message: `view.report_type is 'product' but view.subjects.processes has entries — process columns are excluded. Remove subjects.processes or set report_type to 'combined'.`,
+    });
+    columns = columns.filter(c => c.subjectType !== 'process');
+  }
+  if (config.report_type === 'process' && hasProducts) {
+    findings.push({
+      code: 'COMPIMP-011',
+      severity: 'error',
+      message: `view.report_type is 'process' but view.subjects.products has entries — product columns are excluded. Remove subjects.products or set report_type to 'combined'.`,
+    });
+    columns = columns.filter(c => c.subjectType !== 'product');
   }
 
   const allowedStatuses = new Set<AssertionStatus>(
