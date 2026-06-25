@@ -4,7 +4,7 @@ import * as vscode from 'vscode';
 
 import type { CompileFn } from './preview.js';
 import { CervinPreview } from './preview.js';
-import { ProcessPreview, type ProcessLayoutFn, SAVE_BPMN_PROCESS_SVG_COMMAND, OPEN_BPMN_SETTINGS_COMMAND } from './process-preview.js';
+import { ProcessPreview, type ProcessLayoutFn, type BpmnDisplayOpts, SAVE_BPMN_PROCESS_SVG_COMMAND, OPEN_BPMN_SETTINGS_COMMAND } from './process-preview.js';
 import { GoalsPreview } from './goals-preview.js';
 import { FGCAPreview, FGAPreview } from './fgca-preview.js';
 import { ActivitiesPreview } from './activities-preview.js';
@@ -150,15 +150,15 @@ async function loadProcessLayoutFn(ext: vscode.ExtensionContext): Promise<Proces
   const mod = (await import(compilerHref)) as {
     compileTransitrixYamlWithLayout: (
       yaml: string,
-      options?: { layout?: { laneVerticalGap?: number } },
+      options?: { layout?: { laneVerticalGap?: number; uniformLaneHeight?: boolean } },
     ) => Promise<{ layout: unknown; validation: ValidationReport }>;
   };
-  return async (yaml: string) => {
+  return async (yaml: string, opts?: BpmnDisplayOpts) => {
     const laneGap = vscode.workspace.getConfiguration('transitrix').get<number>('bpmn.laneGap');
-    const layoutOptions = (laneGap !== undefined && Number.isFinite(laneGap))
-      ? { layout: { laneVerticalGap: laneGap } }
-      : undefined;
-    const result = await mod.compileTransitrixYamlWithLayout(yaml, layoutOptions);
+    const layout: { laneVerticalGap?: number; uniformLaneHeight?: boolean } = {};
+    if (laneGap !== undefined && Number.isFinite(laneGap)) layout.laneVerticalGap = laneGap;
+    if (opts?.uniformLaneHeight) layout.uniformLaneHeight = true;
+    const result = await mod.compileTransitrixYamlWithLayout(yaml, Object.keys(layout).length ? { layout } : undefined);
     // LayoutIr is structurally compatible with ProcessDiagramLayout — safe cast.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return { layout: result.layout as any, validation: result.validation };
