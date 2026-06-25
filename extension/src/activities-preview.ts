@@ -10,6 +10,7 @@ import {
   computeCpm,
   computeGanttLayout,
   isGanttUnavailable,
+  type Activity,
   type ActivityDoc,
   type ActivitiesLayout,
   type ActivitiesLayoutOptions,
@@ -369,6 +370,87 @@ interface ActivityViews {
   /** Gantt SVG string when computed mode/pinned mode produced one; empty
    *  string when Gantt is unavailable. Used by Save-as-SVG. */
   ganttSvg: string;
+  /** HTML tree view body. Always non-empty when activities validated. */
+  treeHtml: string;
+}
+
+// ── Tree view renderer ───────────────────────────────────────────────────────
+
+const ACTIVITY_TYPE_LEVEL: Record<string, number> = {
+  initiative: 1, 'strategic initiative': 1,
+  programme: 2, program: 2,
+  project: 3,
+  task: 4,
+};
+
+function activityTypeLevel(type: string | undefined): number {
+  return type ? (ACTIVITY_TYPE_LEVEL[type.toLowerCase()] ?? 99) : 99;
+}
+
+function activityTypeBadgeClass(type: string | undefined): string {
+  if (!type) return '';
+  return `tree-badge tree-badge-${type.toLowerCase().replace(/\s+/g, '-')}`;
+}
+
+function buildTreeHtml(doc: ActivityDoc, filename: string, date: string, version?: string): string {
+  const activities = doc.activities ?? [];
+  if (activities.length === 0) {
+    return '<div class="section-notice">No activities to display.</div>';
+  }
+
+  const childrenOf = new Map<string | undefined, Activity[]>();
+  for (const act of activities) {
+    const key = act.parent ?? undefined;
+    if (!childrenOf.has(key)) childrenOf.set(key, []);
+    childrenOf.get(key)!.push(act);
+  }
+
+  const sortFn = (a: Activity, b: Activity): number => {
+    const diff = activityTypeLevel(a.activity_type) - activityTypeLevel(b.activity_type);
+    return diff !== 0 ? diff : a.id.localeCompare(b.id);
+  };
+  for (const [, kids] of childrenOf) kids.sort(sortFn);
+
+  function renderNode(act: Activity, depth: number): string {
+    const kids = childrenOf.get(act.id) ?? [];
+    const indent = `padding-left:${8 + depth * 20}px`;
+    const badgeClass = activityTypeBadgeClass(act.activity_type);
+    const badge = act.activity_type
+      ? `<span class="${badgeClass}">${escXml(act.activity_type)}</span>`
+      : '';
+    const metaParts: string[] = [];
+    if (act.owner) metaParts.push(escXml(act.owner));
+    if (act.start_date && act.end_date) metaParts.push(`${escXml(act.start_date)} → ${escXml(act.end_date)}`);
+    else if (act.start_date) metaParts.push(`from ${escXml(act.start_date)}`);
+    const meta = metaParts.length
+      ? `<span class="tree-node-meta">${metaParts.join(' · ')}</span>`
+      : '';
+    const label = `<div class="tree-node-label"><span class="tree-node-name">${escXml(act.name)}</span><span class="tree-node-id">${escXml(act.id)}</span></div>`;
+
+    if (kids.length === 0) {
+      return `<div class="tree-node tree-leaf" style="${indent}"><div class="tree-node-row">${label}${badge}${meta}</div></div>`;
+    }
+    const openAttr = activityTypeLevel(act.activity_type) <= 3 ? ' open' : '';
+    const kidsHtml = kids.map((k) => renderNode(k, depth + 1)).join('');
+    return `<details class="tree-node"${openAttr}><summary class="tree-node-row" style="${indent}">${label}${badge}${meta}</summary>${kidsHtml}</details>`;
+  }
+
+  const allIds = new Set(activities.map((a) => a.id));
+  const orphans = activities.filter((a) => a.parent && !allIds.has(a.parent));
+  const roots = [...(childrenOf.get(undefined) ?? []), ...orphans].sort(sortFn);
+
+  if (roots.length === 0) {
+    return '<div class="section-notice">No root activities found — check parent references.</div>';
+  }
+
+  const versionPart = version ? ` · v${escXml(version)}` : '';
+  const titleHtml = `<div class="diagram-title-block diagram-title-block-html">
+  <div class="text-header">Tree view — Initiative → Programme → Project → Task</div>
+  <div class="text-secondary">${escXml(filename)}</div>
+  <div class="text-secondary">${escXml(date)}${versionPart}</div>
+</div>`;
+
+  return `${titleHtml}<div class="tree-view">${roots.map((r) => renderNode(r, 0)).join('')}</div>`;
 }
 
 function buildActivityViews(doc: ActivityDoc, gaps: ActivitiesLayoutOptions, curvature: number, entryCurvature: number | undefined, filename: string, date: string, version?: string): ActivityViews {
@@ -387,7 +469,8 @@ function buildActivityViews(doc: ActivityDoc, gaps: ActivitiesLayoutOptions, cur
   <div class="text-secondary">${escXml(dateLine)}</div>
 </div>
 <div class="section-notice">${escXml(gantt.reason)}</div>`;
-    return { networkSvg: networkSvgStr, ganttBody, ganttSvg: '' };
+    const treeHtmlStr = buildTreeHtml(doc, filename, date, version);
+    return { networkSvg: networkSvgStr, ganttBody, ganttSvg: '', treeHtml: treeHtmlStr };
   }
 
   const modeLabel = gantt.mode === 'computed'
@@ -395,7 +478,8 @@ function buildActivityViews(doc: ActivityDoc, gaps: ActivitiesLayoutOptions, cur
     : `pinned mode (${gantt.timelineStart} → ${gantt.timelineEnd})`;
   const ganttHeading = `Gantt view — ${modeLabel}`;
   const ganttSvgStr = ganttSvg(gantt, ganttHeading, filename, date, version);
-  return { networkSvg: networkSvgStr, ganttBody: ganttSvgStr, ganttSvg: ganttSvgStr };
+  const treeHtmlStr = buildTreeHtml(doc, filename, date, version);
+  return { networkSvg: networkSvgStr, ganttBody: ganttSvgStr, ganttSvg: ganttSvgStr, treeHtml: treeHtmlStr };
 }
 
 function buildCanvasContent(views: ActivityViews): string {
@@ -405,15 +489,20 @@ function buildCanvasContent(views: ActivityViews): string {
   // involved — the browser handles `:checked` natively.
   return `<input type="radio" id="view-network" name="view-tabs" class="view-radio" checked>
 <input type="radio" id="view-gantt" name="view-tabs" class="view-radio">
+<input type="radio" id="view-tree" name="view-tabs" class="view-radio">
 <nav class="view-tabs" role="tablist">
   <label for="view-network" class="view-tab" data-tab="network">Network</label>
   <label for="view-gantt" class="view-tab" data-tab="gantt">Gantt</label>
+  <label for="view-tree" class="view-tab" data-tab="tree">Tree</label>
 </nav>
 <section class="diagram-section" data-view="network">
   ${views.networkSvg}
 </section>
 <section class="diagram-section" data-view="gantt">
   ${views.ganttBody}
+</section>
+<section class="diagram-section" data-view="tree">
+  ${views.treeHtml}
 </section>`;
 }
 
@@ -480,9 +569,49 @@ const ACTIVITIES_WEBVIEW_CSS = `
     border-color: var(--ts-border, #cbd5e1);
   }
   .view-radio#view-gantt:checked ~ section[data-view="gantt"] { display: block; }
+  /* Tree tab/panel active. */
+  .view-radio#view-tree:checked ~ .view-tabs .view-tab[data-tab="tree"] {
+    color: var(--ts-text, #0f172a);
+    background: var(--ts-bg-surface, #ffffff);
+    border-color: var(--ts-border, #cbd5e1);
+  }
+  .view-radio#view-tree:checked ~ section[data-view="tree"] { display: block; }
 
   .diagram-section { margin: 8px 0 16px; }
   .section-notice { margin: 0 16px; padding: 10px 14px; border-left: 3px solid var(--ts-text-muted, #94a3b8); background: var(--ts-bg-subtle, #f8fafc); color: var(--ts-text-muted, #64748b); font-size: 12px; }
+
+  /* ── Tree view ───────────────────────────────────────────────────────── */
+  .tree-view { padding: 4px 8px 16px; }
+  .tree-node { margin: 1px 0; }
+  .tree-node-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 8px;
+    border-radius: 4px;
+    list-style: none;
+  }
+  details.tree-node > summary.tree-node-row { cursor: pointer; }
+  details.tree-node > summary.tree-node-row::-webkit-details-marker { display: none; }
+  details.tree-node > summary.tree-node-row::before {
+    content: '▶';
+    font-size: 9px;
+    color: var(--ts-text-muted, #64748b);
+    flex-shrink: 0;
+  }
+  details[open].tree-node > summary.tree-node-row::before { transform: rotate(90deg); display: inline-block; }
+  .tree-node-row:hover { background: var(--ts-bg-subtle, #f1f5f9); }
+  .tree-leaf .tree-node-row { padding-left: calc(8px + 13px); }
+  .tree-node-label { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+  .tree-node-name { font-size: 13px; color: var(--ts-text, #0f172a); }
+  .tree-node-id { font-size: 11px; color: var(--ts-text-muted, #64748b); font-family: var(--vscode-editor-font-family, monospace); }
+  .tree-node-meta { font-size: 11px; color: var(--ts-text-muted, #64748b); white-space: nowrap; }
+  .tree-badge { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 10px; white-space: nowrap; flex-shrink: 0; }
+  .tree-badge-initiative,
+  .tree-badge-strategic-initiative { background: #fff7ed; color: var(--ts-brand-orange, #ff4d00); border: 1px solid var(--ts-brand-orange, #ff4d00); }
+  .tree-badge-programme { background: #eff6ff; color: #2563eb; border: 1px solid #93c5fd; }
+  .tree-badge-project { background: var(--ts-layer-activity, #d4edda); color: #166534; border: 1px solid #86efac; }
+  .tree-badge-task { background: var(--ts-bg-subtle, #f1f5f9); color: var(--ts-text-muted, #64748b); border: 1px solid var(--ts-border, #cbd5e1); }
 `;
 
 const ACTIVITIES_STYLES = ACTIVITIES_WEBVIEW_CSS + ACTIVITIES_DIAGRAM_CSS;
