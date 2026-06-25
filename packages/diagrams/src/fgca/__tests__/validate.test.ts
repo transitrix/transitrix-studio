@@ -56,11 +56,11 @@ describe('validateFGCADoc', () => {
     expect(result.errors.some(e => e.path === 'changes')).toBe(true);
   });
 
-  it('errors when activities array is missing', () => {
+  it('errors when actions array is missing', () => {
     const { activities: _, ...without } = VALID_DOC;
     const result = validateFGCADoc({ ...without, notation: 'fgca' });
     expect(result.valid).toBe(false);
-    expect(result.errors.some(e => e.path === 'activities')).toBe(true);
+    expect(result.errors.some(e => e.path === 'actions')).toBe(true);
   });
 
   it('errors on empty factor name', () => {
