@@ -1,5 +1,23 @@
 # Changelog
 
+## [2.4.0] — 2026-06-25
+
+### Added
+
+- **Activities preview — Tree tab.** Third view alongside Network and Gantt. Renders ACTIVITY elements as a collapsible tree (Initiative → Programme → Project → Task) via the `parent` field. Each node shows name, ID below in monospace grey, `activity_type` badge colour-coded by level, owner, and date range. Initiative/Programme/Project nodes default-expanded; Tasks collapsed.
+
+- **Process Blueprint — compliance legend in PNG/SVG export.** When the Legend toggle is enabled in the preview, exporting (Save PNG, Copy PNG, Save SVG) appends a four-chip legend strip at the bottom of the diagram. When the legend is hidden, export is unchanged.
+
+- **BPMN Process — equalize lane heights toggle.** New checkbox in the BPMN Controls panel (`Display` section). When enabled, all swimlanes in a pool render at the same height (max of per-lane content heights). Matches standard BPMN tool behaviour; default off.
+
+### Fixed
+
+- **Compliance-impact — `report_type` enforcement (COMPIMP-011).** `ImpactViewConfig` gains `report_type?: 'product' | 'process' | 'combined'`. When set, `buildImpactMatrix` strips columns of the wrong subject type and emits `COMPIMP-011`. Prevents spurious cross-type columns in single-scope views.
+
+- **Compliance-impact — subject-type column badges in combined views.** When both PRODUCT and PROCESS columns are present, each column header now shows a coloured chip (blue PRODUCT / green PROCESS), matching the §5.2 label invariant.
+
+- **Compliance-impact — horizontal scrollbar at viewport edge.** The scrollbar now appears at the bottom of the visible viewport rather than mid-page inside a free-height container.
+
 ## [2.3.0] — 2026-06-24
 
 ### Added
