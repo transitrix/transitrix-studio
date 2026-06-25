@@ -411,9 +411,8 @@ function buildTreeHtml(doc: ActivityDoc, filename: string, date: string, version
   };
   for (const [, kids] of childrenOf) kids.sort(sortFn);
 
-  function renderNode(act: Activity, depth: number): string {
+  function renderNode(act: Activity): string {
     const kids = childrenOf.get(act.id) ?? [];
-    const indent = `padding-left:${8 + depth * 20}px`;
     const badgeClass = activityTypeBadgeClass(act.activity_type);
     const badge = act.activity_type
       ? `<span class="${badgeClass}">${escXml(act.activity_type)}</span>`
@@ -428,11 +427,11 @@ function buildTreeHtml(doc: ActivityDoc, filename: string, date: string, version
     const label = `<div class="tree-node-label"><span class="tree-node-name">${escXml(act.name)}</span><span class="tree-node-id">${escXml(act.id)}</span></div>`;
 
     if (kids.length === 0) {
-      return `<div class="tree-node tree-leaf" style="${indent}"><div class="tree-node-row">${label}${badge}${meta}</div></div>`;
+      return `<div class="tree-node tree-leaf"><div class="tree-node-row">${label}${badge}${meta}</div></div>`;
     }
     const openAttr = activityTypeLevel(act.activity_type) <= 3 ? ' open' : '';
-    const kidsHtml = kids.map((k) => renderNode(k, depth + 1)).join('');
-    return `<details class="tree-node"${openAttr}><summary class="tree-node-row" style="${indent}">${label}${badge}${meta}</summary>${kidsHtml}</details>`;
+    const kidsHtml = `<div class="tree-children">${kids.map((k) => renderNode(k)).join('')}</div>`;
+    return `<details class="tree-node"${openAttr}><summary class="tree-node-row">${label}${badge}${meta}</summary>${kidsHtml}</details>`;
   }
 
   const allIds = new Set(activities.map((a) => a.id));
@@ -450,7 +449,7 @@ function buildTreeHtml(doc: ActivityDoc, filename: string, date: string, version
   <div class="text-secondary">${escXml(date)}${versionPart}</div>
 </div>`;
 
-  return `${titleHtml}<div class="tree-view">${roots.map((r) => renderNode(r, 0)).join('')}</div>`;
+  return `${titleHtml}<div class="tree-view">${roots.map((r) => renderNode(r)).join('')}</div>`;
 }
 
 function buildActivityViews(doc: ActivityDoc, gaps: ActivitiesLayoutOptions, curvature: number, entryCurvature: number | undefined, filename: string, date: string, version?: string): ActivityViews {
@@ -582,26 +581,39 @@ const ACTIVITIES_WEBVIEW_CSS = `
 
   /* ── Tree view ───────────────────────────────────────────────────────── */
   .tree-view { padding: 4px 8px 16px; }
-  .tree-node { margin: 1px 0; }
+  .tree-node { margin: 3px 0; }
   .tree-node-row {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 5px 8px;
-    border-radius: 4px;
+    padding: 7px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--ts-border, #e2e8f0);
+    background: var(--ts-bg-surface, #ffffff);
     list-style: none;
   }
+  .tree-node-row:hover { background: var(--ts-bg-subtle, #f8fafc); }
+  /* Expandable nodes */
   details.tree-node > summary.tree-node-row { cursor: pointer; }
   details.tree-node > summary.tree-node-row::-webkit-details-marker { display: none; }
   details.tree-node > summary.tree-node-row::before {
     content: '▶';
     font-size: 9px;
-    color: var(--ts-text-muted, #64748b);
+    color: var(--ts-text-muted, #94a3b8);
     flex-shrink: 0;
+    display: inline-block;
   }
-  details[open].tree-node > summary.tree-node-row::before { transform: rotate(90deg); display: inline-block; }
-  .tree-node-row:hover { background: var(--ts-bg-subtle, #f1f5f9); }
-  .tree-leaf .tree-node-row { padding-left: calc(8px + 13px); }
+  details[open].tree-node > summary.tree-node-row::before { transform: rotate(90deg); }
+  /* Leaf nodes get the same left padding as nodes with the arrow */
+  .tree-leaf > .tree-node-row { padding-left: 27px; }
+  /* Children group — indent + left branch line */
+  .tree-children {
+    margin-left: 20px;
+    padding-left: 16px;
+    padding-top: 2px;
+    padding-bottom: 2px;
+    border-left: 1.5px solid var(--ts-border, #cbd5e1);
+  }
   .tree-node-label { display: flex; flex-direction: column; flex: 1; min-width: 0; }
   .tree-node-name { font-size: 13px; color: var(--ts-text, #0f172a); }
   .tree-node-id { font-size: 11px; color: var(--ts-text-muted, #64748b); font-family: var(--vscode-editor-font-family, monospace); }
