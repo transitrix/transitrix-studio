@@ -59,6 +59,10 @@
     "workspaceContains:**/*.fgca.transitrix.yaml",
     "workspaceContains:**/*.fga.transitrix.yaml",
     "workspaceContains:**/*.activities.transitrix.yaml",
+    "workspaceContains:**/*.action.transitrix.yaml",
+    "workspaceContains:**/*.action-card.transitrix.yaml",
+    "workspaceContains:**/*.actions-tree.transitrix.yaml",
+    "workspaceContains:**/*.activities-tree.transitrix.yaml",
     "workspaceContains:**/*.blocks.transitrix.yaml",
     "workspaceContains:**/*.applications.transitrix.yaml",
     "workspaceContains:**/*.products.transitrix.yaml",
@@ -539,6 +543,17 @@
         "configuration": "./language-configuration.json"
       },
       {
+        "id": "transitrix-action-card",
+        "aliases": [
+          "Transitrix Action Card",
+          "Action Card"
+        ],
+        "extensions": [
+          ".action-card.transitrix.yaml"
+        ],
+        "configuration": "./language-configuration.json"
+      },
+      {
         "id": "transitrix-activities",
         "aliases": [
           "Transitrix Activities",
@@ -546,6 +561,29 @@
         ],
         "extensions": [
           ".activities.transitrix.yaml"
+        ],
+        "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "transitrix-action",
+        "aliases": [
+          "Transitrix Action",
+          "Action Network"
+        ],
+        "extensions": [
+          ".action.transitrix.yaml"
+        ],
+        "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "transitrix-actions-tree",
+        "aliases": [
+          "Transitrix Actions Tree",
+          "Action Catalogue Tree"
+        ],
+        "extensions": [
+          ".actions-tree.transitrix.yaml",
+          ".activities-tree.transitrix.yaml"
         ],
         "configuration": "./language-configuration.json"
       },
@@ -623,7 +661,13 @@
       },
       {
         "command": "transitrixStudio.previewActivities",
-        "title": "Transitrix: Preview activity network diagram",
+        "title": "Transitrix: Preview action network diagram (PSND + Gantt + Tree)",
+        "category": "Transitrix",
+        "icon": "$(type-hierarchy)"
+      },
+      {
+        "command": "transitrixStudio.previewActionsTree",
+        "title": "Transitrix: Preview action catalogue tree",
         "category": "Transitrix",
         "icon": "$(type-hierarchy)"
       },
@@ -959,6 +1003,26 @@
           "group": "navigation@-10"
         },
         {
+          "when": "resourceFilename =~ /\\.action\\.transitrix\\.yaml$/",
+          "command": "transitrixStudio.previewActivities",
+          "group": "navigation@-10"
+        },
+        {
+          "when": "resourceFilename =~ /\\.action-card\\.transitrix\\.yaml$/",
+          "command": "transitrixStudio.previewActivityCard",
+          "group": "navigation@-10"
+        },
+        {
+          "when": "resourceFilename =~ /\\.actions-tree\\.transitrix\\.yaml$/",
+          "command": "transitrixStudio.previewActionsTree",
+          "group": "navigation@-10"
+        },
+        {
+          "when": "resourceFilename =~ /\\.activities-tree\\.transitrix\\.yaml$/",
+          "command": "transitrixStudio.previewActionsTree",
+          "group": "navigation@-10"
+        },
+        {
           "when": "resourceFilename =~ /\\.blocks\\.transitrix\\.yaml$/",
           "command": "transitrixStudio.previewBlocks",
           "group": "navigation@-10"
@@ -1016,6 +1080,16 @@
         {
           "when": "resourceFilename =~ /\\.activities\\.transitrix\\.yaml$/",
           "command": "transitrixStudio.saveActivitiesAsSvg",
+          "group": "navigation@-9"
+        },
+        {
+          "when": "resourceFilename =~ /\\.action\\.transitrix\\.yaml$/",
+          "command": "transitrixStudio.saveActivitiesAsSvg",
+          "group": "navigation@-9"
+        },
+        {
+          "when": "resourceFilename =~ /\\.action-card\\.transitrix\\.yaml$/",
+          "command": "transitrixStudio.saveActivityCardAsSvg",
           "group": "navigation@-9"
         },
         {

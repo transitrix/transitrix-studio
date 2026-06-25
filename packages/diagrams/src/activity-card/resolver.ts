@@ -104,16 +104,17 @@ function collectByNotation(
 }
 
 /**
- * GOAL ids reached by an *active* `activity_goal` relation originating at
- * `fromId`. A relation with a non-null `valid_to` has ended (the activity was
- * re-aimed) and is excluded — the card shows the currently-served goals.
+ * GOAL ids reached by an *active* `action_goal` (or legacy `activity_goal`)
+ * relation originating at `fromId`. A relation with a non-null `valid_to` has
+ * ended (the activity was re-aimed) and is excluded.
  */
 function activeActivityGoals(relations: unknown[], fromId: string): string[] {
   const out: string[] = [];
   for (const doc of relations) {
     if (!isObject(doc)) continue;
     if (str(doc['notation']) !== 'relation') continue;
-    if (str(doc['type']) !== 'activity_goal') continue;
+    const type = str(doc['type']);
+    if (type !== 'action_goal' && type !== 'activity_goal') continue;
     if (str(doc['from']) !== fromId) continue;
     const to = str(doc['to']);
     if (!to) continue;
@@ -125,11 +126,8 @@ function activeActivityGoals(relations: unknown[], fromId: string): string[] {
 }
 
 /**
- * STAKEHOLDER ids + roles reached by an *active* `activity_stakeholder`
- * relation originating at `fromId`. A relation with a non-null `valid_to` has
- * ended and is excluded, so the card shows the project's currently-engaged
- * stakeholders. The optional `role` field on the relation carries the
- * project-role (initiator | owner | sponsor | project_manager).
+ * STAKEHOLDER ids + roles reached by an *active* `action_stakeholder` (or
+ * legacy `activity_stakeholder`) relation originating at `fromId`.
  */
 function activeActivityStakeholders(
   relations: unknown[],
@@ -139,7 +137,8 @@ function activeActivityStakeholders(
   for (const doc of relations) {
     if (!isObject(doc)) continue;
     if (str(doc['notation']) !== 'relation') continue;
-    if (str(doc['type']) !== 'activity_stakeholder') continue;
+    const type = str(doc['type']);
+    if (type !== 'action_stakeholder' && type !== 'activity_stakeholder') continue;
     if (str(doc['from']) !== fromId) continue;
     const to = str(doc['to']);
     if (!to) continue;
@@ -165,20 +164,22 @@ export function resolveActivityCard(
     return { valid: false, errors, warnings };
   }
 
-  const activities = collectByNotation(sources.elements, 'activity');
-  const projectRec = activities.get(projectId);
+  // Look up by canonical `notation: action` first, then legacy `notation: activity`.
+  const actionElements = collectByNotation(sources.elements, 'action');
+  const activityElements = collectByNotation(sources.elements, 'activity');
+  const allActionElements = new Map([...activityElements, ...actionElements]); // action wins on duplicate id
+  const projectRec = allActionElements.get(projectId);
 
-  // PC-001 — project must resolve to an admitted ACTIVITY element after
-  // exhausting the canonical resolution scope (§6.1): canon/elements/**
-  // recursively first, then canon/views/activities/** as secondary fallback.
+  // PC-001 — project must resolve to an admitted ACTION (or legacy ACTIVITY)
+  // element after exhausting the canonical resolution scope (§6.1).
   if (!projectRec) {
     errors.push({
       code: 'PC-001',
       message:
-        `activity_card.project "${projectId}" not found after searching ` +
+        `action_card.project "${projectId}" not found after searching ` +
         `canon/elements/** and canon/views/activities/** — ` +
-        `add a YAML file with notation: activity and id: "${projectId}" ` +
-        `(e.g. canon/elements/05_implementation/activities/${projectId}.yaml)`,
+        `add a YAML file with notation: action and id: "${projectId}" ` +
+        `(e.g. canon/elements/05_implementation/actions/${projectId}.yaml)`,
     });
     return { valid: false, errors, warnings };
   }
@@ -349,13 +350,14 @@ export function resolveActivityCard(
   });
 
   // ── Child activities — parent = project id ──────────────────────────────────
+  // Look in both `notation: action` and legacy `notation: activity` elements.
   const childActivities: ResolvedChildActivity[] = [];
-  for (const [id, rec] of activities) {
+  for (const [id, rec] of allActionElements) {
     if (str(rec['parent']) !== projectId) continue;
     childActivities.push({
       id,
       name: str(rec['name']) ?? id,
-      activity_type: str(rec['activity_type']),
+      activity_type: str(rec['action_type']) ?? str(rec['activity_type']),
       start_date: str(rec['start_date']),
       end_date: str(rec['end_date']),
       owner: str(rec['owner']),
@@ -401,7 +403,7 @@ export function resolveActivityCard(
     valid_to: validToOk ? (validToRaw as string) : undefined,
     start_date: str(projectRec['start_date']),
     end_date: str(projectRec['end_date']),
-    activity_type: str(projectRec['activity_type']),
+    activity_type: str(projectRec['action_type']) ?? str(projectRec['activity_type']),
     status: str(projectRec['status']),
   };
 

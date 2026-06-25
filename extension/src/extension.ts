@@ -16,6 +16,7 @@ import { ScenariosPreview } from './scenarios-preview.js';
 import { CapabilityMapPreview } from './capability-map-preview.js';
 import { ProcessBlueprintPreview } from './process-blueprint-preview.js';
 import { ActivityCardPreview } from './activity-card-preview.js';
+import { ActionsTreePreview, isActionsTreeFileName } from './actions-tree-preview.js';
 import { ComplianceMatrixPreview } from './compliance-matrix-preview.js';
 import { ComplianceImpactPreview } from './compliance-impact-preview.js';
 import { SingleLawPreview } from './single-law-preview.js';
@@ -63,7 +64,12 @@ function isFGAFile(doc: vscode.TextDocument): boolean {
 }
 
 function isActivitiesFile(doc: vscode.TextDocument): boolean {
-  return doc.fileName.endsWith('.activities.transitrix.yaml');
+  return doc.fileName.endsWith('.activities.transitrix.yaml')
+    || doc.fileName.endsWith('.action.transitrix.yaml');
+}
+
+function isActionCardFile(doc: vscode.TextDocument): boolean {
+  return doc.fileName.endsWith('.action-card.transitrix.yaml');
 }
 
 function isBlocksFile(doc: vscode.TextDocument): boolean {
@@ -95,7 +101,8 @@ function isProcessBlueprintFile(doc: vscode.TextDocument): boolean {
 }
 
 function isActivityCardFile(doc: vscode.TextDocument): boolean {
-  return doc.fileName.endsWith('.activity-card.transitrix.yaml');
+  return doc.fileName.endsWith('.activity-card.transitrix.yaml')
+    || isActionCardFile(doc);
 }
 
 function isCoverageMetricFile(doc: vscode.TextDocument): boolean {
@@ -248,6 +255,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const capabilityMapPreview = new CapabilityMapPreview();
   const processBlueprintPreview = new ProcessBlueprintPreview();
   const activityCardPreview = new ActivityCardPreview();
+  const actionsTreePreview = new ActionsTreePreview();
   const complianceMatrixPreview = new ComplianceMatrixPreview(context.extensionUri);
   const complianceImpactPreview = new ComplianceImpactPreview(context.extensionUri);
   const singleLawPreview = new SingleLawPreview(context.extensionUri);
@@ -346,12 +354,21 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     }),
     vscode.commands.registerCommand('transitrixStudio.previewActivities', async () => {
       const doc = vscode.window.activeTextEditor?.document;
-      const isActivities = doc && (isActivitiesFile(doc) || (isDGCAFile(doc) && probeDocNotation(doc) === 'activities'));
+      const notation = doc && (isDGCAFile(doc) ? probeDocNotation(doc) : undefined);
+      const isActivities = doc && (isActivitiesFile(doc) || notation === 'activities' || notation === 'action');
       if (!isActivities) {
-        vscode.window.showWarningMessage('Open a *.activities.transitrix.yaml or *.dgca.transitrix.yaml (with notation: activities) file first.');
+        vscode.window.showWarningMessage('Open a *.action.transitrix.yaml (or *.activities.transitrix.yaml) file first.');
         return;
       }
       await activitiesPreview.showOrReveal(doc);
+    }),
+    vscode.commands.registerCommand('transitrixStudio.previewActionsTree', async () => {
+      const doc = vscode.window.activeTextEditor?.document;
+      if (!doc || !isActionsTreeFileName(doc.fileName)) {
+        vscode.window.showWarningMessage('Open a *.actions-tree.transitrix.yaml file first.');
+        return;
+      }
+      await actionsTreePreview.showOrReveal(doc);
     }),
     vscode.commands.registerCommand('transitrixStudio.previewBlocks', async () => {
       const doc = vscode.window.activeTextEditor?.document;
@@ -578,6 +595,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       // a projection over canon/elements + canon/relations). Runs before the
       // per-type routing below (which early-returns on a match).
       void activityCardPreview.refreshIfSiblingSaved(doc);
+      void actionsTreePreview.refreshIfSiblingSaved(doc);
       void fgcaPreview.refreshIfSiblingSaved(doc);
       // Compliance views are repo-wide: re-scan the open ones whenever a canon
       // artefact (by filename convention) is saved. No-op when no panel is open.
@@ -592,11 +610,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       if (isDGCAFile(doc) || isFGCAFile(doc)) {
         const notation = isDGCAFile(doc) ? probeDocNotation(doc) : undefined;
         if (notation === 'goals') { void goalsPreview.refreshSaved(doc); return; }
-        if (notation === 'activities') { void activitiesPreview.refreshSaved(doc); return; }
+        if (notation === 'activities' || notation === 'action') { void activitiesPreview.refreshSaved(doc); return; }
         void fgcaPreview.refreshSaved(doc); return;
       }
       if (isDGAFile(doc) || isFGAFile(doc)) { void fgaPreview.refreshSaved(doc); return; }
       if (isActivitiesFile(doc)) { void activitiesPreview.refreshSaved(doc); return; }
+      if (isActionsTreeFileName(doc.fileName)) { void actionsTreePreview.refreshSaved(doc); return; }
       if (isBlocksFile(doc)) { void blocksPreview.refreshSaved(doc); return; }
       if (isApplicationsFile(doc)) { void applicationsPreview.refreshSaved(doc); return; }
       if (isProductsFile(doc)) { void productsPreview.refreshSaved(doc); return; }
@@ -615,11 +634,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       if (isDGCAFile(doc) || isFGCAFile(doc)) {
         const notation = isDGCAFile(doc) ? probeDocNotation(doc) : undefined;
         if (notation === 'goals') { await goalsPreview.showOrReveal(doc); return; }
-        if (notation === 'activities') { await activitiesPreview.showOrReveal(doc); return; }
+        if (notation === 'activities' || notation === 'action') { await activitiesPreview.showOrReveal(doc); return; }
         await fgcaPreview.showOrReveal(doc); return;
       }
       if (isDGAFile(doc) || isFGAFile(doc)) { await fgaPreview.showOrReveal(doc); return; }
       if (isActivitiesFile(doc)) { await activitiesPreview.showOrReveal(doc); return; }
+      if (isActionsTreeFileName(doc.fileName)) { await actionsTreePreview.showOrReveal(doc); return; }
       if (isBlocksFile(doc)) { await blocksPreview.showOrReveal(doc); return; }
       if (isApplicationsFile(doc)) { await applicationsPreview.showOrReveal(doc); return; }
       if (isProductsFile(doc)) { await productsPreview.showOrReveal(doc); return; }

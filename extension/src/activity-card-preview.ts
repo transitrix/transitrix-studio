@@ -29,6 +29,7 @@ import {
 // the pure resolver in `@transitrix/diagrams` does the rest.
 
 const CARD_SUFFIX = '.activity-card.transitrix.yaml';
+const ACTION_CARD_SUFFIX = '.action-card.transitrix.yaml';
 
 // Single-line `<defs>` marker kept host-specific: the VS Code SVG places it
 // after the title block, while the host-neutral renderer emits a multi-line
@@ -69,8 +70,8 @@ export class ActivityCardPreview extends StaticSvgPreview {
     'transitrixStudio.copyActivityCardAsPng',
     'transitrixStudio.changeTheme',
   ];
-  protected readonly stripExt = /\.activity-card\.transitrix\.yaml$/;
-  protected readonly emptyMessage = 'No card rendered yet. Open a *.activity-card.transitrix.yaml file first.';
+  protected readonly stripExt = /\.(activity|action)-card\.transitrix\.yaml$/;
+  protected readonly emptyMessage = 'No card rendered yet. Open a *.action-card.transitrix.yaml (or *.activity-card.transitrix.yaml) file first.';
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   protected renderHtml(_yamlText: string, _filename: string): string { return ''; }

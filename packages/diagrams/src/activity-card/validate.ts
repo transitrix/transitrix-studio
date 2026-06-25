@@ -26,8 +26,8 @@ import type { ValidationError, ValidationWarning, ValidationResult } from '../va
 
 export type { ValidationError, ValidationWarning, ValidationResult };
 
-const ACTIVITY_CARD_ID_RE = /^ACTIVITY_CARD(-[A-Z0-9][A-Z0-9_]*)*-\d+$/;
-const ACTIVITY_ID_RE = /^ACTIVITY(-[A-Z0-9][A-Z0-9_]*)*-\d+$/;
+const ACTIVITY_CARD_ID_RE = /^(ACTIVITY_CARD|ACTION_CARD)(-[A-Z0-9][A-Z0-9_]*)*-\d+$/;
+const ACTIVITY_ID_RE = /^(ACTIVITY|ACTION)(-[A-Z0-9][A-Z0-9_]*)*-\d+$/;
 const MILESTONE_ID_RE = /^MILESTONE(-[A-Z0-9][A-Z0-9_]*)*-\d+$/;
 const CHANGE_ID_RE = /^CHANGE(-[A-Z0-9][A-Z0-9_]*)*-\d+$/;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -49,37 +49,46 @@ export function validateActivityCard(input: unknown): ValidationResult {
   // ── Header (CONTRACT.md §2) ────────────────────────────────────────────────
   if (!('notation' in raw)) {
     errors.push({ code: 'HDR-001', message: 'notation field is required' });
-  } else if (raw['notation'] !== 'activity-card') {
+  } else if (raw['notation'] !== 'action-card' && raw['notation'] !== 'activity-card') {
     errors.push({
       code: 'HDR-002',
-      message: `notation must be "activity-card", got "${String(raw['notation'])}"`,
+      message: `notation must be "action-card", got "${String(raw['notation'])}"`,
     });
+  } else if (raw['notation'] === 'activity-card') {
+    warnings.push({ code: 'DEPRECATED_NOTATION', message: 'notation: "activity-card" is deprecated — migrate to notation: "action-card"' });
   }
 
-  // ── activity_card block ─────────────────────────────────────────────────────
-  const block = raw['activity_card'];
+  // ── action_card / activity_card block ───────────────────────────────────────
+  // "action_card:" is canonical; "activity_card:" is accepted for compat.
+  const rawBlock = raw['action_card'] ?? raw['activity_card'];
+  if (raw['activity_card'] !== undefined && raw['action_card'] === undefined) {
+    warnings.push({ code: 'DEPRECATED_FIELD', message: 'Root key "activity_card:" is deprecated — rename to "action_card:"' });
+  }
+  const block = rawBlock;
   if (!block || typeof block !== 'object' || Array.isArray(block)) {
-    errors.push({ code: 'AC-001', message: 'Missing required root key: activity_card (object)' });
+    errors.push({ code: 'AC-001', message: 'Missing required root key: action_card (object)' });
     return { valid: false, errors, warnings };
   }
+  // Normalise onto activity_card for downstream (resolver reads doc.activity_card)
+  if (raw['activity_card'] === undefined) raw['activity_card'] = rawBlock;
   const card = block as Record<string, unknown>;
 
   if (!isNonEmptyString(card['id'])) {
-    errors.push({ code: 'AC-002', message: 'activity_card.id is required' });
+    errors.push({ code: 'AC-002', message: 'action_card.id is required' });
   } else if (!ACTIVITY_CARD_ID_RE.test(card['id'])) {
     errors.push({
       code: 'AC-002',
-      message: `activity_card.id "${card['id']}" must match ACTIVITY_CARD-[<middle>-]<INTEGER>`,
+      message: `action_card.id "${card['id']}" must match ACTION_CARD-[<middle>-]<INTEGER> (or legacy ACTIVITY_CARD-…)`,
     });
   }
 
   // PC-001 (document-local half): project present + well-formed.
   if (!isNonEmptyString(card['project'])) {
-    errors.push({ code: 'PC-001', message: 'activity_card.project is required (an ACTIVITY-… id)' });
+    errors.push({ code: 'PC-001', message: 'action_card.project is required (an ACTION-… id)' });
   } else if (!ACTIVITY_ID_RE.test(card['project'])) {
     errors.push({
       code: 'PC-001',
-      message: `activity_card.project "${card['project']}" is malformed; must match ACTIVITY-[<middle>-]<INTEGER>`,
+      message: `action_card.project "${card['project']}" is malformed; must match ACTION-[<middle>-]<INTEGER> (or legacy ACTIVITY-…)`,
     });
   }
 
