@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.5.0] — 2026-06-25
+
+### Changed
+
+- **DGCA — fourth column renamed Activity → Action.** The column header, preview heading, and schema key are now `actions` / "Action". The old `activities:` key is still accepted and produces a `DEPRECATED_NOTATION` warning; rename to `actions:` at your convenience.
+
+### Fixed
+
+- **Activities preview — Tree tab visual polish.** Node cards now show a border and background; child nodes are connected by a vertical branch line.
+
 ## [2.4.0] — 2026-06-25
 
 ### Added
