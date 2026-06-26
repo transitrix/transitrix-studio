@@ -17,12 +17,11 @@ import { generateSvgEmbedCss, type ThemeId } from '../theme/index.js';
 import { escXml } from './render-util.js';
 
 const NODE_W = 250;
-const NODE_H = 60;
+const NODE_H = 72;
 const RANK_SEP = 100;
 const NODE_SEP = 24;
 const PAD = 24;
-const LABEL_MAX = 36;
-const LABEL_TRIM = 34;
+const LABEL_CHARS = 30;
 
 export interface RenderGoalsOptions {
   treeName?: string;
@@ -110,10 +109,29 @@ export function renderGoalsLayoutSvg(layout: GoalTreeLayout, options: RenderGoal
       const y = n.y + oy;
       const level = n.data.level % 8;
       const labelText = n.data.name ?? String(n.id);
-      const label = labelText.length > LABEL_MAX ? labelText.slice(0, LABEL_TRIM) + '…' : labelText;
+      const words = labelText.split(' ');
+      let line1 = '';
+      let line2 = '';
+      for (const w of words) {
+        if ((line1 + ' ' + w).trim().length <= LABEL_CHARS) {
+          line1 = (line1 + ' ' + w).trim();
+        } else if ((line2 + ' ' + w).trim().length <= LABEL_CHARS) {
+          line2 = (line2 + ' ' + w).trim();
+        } else if (!line2) {
+          line2 = w.slice(0, LABEL_CHARS - 2) + '…';
+          break;
+        }
+      }
+      const twoLines = line2.length > 0;
+      const nameY1 = twoLines ? y + 16 : y + 26;
+      const nameY2 = y + 32;
+      const idY = twoLines ? y + 54 : y + 50;
+      const idText = String(n.data.id);
       return `<g>
   <rect class="diagram-node level-${level}" x="${x}" y="${y}" width="${n.width}" height="${n.height}" rx="8"/>
-  <text class="text-primary" x="${x + n.width / 2}" y="${y + n.height / 2}" text-anchor="middle" dominant-baseline="central">${escXml(label)}</text>
+  <text class="text-primary" x="${x + n.width / 2}" y="${nameY1}" text-anchor="middle" dominant-baseline="central">${escXml(line1)}</text>${twoLines ? `
+  <text class="text-primary" x="${x + n.width / 2}" y="${nameY2}" text-anchor="middle" dominant-baseline="central">${escXml(line2)}</text>` : ''}
+  <text class="text-id" x="${x + n.width / 2}" y="${idY}" text-anchor="middle" dominant-baseline="central">${escXml(idText)}</text>
 </g>`;
     })
     .join('\n');

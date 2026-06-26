@@ -90,7 +90,7 @@ export function renderFgcaBody(
         `<rect class="diagram-node layer-${n.col}" x="${n.x}" y="${n.y}" width="${NODE_W}" height="${NODE_H}" rx="8"/>`,
         `<text class="text-primary" x="${n.x + NODE_W / 2}" y="${y1}" text-anchor="middle" dominant-baseline="central">${escXml(line1)}</text>`,
         twoLines
-          ? `<text class="text-secondary" x="${n.x + NODE_W / 2}" y="${y2}" text-anchor="middle" dominant-baseline="central">${escXml(line2)}</text>`
+          ? `<text class="text-primary" x="${n.x + NODE_W / 2}" y="${y2}" text-anchor="middle" dominant-baseline="central">${escXml(line2)}</text>`
           : '',
         `<text class="text-id" x="${n.x + NODE_W / 2}" y="${idY}" text-anchor="middle" dominant-baseline="central">${escXml(entityId)}</text>`,
       ]
