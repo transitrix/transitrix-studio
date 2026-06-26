@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.6.0] — 2026-06-26
+
+### Added
+
+- **Capability Map — Tree view.** Add `view: tree` to a `.capability-map.transitrix.yaml` file to render a depth-banded SVG node tree (250×64 px rounded nodes, pink/yellow/blue level fills, maturity badges). Nodes are collapsible/expandable via +/− buttons; a colour-coded legend band shows depth proportions. The default `view: cards` layout is unchanged.
+
+- **ACTIVITY → ACTION notation — viewer support.** The extension now recognises `*.action.transitrix.yaml`, `*.action-card.transitrix.yaml`, `*.actions-tree.transitrix.yaml`, and `*.activities-tree.transitrix.yaml`. The validators and resolver accept the canonical `action` / `action-card` notation keys and the new root fields (`actions:`, `action_card:`, `action_type`, `action_goal`, `ACTION-*` IDs) alongside the deprecated `activities` / `activity-card` equivalents. Legacy files continue to open and now show a deprecation banner prompting migration.
+
+---
+
 ## [2.5.0] — 2026-06-25
 
 ### Changed
