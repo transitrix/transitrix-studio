@@ -12,7 +12,7 @@
  * CROSS-DOCUMENT RESOLUTION CAVEAT
  * The Activity Card is the only MULTI-DOCUMENT Studio notation: the card YAML
  * names a project Activity, and the project's name, dates, motivation chain
- * (Drivers → Assessments → Goals → Changes) and child activities are pulled BY
+ * (Drivers → Goals → Changes) and child activities are pulled BY
  * REFERENCE from the canonical element + relation store (`canon/elements/**`,
  * `canon/relations/**`; see `../activity-card/resolver.ts`). That resolution
  * requires reading those files from disk, which is NOT available inside the
@@ -135,10 +135,9 @@ export function renderActivityCardBody(layout: ActivityCardLayout, ox: number, o
     });
   }
 
-  // Chain sections (Drivers → Assessments → Goals → Changes).
+  // Chain sections (Drivers → Goals → Changes).
   const SECTION_LEVEL: Record<string, number> = {
     drivers: 4,
-    assessments: 5,
     goals: 5,
     changes: 6,
   };

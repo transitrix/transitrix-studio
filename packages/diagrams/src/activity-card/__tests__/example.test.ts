@@ -71,13 +71,11 @@ describe('activity-card worked example (eu-programme)', () => {
     // Description row
     expect(layout.descriptionRow?.label).toBe('Description');
     // Chain sections
-    expect(layout.chainSections.map((s) => s.type)).toEqual(['drivers', 'assessments', 'goals', 'changes']);
+    expect(layout.chainSections.map((s) => s.type)).toEqual(['drivers', 'goals', 'changes']);
     const driversSection = layout.chainSections.find((s) => s.type === 'drivers')!;
     const goalsSection = layout.chainSections.find((s) => s.type === 'goals')!;
-    const assessmentsSection = layout.chainSections.find((s) => s.type === 'assessments')!;
     expect(driversSection.nodes.map((n) => n.id)).toContain('FACTOR-EU-MDR-1');
     expect(goalsSection.nodes.map((n) => n.id)).toContain('GOAL-EU-MARKET-1');
-    expect(assessmentsSection.isEmpty).toBe(true); // no assessment in this fixture
     // Chain edges
     expect(layout.chainEdges).toContainEqual({ sourceId: 'FACTOR-EU-MDR-1', targetId: 'GOAL-EU-MARKET-1' });
     expect(layout.chainEdges).toContainEqual({ sourceId: 'GOAL-EU-MARKET-1', targetId: 'CHANGE-EU-COMPLIANCE-1' });

@@ -94,20 +94,17 @@ describe('layoutActivityCard', () => {
     expect(l.descriptionRow).toBeUndefined();
   });
 
-  it('four chain sections in order: drivers, assessments, goals, changes', () => {
+  it('three chain sections in order: drivers, goals, changes', () => {
     const l = layoutActivityCard(RESOLVED);
-    expect(l.chainSections.map((s) => s.type)).toEqual(['drivers', 'assessments', 'goals', 'changes']);
+    expect(l.chainSections.map((s) => s.type)).toEqual(['drivers', 'goals', 'changes']);
   });
 
   it('chain sections carry the resolved nodes', () => {
     const l = layoutActivityCard(RESOLVED);
     const drivers = l.chainSections.find((s) => s.type === 'drivers')!;
-    const assessments = l.chainSections.find((s) => s.type === 'assessments')!;
     const goals = l.chainSections.find((s) => s.type === 'goals')!;
     const changes = l.chainSections.find((s) => s.type === 'changes')!;
     expect(drivers.nodes.map((n) => n.id)).toEqual(['FACTOR-EU-MDR-1']);
-    expect(assessments.nodes.map((n) => n.id)).toEqual(['ASSESSMENT-MDR-1']);
-    expect(assessments.nodes[0].meta).toBe('2026-03-01');
     expect(goals.nodes.map((n) => n.id)).toEqual(['GOAL-EU-MARKET-1']);
     expect(changes.nodes.map((n) => n.id)).toEqual(['CHANGE-EU-COMPLIANCE-1']);
   });
@@ -127,10 +124,6 @@ describe('layoutActivityCard', () => {
     expect(l.chainEdges).toContainEqual({ sourceId: 'GOAL-EU-MARKET-1', targetId: 'CHANGE-EU-COMPLIANCE-1' });
   });
 
-  it('builds driver→assessment edge when assessment is linked', () => {
-    const l = layoutActivityCard(RESOLVED);
-    expect(l.chainEdges).toContainEqual({ sourceId: 'FACTOR-EU-MDR-1', targetId: 'ASSESSMENT-MDR-1' });
-  });
 
   it('milestone ArchiMate class is set', () => {
     const l = layoutActivityCard(RESOLVED);

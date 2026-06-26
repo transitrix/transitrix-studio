@@ -285,7 +285,7 @@ export interface ChainEdge {
  * so the author sees the missing data.
  */
 export interface ChainSectionLayout {
-  type: 'drivers' | 'assessments' | 'goals' | 'changes';
+  type: 'drivers' | 'goals' | 'changes';
   /** Section header label. */
   label: string;
   /** Short question answered by this section, shown in grey after the label. */
