@@ -25,5 +25,7 @@ export interface CapabilityMapHeader {
 export interface CapabilityMapFile {
   notation: string;
   spec_version?: string;
+  /** Render mode for Studio previews. Defaults to 'cards'. */
+  view?: 'cards' | 'tree';
   capability_map: CapabilityMapHeader;
 }

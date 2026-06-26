@@ -2,6 +2,8 @@ import {
   LAYER_COLORS,
   LEVEL_COLORS,
   MATURITY_COLORS,
+  TREE_LEVEL_COLORS,
+  TREE_MATURITY_COLORS,
   STRUCTURAL,
   TYPOGRAPHY,
   CSS_VAR,
@@ -75,7 +77,19 @@ function diagramVars(variant: 'light' | 'dark' | 'hc'): string {
   const sc = STRUCTURAL;
   const lv = LEVEL_COLORS[variant];
   const mat = MATURITY_COLORS[variant];
+  const treeLevel = TREE_LEVEL_COLORS;
+  const treeMat = TREE_MATURITY_COLORS[variant];
   const levelVars = lv.map((c, i) => `--ts-level-${i}:${c}`).join(';') + ';';
+  const treeVars = [
+    `${CSS_VAR.treeLevel0}:${treeLevel.band0[variant]}`,
+    `${CSS_VAR.treeLevel1}:${treeLevel.band1[variant]}`,
+    `${CSS_VAR.treeLevel2}:${treeLevel.band2[variant]}`,
+    `${CSS_VAR.treeMaturity1}:${treeMat[0]}`,
+    `${CSS_VAR.treeMaturity2}:${treeMat[1]}`,
+    `${CSS_VAR.treeMaturity3}:${treeMat[2]}`,
+    `${CSS_VAR.treeMaturity4}:${treeMat[3]}`,
+    `${CSS_VAR.treeMaturity5}:${treeMat[4]}`,
+  ].join(';') + ';';
   return [
     `${CSS_VAR.layerDriver}:${lc.driver[variant]}`,
     `${CSS_VAR.layerFactor}:${lc.factor[variant]}`,
@@ -92,7 +106,7 @@ function diagramVars(variant: 'light' | 'dark' | 'hc'): string {
     `${CSS_VAR.maturity3}:${mat[2]}`,
     `${CSS_VAR.maturity4}:${mat[3]}`,
     `${CSS_VAR.maturity5}:${mat[4]}`,
-  ].join(';') + ';' + levelVars;
+  ].join(';') + ';' + levelVars + treeVars;
 }
 
 /** CSS for the webview shell (toolbar, canvas). */
@@ -155,7 +169,18 @@ ${levelRules}
 .compliance-deadline{fill:var(${cv.statusErrorBg});stroke:var(${cv.statusErrorFg});}
 .compliance-deadline text{fill:var(${cv.statusErrorFg});}
 .compliance-badge{fill:var(${cv.statusErrorFg});}
-.compliance-badge-text{fill:var(${cv.textInverse});font-family:${t.fontFamily};font-size:8px;font-weight:700;}`;
+.compliance-badge-text{fill:var(${cv.textInverse});font-family:${t.fontFamily};font-size:8px;font-weight:700;}
+.tree-level-0{fill:var(${cv.treeLevel0});}
+.tree-level-1{fill:var(${cv.treeLevel1});}
+.tree-level-2{fill:var(${cv.treeLevel2});}
+.tree-maturity-1{fill:var(${cv.treeMaturity1});}
+.tree-maturity-2{fill:var(${cv.treeMaturity2});}
+.tree-maturity-3{fill:var(${cv.treeMaturity3});}
+.tree-maturity-4{fill:var(${cv.treeMaturity4});}
+.tree-maturity-5{fill:var(${cv.treeMaturity5});}
+.tree-collapse-btn{cursor:pointer;fill:white;stroke:var(${cv.nodeStroke});stroke-width:1.5;}
+.tree-collapse-btn:hover{fill:var(${cv.bgElevated});}
+.tree-collapse-lbl{fill:var(${cv.textSecondary});font-family:${t.fontFamily};font-size:12px;font-weight:700;dominant-baseline:central;pointer-events:none;}`;
 }
 
 /**

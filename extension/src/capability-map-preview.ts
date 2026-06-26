@@ -1,12 +1,14 @@
+import * as path from 'node:path';
 import { escHtml } from '@transitrix/diagrams/webview/render-util.js';
 import * as vscode from 'vscode';
 import yaml from 'js-yaml';
 import { buildDiagramFrame, extractDiagramMeta, CATALOGUE_STYLES, type ThemeId, OPEN_THEME_COMMAND } from './diagram-frame.js';
 import { coerceDatesToIsoStrings } from '@transitrix/diagrams/yaml-normalize.js';
 import { validateCapabilityMap } from '@transitrix/diagrams/capability-map/validate.js';
-import { StaticPreview } from './static-preview.js';
+import { renderCapabilityTreeSvg } from '@transitrix/diagrams/capability-map/render-capability-tree.js';
+import { genNonce } from './preview-controls.js';
 
-// ── Types (used by render helpers) ───────────────────────────────────────────
+// ── Types (local, mirroring the shared package types) ─────────────────────────
 
 type CapabilityType = 'domain' | 'supporting';
 
@@ -32,7 +34,7 @@ interface CapabilityMapHeader {
   capabilities: CapabilityNode[];
 }
 
-// ── HTML render helpers ───────────────────────────────────────────────────────
+// ── HTML cards render helpers ─────────────────────────────────────────────────
 
 const MATURITY_LABEL: Record<number, string> = {
   1: 'Initial',
@@ -108,26 +110,114 @@ function buildCapabilityMapBody(map: CapabilityMapHeader): string {
   return vBlock + hBlock;
 }
 
+// ── Collapse script for tree view ─────────────────────────────────────────────
+
+function buildCollapseScript(nonce: string): string {
+  return `<script nonce="${nonce}">
+(function () {
+  var vscode = acquireVsCodeApi();
+  document.querySelectorAll('[data-node-id]').forEach(function (btn) {
+    btn.style.cursor = 'pointer';
+    btn.addEventListener('click', function () {
+      var nodeId = btn.getAttribute('data-node-id');
+      var collapsed = [];
+      document.querySelectorAll('[data-node-id]').forEach(function (b) {
+        if (b.getAttribute('data-collapsed') === 'true') {
+          collapsed.push(b.getAttribute('data-node-id'));
+        }
+      });
+      var idx = collapsed.indexOf(nodeId);
+      if (idx >= 0) {
+        collapsed.splice(idx, 1);
+      } else {
+        collapsed.push(nodeId);
+      }
+      vscode.postMessage({ type: 'transitrix:collapseToggle', collapsedIds: collapsed });
+    });
+  });
+}());
+</script>`;
+}
+
 // ── CapabilityMapPreview webview class ────────────────────────────────────────
 
-export class CapabilityMapPreview extends StaticPreview {
+export class CapabilityMapPreview {
   readonly panelTitle = 'Capability Map Preview';
-  protected readonly viewType = 'capabilityMapPreview';
-  protected readonly enableCommandUris = ['transitrixStudio.changeTheme'];
+  private panel: vscode.WebviewPanel | undefined;
+  private trackedUri: string | undefined;
+  /** Persisted within the preview session; reset when the document changes view mode. */
+  private collapsedIds = new Set<string>();
 
-  protected renderHtml(yamlText: string, filename: string): string {
+  isShowingDocument(uri: vscode.Uri): boolean {
+    return this.panel != null && this.trackedUri === uri.toString();
+  }
+
+  async showOrReveal(doc: vscode.TextDocument): Promise<void> {
+    this.trackedUri = doc.uri.toString();
+    if (this.panel) {
+      this.panel.title = `${this.panelTitle} — ${path.basename(doc.fileName)}`;
+      this.panel.reveal(vscode.ViewColumn.Beside, true);
+    } else {
+      this.panel = vscode.window.createWebviewPanel(
+        'capabilityMapPreview',
+        `${this.panelTitle} — ${path.basename(doc.fileName)}`,
+        { viewColumn: vscode.ViewColumn.Beside, preserveFocus: false },
+        {
+          enableScripts: true,
+          retainContextWhenHidden: true,
+          enableCommandUris: ['transitrixStudio.changeTheme'],
+        },
+      );
+      this.panel.webview.onDidReceiveMessage((m) => {
+        if (m?.type === 'transitrix:collapseToggle' && Array.isArray(m.collapsedIds)) {
+          this.collapsedIds = new Set<string>(m.collapsedIds as string[]);
+          if (this.trackedUri) {
+            void vscode.workspace.openTextDocument(vscode.Uri.parse(this.trackedUri))
+              .then(d => this.pushDocument(d));
+          }
+        }
+      });
+      this.panel.onDidDispose(() => {
+        this.panel = undefined;
+        this.trackedUri = undefined;
+        this.collapsedIds = new Set();
+      });
+    }
+    await this.pushDocument(doc);
+  }
+
+  async refreshSaved(doc: vscode.TextDocument): Promise<void> {
+    if (!this.isShowingDocument(doc.uri)) return;
+    await this.pushDocument(doc);
+  }
+
+  async refreshConfig(): Promise<void> {
+    if (!this.panel || !this.trackedUri) return;
+    const doc = await vscode.workspace.openTextDocument(vscode.Uri.parse(this.trackedUri));
+    await this.pushDocument(doc);
+  }
+
+  private async pushDocument(doc: vscode.TextDocument): Promise<void> {
+    if (!this.panel) return;
+    this.panel.webview.html = this.buildHtml(doc.getText(), path.basename(doc.fileName));
+  }
+
+  private buildHtml(yamlText: string, filename: string): string {
     let bodyContent = '';
+    let svgContent = '';
     let errorMsg = '';
     let title: string | undefined;
     let subtitle: string | undefined;
     let version: string | undefined;
     let date: string | undefined;
+    let viewMode: 'cards' | 'tree' = 'cards';
 
     try {
       const parsed = coerceDatesToIsoStrings(yaml.load(yamlText) as unknown);
       if (parsed && typeof parsed === 'object') {
         const raw = parsed as Record<string, unknown>;
         ({ title, subtitle, date, version } = extractDiagramMeta(raw));
+        if (raw['view'] === 'tree') viewMode = 'tree';
       }
 
       const v = validateCapabilityMap(parsed);
@@ -136,10 +226,15 @@ export class CapabilityMapPreview extends StaticPreview {
       } else {
         const raw = parsed as Record<string, unknown>;
         const map = raw['capability_map'] as CapabilityMapHeader;
-        bodyContent = buildCapabilityMapBody(map);
         if (!title) title = map.name;
         if (!subtitle && map.description) subtitle = map.description;
         if (!date) date = map.assessment_date;
+
+        if (viewMode === 'tree') {
+          svgContent = renderCapabilityTreeSvg(map, { collapsedIds: this.collapsedIds });
+        } else {
+          bodyContent = buildCapabilityMapBody(map);
+        }
       }
     } catch (e) {
       errorMsg = (e as Error).message ?? 'Parse error';
@@ -148,6 +243,27 @@ export class CapabilityMapPreview extends StaticPreview {
     const themeId = vscode.workspace
       .getConfiguration('transitrix')
       .get<ThemeId>('theme', 'transitrix');
+
+    if (viewMode === 'tree' && !errorMsg) {
+      const nonce = genNonce();
+      return buildDiagramFrame({
+        filename,
+        notation: 'Capability Map',
+        svgContent,
+        errorMsg,
+        themeId,
+        title,
+        subtitle,
+        version,
+        date,
+        themeCommand: OPEN_THEME_COMMAND,
+        interactive: {
+          nonce,
+          controlsPanel: '',
+          controlsScript: buildCollapseScript(nonce),
+        },
+      });
+    }
 
     return buildDiagramFrame({
       filename,
