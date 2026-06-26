@@ -224,7 +224,7 @@ describe('resolveActivityCard', () => {
       relations: [REL_GOAL],
     });
     expect(r.valid).toBe(true);
-    const sh = r.resolved!.stakeholders;
+    const sh = r.resolved!.stakeholders!;
     expect(sh).toHaveLength(1);
     expect(sh[0].id).toBe('STAKEHOLDER-OPS-1');
     expect(sh[0].name).toBe('Operations');
@@ -238,7 +238,7 @@ describe('resolveActivityCard', () => {
       relations: [REL_GOAL, REL_STAKEHOLDER],
     });
     expect(r.valid).toBe(true);
-    const sh = r.resolved!.stakeholders;
+    const sh = r.resolved!.stakeholders!;
     // deduplicated — REL entry wins, inline duplicate is dropped
     expect(sh).toHaveLength(1);
     expect(sh[0].role).toBe('sponsor');
