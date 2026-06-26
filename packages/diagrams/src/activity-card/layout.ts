@@ -183,7 +183,7 @@ export function layoutActivityCard(
     cursorY += height + SECTION_GAP;
   }
 
-  // ── 5. Chain: Drivers → Assessments → Goals → Changes ────────────────────
+  // ── 5. Chain: Drivers → Goals → Changes ──────────────────────────────────
   // Each section is a full-width band with a header label and stacked node rows.
   // An empty section shows a gap indicator ("— not on file") so the author
   // sees which parts of the narrative are missing.
@@ -222,13 +222,9 @@ export function layoutActivityCard(
   }
 
   const { drivers, goals, changes } = card.motivation;
-  const assessments = card.assessments ?? [];
 
   pushChainSection('drivers', 'Drivers', 'What prompted this initiative?',
     drivers.map((d) => ({ id: d.id, name: d.name })));
-
-  pushChainSection('assessments', 'Assessments', 'What is the current gap?',
-    assessments.map((a) => ({ id: a.id, name: a.name, meta: a.observed_at })));
 
   pushChainSection('goals', 'Goals', 'What outcome do we target?',
     goals.map((g) => ({ id: g.id, name: g.name })));
@@ -242,9 +238,6 @@ export function layoutActivityCard(
   // Node-level chain edges.
   const driverIdSet = new Set(drivers.map((d) => d.id));
   const goalIdSet = new Set(goals.map((g) => g.id));
-  for (const a of assessments) {
-    if (driverIdSet.has(a.driverId)) chainEdges.push({ sourceId: a.driverId, targetId: a.id });
-  }
   for (const g of goals) {
     for (const did of g.driverIds) {
       if (driverIdSet.has(did)) chainEdges.push({ sourceId: did, targetId: g.id });
