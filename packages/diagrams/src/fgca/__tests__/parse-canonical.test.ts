@@ -159,8 +159,22 @@ describe('parseCanonicalFGCA — edge-driving fields populated', () => {
     expect(parsed.goals[0].factor).toHaveLength(1);
     // goal → change edge
     expect(parsed.changes[0].goal_id).not.toBe(0);
+    expect(parsed.changes[0].goal_id).not.toBe('');
     // change → activity edge
     expect(parsed.changes[0].activity_ids).toHaveLength(1);
+  });
+
+  it('preserves canonical string IDs — not converted to sequential numbers', () => {
+    const r = parseCanonicalFGCA(VALID);
+    expect(r.valid).toBe(true);
+    const parsed = r.parsed!;
+    expect(parsed.factors[0].id).toBe('FACTOR-1');
+    expect(parsed.goals[0].id).toBe('GOAL-1');
+    expect(parsed.goals[0].factor![0].id).toBe('FACTOR-1');
+    expect(parsed.changes[0].id).toBe('CHANGE-1');
+    expect(parsed.changes[0].goal_id).toBe('GOAL-1');
+    expect(parsed.changes[0].activity_ids[0]).toBe('ACTIVITY-1');
+    expect(parsed.activities[0].id).toBe('ACTIVITY-1');
   });
 });
 
@@ -242,7 +256,7 @@ describe('parseCanonicalFGA — example file regression', () => {
       expect(r.errors).toEqual([]);
       expect(r.valid).toBe(true);
       // Every activity must carry a goal_id, or the FGA preview draws no edges.
-      expect(r.parsed!.activities.every((a) => a.goal_id != null && a.goal_id !== 0)).toBe(true);
+      expect(r.parsed!.activities.every((a) => a.goal_id != null && a.goal_id !== 0 && a.goal_id !== '')).toBe(true);
     });
   }
 });
