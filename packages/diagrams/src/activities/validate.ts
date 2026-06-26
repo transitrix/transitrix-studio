@@ -19,20 +19,31 @@ export function validateActivities(input: unknown): ActivityValidationResult {
 
   const raw = input as Record<string, unknown>;
 
-  // ACT-001: notation must equal "activities"
+  // ACT-001: notation must be "action" (canonical) or "activities" (deprecated)
   if (raw.notation === undefined) {
     errors.push({ code: 'ACT-001', message: 'notation field is required' });
     return { valid: false, errors, warnings };
   }
-  if (raw.notation !== 'activities') {
-    errors.push({ code: 'ACT-001', message: `notation must be "activities", got "${String(raw.notation)}"` });
+  if (raw.notation !== 'action' && raw.notation !== 'activities') {
+    errors.push({ code: 'ACT-001', message: `notation must be "action", got "${String(raw.notation)}"` });
     return { valid: false, errors, warnings };
+  }
+  if (raw.notation === 'activities') {
+    warnings.push({ code: 'DEPRECATED_NOTATION', message: 'notation: "activities" is deprecated — migrate to notation: "action"' });
   }
 
-  if (!Array.isArray(raw.activities)) {
-    errors.push({ code: 'SCHEMA_INVALID', message: 'activities must be an array', path: 'activities' });
+  // Accept "actions:" (canonical) or "activities:" (deprecated)
+  const rawArray = Array.isArray(raw.actions) ? raw.actions : (Array.isArray(raw.activities) ? raw.activities : undefined);
+  if (Array.isArray(raw.activities) && !Array.isArray(raw.actions)) {
+    warnings.push({ code: 'DEPRECATED_FIELD', message: 'Root key "activities:" is deprecated — rename to "actions:"' });
+  }
+  if (!rawArray) {
+    const canonKey = raw.notation === 'action' ? 'actions' : 'activities';
+    errors.push({ code: 'SCHEMA_INVALID', message: `${canonKey} must be an array`, path: canonKey });
     return { valid: false, errors, warnings };
   }
+  // Normalise onto raw.activities for the rest of this function (avoids touching downstream code)
+  if (!Array.isArray(raw.activities)) raw.activities = raw.actions;
 
   // ACT-014 / ACT-015: project.calendar validation (run before per-activity loop;
   // surfaces clearly even when activities also have issues).
@@ -98,6 +109,11 @@ export function validateActivities(input: unknown): ActivityValidationResult {
       continue;
     }
     const act = a as Record<string, unknown>;
+
+    // Normalise action_type → activity_type (canonical rename; old name kept for compat)
+    if (act['action_type'] !== undefined && act['activity_type'] === undefined) {
+      act['activity_type'] = act['action_type'];
+    }
 
     // ACT-010: reject single-value forms
     if ('goal' in act) {

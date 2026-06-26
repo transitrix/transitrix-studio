@@ -20,10 +20,34 @@ const VALID = {
 };
 
 describe('validateActivityCard', () => {
-  it('accepts a well-formed card', () => {
+  it('accepts a well-formed card (deprecated notation: activity-card)', () => {
     const r = validateActivityCard(VALID);
     expect(r.valid).toBe(true);
     expect(r.errors).toHaveLength(0);
+    expect(r.warnings.some(w => w.code === 'DEPRECATED_NOTATION')).toBe(true);
+  });
+
+  it('accepts notation: action-card with action_card block (canonical)', () => {
+    const r = validateActivityCard({
+      notation: 'action-card',
+      action_card: {
+        id: 'ACTION_CARD-EU-PROGRAMME-1',
+        project: 'ACTION-EU-PROGRAMME-1',
+      },
+    });
+    expect(r.valid).toBe(true);
+    expect(r.warnings.some(w => w.code === 'DEPRECATED_NOTATION')).toBe(false);
+  });
+
+  it('accepts action_card block with legacy ACTIVITY_CARD id prefix', () => {
+    const r = validateActivityCard({
+      notation: 'action-card',
+      action_card: {
+        id: 'ACTIVITY_CARD-EU-PROGRAMME-1',
+        project: 'ACTION-EU-PROGRAMME-1',
+      },
+    });
+    expect(r.valid).toBe(true);
   });
 
   it('rejects non-object input', () => {

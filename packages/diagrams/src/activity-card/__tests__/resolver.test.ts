@@ -241,7 +241,7 @@ describe('resolveActivityCard', () => {
     expect(pc001!.message).toContain('canon/elements/**');
     expect(pc001!.message).toContain('canon/views/activities/**');
     // Must include actionable hint with expected file pattern (§7 PC-001)
-    expect(pc001!.message).toContain('notation: activity');
+    expect(pc001!.message).toContain('notation: action');
     expect(pc001!.message).toContain(`id: "${CARD.activity_card.project}"`);
   });
 

@@ -15,9 +15,43 @@ const minimalValid = {
 };
 
 describe('validateActivities', () => {
-  it('ACT-001 — accepts valid notation field', () => {
+  it('ACT-001 — accepts notation: activities (deprecated)', () => {
     const r = validateActivities(minimalValid);
     expect(r.valid).toBe(true);
+    // deprecated notation emits a warning, not an error
+    expect(r.warnings.some(w => w.code === 'DEPRECATED_NOTATION')).toBe(true);
+  });
+
+  it('ACT-001 — accepts notation: action (canonical)', () => {
+    const r = validateActivities({
+      notation: 'action',
+      actions: [
+        { id: 'ACTION-001', name: 'Start', duration: 3 },
+        { id: 'ACTION-002', name: 'End', duration: 2, predecessors: ['ACTION-001'] },
+      ],
+    });
+    expect(r.valid).toBe(true);
+    expect(r.warnings.some(w => w.code === 'DEPRECATED_NOTATION')).toBe(false);
+  });
+
+  it('ACT-001 — accepts notation: action with deprecated activities: key (emits field warning)', () => {
+    const r = validateActivities({
+      notation: 'action',
+      activities: [{ id: 'ACTION-001', name: 'Foo', duration: 1 }],
+    });
+    expect(r.valid).toBe(true);
+    expect(r.warnings.some(w => w.code === 'DEPRECATED_FIELD')).toBe(true);
+  });
+
+  it('ACT-001 — normalises action_type to activity_type for downstream layout', () => {
+    const input: Record<string, unknown> = {
+      notation: 'action',
+      actions: [{ id: 'ACTION-001', name: 'Foo', duration: 1, action_type: 'project' }],
+    };
+    const r = validateActivities(input);
+    expect(r.valid).toBe(true);
+    const entry = (input.actions as Array<Record<string, unknown>>)[0];
+    expect(entry['activity_type']).toBe('project');
   });
 
   it('ACT-001 — rejects missing notation', () => {
