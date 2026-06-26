@@ -117,7 +117,7 @@ export function colWidthRootCss(px: number): string {
 /** CSS for the control panel — injected into the frame's <style> only when interactive. */
 export const CONTROLS_PANEL_CSS = `
 .tx-ctl { margin: 8px 16px 0; font-size: 11px; color: var(--ts-text-muted, #64748b); border: 1px solid var(--ts-border, #cbd5e1); border-radius: 6px; }
-.tx-ctl > summary { cursor: pointer; user-select: none; padding: 5px 10px; font-weight: 600; list-style: none; }
+.tx-ctl > summary { cursor: pointer; user-select: none; padding: 6px 10px; font-size: 12px; font-weight: 600; list-style: none; }
 .tx-ctl > summary::-webkit-details-marker { display: none; }
 .tx-ctl > summary::before { content: "\\25B8\\00a0"; }
 .tx-ctl[open] > summary::before { content: "\\25BE\\00a0"; }
