@@ -274,6 +274,27 @@ describe('layout', () => {
     expect(wideGap.poolBounds.height).toBeGreaterThan(baseline.poolBounds.height);
   });
 
+  it('uniformLaneHeight equalizes all lane heights to the tallest lane', async () => {
+    const featurePath = join(repoRoot, 'tests', 'fixtures', 'notation-corpus', 'bpmn', 'feature-release.bpmn.transitrix.yaml');
+    const yaml = await readFile(featurePath, 'utf8');
+    const ir = parseYamlToIr(yaml);
+    const layout = await layoutProcess(ir, { uniformLaneHeight: true });
+    const heights = [...layout.laneBounds.values()].map((b) => b.height);
+    expect(heights.length).toBeGreaterThan(1);
+    const max = Math.max(...heights);
+    for (const h of heights) expect(h).toBe(max);
+  });
+
+  it('uniformLaneHeight: false preserves natural per-lane heights', async () => {
+    const featurePath = join(repoRoot, 'tests', 'fixtures', 'notation-corpus', 'bpmn', 'feature-release.bpmn.transitrix.yaml');
+    const yaml = await readFile(featurePath, 'utf8');
+    const ir = parseYamlToIr(yaml);
+    const natural = await layoutProcess(ir, { uniformLaneHeight: false });
+    const heights = [...natural.laneBounds.values()].map((b) => b.height);
+    // With different lane content, at least one lane differs from another
+    expect(new Set(heights).size).toBeGreaterThan(1);
+  });
+
   it('cross-lane flow keeps at least two waypoints once geometry exists', async () => {
     const featurePath = join(repoRoot, 'tests', 'fixtures', 'notation-corpus', 'bpmn', 'feature-release.bpmn.transitrix.yaml');
     const yaml = await readFile(featurePath, 'utf8');
