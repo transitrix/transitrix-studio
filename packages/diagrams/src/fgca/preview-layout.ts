@@ -154,19 +154,71 @@ export function layoutFGCAPreview(
     activity: doc.activities.map(a => ({ id: `activity_${a.id}`, label: a.name })),
   };
 
+  // Build predecessor map: for each node, which node IDs in the previous column
+  // connect to it from the left. Used for barycenter crossing minimization.
+  const predecessors = new Map<string, string[]>();
+  for (const g of doc.goals) {
+    predecessors.set(`goal_${g.id}`, (g.factor ?? []).map(f => `driver_${f.id}`));
+  }
+  if (!hideChanges) {
+    for (const c of changes) {
+      predecessors.set(`change_${c.id}`, [`goal_${c.goal_id}`]);
+    }
+    const coveredActs = new Set(changes.flatMap(c => c.activity_ids.map(String)));
+    for (const a of doc.activities) {
+      const preds = changes
+        .filter(c => c.activity_ids.map(String).includes(String(a.id)))
+        .map(c => `change_${c.id}`);
+      if (a.goal_id != null && !coveredActs.has(String(a.id))) preds.push(`goal_${a.goal_id}`);
+      predecessors.set(`activity_${a.id}`, preds);
+    }
+  } else {
+    const connectedViaChange = new Set<string>();
+    for (const c of changes) {
+      for (const aid of c.activity_ids) {
+        predecessors.set(`activity_${aid}`, [`goal_${c.goal_id}`]);
+        connectedViaChange.add(String(aid));
+      }
+    }
+    for (const a of doc.activities) {
+      if (a.goal_id != null && !connectedViaChange.has(String(a.id))) {
+        predecessors.set(`activity_${a.id}`, [`goal_${a.goal_id}`]);
+      }
+    }
+  }
+
+  // Sort a column's items by the barycenter of their predecessors' y-centres.
+  // Nodes with no predecessors sort last (Infinity barycenter) so they don't
+  // displace connected nodes.
+  function barycentricSort(
+    items: Array<{ id: string; label: string }>,
+    yCenters: Map<string, number>,
+  ): Array<{ id: string; label: string }> {
+    return [...items].sort((a, b) => {
+      const pA = (predecessors.get(a.id) ?? []).map(p => yCenters.get(p) ?? 0).filter(v => v > 0);
+      const pB = (predecessors.get(b.id) ?? []).map(p => yCenters.get(p) ?? 0).filter(v => v > 0);
+      const bcA = pA.length > 0 ? pA.reduce((s, v) => s + v, 0) / pA.length : Infinity;
+      const bcB = pB.length > 0 ? pB.reduce((s, v) => s + v, 0) / pB.length : Infinity;
+      return bcA - bcB;
+    });
+  }
+
   const nodeMap = new Map<string, FGCAPreviewNode>();
   const nodes: FGCAPreviewNode[] = [];
   const columns: FGCAPreviewColumnPos[] = [];
+  const yCenters = new Map<string, number>(); // nodeId → y + FGCA_NODE_H / 2
 
   for (let ci = 0; ci < cols.length; ci++) {
     const col = cols[ci];
     const x = FGCA_PAD + ci * colStride;
     columns.push({ col, x });
+    const items = ci === 0 ? colItems[col] : barycentricSort(colItems[col], yCenters);
     let y = FGCA_PAD + FGCA_HEADER_H + rowGap;
-    for (const item of colItems[col]) {
+    for (const item of items) {
       const node: FGCAPreviewNode = { id: item.id, x, y, label: item.label, col };
       nodes.push(node);
       nodeMap.set(item.id, node);
+      yCenters.set(item.id, y + FGCA_NODE_H / 2);
       y += FGCA_NODE_H + rowGap;
     }
   }
