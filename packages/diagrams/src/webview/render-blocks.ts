@@ -21,8 +21,51 @@ const PAD = 24;
 
 // Approximate character width (px) at text-primary size (12px/600).
 const CHAR_W = 7;
-// Approximate character width (px) at text-id size (10px/600) — used for ID suffix.
+// Approximate character width (px) at text-id size (10px/600).
 const CHAR_W_ID = 6;
+
+// Vertical spacing between line centres.
+const LINE_H = 14;    // name lines (text-primary)
+const LINE_H_ID = 12; // id lines (text-id)
+const NAME_ID_GAP = 6; // gap between last name centre and first ID centre
+
+/** Word-wrap `text` to at most `maxLines` lines of `maxChars` each. */
+function wrapWords(text: string, maxChars: number, maxLines: number): string[] {
+  const words = text.split(' ');
+  const lines: string[] = [];
+  let cur = '';
+  for (let i = 0; i < words.length; i++) {
+    const w = words[i];
+    const next = cur ? `${cur} ${w}` : w;
+    if (next.length <= maxChars) {
+      cur = next;
+    } else {
+      if (cur) lines.push(cur);
+      cur = '';
+      if (lines.length >= maxLines) break;
+      if (lines.length === maxLines - 1) {
+        const rest = words.slice(i).join(' ');
+        lines.push(rest.length <= maxChars ? rest : rest.slice(0, maxChars - 1) + '…');
+        return lines;
+      }
+      cur = w.length <= maxChars ? w : w.slice(0, maxChars - 1) + '…';
+    }
+  }
+  if (cur && lines.length < maxLines) lines.push(cur);
+  return lines.length ? lines : [text.slice(0, maxChars - 1) + '…'];
+}
+
+/** Split an ID (no spaces) across at most 2 lines, breaking at `_` or `-`. */
+function wrapId(id: string, maxChars: number): string[] {
+  if (id.length <= maxChars) return [id];
+  const seg = id.slice(0, maxChars);
+  const sepIdx = Math.max(seg.lastIndexOf('_'), seg.lastIndexOf('-'));
+  const cut = sepIdx > Math.floor(maxChars / 3) ? sepIdx : maxChars - 1;
+  const isSep = id[cut] === '_' || id[cut] === '-';
+  const line1 = id.slice(0, cut);
+  const rest = id.slice(cut + (isSep ? 1 : 0));
+  return [line1, rest.length <= maxChars ? rest : rest.slice(0, maxChars - 1) + '…'];
+}
 
 export interface RenderBlocksOptions {
   title?: string;
@@ -58,14 +101,26 @@ function emitBlockSvg(b: LaidOutBlock, ox: number, oy: number, parts: string[]):
 
   const isLeaf = b.children.length === 0;
   if (isLeaf) {
-    // Leaf block: name on upper line, ID on lower line — both centred.
-    const nameY = b.y + oy + Math.round(b.height * 0.38);
-    const idY = b.y + oy + Math.round(b.height * 0.66);
-    const maxChars = Math.max(4, Math.floor(b.width / CHAR_W));
-    parts.push(
-      `<text class="text-primary" x="${cx}" y="${nameY}" text-anchor="middle" dominant-baseline="central">${escXml(wordTruncate(b.name, maxChars))}</text>`,
-      `<text class="text-id" x="${cx}" y="${idY}" text-anchor="middle" dominant-baseline="central">${escXml(b.id)}</text>`,
-    );
+    // Leaf block: name (up to 3 lines) then ID (up to 2 lines), centred vertically.
+    const maxCharsName = Math.max(4, Math.floor(b.width / CHAR_W));
+    const maxCharsId = Math.max(4, Math.floor(b.width / CHAR_W_ID));
+    const nameLines = wrapWords(b.name, maxCharsName, 3);
+    const idLines = wrapId(b.id, maxCharsId);
+    const nameTotalSpan = (nameLines.length - 1) * LINE_H;
+    const idTotalSpan = (idLines.length - 1) * LINE_H_ID;
+    const totalSpan = nameTotalSpan + NAME_ID_GAP + idTotalSpan;
+    const firstY = Math.round(b.y + oy + (b.height - totalSpan) / 2);
+    for (let i = 0; i < nameLines.length; i++) {
+      parts.push(
+        `<text class="text-primary" x="${cx}" y="${firstY + i * LINE_H}" text-anchor="middle" dominant-baseline="central">${escXml(nameLines[i])}</text>`,
+      );
+    }
+    const idFirstY = firstY + nameTotalSpan + NAME_ID_GAP;
+    for (let i = 0; i < idLines.length; i++) {
+      parts.push(
+        `<text class="text-id" x="${cx}" y="${idFirstY + i * LINE_H_ID}" text-anchor="middle" dominant-baseline="central">${escXml(idLines[i])}</text>`,
+      );
+    }
   } else {
     // Container block: name + (ID) on the single header line; ID in grey.
     const headerY = b.y + oy + b.headerHeight / 2;

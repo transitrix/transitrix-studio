@@ -8,7 +8,7 @@ import type {
 
 const DEFAULTS: Required<BlocksLayoutOptions> = {
   leafWidth: 160,
-  leafHeight: 60,
+  leafHeight: 72,
   padding: 12,
   headerHeight: 28,
   childGap: 12,
