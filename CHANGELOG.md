@@ -1,5 +1,29 @@
 # Changelog
 
+## [2.7.0] — 2026-06-26
+
+### Added
+
+- **DGCA/FGCA — automatic crossing minimisation.** The SVG layout engine now runs a single-pass left-to-right barycenter sweep before placing each column. Nodes in a column are sorted by the average y-centre of their left-hand predecessors, reducing visual edge tangles without any user action. Nodes with no predecessors sort last to avoid displacing connected nodes.
+
+- **Goals — entity block with type label and ID.** Each node in the Goals SVG renderer now shows three rows: name (word-wrapped up to 2 lines, 30 chars each), goal type (e.g. `Strategic Goal`) in secondary colour, and the goal ID in grey below. Node height increased from 60 to 72 px.
+
+- **Diagrams — unified entity block design.** All diagram nodes (Goals, FGCA, DGCA) follow a shared entity block layout: name centred and word-wrapped (≤ 30 chars / line, max 2 lines, truncated with `…`); entity ID rendered below in `text-id` (smaller, grey). Node height 72 px across all types.
+
+- **Activity Card — inline stakeholders.** The resolver now reads a `stakeholders: [ID, …]` list directly from the Action element frontmatter in addition to `action_stakeholder` / `activity_stakeholder` REL files. REL entries take precedence (they carry a `role`) and dedup inline duplicates.
+
+### Changed
+
+- **Activity Card — Assessments section removed.** The card layout no longer renders an Assessments section. The motivation chain reads Drivers → Goals → Changes; assessments belong to driver-level analysis, not the card surface.
+
+### Fixed
+
+- **FGCA — canonical string IDs preserved in diagram nodes.** Node IDs were being coerced from the canonical string form during `parse-canonical`; they are now preserved as strings throughout so downstream renderers see the correct values.
+
+- **Preview — Controls panel collapsed height aligned.** The Controls collapsible panel now collapses to the same height as the Warnings and Errors panels (one-line fix).
+
+---
+
 ## [2.6.0] — 2026-06-26
 
 ### Added
