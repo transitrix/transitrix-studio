@@ -372,10 +372,19 @@ export function resolveActivityCard(
   // element name, falling back to the id when the element is absent.
   const goalNames = projectGoalIds.map((gid) => str(goalElems.get(gid)?.['name']) ?? gid);
 
-  // ── Stakeholders — active `activity_stakeholder` relations from the project ──
+  // ── Stakeholders — inline `stakeholders: []` on the Action element PLUS active
+  //    `action_stakeholder` / `activity_stakeholder` REL files. Both sources are
+  //    merged; REL entries take precedence (they carry the role field).
   const stakeholderElems = collectByNotation(sources.elements, 'stakeholder');
+  const relStakeholderRefs = activeActivityStakeholders(sources.relations, projectId);
+  const relStakeholderIds = new Set(relStakeholderRefs.map((s) => s.id));
+  const inlineStakeholderIds = strArray(projectRec['stakeholders']).filter((id) => !relStakeholderIds.has(id));
+  const allStakeholderRefs: Array<{ id: string; role?: string }> = [
+    ...relStakeholderRefs,
+    ...inlineStakeholderIds.map((id) => ({ id })),
+  ];
   const stakeholders: ResolvedStakeholder[] = [];
-  for (const { id: sid, role } of activeActivityStakeholders(sources.relations, projectId)) {
+  for (const { id: sid, role } of allStakeholderRefs) {
     const rec = stakeholderElems.get(sid);
     if (!rec) {
       warnings.push({

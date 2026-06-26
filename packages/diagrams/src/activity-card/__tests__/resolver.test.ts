@@ -217,6 +217,33 @@ describe('resolveActivityCard', () => {
     expect(r.warnings.some((w) => w.code === 'PC-001')).toBe(true);
   });
 
+  it('resolves stakeholders from inline stakeholders: [] on the Action element', () => {
+    const projectWithInlineStakeholders = { ...PROJECT, stakeholders: ['STAKEHOLDER-OPS-1'] };
+    const r = resolveActivityCard(CARD, {
+      elements: [projectWithInlineStakeholders, CHILD, FACTOR, GOAL, CHANGE, STAKEHOLDER],
+      relations: [REL_GOAL],
+    });
+    expect(r.valid).toBe(true);
+    const sh = r.resolved!.stakeholders!;
+    expect(sh).toHaveLength(1);
+    expect(sh[0].id).toBe('STAKEHOLDER-OPS-1');
+    expect(sh[0].name).toBe('Operations');
+    expect(sh[0].role).toBeUndefined();
+  });
+
+  it('REL stakeholder takes precedence over inline duplicate (carries role)', () => {
+    const projectWithInlineStakeholders = { ...PROJECT, stakeholders: ['STAKEHOLDER-OPS-1'] };
+    const r = resolveActivityCard(CARD, {
+      elements: [projectWithInlineStakeholders, CHILD, FACTOR, GOAL, CHANGE, STAKEHOLDER],
+      relations: [REL_GOAL, REL_STAKEHOLDER],
+    });
+    expect(r.valid).toBe(true);
+    const sh = r.resolved!.stakeholders!;
+    // deduplicated — REL entry wins, inline duplicate is dropped
+    expect(sh).toHaveLength(1);
+    expect(sh[0].role).toBe('sponsor');
+  });
+
   it('falls back to the inline goals field when no activity_goal relation exists', () => {
     const projectWithInline = { ...PROJECT, goals: ['GOAL-EU-MARKET-1'] };
     const r = resolveActivityCard(CARD, {
