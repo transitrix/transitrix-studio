@@ -63,10 +63,6 @@ function asObjectArray(v: unknown): Array<Record<string, unknown>> | null {
   return v.map((el) => (el && typeof el === 'object' ? (el as Record<string, unknown>) : null) as Record<string, unknown>);
 }
 
-interface InternalIdMap {
-  /** Canonical typed-string ID → internal numeric ID for layout consumption. */
-  toInternal: Map<string, number>;
-}
 
 /**
  * Validate canonical FGCA YAML and, on success, return an internal-form
@@ -223,32 +219,20 @@ export function parseCanonicalFGCA(input: unknown): CanonicalFGCAResult {
     return out;
   }
 
-  // Build internal id-maps (canonical string ID → internal sequential number).
-  const idMap: InternalIdMap = { toInternal: new Map() };
-  const allCanonicalIds = [...factorIds, ...goalIds, ...changeIds, ...activityIds];
-  allCanonicalIds.forEach((id, i) => idMap.toInternal.set(id, i + 1));
-
-  function intId(canonical: string): number {
-    const n = idMap.toInternal.get(canonical);
-    if (n === undefined) {
-      // Shouldn't happen — we built the map from the same sets.
-      throw new Error(`internal: canonical id "${canonical}" not mapped`);
-    }
-    return n;
-  }
-
-  // Layer entries (internal form).
+  // Layer entries (internal form). Canonical string IDs are passed through
+  // directly — no conversion to sequential numbers. The layout and renderer
+  // treat IDs as opaque keys and also display them verbatim to the user.
   const internalFactors: DriverItem[] = factors.map((el) => ({
-    id: intId(String(el!['id'])),
+    id: String(el!['id']),
     name: String(el!['name'] ?? ''),
   }));
 
   const internalGoals: GoalItem[] = goals.map((el, i) => {
     const refIds = checkRefArray(el!, 'factors', factorIds, FACTOR_OR_DRIVER_ID_RE, 'FGCA-008', `goals[${i}]`);
     return {
-      id: intId(String(el!['id'])),
+      id: String(el!['id']),
       name: String(el!['name'] ?? ''),
-      factor: refIds.map((r) => ({ id: intId(r) })),
+      factor: refIds.map((r) => ({ id: r })),
     };
   });
 
@@ -284,10 +268,10 @@ export function parseCanonicalFGCA(input: unknown): CanonicalFGCAResult {
     const canonicalChangeId = String(el!['id']);
     const linkedActivityIds = activitiesForChange.get(canonicalChangeId) ?? [];
     return {
-      id: intId(canonicalChangeId),
+      id: canonicalChangeId,
       name: String(el!['name'] ?? ''),
-      goal_id: goalRefs.length > 0 ? intId(goalRefs[0]) : 0,
-      activity_ids: linkedActivityIds.map((aid) => intId(aid)),
+      goal_id: goalRefs.length > 0 ? goalRefs[0] : '',
+      activity_ids: linkedActivityIds,
     };
   });
 
@@ -295,9 +279,9 @@ export function parseCanonicalFGCA(input: unknown): CanonicalFGCAResult {
     const goalRefs = checkRefArray(el!, 'goals', goalIds, GOAL_ID_RE, 'FGCA-011', `actions[${i}]`);
     const typeVal = typeof el!['type'] === 'string' ? el!['type'] : undefined;
     return {
-      id: intId(String(el!['id'])),
+      id: String(el!['id']),
       name: String(el!['name'] ?? ''),
-      goal_id: goalRefs.length > 0 ? intId(goalRefs[0]) : null,
+      goal_id: goalRefs.length > 0 ? goalRefs[0] : null,
       ...(typeVal !== undefined ? { type: typeVal } : {}),
     };
   });
