@@ -123,14 +123,17 @@ export function renderGoalsLayoutSvg(layout: GoalTreeLayout, options: RenderGoal
         }
       }
       const twoLines = line2.length > 0;
-      const nameY1 = twoLines ? y + 16 : y + 26;
-      const nameY2 = y + 32;
-      const idY = twoLines ? y + 54 : y + 50;
+      const nameY1 = twoLines ? y + 12 : y + 16;
+      const nameY2 = y + 26;
+      const typeY = twoLines ? y + 43 : y + 35;
+      const idY = twoLines ? y + 59 : y + 55;
+      const typeLabel = n.data.type ?? '';
       const idText = String(n.data.id);
       return `<g>
   <rect class="diagram-node level-${level}" x="${x}" y="${y}" width="${n.width}" height="${n.height}" rx="8"/>
   <text class="text-primary" x="${x + n.width / 2}" y="${nameY1}" text-anchor="middle" dominant-baseline="central">${escXml(line1)}</text>${twoLines ? `
-  <text class="text-primary" x="${x + n.width / 2}" y="${nameY2}" text-anchor="middle" dominant-baseline="central">${escXml(line2)}</text>` : ''}
+  <text class="text-primary" x="${x + n.width / 2}" y="${nameY2}" text-anchor="middle" dominant-baseline="central">${escXml(line2)}</text>` : ''}${typeLabel ? `
+  <text class="text-secondary" x="${x + n.width / 2}" y="${typeY}" text-anchor="middle" dominant-baseline="central">${escXml(typeLabel)}</text>` : ''}
   <text class="text-id" x="${x + n.width / 2}" y="${idY}" text-anchor="middle" dominant-baseline="central">${escXml(idText)}</text>
 </g>`;
     })
