@@ -37,7 +37,7 @@ const FIXTURE_CANON = join(
   import.meta.dirname ?? __dirname,
   'fixtures',
   'notation-corpus',
-  'activity-card',
+  'action-card',
   'canon',
 );
 

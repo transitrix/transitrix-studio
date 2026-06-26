@@ -35,28 +35,20 @@ export function validateFGCADoc(input: unknown): FGCAValidationResult {
     errors.push({ code: 'MISSING_NOTATION', message: 'notation field is required' });
     return { valid: false, errors, warnings };
   }
-  if (raw.notation !== 'fgca' && raw.notation !== 'dgca') {
-    errors.push({ code: 'WRONG_NOTATION', message: `notation must be "dgca" (or legacy "fgca"), got "${String(raw.notation)}"` });
+  if (raw.notation !== 'dgca') {
+    errors.push({ code: 'WRONG_NOTATION', message: `notation must be "dgca", got "${String(raw.notation)}"` });
     return { valid: false, errors, warnings };
-  }
-  if (raw.notation === 'fgca') {
-    warnings.push({ code: 'DEPRECATED_NOTATION', message: 'notation "fgca" is deprecated — rename to "dgca"' });
   }
 
   if (!Array.isArray(raw.factors)) errors.push({ code: 'SCHEMA_INVALID', message: 'factors must be an array', path: 'factors' });
   if (!Array.isArray(raw.goals)) errors.push({ code: 'SCHEMA_INVALID', message: 'goals must be an array', path: 'goals' });
   if (!Array.isArray(raw.changes)) errors.push({ code: 'SCHEMA_INVALID', message: 'changes must be an array', path: 'changes' });
-  // Accept canonical `actions:` or deprecated `activities:`; warn on the latter.
-  const hasActions = Array.isArray(raw.actions);
-  const hasActivities = Array.isArray(raw.activities);
-  if (!hasActions && !hasActivities) {
+  if (!Array.isArray(raw.actions)) {
     errors.push({ code: 'SCHEMA_INVALID', message: 'actions must be an array', path: 'actions' });
-  } else if ('activities' in raw) {
-    warnings.push({ code: 'DEPRECATED_NOTATION', message: '"activities" key is deprecated — rename to "actions"' });
   }
   if (errors.length > 0) return { valid: false, errors, warnings };
 
-  const actionsArr = (hasActions ? raw.actions : raw.activities) as unknown[];
+  const actionsArr = raw.actions as unknown[];
   const doc = raw as unknown as FGCADoc;
   const collectIds = (arr: unknown[]): Set<number | string> => {
     const out = new Set<number | string>();

@@ -28,11 +28,9 @@ const corpusRoot = join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'no
 const GROUP_A = [
   'goals',
   'dgca',
-  'fgca',
   'dga',
-  'fga',
-  'activities',
-  'activity-card',
+  'action',
+  'action-card',
   'process-blueprint',
   'blocks',
 ];
@@ -66,7 +64,7 @@ describe('validate-notation — canonical extension helpers (#343)', () => {
     expect(inferNotationFromFilename('foo/bar.dgca.transitrix.yaml')).toBe('dgca');
     expect(inferNotationFromFilename('foo/bar.goals.transitrix.yaml')).toBe('goals');
     expect(inferNotationFromFilename('foo/bar.capability-map.transitrix.yaml')).toBe('capability-map');
-    expect(inferNotationFromFilename('foo/bar.activity-card.transitrix.yaml')).toBe('activity-card');
+    expect(inferNotationFromFilename('foo/bar.action-card.transitrix.yaml')).toBe('action-card');
     // Windows backslash paths
     expect(inferNotationFromFilename('foo\\bar.dgca.transitrix.yaml')).toBe('dgca');
   });

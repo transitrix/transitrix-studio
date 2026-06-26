@@ -26,7 +26,7 @@ const ELEMENTS = [
 const SOURCES = { elements: ELEMENTS, relations: [] };
 
 const VIEW_DOC = {
-  notation: 'fgca',
+  notation: 'dgca',
   id: 'FGCA-STRAT-1',
   name: 'Strategy 2026 — FGCA chain',
   spec_version: '0.1',
@@ -47,7 +47,7 @@ describe('isFGCAViewDoc', () => {
 
   it('returns false for an inline doc with factors/goals arrays', () => {
     expect(isFGCAViewDoc({
-      notation: 'fgca', id: 'FGCA-1', name: 'x',
+      notation: 'dgca', id: 'FGCA-1', name: 'x',
       factors: [], goals: [], changes: [], activities: [],
     })).toBe(false);
   });
@@ -172,7 +172,7 @@ describe('resolveFGCA — empty sources', () => {
 
 describe('resolveFGCA — file-based regression against canon fixture', () => {
   const CANON_ROOT = path.resolve(
-    process.cwd(), '..', '..', 'tests', 'fixtures', 'notation-corpus', 'fgca', 'canon',
+    process.cwd(), '..', '..', 'tests', 'fixtures', 'notation-corpus', 'dgca', 'canon',
   );
   const VIEW_DIR = path.join(CANON_ROOT, 'views');
   const ELEM_DIR = path.join(CANON_ROOT, 'elements');

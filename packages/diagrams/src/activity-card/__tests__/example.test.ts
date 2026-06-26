@@ -15,7 +15,7 @@ import type { ActivityCardDoc } from '../types.js';
 
 const dir = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
-  '../../../../../tests/fixtures/notation-corpus/activity-card',
+  '../../../../../tests/fixtures/notation-corpus/action-card',
 );
 const load = (f: string): unknown => yaml.load(readFileSync(path.join(dir, f), 'utf-8'));
 
@@ -33,7 +33,7 @@ function loadYamlTree(root: string): unknown[] {
 
 describe('activity-card worked example (eu-programme)', () => {
   it('validates, resolves, and lays out the success-signal card', () => {
-    const card = load('eu-programme.activity-card.transitrix.yaml');
+    const card = load('eu-programme.action-card.transitrix.yaml');
     const elements = loadYamlTree(path.join(dir, 'canon', 'elements'));
     const relations = loadYamlTree(path.join(dir, 'canon', 'relations'));
 

@@ -2,11 +2,11 @@ import { describe, it, expect } from 'vitest';
 import { validateFGCADoc } from '../validate.js';
 
 const VALID_DOC = {
-  notation: 'fgca',
+  notation: 'dgca',
   factors: [{ id: 1, name: 'Market pressure' }],
   goals: [{ id: 1, name: 'Grow revenue', factor: [{ id: 1 }] }],
   changes: [{ id: 1, name: 'Launch product', goal_id: 1, activity_ids: [1] }],
-  activities: [{ id: 1, name: 'Market research', goal_id: 1 }],
+  actions: [{ id: 1, name: 'Market research', goal_id: 1 }],
 };
 
 describe('validateFGCADoc', () => {
@@ -37,28 +37,28 @@ describe('validateFGCADoc', () => {
 
   it('errors when factors array is missing', () => {
     const { factors: _, ...without } = VALID_DOC;
-    const result = validateFGCADoc({ ...without, notation: 'fgca' });
+    const result = validateFGCADoc({ ...without, notation: 'dgca' });
     expect(result.valid).toBe(false);
     expect(result.errors.some(e => e.path === 'factors')).toBe(true);
   });
 
   it('errors when goals array is missing', () => {
     const { goals: _, ...without } = VALID_DOC;
-    const result = validateFGCADoc({ ...without, notation: 'fgca' });
+    const result = validateFGCADoc({ ...without, notation: 'dgca' });
     expect(result.valid).toBe(false);
     expect(result.errors.some(e => e.path === 'goals')).toBe(true);
   });
 
   it('errors when changes array is missing', () => {
     const { changes: _, ...without } = VALID_DOC;
-    const result = validateFGCADoc({ ...without, notation: 'fgca' });
+    const result = validateFGCADoc({ ...without, notation: 'dgca' });
     expect(result.valid).toBe(false);
     expect(result.errors.some(e => e.path === 'changes')).toBe(true);
   });
 
   it('errors when actions array is missing', () => {
-    const { activities: _, ...without } = VALID_DOC;
-    const result = validateFGCADoc({ ...without, notation: 'fgca' });
+    const { actions: _, ...without } = VALID_DOC;
+    const result = validateFGCADoc({ ...without, notation: 'dgca' });
     expect(result.valid).toBe(false);
     expect(result.errors.some(e => e.path === 'actions')).toBe(true);
   });
@@ -104,11 +104,11 @@ describe('validateFGCADoc', () => {
 
   it('accepts a document with empty arrays', () => {
     const result = validateFGCADoc({
-      notation: 'fgca',
+      notation: 'dgca',
       factors: [],
       goals: [],
       changes: [],
-      activities: [],
+      actions: [],
     });
     expect(result.valid).toBe(true);
   });
@@ -134,8 +134,8 @@ describe('validateFGCADoc', () => {
     expect(r.valid).toBe(false);
     expect(r.errors.some(e => e.code === 'SCHEMA_INVALID')).toBe(true);
   });
-  it('[blocker] tolerates a null element in activities[] without throwing', () => {
-    const r = validateFGCADoc({ ...VALID_DOC, activities: [null] });
+  it('[blocker] tolerates a null element in actions[] without throwing', () => {
+    const r = validateFGCADoc({ ...VALID_DOC, actions: [null] });
     expect(r.valid).toBe(false);
     expect(r.errors.some(e => e.code === 'SCHEMA_INVALID')).toBe(true);
   });

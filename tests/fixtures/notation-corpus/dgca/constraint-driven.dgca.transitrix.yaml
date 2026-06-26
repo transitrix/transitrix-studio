@@ -1,8 +1,8 @@
-notation: fgca
+notation: dgca
 spec_version: "0.1"
 
 id: FGCA-DATA-RESIDENCY-1
-name: "EU data-residency FGCA chain"
+name: "EU data-residency DGCA chain"
 description: >
   Worked example showing FACTOR.references_constraint — a factor that
   reflects a binding regulatory constraint (GDPR data residency), and the
@@ -32,7 +32,7 @@ changes:
     name: "Audit and document every cross-border data flow"
     goals: [GOAL-COMPLY-RESIDENCY-1]
 
-activities:
+actions:
   - id: ACTIVITY-MIGRATE-CRM-1
     name: "Migrate CRM datastore from us-east-1 to eu-central-1"
     changes: [CHANGE-EU-REGION-1]

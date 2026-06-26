@@ -56,11 +56,9 @@ const VALIDATORS: Record<string, NotationValidator> = {
   // Group A — validator lives in the shared package and is the one the preview calls.
   goals: parseCanonicalGoals,
   dgca: parseCanonicalFGCA,
-  fgca: parseCanonicalFGCA,
   dga: parseCanonicalFGA,
-  fga: parseCanonicalFGA,
-  activities: validateActivities,
-  'activity-card': validateActivityCard,
+  action: validateActivities,
+  'action-card': validateActivityCard,
   'process-blueprint': validateProcessBlueprint,
   blocks: validateNestedBlocks,
   // Group B — deduped from inline preview copies in Phase B; package is now canonical.
