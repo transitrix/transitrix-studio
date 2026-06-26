@@ -49,6 +49,28 @@ export const MATURITY_COLORS = {
 } as const;
 
 /**
+ * DSM-matching capability tree node fill colors, grouped by depth band.
+ *   band0: depth 0–2 (pink)
+ *   band1: depth 3–4 (yellow)
+ *   band2: depth 5+  (blue)
+ */
+export const TREE_LEVEL_COLORS = {
+  band0: { light: '#fee0e0', dark: '#3d0f0f', hc: '#ff9999' },
+  band1: { light: '#ffffcb', dark: '#3a3500', hc: '#ffff88' },
+  band2: { light: '#c2f0ff', dark: '#003d4d', hc: '#66ccff' },
+} as const;
+
+/**
+ * DSM-matching maturity badge fills for the capability tree (L1–L5).
+ * Distinct from MATURITY_COLORS which drives the cards / compliance views.
+ */
+export const TREE_MATURITY_COLORS = {
+  light: ['#c1c1c1', '#ff3d67', '#ff9a59', '#fdef59', '#83cca3'],
+  dark:  ['#555555', '#cc1040', '#d06020', '#c8c000', '#4d9970'],
+  hc:    ['#cccccc', '#ff6699', '#ffbb77', '#ffff44', '#88ddaa'],
+} as const;
+
+/**
  * Typography hierarchy. All previews resolve text styling from these roles
  * — never from inline font-* attributes on individual <text> elements.
  *
@@ -128,6 +150,14 @@ export const CSS_VAR = {
   maturity3:        '--ts-maturity-3',
   maturity4:        '--ts-maturity-4',
   maturity5:        '--ts-maturity-5',
+  treeLevel0:       '--ts-tree-level-0',
+  treeLevel1:       '--ts-tree-level-1',
+  treeLevel2:       '--ts-tree-level-2',
+  treeMaturity1:    '--ts-tree-maturity-1',
+  treeMaturity2:    '--ts-tree-maturity-2',
+  treeMaturity3:    '--ts-tree-maturity-3',
+  treeMaturity4:    '--ts-tree-maturity-4',
+  treeMaturity5:    '--ts-tree-maturity-5',
 } as const;
 
 export function getBaseResetCss(): string {
