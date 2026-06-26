@@ -12,8 +12,10 @@ const cliPath = join(__dirname, '..', 'dist', 'cli.js');
 
 // Recipes are in the sibling methodology repo (dev environment only).
 const recipesDir = resolve(__dirname, '../../methodology/migrations');
-const fixtureBase = join(recipesDir, '0.5-to-0.6', 'fixtures');
+const fixtureBase56 = join(recipesDir, '0.5-to-0.6', 'fixtures');
+const fixtureBase67 = join(recipesDir, '0.6-to-0.7', 'fixtures');
 const hasRecipes = existsSync(join(recipesDir, '0.5-to-0.6', 'codemod.mjs'));
+const has67Recipe = existsSync(join(recipesDir, '0.6-to-0.7', 'codemod.mjs'));
 
 function runCli(args: string[]): { status: number; stdout: string; stderr: string } {
   const r = spawnSync(process.execPath, [cliPath, ...args], { encoding: 'utf8' });
@@ -150,14 +152,17 @@ describe.skipIf(!hasRecipes)('transitrix migrate (requires methodology repo)', (
     temps.length = 0;
   });
 
-  function makeTempRepo(fromVersion = '0.5.0'): string {
+  function makeTempRepo56(fromVersion = '0.5.0'): string {
     const tmp = mkdtempSync(join(tmpdir(), 'tx-migrate-'));
     temps.push(tmp);
-    cpSync(join(fixtureBase, 'before'), tmp, { recursive: true });
+    cpSync(join(fixtureBase56, 'before'), tmp, { recursive: true });
     normalizeLf(tmp);
     writeFileSync(join(tmp, 'transitrix.yaml'), `methodology_version: ${fromVersion}\n`);
     return tmp;
   }
+
+  /** @deprecated use makeTempRepo56 — kept for existing tests */
+  const makeTempRepo = makeTempRepo56;
 
   it('shows help with --help', () => {
     const { status, stderr } = runCli(['migrate', '--help']);
@@ -176,7 +181,7 @@ describe.skipIf(!hasRecipes)('transitrix migrate (requires methodology repo)', (
     expect(status).toBe(0);
 
     const got = lf(readFileSync(join(tmp, 'canon/views/launch.activities.transitrix.yaml'), 'utf8'));
-    const want = lf(readFileSync(join(fixtureBase, 'after/canon/views/launch.activities.transitrix.yaml'), 'utf8'));
+    const want = lf(readFileSync(join(fixtureBase56, 'after/canon/views/launch.activities.transitrix.yaml'), 'utf8'));
     expect(got).toBe(want);
   });
 
@@ -185,7 +190,7 @@ describe.skipIf(!hasRecipes)('transitrix migrate (requires methodology repo)', (
     runCli(['migrate', '--recipes', recipesDir, tmp]);
 
     const got = lf(readFileSync(join(tmp, 'canon/elements/02_business/roles/ROLE-OPS-1.yaml'), 'utf8'));
-    const want = lf(readFileSync(join(fixtureBase, 'after/canon/elements/02_business/roles/ROLE-OPS-1.yaml'), 'utf8'));
+    const want = lf(readFileSync(join(fixtureBase56, 'after/canon/elements/02_business/roles/ROLE-OPS-1.yaml'), 'utf8'));
     expect(got).toBe(want);
   });
 
@@ -197,17 +202,18 @@ describe.skipIf(!hasRecipes)('transitrix migrate (requires methodology repo)', (
     expect(existsSync(join(tmp, 'canon/views/eu.activity-card.transitrix.yaml'))).toBe(true);
 
     const got = lf(readFileSync(join(tmp, 'canon/views/eu.activity-card.transitrix.yaml'), 'utf8'));
-    const want = lf(readFileSync(join(fixtureBase, 'after/canon/views/eu.activity-card.transitrix.yaml'), 'utf8'));
+    const want = lf(readFileSync(join(fixtureBase56, 'after/canon/views/eu.activity-card.transitrix.yaml'), 'utf8'));
     expect(got).toBe(want);
   });
 
-  it('updates transitrix.yaml methodology_version on success', () => {
+  it('updates transitrix.yaml methodology_version to latest reachable on success', () => {
     const tmp = makeTempRepo('0.5.0');
     const { status } = runCli(['migrate', '--recipes', recipesDir, tmp]);
     expect(status).toBe(0);
 
     const yaml = readFileSync(join(tmp, 'transitrix.yaml'), 'utf8');
-    expect(yaml).toContain('methodology_version: 0.6.0');
+    // 0.5→0.6→0.7 chain: ends at 0.7.0 when both recipes are present
+    expect(yaml).toMatch(/methodology_version: 0\.[67]\.0/);
   });
 
   it('auto-detects from-version from transitrix.yaml', () => {
@@ -257,7 +263,7 @@ describe.skipIf(!hasRecipes)('transitrix migrate (requires methodology repo)', (
   it('fails clearly when no transitrix.yaml and no --from', () => {
     const tmp = mkdtempSync(join(tmpdir(), 'tx-migrate-no-yaml-'));
     temps.push(tmp);
-    cpSync(join(fixtureBase, 'before'), tmp, { recursive: true });
+    cpSync(join(fixtureBase56, 'before'), tmp, { recursive: true });
 
     const { status, stderr } = runCli(['migrate', '--recipes', recipesDir, tmp]);
     expect(status).not.toBe(0);
@@ -276,5 +282,83 @@ describe.skipIf(!hasRecipes)('transitrix migrate (requires methodology repo)', (
     const { status, stderr } = runCli(['migrate', '--recipes', recipesDir, '--from', '0.6', '--to', '0.5', tmp]);
     expect(status).not.toBe(0);
     expect(stderr).toContain('no migration path');
+  });
+});
+
+// ── 0.6→0.7 migration tests (FACTOR→DRIVER rename) ───────────────────────
+
+describe.skipIf(!has67Recipe)('transitrix migrate 0.6→0.7 (requires methodology repo)', () => {
+  const temps: string[] = [];
+
+  afterEach(() => {
+    for (const t of temps) rmSync(t, { recursive: true, force: true });
+    temps.length = 0;
+  });
+
+  function makeTempRepo67(fromVersion = '0.6.0'): string {
+    const tmp = mkdtempSync(join(tmpdir(), 'tx-migrate-67-'));
+    temps.push(tmp);
+    cpSync(join(fixtureBase67, 'before'), tmp, { recursive: true });
+    normalizeLf(tmp);
+    writeFileSync(join(tmp, 'transitrix.yaml'), `methodology_version: ${fromVersion}\n`);
+    return tmp;
+  }
+
+  it('renames FACTOR-*.yaml to DRIVER-*.yaml', () => {
+    const tmp = makeTempRepo67();
+    const { status } = runCli(['migrate', '--recipes', recipesDir, '--from', '0.6', '--to', '0.7', tmp]);
+    expect(status).toBe(0);
+
+    const factorPath = join(tmp, 'canon/elements/01_motivation/factors/FACTOR-COMP-1.yaml');
+    const driverPath = join(tmp, 'canon/elements/01_motivation/factors/DRIVER-COMP-1.yaml');
+    expect(existsSync(factorPath)).toBe(false);
+    expect(existsSync(driverPath)).toBe(true);
+  });
+
+  it('driver file content matches fixtures/after', () => {
+    const tmp = makeTempRepo67();
+    runCli(['migrate', '--recipes', recipesDir, '--from', '0.6', '--to', '0.7', tmp]);
+
+    const got = lf(readFileSync(join(tmp, 'canon/elements/01_motivation/factors/DRIVER-COMP-1.yaml'), 'utf8'));
+    const want = lf(readFileSync(join(fixtureBase67, 'after/canon/elements/01_motivation/factors/DRIVER-COMP-1.yaml'), 'utf8'));
+    expect(got).toBe(want);
+  });
+
+  it('goal file cross-references updated to DRIVER-* IDs', () => {
+    const tmp = makeTempRepo67();
+    runCli(['migrate', '--recipes', recipesDir, '--from', '0.6', '--to', '0.7', tmp]);
+
+    const got = lf(readFileSync(join(tmp, 'canon/elements/01_motivation/goals/GOAL-GROWTH-1.yaml'), 'utf8'));
+    const want = lf(readFileSync(join(fixtureBase67, 'after/canon/elements/01_motivation/goals/GOAL-GROWTH-1.yaml'), 'utf8'));
+    expect(got).toBe(want);
+  });
+
+  it('updates methodology_version to 0.7.0', () => {
+    const tmp = makeTempRepo67();
+    const { status } = runCli(['migrate', '--recipes', recipesDir, '--from', '0.6', '--to', '0.7', tmp]);
+    expect(status).toBe(0);
+
+    const yaml = readFileSync(join(tmp, 'transitrix.yaml'), 'utf8');
+    expect(yaml).toContain('methodology_version: 0.7.0');
+  });
+
+  it('--dry-run: FACTOR file not renamed, no version bump', () => {
+    const tmp = makeTempRepo67();
+    const { status } = runCli(['migrate', '--dry-run', '--recipes', recipesDir, '--from', '0.6', '--to', '0.7', tmp]);
+    expect(status).toBe(0);
+
+    expect(existsSync(join(tmp, 'canon/elements/01_motivation/factors/FACTOR-COMP-1.yaml'))).toBe(true);
+    expect(readFileSync(join(tmp, 'transitrix.yaml'), 'utf8')).toContain('0.6.0');
+  });
+
+  it('is idempotent: re-running on migrated repo exits 0 with no changes', () => {
+    const tmp = makeTempRepo67();
+    runCli(['migrate', '--recipes', recipesDir, '--from', '0.6', '--to', '0.7', tmp]);
+
+    const before = lf(readFileSync(join(tmp, 'canon/elements/01_motivation/factors/DRIVER-COMP-1.yaml'), 'utf8'));
+    const { status } = runCli(['migrate', '--recipes', recipesDir, '--from', '0.6', '--to', '0.7', tmp]);
+    expect(status).toBe(0);
+    const after = lf(readFileSync(join(tmp, 'canon/elements/01_motivation/factors/DRIVER-COMP-1.yaml'), 'utf8'));
+    expect(after).toBe(before);
   });
 });
