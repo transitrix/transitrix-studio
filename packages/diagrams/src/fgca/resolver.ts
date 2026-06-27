@@ -77,7 +77,7 @@ export function resolveFGCA(
   sources: FGCACanonSources,
 ): Record<string, unknown> {
   if (!isObject(viewDoc)) {
-    return { notation: 'fgca', factors: [], goals: [], changes: [], activities: [] };
+    return { notation: 'dgca', factors: [], goals: [], changes: [], actions: [] };
   }
 
   const vc = isObject(viewDoc['view_config']) ? viewDoc['view_config'] : {};
@@ -147,13 +147,13 @@ export function resolveFGCA(
   }
 
   return {
-    notation: 'fgca',
+    notation: 'dgca',
     id: viewDoc['id'],
     name: viewDoc['name'],
     spec_version: viewDoc['spec_version'],
     factors: selectedFactors,
     goals: selectedGoals,
     changes: selectedChanges,
-    activities: selectedActivities,
+    actions: selectedActivities,
   };
 }

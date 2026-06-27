@@ -108,7 +108,7 @@ describe('parseCanonicalFGCA', () => {
   it('FGCA-010: rejects activity.changes[] referencing undefined change', () => {
     const r = parseCanonicalFGCA({
       ...VALID,
-      activities: [{ id: 'ACTIVITY-1', name: 'A', changes: ['CHANGE-99'] }],
+      actions: [{ id: 'ACTIVITY-1', name: 'A', changes: ['CHANGE-99'] }],
     });
     expect(r.valid).toBe(false);
     expect(r.errors.some((e) => e.code === 'FGCA-010')).toBe(true);
@@ -135,7 +135,7 @@ describe('parseCanonicalFGCA', () => {
     const r = parseCanonicalFGCA({
       ...VALID,
       changes: [{ id: 'CHANGE-1', name: 'C', goals: ['GOAL-1'] }],
-      activities: [
+      actions: [
         { id: 'ACTIVITY-1', name: 'A1', changes: ['CHANGE-1'] },
         { id: 'ACTIVITY-2', name: 'A2', changes: ['CHANGE-1'] },
       ],

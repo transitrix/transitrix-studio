@@ -420,7 +420,12 @@ describe('validateActivities', () => {
   });
 
   it('[blocker] tolerates a null element in actions[] without throwing', () => {
-    const r = validateActivities({ ...minimalValid, actions: [null] });
+    // Do NOT spread minimalValid here: validateActivities mutates its input
+    // to normalise raw.activities, so a previously-called test that passed
+    // minimalValid directly would have set minimalValid.activities. Spreading
+    // that mutated object would cause the actions:[null] override to be masked
+    // by the pre-existing activities array.
+    const r = validateActivities({ notation: 'action', actions: [null] });
     expect(r.valid).toBe(false);
     expect(r.errors.some(e => e.code === 'SCHEMA_INVALID')).toBe(true);
   });
