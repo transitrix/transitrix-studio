@@ -3,7 +3,7 @@
  * view_config projection and a canon element/relation store (VP-3).
  *
  * Output shape matches the flat form that `parseCanonicalFGCA` expects:
- * top-level `factors[]`, `goals[]`, `changes[]`, `activities[]` with typed
+ * top-level `factors[]`, `goals[]`, `changes[]`, `actions[]` with typed
  * string IDs.  Filesystem-free — callable from unit tests without vscode.
  */
 
@@ -69,7 +69,7 @@ export function isFGCAViewDoc(parsed: unknown): boolean {
  * to pass to `parseCanonicalFGCA`.
  *
  * Cross-reference fields (`goal.factors[]`, `change.goals[]`,
- * `activity.changes[]`) are carried from the canon elements unchanged; the
+ * `action.changes[]`) are carried from the canon elements unchanged; the
  * resolver decides which elements to include, not how they are shaped.
  */
 export function resolveFGCA(
