@@ -298,3 +298,124 @@ describe('validateRepoModel — layer-semantics (unit_located_at / located_at)',
     expect(findings.some((f) => f.message.includes('ACTOR-UNKNOWN-99'))).toBe(true);
   });
 });
+
+describe('validateRepoModel — layer-semantics (offers / realizes)', () => {
+  function serviceModel() {
+    const model = cleanModel();
+    model.elements.push(
+      el('canon/elements/02_business/actors/ACTOR-OPS-1.yaml', {
+        notation: 'actor',
+        id: 'ACTOR-OPS-1',
+        type: 'business_unit',
+      }),
+      el('canon/elements/02_business/roles/ROLE-OWNER-1.yaml', {
+        notation: 'role',
+        id: 'ROLE-OWNER-1',
+      }),
+      el('canon/elements/02_business/business-services/BUSINESS_SERVICE-CRM-1.yaml', {
+        notation: 'business-service',
+        id: 'BUSINESS_SERVICE-CRM-1',
+      }),
+      el('canon/elements/02_business/capabilities/CAPABILITY-V2.yaml', {
+        notation: 'capability',
+        id: 'CAPABILITY-V2',
+      }),
+    );
+    return model;
+  }
+
+  it('accepts a valid offers (ACTOR(business_unit) → BUSINESS_SERVICE)', () => {
+    const model = serviceModel();
+    model.relations.push(
+      el('canon/relations/REL-SVC-1.yaml', {
+        notation: 'relation',
+        id: 'REL-SVC-1',
+        type: 'offers',
+        from: 'ACTOR-OPS-1',
+        to: 'BUSINESS_SERVICE-CRM-1',
+      }),
+    );
+    expect(validateRepoModel(model)).toEqual([]);
+  });
+
+  it('accepts a valid offers (ROLE → BUSINESS_SERVICE)', () => {
+    const model = serviceModel();
+    model.relations.push(
+      el('canon/relations/REL-SVC-2.yaml', {
+        notation: 'relation',
+        id: 'REL-SVC-2',
+        type: 'offers',
+        from: 'ROLE-OWNER-1',
+        to: 'BUSINESS_SERVICE-CRM-1',
+      }),
+    );
+    expect(validateRepoModel(model)).toEqual([]);
+  });
+
+  it('accepts a valid realizes (BUSINESS_SERVICE → CAPABILITY)', () => {
+    const model = serviceModel();
+    model.relations.push(
+      el('canon/relations/REL-SVC-3.yaml', {
+        notation: 'relation',
+        id: 'REL-SVC-3',
+        type: 'realizes',
+        from: 'BUSINESS_SERVICE-CRM-1',
+        to: 'CAPABILITY-V2',
+      }),
+    );
+    expect(validateRepoModel(model)).toEqual([]);
+  });
+
+  it('flags offers with a non-ACTOR/non-ROLE from element', () => {
+    const model = serviceModel();
+    model.relations.push(
+      el('canon/relations/REL-SVC-BAD-1.yaml', {
+        notation: 'relation',
+        id: 'REL-SVC-BAD-1',
+        type: 'offers',
+        from: 'CAPABILITY-V2',
+        to: 'BUSINESS_SERVICE-CRM-1',
+      }),
+    );
+    const findings = validateRepoModel(model);
+    expect(findings).toHaveLength(1);
+    expect(findings[0]).toMatchObject({ scope: 'repo', id: 'REL-SVC-BAD-1' });
+    expect(findings[0].message).toContain('offers');
+    expect(findings[0].message).toContain('ACTOR');
+  });
+
+  it('flags offers with a non-BUSINESS_SERVICE to element', () => {
+    const model = serviceModel();
+    model.relations.push(
+      el('canon/relations/REL-SVC-BAD-2.yaml', {
+        notation: 'relation',
+        id: 'REL-SVC-BAD-2',
+        type: 'offers',
+        from: 'ACTOR-OPS-1',
+        to: 'CAPABILITY-V2',
+      }),
+    );
+    const findings = validateRepoModel(model);
+    expect(findings).toHaveLength(1);
+    expect(findings[0]).toMatchObject({ scope: 'repo', id: 'REL-SVC-BAD-2' });
+    expect(findings[0].message).toContain('BUSINESS_SERVICE');
+  });
+
+  it('flags realizes with a non-BUSINESS_SERVICE from element', () => {
+    const model = serviceModel();
+    model.relations.push(
+      el('canon/relations/REL-SVC-BAD-3.yaml', {
+        notation: 'relation',
+        id: 'REL-SVC-BAD-3',
+        type: 'realizes',
+        from: 'ACTOR-OPS-1',
+        to: 'CAPABILITY-V2',
+      }),
+    );
+    const findings = validateRepoModel(model);
+    expect(findings).toHaveLength(1);
+    expect(findings[0]).toMatchObject({ scope: 'repo', id: 'REL-SVC-BAD-3' });
+    expect(findings[0].message).toContain('realizes');
+    expect(findings[0].message).toContain('BUSINESS_SERVICE');
+  });
+});
