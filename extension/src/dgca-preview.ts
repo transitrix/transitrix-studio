@@ -25,20 +25,19 @@ import { snapshotFilename, buildSnapshotContent, extractViewMeta, listSnapshotFi
 
 // ── Inline render types ────────────────────────────────────────────────────────────────────────────
 //
-// FGCA (notations/02-fgca.md) and FGA (notations/03-fga.md) are both the
-// canonical FLAT shape — top-level `factors[]` / `goals[]` / `changes[]`
-// (FGCA only) / `activities[]`, no `fgca:` / `fga:` wrapper. Parsing +
-// validation live in `@transitrix/diagrams` (parseCanonicalFGCA /
-// parseCanonicalFGA), which return this internal `FGCADoc` (numeric IDs,
-// singular `goal_id`, `activity_ids`). This file only renders that doc —
-// FGA reuses the FGCA renderer with the Changes column hidden.
+// DGCA and DGA are both the canonical FLAT shape — top-level `drivers[]` /
+// `goals[]` / `changes[]` (DGCA only) / `activities[]`. Parsing + validation
+// live in `@transitrix/diagrams` (parseCanonicalFGCA / parseCanonicalFGA),
+// which return this internal `DGCADoc` (numeric IDs, singular `goal_id`,
+// `activity_ids`). This file only renders that doc — DGA reuses the DGCA
+// renderer with the Changes column hidden.
 
 interface DriverItem { id: number | string; name: string; }
 interface GoalItem { id: number | string; name: string; level?: number; factor?: Array<{ id: number | string }>; }
 interface ChangeItem { id: number | string; name: string; goal_id: number | string; activity_ids: Array<number | string>; }
 interface ActivityItem { id: number | string; name: string; goal_id?: number | string | null; }
 
-interface FGCADoc {
+interface DGCADoc {
   notation: string;
   factors: DriverItem[];
   goals: GoalItem[];
@@ -54,9 +53,9 @@ interface FGCADoc {
 // the column header labels.
 
 // ── SVG renderer ──────────────────────────────────────────────────────────────
-/** Goal options + deepest level for the scope control, from a parsed doc. FGCA
- *  and FGA goals are flat, so a `root` scope is the single matching goal. */
-function scopeInputsFromDoc(doc: FGCADoc): { goals: ScopeGoalOption[]; maxLevelPresent: number } {
+/** Goal options + deepest level for the scope control, from a parsed doc. DGCA
+ *  and DGA goals are flat, so a `root` scope is the single matching goal. */
+function scopeInputsFromDoc(doc: DGCADoc): { goals: ScopeGoalOption[]; maxLevelPresent: number } {
   return {
     goals: doc.goals.map(g => ({ id: String(g.id), name: g.name ?? '' })),
     maxLevelPresent: doc.goals.reduce((m, g) => Math.max(m, typeof g.level === 'number' ? g.level : 0), 0),
@@ -100,8 +99,8 @@ function chainTableHtml(table: ChainTable): string {
   return `<div class="chain-table-wrap"><table class="chain-table"><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
 }
 
-/** Assembles the interactive control-panel model shared by FGCA and FGA. */
-function fgcaControlsModel(
+/** Assembles the interactive control-panel model shared by DGCA and DGA. */
+function dgcaControlsModel(
   gaps: { horizontalGap: number; verticalGap: number },
   defaults: { horizontalGap: number; verticalGap: number },
   curvature: number,
@@ -123,10 +122,10 @@ function fgcaControlsModel(
 
 interface ChainPreviewParams {
   /** Toolbar / frame notation label. */
-  notation: 'DGCA' | 'DGA' | 'FGCA' | 'FGA';
+  notation: 'DGCA' | 'DGA';
   /** Settings namespace + view key (`transitrix.{spacing,curvature,scope,view}.<this>`). */
-  viewNotation: 'dgca' | 'dga' | 'fgca' | 'fga';
-  /** FGA hides the Change column. */
+  viewNotation: 'dgca' | 'dga';
+  /** DGA hides the Change column. */
   hideChanges: boolean;
   /** SVG title-block heading (tree view). */
   heading: string;
@@ -138,8 +137,8 @@ interface ChainPreviewParams {
 }
 
 /**
- * Shared render path for the FGCA and FGA previews. Branches on the persisted
- * tree↔table view (vkgeorgia/strategy#137):
+ * Shared render path for the DGCA and DGA previews. Branches on the persisted
+ * tree↔table view:
  *  - **tree** — the chain SVG, with the spacing/curvature/scope control panel +
  *    Save/Zoom toolbar (the PR #86 interactive surface) plus the view toggle.
  *  - **table** — the flattened chain table; the spacing/curvature/scope controls
@@ -149,7 +148,7 @@ interface ChainPreviewParams {
  */
 function renderChainPreview(
   p: ChainPreviewParams,
-  parsedDoc: FGCADoc | null,
+  parsedDoc: DGCADoc | null,
   baseWarnings: string[],
   errorMsg: string,
   docVersion: string | undefined,
@@ -198,7 +197,7 @@ function renderChainPreview(
     if (scopeWarning) warnings.push(`${scopeWarning.code}: ${scopeWarning.message}`);
     svg = buildSvg(parsedDoc, p.hideChanges, { colGap: gaps.horizontalGap, rowGap: gaps.verticalGap, curvature, entryCurvature, scope }, p.heading, filename, docDate, docVersion);
   }
-  const model = fgcaControlsModel(gaps, spacingDefaults, curvature, scope, goalOptions, maxLevelPresent);
+  const model = dgcaControlsModel(gaps, spacingDefaults, curvature, scope, goalOptions, maxLevelPresent);
   const html = buildDiagramFrame({
     filename, notation: p.notation, svgContent: svg, errorMsg, warnings, themeId,
     saveSvgCommand: p.saveSvgCommand,
@@ -215,7 +214,7 @@ function renderChainPreview(
 }
 
 function buildSvg(
-  doc: FGCADoc,
+  doc: DGCADoc,
   hideChanges = false,
   opts: { colGap?: number; rowGap?: number; curvature?: number; entryCurvature?: number; scope?: Scope } = {},
   heading?: string,
@@ -253,9 +252,9 @@ ${body}
 </svg>`;
 }
 
-// ── FGCAPreview webview class ────────────────────────────────────────────────────────────────────────────
+// ── DGCAPreview webview class ────────────────────────────────────────────────────────────────────────────
 
-export class FGCAPreview {
+export class DGCAPreview {
   readonly panelTitle = 'DGCA Preview';
   private panel: vscode.WebviewPanel | undefined;
   private trackedUri: string | undefined;
@@ -274,7 +273,7 @@ export class FGCAPreview {
       this.panel.reveal(vscode.ViewColumn.Beside, true);
     } else {
       this.panel = vscode.window.createWebviewPanel(
-        'fgcaPreview',
+        'dgcaPreview',
         `${this.panelTitle} — ${path.basename(doc.fileName)}`,
         { viewColumn: vscode.ViewColumn.Beside, preserveFocus: false },
         {
@@ -311,12 +310,12 @@ export class FGCAPreview {
   async refreshIfSiblingSaved(doc: vscode.TextDocument): Promise<void> {
     if (!this.panel || !this.trackedUri) return;
     if (!doc.fileName.endsWith('.yaml')) return;
-    const fgcaUri = vscode.Uri.parse(this.trackedUri);
-    const canonRoot = findCanonRoot(fgcaUri);
+    const viewUri = vscode.Uri.parse(this.trackedUri);
+    const canonRoot = findCanonRoot(viewUri);
     if (!canonRoot) return;
     if (!isUnderCanon(canonRoot, doc.uri)) return;
-    const fgcaDoc = await vscode.workspace.openTextDocument(fgcaUri);
-    await this.pushDocument(fgcaDoc);
+    const viewDoc = await vscode.workspace.openTextDocument(viewUri);
+    await this.pushDocument(viewDoc);
   }
 
   private async loadSnapshotMarkers(): Promise<SnapshotMarker[]> {
@@ -393,7 +392,7 @@ export class FGCAPreview {
   }
 
   private buildHtml(yamlText: string, filename: string, sources: CanonDocs, markers: SnapshotMarker[]): string {
-    let parsedDoc: FGCADoc | null = null;
+    let parsedDoc: DGCADoc | null = null;
     let errorMsg = '';
     let warnings: string[] = [];
     let docVersion: string | undefined;
@@ -415,7 +414,7 @@ export class FGCAPreview {
       if (!v.valid || !v.parsed) {
         errorMsg = v.errors.map(e => `${e.code}: ${e.message}`).join('\n');
       } else {
-        parsedDoc = v.parsed as unknown as FGCADoc;
+        parsedDoc = v.parsed as unknown as DGCADoc;
       }
     } catch (e) {
       errorMsg = (e as Error).message ?? 'Parse error';
@@ -450,7 +449,7 @@ export class FGCAPreview {
 
   saveAsPng(): Promise<void> {
     const sourceUri = this.trackedUri ? vscode.Uri.parse(this.trackedUri) : undefined;
-    return savePngFromSvg({ ...this.pngTarget(), sourceUri, stripExt: /\.(dgca|fgca)\.transitrix\.yaml$/ });
+    return savePngFromSvg({ ...this.pngTarget(), sourceUri, stripExt: /\.dgca\.transitrix\.yaml$/ });
   }
 
   copyAsPng(): Promise<void> {
@@ -464,7 +463,7 @@ export class FGCAPreview {
     }
     const sourceUri = this.trackedUri ? vscode.Uri.parse(this.trackedUri) : undefined;
     const stem = sourceUri
-      ? path.basename(sourceUri.fsPath).replace(/\.(dgca|fgca)\.transitrix\.yaml$/, '')
+      ? path.basename(sourceUri.fsPath).replace(/\.dgca\.transitrix\.yaml$/, '')
       : 'diagram';
     const defaultUri = sourceUri
       ? vscode.Uri.file(path.join(path.dirname(sourceUri.fsPath), `${stem}.svg`))
@@ -478,9 +477,9 @@ export class FGCAPreview {
   }
 }
 
-// ── FGAPreview webview class ──────────────────────────────────────────────────────────────────────────────
+// ── DGAPreview webview class ──────────────────────────────────────────────────────────────────────────────
 
-export class FGAPreview {
+export class DGAPreview {
   readonly panelTitle = 'DGA Preview';
   private panel: vscode.WebviewPanel | undefined;
   private trackedUri: string | undefined;
@@ -499,7 +498,7 @@ export class FGAPreview {
       this.panel.reveal(vscode.ViewColumn.Beside, true);
     } else {
       this.panel = vscode.window.createWebviewPanel(
-        'fgaPreview',
+        'dgaPreview',
         `${this.panelTitle} — ${path.basename(doc.fileName)}`,
         { viewColumn: vscode.ViewColumn.Beside, preserveFocus: false },
         {
@@ -605,7 +604,7 @@ export class FGAPreview {
   }
 
   private buildHtml(yamlText: string, filename: string, markers: SnapshotMarker[]): string {
-    let parsedDoc: FGCADoc | null = null;
+    let parsedDoc: DGCADoc | null = null;
     let errorMsg = '';
     let warnings: string[] = [];
     let docVersion: string | undefined;
@@ -623,8 +622,8 @@ export class FGAPreview {
       if (!v.valid || !v.parsed) {
         errorMsg = v.errors.map(e => `${e.code}: ${e.message}`).join('\n');
       } else {
-        // FGA shares FGCA's FLAT shape; just hide the (absent) Changes column.
-        parsedDoc = v.parsed as unknown as FGCADoc;
+        // DGA shares DGCA's FLAT shape; just hide the (absent) Changes column.
+        parsedDoc = v.parsed as unknown as DGCADoc;
       }
     } catch (e) {
       errorMsg = (e as Error).message ?? 'Parse error';
@@ -659,7 +658,7 @@ export class FGAPreview {
 
   saveAsPng(): Promise<void> {
     const sourceUri = this.trackedUri ? vscode.Uri.parse(this.trackedUri) : undefined;
-    return savePngFromSvg({ ...this.pngTarget(), sourceUri, stripExt: /\.(dga|fga)\.transitrix\.yaml$/ });
+    return savePngFromSvg({ ...this.pngTarget(), sourceUri, stripExt: /\.dga\.transitrix\.yaml$/ });
   }
 
   copyAsPng(): Promise<void> {
@@ -673,7 +672,7 @@ export class FGAPreview {
     }
     const sourceUri = this.trackedUri ? vscode.Uri.parse(this.trackedUri) : undefined;
     const stem = sourceUri
-      ? path.basename(sourceUri.fsPath).replace(/\.(dga|fga)\.transitrix\.yaml$/, '')
+      ? path.basename(sourceUri.fsPath).replace(/\.dga\.transitrix\.yaml$/, '')
       : 'diagram';
     const defaultUri = sourceUri
       ? vscode.Uri.file(path.join(path.dirname(sourceUri.fsPath), `${stem}.svg`))

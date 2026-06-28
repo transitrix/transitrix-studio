@@ -26,15 +26,12 @@
     "goal-tree",
     "dgca",
     "dga",
-    "fgca",
-    "fga",
     "activity-network",
     "psnd",
     "gantt",
     "critical-path",
     "process-map",
     "process-blueprint",
-    "activity-card",
     "capability-map",
     "scenarios",
     "applications",
@@ -124,7 +121,7 @@
             "Follow the active VS Code color theme"
           ],
           "default": "transitrix",
-          "description": "Color theme for Transitrix diagram previews (Goals, FGCA, and other static notation previews)."
+          "description": "Color theme for Transitrix diagram previews (Goals, DGCA, and other static notation previews)."
         },
         "transitrix.report.columnWidth": {
           "type": "string",
@@ -183,34 +180,6 @@
           "default": 20,
           "description": "DGA preview: vertical gap (px) between stacked nodes within a column."
         },
-        "transitrix.spacing.fgca.horizontalGap": {
-          "type": "number",
-          "minimum": 20,
-          "maximum": 300,
-          "default": 160,
-          "description": "FGCA preview: horizontal gap (px) between the Driver/Goal/Change/Activity columns."
-        },
-        "transitrix.spacing.fgca.verticalGap": {
-          "type": "number",
-          "minimum": 20,
-          "maximum": 300,
-          "default": 20,
-          "description": "FGCA preview: vertical gap (px) between stacked nodes within a column."
-        },
-        "transitrix.spacing.fga.horizontalGap": {
-          "type": "number",
-          "minimum": 20,
-          "maximum": 300,
-          "default": 160,
-          "description": "FGA preview: horizontal gap (px) between the Driver/Goal/Activity columns."
-        },
-        "transitrix.spacing.fga.verticalGap": {
-          "type": "number",
-          "minimum": 20,
-          "maximum": 300,
-          "default": 20,
-          "description": "FGA preview: vertical gap (px) between stacked nodes within a column."
-        },
         "transitrix.spacing.activities.horizontalGap": {
           "type": "number",
           "minimum": 20,
@@ -246,20 +215,6 @@
           "default": 1,
           "description": "DGA preview: edge curvature. 0 = straight lines, 1 = default, higher = stronger arc."
         },
-        "transitrix.curvature.fgca": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 3,
-          "default": 1,
-          "description": "FGCA preview: edge curvature. 0 = straight lines, 1 = default, higher = stronger arc."
-        },
-        "transitrix.curvature.fga": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 3,
-          "default": 1,
-          "description": "FGA preview: edge curvature. 0 = straight lines, 1 = default, higher = stronger arc."
-        },
         "transitrix.curvature.activities": {
           "type": "number",
           "minimum": 0,
@@ -287,20 +242,6 @@
           "maximum": 3,
           "default": 1,
           "description": "DGA preview: curvature of the arrow at the point it enters a node. Defaults to transitrix.curvature.dga when equal to 1."
-        },
-        "transitrix.entryCurvature.fgca": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 3,
-          "default": 1,
-          "description": "FGCA preview: curvature of the arrow at the point it enters a node. Defaults to transitrix.curvature.fgca when equal to 1."
-        },
-        "transitrix.entryCurvature.fga": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 3,
-          "default": 1,
-          "description": "FGA preview: curvature of the arrow at the point it enters a node. Defaults to transitrix.curvature.fga when equal to 1."
         },
         "transitrix.entryCurvature.activities": {
           "type": "number",
@@ -342,28 +283,6 @@
           "default": -1,
           "description": "DGA preview: scope to a goal-level cap. Show only goals at this level and above, plus their connected drivers/activities. -1 = no cap. Ignored when a scope root id is set."
         },
-        "transitrix.scope.fgca.rootId": {
-          "type": "string",
-          "default": "",
-          "description": "FGCA preview: scope to a single goal. Set the goal id to show only that goal plus the factors/changes/activities connected to it. Empty = show all. Takes precedence over the level cap."
-        },
-        "transitrix.scope.fgca.maxLevel": {
-          "type": "integer",
-          "minimum": -1,
-          "default": -1,
-          "description": "FGCA preview: scope to a goal-level cap. Show only goals at this level and above, plus their connected factors/changes/activities. -1 = no cap. Ignored when a scope root id is set."
-        },
-        "transitrix.scope.fga.rootId": {
-          "type": "string",
-          "default": "",
-          "description": "FGA preview: scope to a single goal. Set the goal id to show only that goal plus the factors/activities connected to it. Empty = show all. Takes precedence over the level cap."
-        },
-        "transitrix.scope.fga.maxLevel": {
-          "type": "integer",
-          "minimum": -1,
-          "default": -1,
-          "description": "FGA preview: scope to a goal-level cap. Show only goals at this level and above, plus their connected factors/activities. -1 = no cap. Ignored when a scope root id is set."
-        },
         "transitrix.view.dgca": {
           "type": "string",
           "enum": [
@@ -382,24 +301,6 @@
           "default": "tree",
           "description": "DGA preview: 'tree' renders the Driver→Goal→Activity chain diagram; 'table' renders the chain flattened into a table with merged cells. Toggle live from the preview toolbar."
         },
-        "transitrix.view.fgca": {
-          "type": "string",
-          "enum": [
-            "tree",
-            "table"
-          ],
-          "default": "tree",
-          "description": "FGCA preview: 'tree' renders the Factor→Goal→Change→Activity chain diagram; 'table' renders the chain flattened into a table with merged cells. Toggle live from the preview toolbar."
-        },
-        "transitrix.view.fga": {
-          "type": "string",
-          "enum": [
-            "tree",
-            "table"
-          ],
-          "default": "tree",
-          "description": "FGA preview: 'tree' renders the Factor→Goal→Activity chain diagram; 'table' renders the chain flattened into a table with merged cells. Toggle live from the preview toolbar."
-        }
       }
     },
     "languages": [
@@ -955,12 +856,12 @@
           "group": "navigation@-9"
         },
         {
-          "when": "activeWebviewPanelId == fgcaPreview",
+          "when": "activeWebviewPanelId == dgcaPreview",
           "command": "transitrixStudio.saveDGCAAsSvg",
           "group": "navigation@-9"
         },
         {
-          "when": "activeWebviewPanelId == fgaPreview",
+          "when": "activeWebviewPanelId == dgaPreview",
           "command": "transitrixStudio.saveDGAAsSvg",
           "group": "navigation@-9"
         },
