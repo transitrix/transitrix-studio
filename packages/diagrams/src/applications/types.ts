@@ -2,11 +2,19 @@ export type ApplicationType = 'application' | 'integration' | 'platform' | 'data
 export type ApplicationStatus = 'Draft' | 'Active' | 'Deprecated' | 'Decommissioning';
 export type IntegrationDirection = 'inbound' | 'outbound' | 'bidirectional';
 
+export type IntegrationSensitivity = 'public' | 'internal' | 'confidential' | 'restricted';
+export type IntegrationDirectionality = 'producer' | 'consumer' | 'request_reply' | 'bidirectional_stream';
+
 export interface ApplicationIntegration {
   target?: string;
+  source?: string;
   direction?: IntegrationDirection;
   protocol?: string;
   description?: string;
+  interface_semantics?: boolean;
+  payload_class?: string;
+  sensitivity?: IntegrationSensitivity;
+  directionality?: IntegrationDirectionality;
 }
 
 export interface Application {
