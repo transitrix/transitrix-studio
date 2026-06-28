@@ -6,7 +6,11 @@ export type { ValidationError, ValidationWarning, ValidationResult };
 const VALID_TYPES = new Set<ApplicationType>(['application', 'integration', 'platform', 'data_store']);
 const VALID_STATUSES = new Set<ApplicationStatus>(['Draft', 'Active', 'Deprecated', 'Decommissioning']);
 const VALID_DIRECTIONS = new Set<IntegrationDirection>(['inbound', 'outbound', 'bidirectional']);
+const VALID_SENSITIVITY = new Set(['public', 'internal', 'confidential', 'restricted']);
+const VALID_DIRECTIONALITY = new Set(['producer', 'consumer', 'request_reply', 'bidirectional_stream']);
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+const IFACE_CONDITIONAL = ['protocol', 'payload_class', 'sensitivity', 'directionality'] as const;
 
 export function validateApplicationsCatalogue(input: unknown): ValidationResult {
   const errors: ValidationError[] = [];
@@ -122,6 +126,22 @@ export function validateApplicationsCatalogue(input: unknown): ValidationResult 
         const intg = rawIntg as Record<string, unknown>;
         if (intg['direction'] !== undefined && !VALID_DIRECTIONS.has(intg['direction'] as IntegrationDirection)) {
           errors.push({ code: 'APP-009', message: `${idx}.integrations[${j}]: direction "${intg['direction']}" must be one of: inbound, outbound, bidirectional` });
+        }
+
+        // INT-001 — when interface_semantics: true, four fields become required.
+        if (intg['interface_semantics'] === true) {
+          for (const field of IFACE_CONDITIONAL) {
+            const v = intg[field];
+            if (typeof v !== 'string' || (v as string).trim() === '') {
+              errors.push({ code: 'INT-001', message: `${idx}.integrations[${j}]: ${field} is required when interface_semantics is true.`, path: `${idx}.integrations[${j}].${field}` });
+            }
+          }
+          if (typeof intg['sensitivity'] === 'string' && !VALID_SENSITIVITY.has(intg['sensitivity'])) {
+            errors.push({ code: 'INT-001', message: `${idx}.integrations[${j}]: sensitivity "${intg['sensitivity']}" must be one of public, internal, confidential, restricted.`, path: `${idx}.integrations[${j}].sensitivity` });
+          }
+          if (typeof intg['directionality'] === 'string' && !VALID_DIRECTIONALITY.has(intg['directionality'])) {
+            errors.push({ code: 'INT-001', message: `${idx}.integrations[${j}]: directionality "${intg['directionality']}" must be one of producer, consumer, request_reply, bidirectional_stream.`, path: `${idx}.integrations[${j}].directionality` });
+          }
         }
       }
     }

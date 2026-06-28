@@ -141,7 +141,7 @@ function checkReferentialIntegrity(input: RepoModelInput, findings: RepoFinding[
   }
 }
 
-/** Phase 5 — ArchiMate layer-semantics on relations.
+/** Phase 5 — ArchiMate layer-semantics on relations and elements.
  *
  * Enforces endpoint-type constraints for relation kinds whose methodology
  * semantics are formally defined. Rules added here must have a corresponding
@@ -153,6 +153,10 @@ function checkReferentialIntegrity(input: RepoModelInput, findings: RepoFinding[
  *   located_at      — ACTOR(person|business_unit) → LOCATION (canonical form)
  *   offers          — ACTOR(business_unit)|ROLE → BUSINESS_SERVICE (25-business-services.md)
  *   realizes        — BUSINESS_SERVICE → CAPABILITY           (25-business-services.md)
+ *
+ * Implemented element checks:
+ *   INT-002 — INTEGRATION(interface_semantics: true) source/target → APPLICATION
+ *             (ELEMENT_PRIMITIVES.md §7.8.1)
  *
  * lint.py ships this as a no-op stub; Studio is ahead of the Python tool here.
  * These findings are non-blocking for cross-tool parity — they surface only in
@@ -268,6 +272,30 @@ function checkLayerSemantics(input: RepoModelInput, findings: RepoFinding[]): vo
               `BUSINESS_SERVICE; got notation='${from['notation']}'.`,
           });
         }
+      }
+    }
+  }
+
+  // INT-002 — INTEGRATION elements with interface_semantics: true must have
+  // source and target that resolve to APPLICATION-notation elements.
+  for (const doc of input.elements) {
+    if (!doc.data) continue;
+    if (doc.data['notation'] !== 'integration') continue;
+    if (doc.data['interface_semantics'] !== true) continue;
+
+    const intId = docId(doc) ?? '';
+    for (const field of ['source', 'target'] as const) {
+      const endpointId = doc.data[field];
+      if (typeof endpointId !== 'string' || endpointId.trim() === '') continue;
+      const resolved = elementById.get(endpointId);
+      if (resolved && resolved['notation'] !== 'application') {
+        findings.push({
+          scope: PScope,
+          id: intId,
+          message:
+            `INT-002: INTEGRATION '${intId}' interface_semantics endpoint '${endpointId}' ` +
+            `(${field}) must resolve to an APPLICATION element; got notation='${resolved['notation']}'.`,
+        });
       }
     }
   }

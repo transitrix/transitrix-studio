@@ -419,3 +419,122 @@ describe('validateRepoModel — layer-semantics (offers / realizes)', () => {
     expect(findings[0].message).toContain('BUSINESS_SERVICE');
   });
 });
+
+describe('validateRepoModel — layer-semantics (INT-002 integration endpoints)', () => {
+  function integrationModel() {
+    const model = cleanModel();
+    model.elements.push(
+      el('canon/elements/03_application/applications/APPLICATION-OMS-1.yaml', {
+        notation: 'application',
+        id: 'APPLICATION-OMS-1',
+      }),
+      el('canon/elements/03_application/applications/APPLICATION-CRM-1.yaml', {
+        notation: 'application',
+        id: 'APPLICATION-CRM-1',
+      }),
+      el('canon/elements/02_business/actors/ACTOR-OPS-1.yaml', {
+        notation: 'actor',
+        id: 'ACTOR-OPS-1',
+        type: 'business_unit',
+      }),
+    );
+    return model;
+  }
+
+  it('accepts an interface_semantics integration whose endpoints resolve to APPLICATION elements', () => {
+    const model = integrationModel();
+    model.elements.push(
+      el('canon/elements/03_application/integrations/INTEGRATION-OMS-EVENTS-1.yaml', {
+        notation: 'integration',
+        id: 'INTEGRATION-OMS-EVENTS-1',
+        interface_semantics: true,
+        source: 'APPLICATION-OMS-1',
+        target: 'APPLICATION-CRM-1',
+      }),
+    );
+    expect(validateRepoModel(model)).toEqual([]);
+  });
+
+  it('does not fire INT-002 for an integration without interface_semantics', () => {
+    const model = integrationModel();
+    model.elements.push(
+      el('canon/elements/03_application/integrations/INTEGRATION-PLAIN-1.yaml', {
+        notation: 'integration',
+        id: 'INTEGRATION-PLAIN-1',
+        source: 'ACTOR-OPS-1',
+        target: 'APPLICATION-CRM-1',
+      }),
+    );
+    expect(validateRepoModel(model)).toEqual([]);
+  });
+
+  it('flags INT-002 when source resolves to a non-APPLICATION element', () => {
+    const model = integrationModel();
+    model.elements.push(
+      el('canon/elements/03_application/integrations/INTEGRATION-BAD-1.yaml', {
+        notation: 'integration',
+        id: 'INTEGRATION-BAD-1',
+        interface_semantics: true,
+        source: 'ACTOR-OPS-1',
+        target: 'APPLICATION-CRM-1',
+      }),
+    );
+    const findings = validateRepoModel(model);
+    expect(findings).toHaveLength(1);
+    expect(findings[0]).toMatchObject({ scope: 'repo', id: 'INTEGRATION-BAD-1' });
+    expect(findings[0].message).toContain('INT-002');
+    expect(findings[0].message).toContain('ACTOR-OPS-1');
+    expect(findings[0].message).toContain('source');
+  });
+
+  it('flags INT-002 when target resolves to a non-APPLICATION element', () => {
+    const model = integrationModel();
+    model.elements.push(
+      el('canon/elements/03_application/integrations/INTEGRATION-BAD-2.yaml', {
+        notation: 'integration',
+        id: 'INTEGRATION-BAD-2',
+        interface_semantics: true,
+        source: 'APPLICATION-OMS-1',
+        target: 'ACTOR-OPS-1',
+      }),
+    );
+    const findings = validateRepoModel(model);
+    expect(findings).toHaveLength(1);
+    expect(findings[0]).toMatchObject({ scope: 'repo', id: 'INTEGRATION-BAD-2' });
+    expect(findings[0].message).toContain('INT-002');
+    expect(findings[0].message).toContain('ACTOR-OPS-1');
+    expect(findings[0].message).toContain('target');
+  });
+
+  it('flags INT-002 for both endpoints when neither resolves to APPLICATION', () => {
+    const model = integrationModel();
+    model.elements.push(
+      el('canon/elements/03_application/integrations/INTEGRATION-BAD-3.yaml', {
+        notation: 'integration',
+        id: 'INTEGRATION-BAD-3',
+        interface_semantics: true,
+        source: 'ACTOR-OPS-1',
+        target: 'GOAL-OPS-1',
+      }),
+    );
+    const findings = validateRepoModel(model);
+    expect(findings).toHaveLength(2);
+    expect(findings.every(f => f.message.includes('INT-002'))).toBe(true);
+  });
+
+  it('does not flag INT-002 when endpoint id is not in the element registry', () => {
+    // Unresolved IDs are caught by phase 4 (referential integrity), not INT-002.
+    const model = integrationModel();
+    model.elements.push(
+      el('canon/elements/03_application/integrations/INTEGRATION-UNRESOLVED-1.yaml', {
+        notation: 'integration',
+        id: 'INTEGRATION-UNRESOLVED-1',
+        interface_semantics: true,
+        source: 'APPLICATION-MISSING-99',
+        target: 'APPLICATION-CRM-1',
+      }),
+    );
+    const findings = validateRepoModel(model).filter(f => f.message.includes('INT-002'));
+    expect(findings).toHaveLength(0);
+  });
+});

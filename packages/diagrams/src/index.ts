@@ -14,6 +14,7 @@ export * from "./confidence/index";
 export * from "./factor/index";
 export * from "./fgca/index";
 export * from "./goals/index";
+export * from "./integration/index";
 export * from "./location/index";
 export * from "./process-blueprint/index";
 export * from "./process-map/index";
