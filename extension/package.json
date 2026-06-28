@@ -56,13 +56,9 @@
     "workspaceContains:**/*.goals.transitrix.yaml",
     "workspaceContains:**/*.dgca.transitrix.yaml",
     "workspaceContains:**/*.dga.transitrix.yaml",
-    "workspaceContains:**/*.fgca.transitrix.yaml",
-    "workspaceContains:**/*.fga.transitrix.yaml",
-    "workspaceContains:**/*.activities.transitrix.yaml",
     "workspaceContains:**/*.action.transitrix.yaml",
     "workspaceContains:**/*.action-card.transitrix.yaml",
     "workspaceContains:**/*.actions-tree.transitrix.yaml",
-    "workspaceContains:**/*.activities-tree.transitrix.yaml",
     "workspaceContains:**/*.blocks.transitrix.yaml",
     "workspaceContains:**/*.applications.transitrix.yaml",
     "workspaceContains:**/*.products.transitrix.yaml",
@@ -70,7 +66,6 @@
     "workspaceContains:**/*.scenarios.transitrix.yaml",
     "workspaceContains:**/*.capability-map.transitrix.yaml",
     "workspaceContains:**/*.process-blueprint.transitrix.yaml",
-    "workspaceContains:**/*.activity-card.transitrix.yaml",
     "workspaceContains:**/*.compliance-impact.view.yaml",
     "workspaceContains:**/*.coverage-metric.transitrix.yaml",
     "workspaceContains:**/*.compliance-impact.transitrix.yaml",
@@ -455,17 +450,6 @@
         "configuration": "./language-configuration.json"
       },
       {
-        "id": "transitrix-fga",
-        "aliases": [
-          "Transitrix FGA",
-          "Factor-Goal-Activity"
-        ],
-        "extensions": [
-          ".fga.transitrix.yaml"
-        ],
-        "configuration": "./language-configuration.json"
-      },
-      {
         "id": "transitrix-products",
         "aliases": [
           "Transitrix Products",
@@ -532,17 +516,6 @@
         "configuration": "./language-configuration.json"
       },
       {
-        "id": "transitrix-activity-card",
-        "aliases": [
-          "Transitrix Activity Card",
-          "Activity Card"
-        ],
-        "extensions": [
-          ".activity-card.transitrix.yaml"
-        ],
-        "configuration": "./language-configuration.json"
-      },
-      {
         "id": "transitrix-action-card",
         "aliases": [
           "Transitrix Action Card",
@@ -550,17 +523,6 @@
         ],
         "extensions": [
           ".action-card.transitrix.yaml"
-        ],
-        "configuration": "./language-configuration.json"
-      },
-      {
-        "id": "transitrix-activities",
-        "aliases": [
-          "Transitrix Activities",
-          "Activity Network"
-        ],
-        "extensions": [
-          ".activities.transitrix.yaml"
         ],
         "configuration": "./language-configuration.json"
       },
@@ -582,8 +544,7 @@
           "Action Catalogue Tree"
         ],
         "extensions": [
-          ".actions-tree.transitrix.yaml",
-          ".activities-tree.transitrix.yaml"
+          ".actions-tree.transitrix.yaml"
         ],
         "configuration": "./language-configuration.json"
       },
@@ -648,18 +609,6 @@
         "icon": "$(type-hierarchy)"
       },
       {
-        "command": "transitrixStudio.previewFGCA",
-        "title": "Transitrix: Preview FGCA diagram (deprecated — use DGCA)",
-        "category": "Transitrix",
-        "icon": "$(type-hierarchy)"
-      },
-      {
-        "command": "transitrixStudio.previewFGA",
-        "title": "Transitrix: Preview FGA diagram (deprecated — use DGA)",
-        "category": "Transitrix",
-        "icon": "$(type-hierarchy)"
-      },
-      {
         "command": "transitrixStudio.previewActivities",
         "title": "Transitrix: Preview action network diagram (PSND + Gantt + Tree)",
         "category": "Transitrix",
@@ -698,18 +647,6 @@
       {
         "command": "transitrixStudio.saveDGAAsSvg",
         "title": "Transitrix: Save DGA diagram as SVG",
-        "category": "Transitrix",
-        "icon": "$(save)"
-      },
-      {
-        "command": "transitrixStudio.saveFGCAAsSvg",
-        "title": "Transitrix: Save FGCA diagram as SVG (deprecated)",
-        "category": "Transitrix",
-        "icon": "$(save)"
-      },
-      {
-        "command": "transitrixStudio.saveFGAAsSvg",
-        "title": "Transitrix: Save FGA diagram as SVG (deprecated)",
         "category": "Transitrix",
         "icon": "$(save)"
       },
@@ -821,26 +758,6 @@
       {
         "command": "transitrixStudio.copyDGAAsPng",
         "title": "Transitrix: Copy DGA diagram as PNG",
-        "category": "Transitrix"
-      },
-      {
-        "command": "transitrixStudio.saveFGCAAsPng",
-        "title": "Transitrix: Save FGCA diagram as PNG (deprecated)",
-        "category": "Transitrix"
-      },
-      {
-        "command": "transitrixStudio.copyFGCAAsPng",
-        "title": "Transitrix: Copy FGCA diagram as PNG (deprecated)",
-        "category": "Transitrix"
-      },
-      {
-        "command": "transitrixStudio.saveFGAAsPng",
-        "title": "Transitrix: Save FGA diagram as PNG (deprecated)",
-        "category": "Transitrix"
-      },
-      {
-        "command": "transitrixStudio.copyFGAAsPng",
-        "title": "Transitrix: Copy FGA diagram as PNG (deprecated)",
         "category": "Transitrix"
       },
       {
@@ -988,21 +905,6 @@
           "group": "navigation@-10"
         },
         {
-          "when": "resourceFilename =~ /\\.fgca\\.transitrix\\.yaml$/",
-          "command": "transitrixStudio.previewFGCA",
-          "group": "navigation@-10"
-        },
-        {
-          "when": "resourceFilename =~ /\\.fga\\.transitrix\\.yaml$/",
-          "command": "transitrixStudio.previewFGA",
-          "group": "navigation@-10"
-        },
-        {
-          "when": "resourceFilename =~ /\\.activities\\.transitrix\\.yaml$/",
-          "command": "transitrixStudio.previewActivities",
-          "group": "navigation@-10"
-        },
-        {
           "when": "resourceFilename =~ /\\.action\\.transitrix\\.yaml$/",
           "command": "transitrixStudio.previewActivities",
           "group": "navigation@-10"
@@ -1014,11 +916,6 @@
         },
         {
           "when": "resourceFilename =~ /\\.actions-tree\\.transitrix\\.yaml$/",
-          "command": "transitrixStudio.previewActionsTree",
-          "group": "navigation@-10"
-        },
-        {
-          "when": "resourceFilename =~ /\\.activities-tree\\.transitrix\\.yaml$/",
           "command": "transitrixStudio.previewActionsTree",
           "group": "navigation@-10"
         },
@@ -1058,28 +955,13 @@
           "group": "navigation@-9"
         },
         {
-          "when": "resourceFilename =~ /\\.fgca\\.transitrix\\.yaml$/",
-          "command": "transitrixStudio.saveFGCAAsSvg",
-          "group": "navigation@-9"
-        },
-        {
           "when": "activeWebviewPanelId == fgcaPreview",
-          "command": "transitrixStudio.saveFGCAAsSvg",
-          "group": "navigation@-9"
-        },
-        {
-          "when": "resourceFilename =~ /\\.fga\\.transitrix\\.yaml$/",
-          "command": "transitrixStudio.saveFGAAsSvg",
+          "command": "transitrixStudio.saveDGCAAsSvg",
           "group": "navigation@-9"
         },
         {
           "when": "activeWebviewPanelId == fgaPreview",
-          "command": "transitrixStudio.saveFGAAsSvg",
-          "group": "navigation@-9"
-        },
-        {
-          "when": "resourceFilename =~ /\\.activities\\.transitrix\\.yaml$/",
-          "command": "transitrixStudio.saveActivitiesAsSvg",
+          "command": "transitrixStudio.saveDGAAsSvg",
           "group": "navigation@-9"
         },
         {
@@ -1140,16 +1022,6 @@
         {
           "when": "activeWebviewPanelId == processBlueprintPreview",
           "command": "transitrixStudio.saveProcessBlueprintAsSvg",
-          "group": "navigation@-9"
-        },
-        {
-          "when": "resourceFilename =~ /\\.activity-card\\.transitrix\\.yaml$/",
-          "command": "transitrixStudio.previewActivityCard",
-          "group": "navigation@-10"
-        },
-        {
-          "when": "resourceFilename =~ /\\.activity-card\\.transitrix\\.yaml$/",
-          "command": "transitrixStudio.saveActivityCardAsSvg",
           "group": "navigation@-9"
         },
         {
