@@ -147,3 +147,154 @@ describe('validateRepoModel — syntax', () => {
     expect(findings[0].message).toContain('broken.yaml');
   });
 });
+
+describe('validateRepoModel — layer-semantics (unit_located_at / located_at)', () => {
+  function locationModel() {
+    const model = cleanModel();
+    model.elements.push(
+      el('canon/elements/02_business/actors/ACTOR-OPS-1.yaml', {
+        notation: 'actor',
+        id: 'ACTOR-OPS-1',
+        type: 'business_unit',
+      }),
+      el('canon/elements/02_business/actors/ACTOR-JANE-1.yaml', {
+        notation: 'actor',
+        id: 'ACTOR-JANE-1',
+        type: 'person',
+      }),
+      el('canon/elements/02_business/locations/LOCATION-TBILISI-1.yaml', {
+        notation: 'location',
+        id: 'LOCATION-TBILISI-1',
+      }),
+    );
+    return model;
+  }
+
+  it('accepts a valid unit_located_at (business_unit → LOCATION)', () => {
+    const model = locationModel();
+    model.relations.push(
+      el('canon/relations/REL-LOC-1.yaml', {
+        notation: 'relation',
+        id: 'REL-LOC-1',
+        type: 'unit_located_at',
+        from: 'ACTOR-OPS-1',
+        to: 'LOCATION-TBILISI-1',
+      }),
+    );
+    expect(validateRepoModel(model)).toEqual([]);
+  });
+
+  it('accepts a valid located_at for a business_unit', () => {
+    const model = locationModel();
+    model.relations.push(
+      el('canon/relations/REL-LOC-2.yaml', {
+        notation: 'relation',
+        id: 'REL-LOC-2',
+        type: 'located_at',
+        from: 'ACTOR-OPS-1',
+        to: 'LOCATION-TBILISI-1',
+      }),
+    );
+    expect(validateRepoModel(model)).toEqual([]);
+  });
+
+  it('accepts a valid located_at for a person', () => {
+    const model = locationModel();
+    model.relations.push(
+      el('canon/relations/REL-LOC-3.yaml', {
+        notation: 'relation',
+        id: 'REL-LOC-3',
+        type: 'located_at',
+        from: 'ACTOR-JANE-1',
+        to: 'LOCATION-TBILISI-1',
+      }),
+    );
+    expect(validateRepoModel(model)).toEqual([]);
+  });
+
+  it('flags unit_located_at with a wrong from type (person instead of business_unit)', () => {
+    const model = locationModel();
+    model.relations.push(
+      el('canon/relations/REL-BAD-1.yaml', {
+        notation: 'relation',
+        id: 'REL-BAD-1',
+        type: 'unit_located_at',
+        from: 'ACTOR-JANE-1',
+        to: 'LOCATION-TBILISI-1',
+      }),
+    );
+    const findings = validateRepoModel(model);
+    expect(findings).toHaveLength(1);
+    expect(findings[0]).toMatchObject({ scope: 'repo', id: 'REL-BAD-1' });
+    expect(findings[0].message).toContain('unit_located_at');
+    expect(findings[0].message).toContain('business_unit');
+  });
+
+  it('flags unit_located_at with a non-ACTOR from element', () => {
+    const model = locationModel();
+    model.relations.push(
+      el('canon/relations/REL-BAD-2.yaml', {
+        notation: 'relation',
+        id: 'REL-BAD-2',
+        type: 'unit_located_at',
+        from: 'GOAL-OPS-1',
+        to: 'LOCATION-TBILISI-1',
+      }),
+    );
+    const findings = validateRepoModel(model);
+    expect(findings).toHaveLength(1);
+    expect(findings[0]).toMatchObject({ scope: 'repo', id: 'REL-BAD-2' });
+    expect(findings[0].message).toContain('unit_located_at');
+  });
+
+  it('flags unit_located_at with a non-LOCATION to element', () => {
+    const model = locationModel();
+    model.relations.push(
+      el('canon/relations/REL-BAD-3.yaml', {
+        notation: 'relation',
+        id: 'REL-BAD-3',
+        type: 'unit_located_at',
+        from: 'ACTOR-OPS-1',
+        to: 'GOAL-OPS-1',
+      }),
+    );
+    const findings = validateRepoModel(model);
+    expect(findings).toHaveLength(1);
+    expect(findings[0]).toMatchObject({ scope: 'repo', id: 'REL-BAD-3' });
+    expect(findings[0].message).toContain('LOCATION');
+  });
+
+  it('flags located_at with a non-actor from element', () => {
+    const model = locationModel();
+    model.relations.push(
+      el('canon/relations/REL-BAD-4.yaml', {
+        notation: 'relation',
+        id: 'REL-BAD-4',
+        type: 'located_at',
+        from: 'CAPABILITY-V1',
+        to: 'LOCATION-TBILISI-1',
+      }),
+    );
+    const findings = validateRepoModel(model);
+    expect(findings).toHaveLength(1);
+    expect(findings[0]).toMatchObject({ scope: 'repo', id: 'REL-BAD-4' });
+    expect(findings[0].message).toContain('located_at');
+  });
+
+  it('does not emit layer-semantic findings for unknown endpoints (ref-integrity handles those)', () => {
+    const model = locationModel();
+    model.relations.push(
+      el('canon/relations/REL-MISSING.yaml', {
+        notation: 'relation',
+        id: 'REL-MISSING',
+        type: 'unit_located_at',
+        from: 'ACTOR-UNKNOWN-99',
+        to: 'LOCATION-UNKNOWN-99',
+      }),
+    );
+    const findings = validateRepoModel(model);
+    // ref-integrity fires for missing endpoints; no duplicate layer-semantic finding
+    expect(findings.every((f) => !f.message.includes('Layer-semantics'))).toBe(true);
+    expect(findings.some((f) => f.message.includes('ACTOR-UNKNOWN-99'))).toBe(true);
+  });
+});

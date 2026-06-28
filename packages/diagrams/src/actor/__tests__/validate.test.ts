@@ -103,4 +103,12 @@ describe('validateActor — ACTOR-003 (engagement fields forbidden inline)', () 
   it('flags inline owner', () => {
     expect(codes({ ...valid(), owner: 'ACTOR-OPS-1' })).toContain('ACTOR-003');
   });
+
+  it('flags inline located_at (location belongs in a REL file)', () => {
+    expect(codes({ ...valid(), located_at: 'LOCATION-TBILISI-1' })).toContain('ACTOR-003');
+  });
+
+  it('flags inline unit_located_at (location belongs in a REL file)', () => {
+    expect(codes({ ...valid(), unit_located_at: 'LOCATION-TBILISI-1' })).toContain('ACTOR-003');
+  });
 });

@@ -18,6 +18,8 @@ export const ACTOR_FORBIDDEN_INLINE_FIELDS = [
   'community_membership',
   'contracting',
   'unit_parent',
+  'located_at',
+  'unit_located_at',
   'roles',
   'owner',
 ] as const;
