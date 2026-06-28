@@ -148,11 +148,17 @@ function checkReferentialIntegrity(input: RepoModelInput, findings: RepoFinding[
  * entry in methodology `notations/elements/17-relations.md`; do not add
  * speculative rules.
  *
- * Implemented kinds:
+ * Implemented relation kinds:
  *   unit_located_at — ACTOR(business_unit) → LOCATION        (21-locations.md)
  *   located_at      — ACTOR(person|business_unit) → LOCATION (canonical form)
  *   offers          — ACTOR(business_unit)|ROLE → BUSINESS_SERVICE (25-business-services.md)
  *   realizes        — BUSINESS_SERVICE → CAPABILITY           (25-business-services.md)
+ *   hosts           — NODE → TECHNOLOGY_SERVICE               (25-nodes.md / 26-technology-services.md)
+ *   uses            — APPLICATION → TECHNOLOGY_SERVICE        (26-technology-services.md)
+ *
+ * Implemented element checks:
+ *   TSVC-003        — TECHNOLOGY_SERVICE.node must resolve to NODE notation
+ *                     (26-technology-services.md §5)
  *
  * Implemented element checks:
  *   INT-002 — INTEGRATION(interface_semantics: true) source/target → APPLICATION
@@ -273,6 +279,76 @@ function checkLayerSemantics(input: RepoModelInput, findings: RepoFinding[]): vo
           });
         }
       }
+    } else if (relType === 'hosts') {
+      if (fromId) {
+        const from = elementById.get(fromId);
+        if (from && from['notation'] !== 'node') {
+          findings.push({
+            scope: PScope,
+            id: relId,
+            message:
+              `Layer-semantics: '${relId}' type 'hosts' requires from to be a NODE; ` +
+              `got notation='${from['notation']}'.`,
+          });
+        }
+      }
+      if (toId) {
+        const to = elementById.get(toId);
+        if (to && to['notation'] !== 'technology-service') {
+          findings.push({
+            scope: PScope,
+            id: relId,
+            message:
+              `Layer-semantics: '${relId}' type 'hosts' requires to to be a TECHNOLOGY_SERVICE; ` +
+              `got notation='${to['notation']}'.`,
+          });
+        }
+      }
+    } else if (relType === 'uses') {
+      if (fromId) {
+        const from = elementById.get(fromId);
+        if (from && from['notation'] !== 'application') {
+          findings.push({
+            scope: PScope,
+            id: relId,
+            message:
+              `Layer-semantics: '${relId}' type 'uses' requires from to be an APPLICATION; ` +
+              `got notation='${from['notation']}'.`,
+          });
+        }
+      }
+      if (toId) {
+        const to = elementById.get(toId);
+        if (to && to['notation'] !== 'technology-service') {
+          findings.push({
+            scope: PScope,
+            id: relId,
+            message:
+              `Layer-semantics: '${relId}' type 'uses' requires to to be a TECHNOLOGY_SERVICE; ` +
+              `got notation='${to['notation']}'.`,
+          });
+        }
+      }
+    }
+  }
+
+  // TSVC-003 — TECHNOLOGY_SERVICE.node must resolve to a NODE-notation element.
+  for (const doc of input.elements) {
+    if (!doc.data) continue;
+    if (doc.data['notation'] !== 'technology-service') continue;
+    const nodeRef = doc.data['node'];
+    if (typeof nodeRef !== 'string' || nodeRef.trim() === '') continue;
+
+    const svcId = docId(doc) ?? '';
+    const resolved = elementById.get(nodeRef);
+    if (resolved && resolved['notation'] !== 'node') {
+      findings.push({
+        scope: PScope,
+        id: svcId,
+        message:
+          `TSVC-003: TECHNOLOGY_SERVICE '${svcId}' node '${nodeRef}' ` +
+          `must resolve to a NODE element; got notation='${resolved['notation']}'.`,
+      });
     }
   }
 
