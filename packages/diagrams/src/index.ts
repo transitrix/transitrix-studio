@@ -1,6 +1,7 @@
 export * from "./activities/index";
 export * from "./activity-card/index";
 export * from "./actor/index";
+export * from "./business-service/index";
 export * from "./geometry";
 export * from "./applications/index";
 export * from "./assertion/index";

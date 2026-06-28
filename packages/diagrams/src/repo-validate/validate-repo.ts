@@ -149,8 +149,10 @@ function checkReferentialIntegrity(input: RepoModelInput, findings: RepoFinding[
  * speculative rules.
  *
  * Implemented kinds:
- *   unit_located_at — ACTOR(business_unit) → LOCATION  (21-locations.md)
+ *   unit_located_at — ACTOR(business_unit) → LOCATION        (21-locations.md)
  *   located_at      — ACTOR(person|business_unit) → LOCATION (canonical form)
+ *   offers          — ACTOR(business_unit)|ROLE → BUSINESS_SERVICE (25-business-services.md)
+ *   realizes        — BUSINESS_SERVICE → CAPABILITY           (25-business-services.md)
  *
  * lint.py ships this as a no-op stub; Studio is ahead of the Python tool here.
  * These findings are non-blocking for cross-tool parity — they surface only in
@@ -222,6 +224,48 @@ function checkLayerSemantics(input: RepoModelInput, findings: RepoFinding[]): vo
             message:
               `Layer-semantics: '${relId}' type 'located_at' requires to to be a LOCATION; ` +
               `got notation='${to['notation']}'.`,
+          });
+        }
+      }
+    } else if (relType === 'offers') {
+      if (fromId) {
+        const from = elementById.get(fromId);
+        if (
+          from &&
+          from['notation'] !== 'actor' &&
+          from['notation'] !== 'role'
+        ) {
+          findings.push({
+            scope: PScope,
+            id: relId,
+            message:
+              `Layer-semantics: '${relId}' type 'offers' requires from to be ` +
+              `ACTOR(business_unit) or ROLE; got notation='${from['notation']}'.`,
+          });
+        }
+      }
+      if (toId) {
+        const to = elementById.get(toId);
+        if (to && to['notation'] !== 'business-service') {
+          findings.push({
+            scope: PScope,
+            id: relId,
+            message:
+              `Layer-semantics: '${relId}' type 'offers' requires to to be a BUSINESS_SERVICE; ` +
+              `got notation='${to['notation']}'.`,
+          });
+        }
+      }
+    } else if (relType === 'realizes') {
+      if (fromId) {
+        const from = elementById.get(fromId);
+        if (from && from['notation'] !== 'business-service') {
+          findings.push({
+            scope: PScope,
+            id: relId,
+            message:
+              `Layer-semantics: '${relId}' type 'realizes' requires from to be ` +
+              `BUSINESS_SERVICE; got notation='${from['notation']}'.`,
           });
         }
       }
