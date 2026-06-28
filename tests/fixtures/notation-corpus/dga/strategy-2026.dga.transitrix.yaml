@@ -31,7 +31,7 @@ goals:
     name: "Modernise platform"
     factors: [DRIVER-TECH-1]
 
-activities:
+actions:
   - id: ACTIVITY-MARKET-1
     name: "Launch in two new regions"
     goals: [GOAL-MARKET-1]

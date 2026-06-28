@@ -39,7 +39,7 @@ changes:
     name: "Enhance support platform"
     goals: [GOAL-3]
 
-activities:
+actions:
   - id: ACTIVITY-1
     name: "Market research"
     changes: [CHANGE-1]

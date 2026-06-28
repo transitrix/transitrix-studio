@@ -19,27 +19,20 @@ export function validateActivities(input: unknown): ActivityValidationResult {
 
   const raw = input as Record<string, unknown>;
 
-  // ACT-001: notation must be "action" (canonical) or "activities" (deprecated)
+  // ACT-001: notation must be "action"
   if (raw.notation === undefined) {
     errors.push({ code: 'ACT-001', message: 'notation field is required' });
     return { valid: false, errors, warnings };
   }
-  if (raw.notation !== 'action' && raw.notation !== 'activities') {
+  if (raw.notation !== 'action') {
     errors.push({ code: 'ACT-001', message: `notation must be "action", got "${String(raw.notation)}"` });
     return { valid: false, errors, warnings };
   }
-  if (raw.notation === 'activities') {
-    warnings.push({ code: 'DEPRECATED_NOTATION', message: 'notation: "activities" is deprecated — migrate to notation: "action"' });
-  }
 
-  // Accept "actions:" (canonical) or "activities:" (deprecated)
-  const rawArray = Array.isArray(raw.actions) ? raw.actions : (Array.isArray(raw.activities) ? raw.activities : undefined);
-  if (Array.isArray(raw.activities) && !Array.isArray(raw.actions)) {
-    warnings.push({ code: 'DEPRECATED_FIELD', message: 'Root key "activities:" is deprecated — rename to "actions:"' });
-  }
+  // Only "actions:" root key is accepted.
+  const rawArray = Array.isArray(raw.actions) ? raw.actions : undefined;
   if (!rawArray) {
-    const canonKey = raw.notation === 'action' ? 'actions' : 'activities';
-    errors.push({ code: 'SCHEMA_INVALID', message: `${canonKey} must be an array`, path: canonKey });
+    errors.push({ code: 'SCHEMA_INVALID', message: 'actions must be an array', path: 'actions' });
     return { valid: false, errors, warnings };
   }
   // Normalise onto raw.activities for the rest of this function (avoids touching downstream code)

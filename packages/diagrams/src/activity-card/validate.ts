@@ -49,21 +49,15 @@ export function validateActivityCard(input: unknown): ValidationResult {
   // ── Header (CONTRACT.md §2) ────────────────────────────────────────────────
   if (!('notation' in raw)) {
     errors.push({ code: 'HDR-001', message: 'notation field is required' });
-  } else if (raw['notation'] !== 'action-card' && raw['notation'] !== 'activity-card') {
+  } else if (raw['notation'] !== 'action-card') {
     errors.push({
       code: 'HDR-002',
       message: `notation must be "action-card", got "${String(raw['notation'])}"`,
     });
-  } else if (raw['notation'] === 'activity-card') {
-    warnings.push({ code: 'DEPRECATED_NOTATION', message: 'notation: "activity-card" is deprecated — migrate to notation: "action-card"' });
   }
 
-  // ── action_card / activity_card block ───────────────────────────────────────
-  // "action_card:" is canonical; "activity_card:" is accepted for compat.
-  const rawBlock = raw['action_card'] ?? raw['activity_card'];
-  if (raw['activity_card'] !== undefined && raw['action_card'] === undefined) {
-    warnings.push({ code: 'DEPRECATED_FIELD', message: 'Root key "activity_card:" is deprecated — rename to "action_card:"' });
-  }
+  // ── action_card block ────────────────────────────────────────────────────────
+  const rawBlock = raw['action_card'];
   const block = rawBlock;
   if (!block || typeof block !== 'object' || Array.isArray(block)) {
     errors.push({ code: 'AC-001', message: 'Missing required root key: action_card (object)' });

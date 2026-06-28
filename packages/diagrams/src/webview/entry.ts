@@ -93,10 +93,8 @@ export type NotationKind =
   | 'goals'
   | 'dgca'
   | 'dga'
-  | 'fgca'
-  | 'fga'
-  | 'activities'
-  | 'activity-card'
+  | 'action'
+  | 'action-card'
   | 'applications'
   | 'products'
   | 'process-map'
@@ -109,10 +107,8 @@ const SUPPORTED_KINDS: readonly NotationKind[] = [
   'goals',
   'dgca',
   'dga',
-  'fgca',
-  'fga',
-  'activities',
-  'activity-card',
+  'action',
+  'action-card',
   'applications',
   'products',
   'process-map',
@@ -186,11 +182,7 @@ function dispatchValidate(kind: NotationKind, doc: unknown): RenderResult {
       }
       return r;
     }
-    // DGCA and DGA are the canonical new names; FGCA/FGA are accepted as
-    // deprecated aliases. All four share the same parse + renderer; only the
-    // Change column visibility differs (DGA/FGA collapse it).
-    case 'dgca':
-    case 'fgca': {
+    case 'dgca': {
       const v = parseCanonicalFGCA(doc);
       const r = emptyResult(kind, v.valid ? 'ok' : 'error');
       r.errors.push(...v.errors);
@@ -200,8 +192,7 @@ function dispatchValidate(kind: NotationKind, doc: unknown): RenderResult {
       }
       return r;
     }
-    case 'dga':
-    case 'fga': {
+    case 'dga': {
       const v = parseCanonicalFGA(doc);
       const r = emptyResult(kind, v.valid ? 'ok' : 'error');
       r.errors.push(...v.errors);
@@ -211,12 +202,12 @@ function dispatchValidate(kind: NotationKind, doc: unknown): RenderResult {
       }
       return r;
     }
-    case 'activities':
-      return renderFromValidation('activities', validateActivities(doc), () =>
+    case 'action':
+      return renderFromValidation('action', validateActivities(doc), () =>
         renderActivitiesSvg(doc as ActivityDoc),
       );
-    case 'activity-card':
-      return renderFromValidation('activity-card', validateActivityCard(doc), () =>
+    case 'action-card':
+      return renderFromValidation('action-card', validateActivityCard(doc), () =>
         renderActivityCardSvg(doc as ActivityCardDoc),
       );
     case 'process-blueprint':

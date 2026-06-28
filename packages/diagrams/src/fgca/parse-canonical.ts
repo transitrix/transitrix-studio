@@ -82,20 +82,17 @@ export function parseCanonicalFGCA(input: unknown): CanonicalFGCAResult {
 
   const raw = input as Record<string, unknown>;
 
-  if ('notation' in raw && raw['notation'] !== 'fgca' && raw['notation'] !== 'dgca') {
+  if ('notation' in raw && raw['notation'] !== 'dgca') {
     return {
       valid: false,
       errors: [
         {
           code: 'FGCA-001',
-          message: `notation must be "dgca" (or legacy "fgca"), got "${String(raw['notation'])}"`,
+          message: `notation must be "dgca", got "${String(raw['notation'])}"`,
         },
       ],
       warnings,
     };
-  }
-  if ('notation' in raw && raw['notation'] === 'fgca') {
-    warnings.push({ code: 'FGCA-001', message: 'notation "fgca" is deprecated — rename to "dgca"' });
   }
 
   // FGCA-002 — document id (optional in v1.4 per the canonical spec? — spec
@@ -118,10 +115,9 @@ export function parseCanonicalFGCA(input: unknown): CanonicalFGCAResult {
   const factorsRaw = asObjectArray(raw['factors']);
   const goalsRaw = asObjectArray(raw['goals']);
   const changesRaw = asObjectArray(raw['changes']);
-  // Accept canonical `actions:` or deprecated `activities:`; warn on the latter.
-  const activitiesRaw = asObjectArray(raw['actions']) ?? asObjectArray(raw['activities']);
-  if ('activities' in raw && !('actions' in raw)) {
-    warnings.push({ code: 'FGCA-001', message: '"activities" key is deprecated — rename to "actions"' });
+  const activitiesRaw = asObjectArray(raw['actions']);
+  if (activitiesRaw === null && 'activities' in raw) {
+    errors.push({ code: 'FGCA-004', message: '"activities" key is not accepted — rename to "actions"', path: 'actions' });
   }
 
   if (factorsRaw === null) errors.push({ code: 'FGCA-004', message: 'factors must be an array', path: 'factors' });
@@ -348,10 +344,10 @@ export function parseCanonicalFGA(input: unknown): CanonicalFGAResult {
     return { valid: false, errors: [{ code: 'FGA-001', message: 'document root is not an object' }], warnings: [] };
   }
   const raw = input as Record<string, unknown>;
-  if ('notation' in raw && raw['notation'] !== 'fga' && raw['notation'] !== 'dga') {
+  if ('notation' in raw && raw['notation'] !== 'dga') {
     return {
       valid: false,
-      errors: [{ code: 'FGA-001', message: `notation must be "dga" (or legacy "fga"), got "${String(raw['notation'])}"` }],
+      errors: [{ code: 'FGA-001', message: `notation must be "dga", got "${String(raw['notation'])}"` }],
       warnings: [],
     };
   }

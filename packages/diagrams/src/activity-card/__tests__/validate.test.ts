@@ -2,9 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { validateActivityCard } from '../validate.js';
 
 const VALID = {
-  notation: 'activity-card',
+  notation: 'action-card',
   spec_version: '0.1',
-  activity_card: {
+  action_card: {
     id: 'ACTIVITY_CARD-EU-PROGRAMME-1',
     project: 'ACTIVITY-EU-PROGRAMME-1',
     description: 'Executive summary.',
@@ -20,11 +20,23 @@ const VALID = {
 };
 
 describe('validateActivityCard', () => {
-  it('accepts a well-formed card (deprecated notation: activity-card)', () => {
+  it('accepts a well-formed card (notation: action-card)', () => {
     const r = validateActivityCard(VALID);
     expect(r.valid).toBe(true);
     expect(r.errors).toHaveLength(0);
-    expect(r.warnings.some(w => w.code === 'DEPRECATED_NOTATION')).toBe(true);
+    expect(r.warnings.some(w => w.code === 'DEPRECATED_NOTATION')).toBe(false);
+  });
+
+  it('rejects deprecated notation: activity-card', () => {
+    const r = validateActivityCard({
+      notation: 'activity-card',
+      activity_card: {
+        id: 'ACTIVITY_CARD-EU-PROGRAMME-1',
+        project: 'ACTIVITY-EU-PROGRAMME-1',
+      },
+    });
+    expect(r.valid).toBe(false);
+    expect(r.errors.some(e => e.code === 'HDR-002')).toBe(true);
   });
 
   it('accepts notation: action-card with action_card block (canonical)', () => {
@@ -67,21 +79,21 @@ describe('validateActivityCard', () => {
     expect(r.errors.some((e) => e.code === 'HDR-002')).toBe(true);
   });
 
-  it('AC-001 on missing activity_card block', () => {
-    const r = validateActivityCard({ notation: 'activity-card' });
+  it('AC-001 on missing action_card block', () => {
+    const r = validateActivityCard({ notation: 'action-card' });
     expect(r.valid).toBe(false);
     expect(r.errors.some((e) => e.code === 'AC-001')).toBe(true);
   });
 
   it('AC-002 on malformed card id', () => {
-    const r = validateActivityCard({ ...VALID, activity_card: { ...VALID.activity_card, id: 'CARD-1' } });
+    const r = validateActivityCard({ ...VALID, action_card: { ...VALID.action_card, id: 'CARD-1' } });
     expect(r.errors.some((e) => e.code === 'AC-002')).toBe(true);
   });
 
   it('PC-001 on missing project', () => {
     const r = validateActivityCard({
       ...VALID,
-      activity_card: { ...VALID.activity_card, project: undefined },
+      action_card: { ...VALID.action_card, project: undefined },
     });
     expect(r.errors.some((e) => e.code === 'PC-001')).toBe(true);
   });
@@ -89,7 +101,7 @@ describe('validateActivityCard', () => {
   it('PC-001 on malformed project id', () => {
     const r = validateActivityCard({
       ...VALID,
-      activity_card: { ...VALID.activity_card, project: 'GOAL-1' },
+      action_card: { ...VALID.action_card, project: 'GOAL-1' },
     });
     expect(r.errors.some((e) => e.code === 'PC-001')).toBe(true);
   });
@@ -97,7 +109,7 @@ describe('validateActivityCard', () => {
   it('AC-003 on milestone missing required fields', () => {
     const r = validateActivityCard({
       ...VALID,
-      activity_card: { ...VALID.activity_card, milestones: [{ id: 'MILESTONE-X-1' }] },
+      action_card: { ...VALID.action_card, milestones: [{ id: 'MILESTONE-X-1' }] },
     });
     expect(r.valid).toBe(false);
     expect(r.errors.some((e) => e.code === 'AC-003')).toBe(true);
@@ -106,8 +118,8 @@ describe('validateActivityCard', () => {
   it('AC-004 on malformed milestone id', () => {
     const r = validateActivityCard({
       ...VALID,
-      activity_card: {
-        ...VALID.activity_card,
+      action_card: {
+        ...VALID.action_card,
         milestones: [{ id: 'MS-1', name: 'x', date: '2027-01-01' }],
       },
     });
@@ -118,7 +130,7 @@ describe('validateActivityCard', () => {
     const m = { id: 'MILESTONE-X-1', name: 'x', date: '2027-01-01' };
     const r = validateActivityCard({
       ...VALID,
-      activity_card: { ...VALID.activity_card, milestones: [m, { ...m }] },
+      action_card: { ...VALID.action_card, milestones: [m, { ...m }] },
     });
     expect(r.errors.some((e) => e.code === 'AC-004' && /Duplicate/.test(e.message))).toBe(true);
   });
@@ -126,8 +138,8 @@ describe('validateActivityCard', () => {
   it('AC-005 on bad milestone date format', () => {
     const r = validateActivityCard({
       ...VALID,
-      activity_card: {
-        ...VALID.activity_card,
+      action_card: {
+        ...VALID.action_card,
         milestones: [{ id: 'MILESTONE-X-1', name: 'x', date: '31/01/2027' }],
       },
     });
@@ -137,8 +149,8 @@ describe('validateActivityCard', () => {
   it('AC-006 on malformed delivers_changes entry', () => {
     const r = validateActivityCard({
       ...VALID,
-      activity_card: {
-        ...VALID.activity_card,
+      action_card: {
+        ...VALID.action_card,
         milestones: [{ id: 'MILESTONE-X-1', name: 'x', date: '2027-01-01', delivers_changes: ['GOAL-1'] }],
       },
     });
@@ -148,7 +160,7 @@ describe('validateActivityCard', () => {
   it('accepts a card with no milestones', () => {
     const r = validateActivityCard({
       ...VALID,
-      activity_card: { id: 'ACTIVITY_CARD-X-1', project: 'ACTIVITY-X-1' },
+      action_card: { id: 'ACTIVITY_CARD-X-1', project: 'ACTIVITY-X-1' },
     });
     expect(r.valid).toBe(true);
   });

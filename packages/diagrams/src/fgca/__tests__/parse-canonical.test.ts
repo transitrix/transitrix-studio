@@ -5,7 +5,7 @@ import yaml from 'js-yaml';
 import { parseCanonicalFGCA, parseCanonicalFGA } from '../parse-canonical.js';
 
 const VALID = {
-  notation: 'fgca',
+  notation: 'dgca',
   spec_version: '0.1',
   id: 'FGCA-SAMPLE-1',
   name: 'Sample FGCA chain',
@@ -18,7 +18,7 @@ const VALID = {
   changes: [
     { id: 'CHANGE-1', name: 'Transformation', goals: ['GOAL-1'] },
   ],
-  activities: [
+  actions: [
     { id: 'ACTIVITY-1', name: 'Workstream', changes: ['CHANGE-1'] },
   ],
 };
@@ -108,7 +108,7 @@ describe('parseCanonicalFGCA', () => {
   it('FGCA-010: rejects activity.changes[] referencing undefined change', () => {
     const r = parseCanonicalFGCA({
       ...VALID,
-      activities: [{ id: 'ACTIVITY-1', name: 'A', changes: ['CHANGE-99'] }],
+      actions: [{ id: 'ACTIVITY-1', name: 'A', changes: ['CHANGE-99'] }],
     });
     expect(r.valid).toBe(false);
     expect(r.errors.some((e) => e.code === 'FGCA-010')).toBe(true);
@@ -135,7 +135,7 @@ describe('parseCanonicalFGCA', () => {
     const r = parseCanonicalFGCA({
       ...VALID,
       changes: [{ id: 'CHANGE-1', name: 'C', goals: ['GOAL-1'] }],
-      activities: [
+      actions: [
         { id: 'ACTIVITY-1', name: 'A1', changes: ['CHANGE-1'] },
         { id: 'ACTIVITY-2', name: 'A2', changes: ['CHANGE-1'] },
       ],
@@ -180,13 +180,13 @@ describe('parseCanonicalFGCA — edge-driving fields populated', () => {
 
 describe('parseCanonicalFGA', () => {
   const VALID_FGA = {
-    notation: 'fga',
+    notation: 'dga',
     spec_version: '0.1',
     id: 'FGA-SAMPLE-1',
     name: 'Sample FGA chain',
     factors: [{ id: 'FACTOR-1', name: 'Driver' }],
     goals: [{ id: 'GOAL-1', name: 'Outcome', factors: ['FACTOR-1'] }],
-    activities: [{ id: 'ACTIVITY-1', name: 'Workstream', goals: ['GOAL-1'] }],
+    actions: [{ id: 'ACTIVITY-1', name: 'Workstream', goals: ['GOAL-1'] }],
   };
 
   it('accepts a valid canonical FGA document (no changes layer)', () => {
@@ -229,12 +229,12 @@ describe('parseCanonicalFGA', () => {
 });
 
 describe('parseCanonicalFGCA — example file regression', () => {
-  const EXAMPLES_DIR = path.resolve(process.cwd(), '..', '..', 'tests', 'fixtures', 'notation-corpus', 'fgca');
+  const EXAMPLES_DIR = path.resolve(process.cwd(), '..', '..', 'tests', 'fixtures', 'notation-corpus', 'dgca');
   const files = fs.existsSync(EXAMPLES_DIR)
     ? fs.readdirSync(EXAMPLES_DIR).filter((f) => f.endsWith('.transitrix.yaml'))
     : [];
   for (const file of files) {
-    it(`accepts tests/fixtures/notation-corpus/fgca/${file}`, () => {
+    it(`accepts tests/fixtures/notation-corpus/dgca/${file}`, () => {
       const text = fs.readFileSync(path.join(EXAMPLES_DIR, file), 'utf8');
       const parsedYaml = yaml.load(text);
       const r = parseCanonicalFGCA(parsedYaml);
@@ -245,12 +245,12 @@ describe('parseCanonicalFGCA — example file regression', () => {
 });
 
 describe('parseCanonicalFGA — example file regression', () => {
-  const EXAMPLES_DIR = path.resolve(process.cwd(), '..', '..', 'tests', 'fixtures', 'notation-corpus', 'fga');
+  const EXAMPLES_DIR = path.resolve(process.cwd(), '..', '..', 'tests', 'fixtures', 'notation-corpus', 'dga');
   const files = fs.existsSync(EXAMPLES_DIR)
     ? fs.readdirSync(EXAMPLES_DIR).filter((f) => f.endsWith('.transitrix.yaml'))
     : [];
   for (const file of files) {
-    it(`accepts tests/fixtures/notation-corpus/fga/${file} and resolves every activity to a goal`, () => {
+    it(`accepts tests/fixtures/notation-corpus/dga/${file} and resolves every activity to a goal`, () => {
       const text = fs.readFileSync(path.join(EXAMPLES_DIR, file), 'utf8');
       const r = parseCanonicalFGA(yaml.load(text));
       expect(r.errors).toEqual([]);

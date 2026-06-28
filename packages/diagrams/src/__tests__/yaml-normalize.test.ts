@@ -61,8 +61,8 @@ describe('coerceDatesToIsoStrings', () => {
 describe('coerceDatesToIsoStrings — js-yaml integration', () => {
   it('quoted ISO dates are preserved untouched', () => {
     const text = [
-      'notation: activities',
-      'activities:',
+      'notation: action',
+      'actions:',
       '  - id: "A-001"',
       '    name: "Quoted dates"',
       '    duration: 3',
@@ -70,18 +70,18 @@ describe('coerceDatesToIsoStrings — js-yaml integration', () => {
       '    end_date: "2026-06-03"',
       '',
     ].join('\n');
-    const parsed = yaml.load(text) as { activities: { start_date: unknown; end_date: unknown }[] };
+    const parsed = yaml.load(text) as { actions: { start_date: unknown; end_date: unknown }[] };
     coerceDatesToIsoStrings(parsed);
-    expect(parsed.activities[0].start_date).toBe('2026-06-01');
-    expect(parsed.activities[0].end_date).toBe('2026-06-03');
+    expect(parsed.actions[0].start_date).toBe('2026-06-01');
+    expect(parsed.actions[0].end_date).toBe('2026-06-03');
     const v = validateActivities(parsed);
     expect(v.valid).toBe(true);
   });
 
   it('bare ISO dates are coerced to ISO strings and pass validation', () => {
     const text = [
-      'notation: activities',
-      'activities:',
+      'notation: action',
+      'actions:',
       '  - id: "A-001"',
       '    name: "Bare dates"',
       '    duration: 3',
@@ -89,14 +89,14 @@ describe('coerceDatesToIsoStrings — js-yaml integration', () => {
       '    end_date: 2026-06-03',
       '',
     ].join('\n');
-    const parsed = yaml.load(text) as { activities: { start_date: unknown; end_date: unknown }[] };
+    const parsed = yaml.load(text) as { actions: { start_date: unknown; end_date: unknown }[] };
     // Without coercion, js-yaml returns Date instances and the validator
     // would emit ACT-008 because typeof !== 'string'. Sanity-check that
     // assumption before normalisation.
-    expect(parsed.activities[0].start_date).toBeInstanceOf(Date);
+    expect(parsed.actions[0].start_date).toBeInstanceOf(Date);
     coerceDatesToIsoStrings(parsed);
-    expect(parsed.activities[0].start_date).toBe('2026-06-01');
-    expect(parsed.activities[0].end_date).toBe('2026-06-03');
+    expect(parsed.actions[0].start_date).toBe('2026-06-01');
+    expect(parsed.actions[0].end_date).toBe('2026-06-03');
     const v = validateActivities(parsed);
     expect(v.valid).toBe(true);
   });

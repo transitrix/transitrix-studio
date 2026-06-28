@@ -26,7 +26,7 @@ const ELEMENTS = [
 const SOURCES = { elements: ELEMENTS, relations: [] };
 
 const VIEW_DOC = {
-  notation: 'fgca',
+  notation: 'dgca',
   id: 'FGCA-STRAT-1',
   name: 'Strategy 2026 — FGCA chain',
   spec_version: '0.1',
@@ -47,7 +47,7 @@ describe('isFGCAViewDoc', () => {
 
   it('returns false for an inline doc with factors/goals arrays', () => {
     expect(isFGCAViewDoc({
-      notation: 'fgca', id: 'FGCA-1', name: 'x',
+      notation: 'dgca', id: 'FGCA-1', name: 'x',
       factors: [], goals: [], changes: [], activities: [],
     })).toBe(false);
   });
@@ -66,7 +66,7 @@ describe('resolveFGCA — goals.filter=all', () => {
     const doc = resolveFGCA(VIEW_DOC, SOURCES);
     expect((doc['goals'] as unknown[]).length).toBe(3);
     expect((doc['changes'] as unknown[]).length).toBe(3);
-    expect((doc['activities'] as unknown[]).length).toBe(5);
+    expect((doc['actions'] as unknown[]).length).toBe(5);
   });
 
   it('derives factors from all goal.factors[] refs', () => {
@@ -90,7 +90,7 @@ describe('resolveFGCA — goals.filter=all', () => {
 
   it('carries view doc metadata (id, name, spec_version)', () => {
     const doc = resolveFGCA(VIEW_DOC, SOURCES);
-    expect(doc['notation']).toBe('fgca');
+    expect(doc['notation']).toBe('dgca');
     expect(doc['id']).toBe('FGCA-STRAT-1');
     expect(doc['name']).toBe('Strategy 2026 — FGCA chain');
     expect(doc['spec_version']).toBe('0.1');
@@ -110,7 +110,7 @@ describe('resolveFGCA — goals.filter=ids', () => {
     expect(goalIds).toEqual(['GOAL-1']);
     const changeIds = (doc['changes'] as Array<{ id: string }>).map((c) => c.id);
     expect(changeIds).toEqual(['CHANGE-1']);
-    const actIds = (doc['activities'] as Array<{ id: string }>).map((a) => a.id).sort();
+    const actIds = (doc['actions'] as Array<{ id: string }>).map((a) => a.id).sort();
     expect(actIds).toEqual(['ACTIVITY-1', 'ACTIVITY-2']);
     const r = parseCanonicalFGCA(doc);
     expect(r.valid).toBe(true);
@@ -159,7 +159,7 @@ describe('resolveFGCA — empty sources', () => {
     expect((doc['goals'] as unknown[]).length).toBe(0);
     expect((doc['factors'] as unknown[]).length).toBe(0);
     expect((doc['changes'] as unknown[]).length).toBe(0);
-    expect((doc['activities'] as unknown[]).length).toBe(0);
+    expect((doc['actions'] as unknown[]).length).toBe(0);
   });
 
   it('returns empty arrays for a non-object viewDoc', () => {
@@ -172,7 +172,7 @@ describe('resolveFGCA — empty sources', () => {
 
 describe('resolveFGCA — file-based regression against canon fixture', () => {
   const CANON_ROOT = path.resolve(
-    process.cwd(), '..', '..', 'tests', 'fixtures', 'notation-corpus', 'fgca', 'canon',
+    process.cwd(), '..', '..', 'tests', 'fixtures', 'notation-corpus', 'dgca', 'canon',
   );
   const VIEW_DIR = path.join(CANON_ROOT, 'views');
   const ELEM_DIR = path.join(CANON_ROOT, 'elements');

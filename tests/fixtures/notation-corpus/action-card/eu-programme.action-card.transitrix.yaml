@@ -1,4 +1,4 @@
-notation: activity-card
+notation: action-card
 spec_version: "0.1"
 
 # Worked example — EU regulatory-conformity programme.
@@ -15,7 +15,7 @@ spec_version: "0.1"
 #                         FACTOR elements
 #   canon/relations/**  → the activity_goal relation carrying project → goal
 
-activity_card:
+action_card:
   id: ACTIVITY_CARD-EU-PROGRAMME-1
   project: ACTIVITY-EU-PROGRAMME-1
 
