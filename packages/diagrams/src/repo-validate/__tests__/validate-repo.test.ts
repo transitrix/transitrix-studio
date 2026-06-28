@@ -538,3 +538,162 @@ describe('validateRepoModel — layer-semantics (INT-002 integration endpoints)'
     expect(findings).toHaveLength(0);
   });
 });
+
+describe('validateRepoModel — layer-semantics (hosts / uses / TSVC-003)', () => {
+  function techModel() {
+    const model = cleanModel();
+    model.elements.push(
+      el('canon/elements/04_technology/nodes/NODE-KAFKA-HOST-1.yaml', {
+        notation: 'node',
+        id: 'NODE-KAFKA-HOST-1',
+        type: 'cloud_instance',
+      }),
+      el('canon/elements/04_technology/services/TECHNOLOGY_SERVICE-KAFKA-1.yaml', {
+        notation: 'technology-service',
+        id: 'TECHNOLOGY_SERVICE-KAFKA-1',
+        type: 'messaging',
+        node: 'NODE-KAFKA-HOST-1',
+      }),
+      el('canon/elements/03_application/applications/APPLICATION-OMS-1.yaml', {
+        notation: 'application',
+        id: 'APPLICATION-OMS-1',
+      }),
+    );
+    return model;
+  }
+
+  it('accepts a valid hosts relation (NODE → TECHNOLOGY_SERVICE)', () => {
+    const model = techModel();
+    model.relations.push(
+      el('canon/relations/REL-HOSTS-1.yaml', {
+        notation: 'relation',
+        id: 'REL-HOSTS-1',
+        type: 'hosts',
+        from: 'NODE-KAFKA-HOST-1',
+        to: 'TECHNOLOGY_SERVICE-KAFKA-1',
+      }),
+    );
+    expect(validateRepoModel(model)).toEqual([]);
+  });
+
+  it('accepts a valid uses relation (APPLICATION → TECHNOLOGY_SERVICE)', () => {
+    const model = techModel();
+    model.relations.push(
+      el('canon/relations/REL-USES-1.yaml', {
+        notation: 'relation',
+        id: 'REL-USES-1',
+        type: 'uses',
+        from: 'APPLICATION-OMS-1',
+        to: 'TECHNOLOGY_SERVICE-KAFKA-1',
+      }),
+    );
+    expect(validateRepoModel(model)).toEqual([]);
+  });
+
+  it('flags hosts with a non-NODE from element', () => {
+    const model = techModel();
+    model.relations.push(
+      el('canon/relations/REL-HOSTS-BAD-1.yaml', {
+        notation: 'relation',
+        id: 'REL-HOSTS-BAD-1',
+        type: 'hosts',
+        from: 'APPLICATION-OMS-1',
+        to: 'TECHNOLOGY_SERVICE-KAFKA-1',
+      }),
+    );
+    const findings = validateRepoModel(model);
+    expect(findings).toHaveLength(1);
+    expect(findings[0]).toMatchObject({ scope: 'repo', id: 'REL-HOSTS-BAD-1' });
+    expect(findings[0].message).toContain('hosts');
+    expect(findings[0].message).toContain('NODE');
+  });
+
+  it('flags hosts with a non-TECHNOLOGY_SERVICE to element', () => {
+    const model = techModel();
+    model.relations.push(
+      el('canon/relations/REL-HOSTS-BAD-2.yaml', {
+        notation: 'relation',
+        id: 'REL-HOSTS-BAD-2',
+        type: 'hosts',
+        from: 'NODE-KAFKA-HOST-1',
+        to: 'APPLICATION-OMS-1',
+      }),
+    );
+    const findings = validateRepoModel(model);
+    expect(findings).toHaveLength(1);
+    expect(findings[0]).toMatchObject({ scope: 'repo', id: 'REL-HOSTS-BAD-2' });
+    expect(findings[0].message).toContain('hosts');
+    expect(findings[0].message).toContain('TECHNOLOGY_SERVICE');
+  });
+
+  it('flags uses with a non-APPLICATION from element', () => {
+    const model = techModel();
+    model.relations.push(
+      el('canon/relations/REL-USES-BAD-1.yaml', {
+        notation: 'relation',
+        id: 'REL-USES-BAD-1',
+        type: 'uses',
+        from: 'NODE-KAFKA-HOST-1',
+        to: 'TECHNOLOGY_SERVICE-KAFKA-1',
+      }),
+    );
+    const findings = validateRepoModel(model);
+    expect(findings).toHaveLength(1);
+    expect(findings[0]).toMatchObject({ scope: 'repo', id: 'REL-USES-BAD-1' });
+    expect(findings[0].message).toContain('uses');
+    expect(findings[0].message).toContain('APPLICATION');
+  });
+
+  it('flags uses with a non-TECHNOLOGY_SERVICE to element', () => {
+    const model = techModel();
+    model.relations.push(
+      el('canon/relations/REL-USES-BAD-2.yaml', {
+        notation: 'relation',
+        id: 'REL-USES-BAD-2',
+        type: 'uses',
+        from: 'APPLICATION-OMS-1',
+        to: 'NODE-KAFKA-HOST-1',
+      }),
+    );
+    const findings = validateRepoModel(model);
+    expect(findings).toHaveLength(1);
+    expect(findings[0]).toMatchObject({ scope: 'repo', id: 'REL-USES-BAD-2' });
+    expect(findings[0].message).toContain('uses');
+    expect(findings[0].message).toContain('TECHNOLOGY_SERVICE');
+  });
+
+  it('TSVC-003: does not flag a technology-service whose node resolves to a NODE element', () => {
+    const model = techModel();
+    expect(validateRepoModel(model)).toEqual([]);
+  });
+
+  it('TSVC-003: flags a technology-service whose node resolves to a non-NODE element', () => {
+    const model = techModel();
+    model.elements.push(
+      el('canon/elements/04_technology/services/TECHNOLOGY_SERVICE-BAD-1.yaml', {
+        notation: 'technology-service',
+        id: 'TECHNOLOGY_SERVICE-BAD-1',
+        type: 'messaging',
+        node: 'APPLICATION-OMS-1',
+      }),
+    );
+    const findings = validateRepoModel(model).filter(f => f.message.includes('TSVC-003'));
+    expect(findings).toHaveLength(1);
+    expect(findings[0]).toMatchObject({ scope: 'repo', id: 'TECHNOLOGY_SERVICE-BAD-1' });
+    expect(findings[0].message).toContain('APPLICATION-OMS-1');
+  });
+
+  it('TSVC-003: does not flag a technology-service with an unresolved node (phase 4 handles that)', () => {
+    const model = techModel();
+    model.elements.push(
+      el('canon/elements/04_technology/services/TECHNOLOGY_SERVICE-UNRESOLVED-1.yaml', {
+        notation: 'technology-service',
+        id: 'TECHNOLOGY_SERVICE-UNRESOLVED-1',
+        type: 'storage',
+        node: 'NODE-MISSING-99',
+      }),
+    );
+    const findings = validateRepoModel(model).filter(f => f.message.includes('TSVC-003'));
+    expect(findings).toHaveLength(0);
+  });
+});
