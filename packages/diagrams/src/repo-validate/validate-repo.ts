@@ -143,15 +143,90 @@ function checkReferentialIntegrity(input: RepoModelInput, findings: RepoFinding[
 
 /** Phase 5 — ArchiMate layer-semantics on relations.
  *
- * lint.py ships `_check_semantic_rules` as a no-op stub (`pass`). It is ported
- * here faithfully as a no-op so repo-scope validation reaches parity with
- * lint.py on the reference fixture. Real layer-semantics rules are DEFERRED
- * until the methodology defines them; when it does, they land here (a relation
- * whose `type` is illegal between its endpoints' ArchiMate layers). Kept as a
- * named hook so the intent — and the gap — is explicit rather than missing. */
-function checkLayerSemantics(_input: RepoModelInput, _findings: RepoFinding[]): void {
-  // Intentionally empty — parity with lint.py's stubbed phase 5. Do not add
-  // rules here without coordinating the methodology semantics canon.
+ * Enforces endpoint-type constraints for relation kinds whose methodology
+ * semantics are formally defined. Rules added here must have a corresponding
+ * entry in methodology `notations/elements/17-relations.md`; do not add
+ * speculative rules.
+ *
+ * Implemented kinds:
+ *   unit_located_at — ACTOR(business_unit) → LOCATION  (21-locations.md)
+ *   located_at      — ACTOR(person|business_unit) → LOCATION (canonical form)
+ *
+ * lint.py ships this as a no-op stub; Studio is ahead of the Python tool here.
+ * These findings are non-blocking for cross-tool parity — they surface only in
+ * the TypeScript validator path (CLI `validate --scope=repo`). */
+function checkLayerSemantics(input: RepoModelInput, findings: RepoFinding[]): void {
+  const elementById = new Map<string, Record<string, unknown>>();
+  for (const doc of input.elements) {
+    const id = docId(doc);
+    if (id && doc.data) elementById.set(id, doc.data);
+  }
+
+  for (const doc of input.relations) {
+    if (!doc.data) continue;
+    const relId = docId(doc) ?? '';
+    const relType = doc.data['type'];
+    if (typeof relType !== 'string') continue;
+
+    const fromId = endpointId(doc.data['from']) ?? endpointId(doc.data['source']);
+    const toId = endpointId(doc.data['to']) ?? endpointId(doc.data['target']);
+
+    if (relType === 'unit_located_at') {
+      if (fromId) {
+        const from = elementById.get(fromId);
+        if (from && (from['notation'] !== 'actor' || from['type'] !== 'business_unit')) {
+          findings.push({
+            scope: PScope,
+            id: relId,
+            message:
+              `Layer-semantics: '${relId}' type 'unit_located_at' requires from to be ` +
+              `ACTOR(business_unit); got notation='${from['notation']}', type='${from['type']}'.`,
+          });
+        }
+      }
+      if (toId) {
+        const to = elementById.get(toId);
+        if (to && to['notation'] !== 'location') {
+          findings.push({
+            scope: PScope,
+            id: relId,
+            message:
+              `Layer-semantics: '${relId}' type 'unit_located_at' requires to to be a LOCATION; ` +
+              `got notation='${to['notation']}'.`,
+          });
+        }
+      }
+    } else if (relType === 'located_at') {
+      if (fromId) {
+        const from = elementById.get(fromId);
+        if (
+          from &&
+          (from['notation'] !== 'actor' ||
+            (from['type'] !== 'person' && from['type'] !== 'business_unit'))
+        ) {
+          findings.push({
+            scope: PScope,
+            id: relId,
+            message:
+              `Layer-semantics: '${relId}' type 'located_at' requires from to be ` +
+              `ACTOR(person|business_unit); got notation='${from['notation']}', type='${from['type']}'.`,
+          });
+        }
+      }
+      if (toId) {
+        const to = elementById.get(toId);
+        if (to && to['notation'] !== 'location') {
+          findings.push({
+            scope: PScope,
+            id: relId,
+            message:
+              `Layer-semantics: '${relId}' type 'located_at' requires to to be a LOCATION; ` +
+              `got notation='${to['notation']}'.`,
+          });
+        }
+      }
+    }
+  }
 }
 
 /** Phase 6 — an element that is Active/Production must declare an owner. */
