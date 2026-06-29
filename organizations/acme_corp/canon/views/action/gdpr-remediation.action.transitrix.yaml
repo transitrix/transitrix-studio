@@ -1,8 +1,8 @@
-# Activity-on-Node network (PSND) — the GDPR remediation programme schedule.
-# Notation spec: notations/views/07-activities.md. Inline activities carry
+# Action-on-Node network (PSND) — the GDPR remediation programme schedule.
+# Notation spec: notations/views/07-action.md. Inline activities carry
 # CONTRACT.md §7 lifecycle, distinct from the schedule fields (start_date / duration_days).
 
-notation: activities
+notation: action
 spec_version: "0.1"
 
 name: "GDPR Remediation Programme 2026"

@@ -1,8 +1,8 @@
 # Single-project narrative card for the GDPR remediation programme.
-# Notation spec: notations/views/18-activity-card.md. Binds to ACTIVITY-GDPR-REMEDIATION-1
+# Notation spec: notations/views/18-action-card.md. Binds to ACTIVITY-GDPR-REMEDIATION-1
 # and adds narrative milestones; the motivation chain and child activities are
 # pulled by reference from canon elements + relations — not duplicated here:
-#   canon/elements/01_motivation/factors/FACTOR-EU-REG-1.yaml        → standing EU regulatory driver
+#   canon/elements/01_motivation/drivers/DRIVER-EU-REG-1.yaml        → standing EU regulatory driver
 #   canon/elements/01_motivation/assessments/ASSESSMENT-GDPR-GAPS-2026-1.yaml → April 2026 gap finding
 #   canon/elements/01_motivation/goals/GOAL-EU-1.yaml                → strategic goal
 #   canon/elements/05_implementation/changes/CHANGE-GDPR-COMPLIANCE-1.yaml   → required delta
@@ -12,7 +12,7 @@
 #   canon/elements/05_implementation/activities/ACTIVITY-GDPR-CONSENT-1.yaml  → workstream 3
 #   canon/relations/REL-GDPR-REM-GOAL-EU-1.yaml                     → activity → goal link
 
-notation: activity-card
+notation: action-card
 spec_version: "0.1"
 name: "GDPR Remediation — Activity Card"
 generated_at: "2026-06-10"

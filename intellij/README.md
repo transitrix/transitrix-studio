@@ -88,7 +88,7 @@ Ultimate and the other JetBrains IDEs that satisfy the platform `sinceBuild`.
 
 Smoke-test:
 
-1. Open any `*.goals.transitrix.yaml`, `*.fgca.transitrix.yaml`, etc.
+1. Open any `*.goals.transitrix.yaml`, `*.dgca.transitrix.yaml`, etc.
    (the `examples/` directory at the repo root has one of every supported
    suffix).
 2. Right-click in the editor → **Transitrix: Preview Notation**.

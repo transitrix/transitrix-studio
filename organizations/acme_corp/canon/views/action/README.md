@@ -1,17 +1,17 @@
-# `canon/views/activities/`
+# `canon/views/action/`
 
-Project schedule as an **Activity-on-Node** precedence network (PSND), with an optional Gantt timeline projection. Activities reference Activity, Goal, and Change elements.
+Project schedule as an **Action-on-Node** precedence network (PSND), with an optional Gantt timeline projection. Actions reference Activity, Goal, and Change elements.
 
 ## File convention
 
-`*.activities.transitrix.yaml`
+`*.action.transitrix.yaml`
 
-See [`notations/views/07-activities.md`](../../../../../notations/views/07-activities.md) for the full spec — including PSND semantics, the critical-path computation, and the Gantt projection contract.
+See [`notations/views/07-action.md`](../../../../../notations/views/07-action.md) for the full spec — including PSND semantics, the critical-path computation, and the Gantt projection contract.
 
 ## Skeleton
 
 ```yaml
-notation: activities
+notation: action
 spec_version: "0.1"
 
 activities:
@@ -51,18 +51,17 @@ activities:
 
 Activities form a DAG via `predecessors:`. The renderer computes Early Start / Late Finish / slack and highlights the critical path in both the PSND view and the Gantt projection. Transitrix Studio renders both views; the toolbar switches between them.
 
-`valid_from` / `valid_to` are required on every inline activity per [`notations/CONTRACT.md`](../../../../../notations/CONTRACT.md) §7 and are **distinct** from `start_date` / `end_date`: the lifecycle fields say *when this activity entry is admitted to the plan*, while the schedule fields say *when the work is planned to happen*. Both coexist; the activities document itself carries no lifecycle.
+`valid_from` / `valid_to` are required on every inline activity per [`notations/CONTRACT.md`](../../../../../notations/CONTRACT.md) §7 and are **distinct** from `start_date` / `end_date`: the lifecycle fields say *when this activity entry is admitted to the plan*, while the schedule fields say *when the work is planned to happen*. Both coexist; the action document itself carries no lifecycle.
 
 ## Cross-references
 
-- `goals: [GOAL-…]` — Goal IDs from the goals tree / FGCA chain.
-- `delivers_changes: [CHANGE-…]` — Change IDs from the FGCA chain.
+- `goals: [GOAL-…]` — Goal IDs from the goals tree / DGCA chain.
+- `delivers_changes: [CHANGE-…]` — Change IDs from the DGCA chain.
 - `predecessors: [ACTIVITY-…]` — other activity IDs in the same file.
 
 All IDs follow the canonical `<TYPE>-[<middle>-]<INTEGER>` grammar from [`notations/IDS_AND_REFERENCES.md`](../../../../../notations/IDS_AND_REFERENCES.md).
 
 ## See also
 
-- [`notations/views/07-activities.md`](../../../../../notations/views/07-activities.md) — the notation spec
-- [`notations/examples/activities/platform-launch.activities.transitrix.yaml`](../../../../../notations/examples/activities/platform-launch.activities.transitrix.yaml) — worked example
+- [`notations/views/07-action.md`](../../../../../notations/views/07-action.md) — the notation spec
 - `method/methodology.md` §6 — notation kit
