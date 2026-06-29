@@ -253,9 +253,9 @@ ${body}
 </svg>`;
 }
 
-// ── FGCAPreview webview class ────────────────────────────────────────────────────────────────────────────
+// ── DGCAPreview webview class ────────────────────────────────────────────────────────────────────────────
 
-export class FGCAPreview {
+export class DGCAPreview {
   readonly panelTitle = 'DGCA Preview';
   private panel: vscode.WebviewPanel | undefined;
   private trackedUri: string | undefined;
@@ -274,7 +274,7 @@ export class FGCAPreview {
       this.panel.reveal(vscode.ViewColumn.Beside, true);
     } else {
       this.panel = vscode.window.createWebviewPanel(
-        'fgcaPreview',
+        'dgcaPreview',
         `${this.panelTitle} — ${path.basename(doc.fileName)}`,
         { viewColumn: vscode.ViewColumn.Beside, preserveFocus: false },
         {
@@ -478,9 +478,9 @@ export class FGCAPreview {
   }
 }
 
-// ── FGAPreview webview class ──────────────────────────────────────────────────────────────────────────────
+// ── DGAPreview webview class ──────────────────────────────────────────────────────────────────────────────
 
-export class FGAPreview {
+export class DGAPreview {
   readonly panelTitle = 'DGA Preview';
   private panel: vscode.WebviewPanel | undefined;
   private trackedUri: string | undefined;
@@ -499,7 +499,7 @@ export class FGAPreview {
       this.panel.reveal(vscode.ViewColumn.Beside, true);
     } else {
       this.panel = vscode.window.createWebviewPanel(
-        'fgaPreview',
+        'dgaPreview',
         `${this.panelTitle} — ${path.basename(doc.fileName)}`,
         { viewColumn: vscode.ViewColumn.Beside, preserveFocus: false },
         {

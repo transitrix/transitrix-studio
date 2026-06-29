@@ -6,7 +6,7 @@ import type { CompileFn } from './preview.js';
 import { CervinPreview } from './preview.js';
 import { ProcessPreview, type ProcessLayoutFn, type BpmnDisplayOpts, SAVE_BPMN_PROCESS_SVG_COMMAND, OPEN_BPMN_SETTINGS_COMMAND } from './process-preview.js';
 import { GoalsPreview } from './goals-preview.js';
-import { FGCAPreview, FGAPreview } from './fgca-preview.js';
+import { DGCAPreview, DGAPreview } from './dgca-preview.js';
 import { ActivitiesPreview } from './activities-preview.js';
 import { BlocksPreview } from './blocks-preview.js';
 import { ApplicationsPreview } from './applications-preview.js';
@@ -234,8 +234,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   );
 
   const goalsPreview = new GoalsPreview(context.extensionUri);
-  const fgcaPreview = new FGCAPreview(context.extensionUri);
-  const fgaPreview = new FGAPreview(context.extensionUri);
+  const dgcaPreview = new DGCAPreview(context.extensionUri);
+  const dgaPreview = new DGAPreview(context.extensionUri);
   const activitiesPreview = new ActivitiesPreview(context.extensionUri);
   const blocksPreview = new BlocksPreview();
   const applicationsPreview = new ApplicationsPreview();
@@ -316,7 +316,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         vscode.window.showWarningMessage('Open a *.dgca.transitrix.yaml file first.');
         return;
       }
-      await fgcaPreview.showOrReveal(doc);
+      await dgcaPreview.showOrReveal(doc);
     }),
     vscode.commands.registerCommand('transitrixStudio.previewDGA', async () => {
       const doc = vscode.window.activeTextEditor?.document;
@@ -324,7 +324,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         vscode.window.showWarningMessage('Open a *.dga.transitrix.yaml file first.');
         return;
       }
-      await fgaPreview.showOrReveal(doc);
+      await dgaPreview.showOrReveal(doc);
     }),
     vscode.commands.registerCommand('transitrixStudio.previewActivities', async () => {
       const doc = vscode.window.activeTextEditor?.document;
@@ -362,10 +362,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       goalsPreview.saveAsSvg(),
     ),
     vscode.commands.registerCommand('transitrixStudio.saveDGCAAsSvg', () =>
-      fgcaPreview.saveAsSvg(),
+      dgcaPreview.saveAsSvg(),
     ),
     vscode.commands.registerCommand('transitrixStudio.saveDGAAsSvg', () =>
-      fgaPreview.saveAsSvg(),
+      dgaPreview.saveAsSvg(),
     ),
     vscode.commands.registerCommand('transitrixStudio.saveActivitiesAsSvg', () =>
       activitiesPreview.saveAsSvg(),
@@ -376,10 +376,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand('transitrixStudio.copyBlocksAsPng', () => blocksPreview.copyAsPng()),
     vscode.commands.registerCommand('transitrixStudio.saveGoalsAsPng', () => goalsPreview.saveAsPng()),
     vscode.commands.registerCommand('transitrixStudio.copyGoalsAsPng', () => goalsPreview.copyAsPng()),
-    vscode.commands.registerCommand('transitrixStudio.saveDGCAAsPng', () => fgcaPreview.saveAsPng()),
-    vscode.commands.registerCommand('transitrixStudio.copyDGCAAsPng', () => fgcaPreview.copyAsPng()),
-    vscode.commands.registerCommand('transitrixStudio.saveDGAAsPng', () => fgaPreview.saveAsPng()),
-    vscode.commands.registerCommand('transitrixStudio.copyDGAAsPng', () => fgaPreview.copyAsPng()),
+    vscode.commands.registerCommand('transitrixStudio.saveDGCAAsPng', () => dgcaPreview.saveAsPng()),
+    vscode.commands.registerCommand('transitrixStudio.copyDGCAAsPng', () => dgcaPreview.copyAsPng()),
+    vscode.commands.registerCommand('transitrixStudio.saveDGAAsPng', () => dgaPreview.saveAsPng()),
+    vscode.commands.registerCommand('transitrixStudio.copyDGAAsPng', () => dgaPreview.copyAsPng()),
     vscode.commands.registerCommand('transitrixStudio.saveActivitiesAsPng', () => activitiesPreview.saveAsPng()),
     vscode.commands.registerCommand('transitrixStudio.copyActivitiesAsPng', () => activitiesPreview.copyAsPng()),
     vscode.commands.registerCommand('transitrixStudio.previewApplications', async () => {
@@ -533,8 +533,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         !e.affectsConfiguration(VIEW_CONFIG_SECTION)
       ) return;
       void goalsPreview.refreshConfig();
-      void fgcaPreview.refreshConfig();
-      void fgaPreview.refreshConfig();
+      void dgcaPreview.refreshConfig();
+      void dgaPreview.refreshConfig();
       void activitiesPreview.refreshConfig();
       if (isThemeChange) {
         void blocksPreview.refreshConfig();
@@ -560,7 +560,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       // per-type routing below (which early-returns on a match).
       void activityCardPreview.refreshIfSiblingSaved(doc);
       void actionsTreePreview.refreshIfSiblingSaved(doc);
-      void fgcaPreview.refreshIfSiblingSaved(doc);
+      void dgcaPreview.refreshIfSiblingSaved(doc);
       // Compliance views are repo-wide: re-scan the open ones whenever a canon
       // artefact (by filename convention) is saved. No-op when no panel is open.
       if (/^(PRODUCT|REQUIREMENT|ASSERTION|LAW|REGULATION|POLICY|INTERNAL_STANDARD)-.*\.ya?ml$/.test(path.basename(doc.fileName))) {
@@ -575,9 +575,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         const notation = probeDocNotation(doc);
         if (notation === 'goals') { void goalsPreview.refreshSaved(doc); return; }
         if (notation === 'action') { void activitiesPreview.refreshSaved(doc); return; }
-        void fgcaPreview.refreshSaved(doc); return;
+        void dgcaPreview.refreshSaved(doc); return;
       }
-      if (isDGAFile(doc)) { void fgaPreview.refreshSaved(doc); return; }
+      if (isDGAFile(doc)) { void dgaPreview.refreshSaved(doc); return; }
       if (isActivitiesFile(doc)) { void activitiesPreview.refreshSaved(doc); return; }
       if (isActionsTreeFileName(doc.fileName)) { void actionsTreePreview.refreshSaved(doc); return; }
       if (isBlocksFile(doc)) { void blocksPreview.refreshSaved(doc); return; }
@@ -599,9 +599,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         const notation = probeDocNotation(doc);
         if (notation === 'goals') { await goalsPreview.showOrReveal(doc); return; }
         if (notation === 'action') { await activitiesPreview.showOrReveal(doc); return; }
-        await fgcaPreview.showOrReveal(doc); return;
+        await dgcaPreview.showOrReveal(doc); return;
       }
-      if (isDGAFile(doc)) { await fgaPreview.showOrReveal(doc); return; }
+      if (isDGAFile(doc)) { await dgaPreview.showOrReveal(doc); return; }
       if (isActivitiesFile(doc)) { await activitiesPreview.showOrReveal(doc); return; }
       if (isActionsTreeFileName(doc.fileName)) { await actionsTreePreview.showOrReveal(doc); return; }
       if (isBlocksFile(doc)) { await blocksPreview.showOrReveal(doc); return; }
