@@ -209,19 +209,19 @@
           "default": 20,
           "description": "FGA preview: vertical gap (px) between stacked nodes within a column."
         },
-        "transitrix.spacing.activities.horizontalGap": {
+        "transitrix.spacing.action.horizontalGap": {
           "type": "number",
           "minimum": 20,
           "maximum": 300,
           "default": 80,
-          "description": "Activities preview: horizontal gap (px) between CPM columns."
+          "description": "Action preview: horizontal gap (px) between CPM columns."
         },
-        "transitrix.spacing.activities.verticalGap": {
+        "transitrix.spacing.action.verticalGap": {
           "type": "number",
           "minimum": 20,
           "maximum": 300,
           "default": 24,
-          "description": "Activities preview: vertical gap (px) between stacked activity nodes."
+          "description": "Action preview: vertical gap (px) between stacked action nodes."
         },
         "transitrix.curvature.goals": {
           "type": "number",
@@ -258,12 +258,12 @@
           "default": 1,
           "description": "FGA preview: edge curvature. 0 = straight lines, 1 = default, higher = stronger arc."
         },
-        "transitrix.curvature.activities": {
+        "transitrix.curvature.action": {
           "type": "number",
           "minimum": 0,
           "maximum": 3,
           "default": 1,
-          "description": "Activities preview: CPM dependency-arrow curvature. 0 = straight lines, 1 = default, higher = stronger arc."
+          "description": "Action preview: CPM dependency-arrow curvature. 0 = straight lines, 1 = default, higher = stronger arc."
         },
         "transitrix.entryCurvature.goals": {
           "type": "number",
@@ -300,12 +300,12 @@
           "default": 1,
           "description": "FGA preview: curvature of the arrow at the point it enters a node. Defaults to transitrix.curvature.fga when equal to 1."
         },
-        "transitrix.entryCurvature.activities": {
+        "transitrix.entryCurvature.action": {
           "type": "number",
           "minimum": 0,
           "maximum": 3,
           "default": 1,
-          "description": "Activities preview: curvature of the dependency arrow at the point it enters an activity node. Defaults to transitrix.curvature.activities when equal to 1."
+          "description": "Action preview: curvature of the dependency arrow at the point it enters an action node. Defaults to transitrix.curvature.action when equal to 1."
         },
         "transitrix.scope.goals.rootId": {
           "type": "string",
@@ -973,7 +973,7 @@
           "group": "navigation@-9"
         },
         {
-          "when": "activeWebviewPanelId == activitiesPreview",
+          "when": "activeWebviewPanelId == actionPreview",
           "command": "transitrixStudio.saveActivitiesAsSvg",
           "group": "navigation@-9"
         },

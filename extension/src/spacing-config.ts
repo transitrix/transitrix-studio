@@ -7,7 +7,7 @@ import type { ControlMessage, PreviewView } from './preview-controls.js';
 // mirroring the existing `transitrix.theme` pattern, and re-renders previews
 // on change. In-preview live sliders are deferred to PR2.
 
-export type SpacingNotation = 'goals' | 'dgca' | 'dga' | 'fgca' | 'fga' | 'activities';
+export type SpacingNotation = 'goals' | 'dgca' | 'dga' | 'fgca' | 'fga' | 'action';
 
 export interface SpacingGaps {
   /** px gap between columns (horizontal). */
@@ -37,7 +37,7 @@ export const OPEN_SPACING_SETTINGS_COMMAND = 'transitrixStudio.openSpacingSettin
 // PR1 persistence pattern as spacing: settings-backed, re-rendered on change,
 // in-preview slider deferred to the joint enableScripts call.
 
-export type CurvatureNotation = 'goals' | 'dgca' | 'dga' | 'fgca' | 'fga' | 'activities';
+export type CurvatureNotation = 'goals' | 'dgca' | 'dga' | 'fgca' | 'fga' | 'action';
 
 // Must match DEFAULT_EDGE_CURVATURE in @transitrix/diagrams so an unconfigured
 // preview is visually unchanged.
@@ -127,8 +127,8 @@ function clamp(n: number, min: number, max: number): number {
 
 /**
  * Applies one in-preview control change to VS Code configuration for `notation`.
- * Spacing/curvature apply to all four notations; scope only to goals/fgca/fga
- * (the Activities panel never renders a scope row). Scope is mutually exclusive
+ * Spacing/curvature apply to all four notations; scope only to goals/dgca/dga
+ * (the Action panel never renders a scope row). Scope is mutually exclusive
  * — setting a root clears the level cap and vice-versa, matching `readScope`'s
  * "one mode at a time" precedence and #77's AC.
  */
@@ -153,7 +153,7 @@ export async function applyControlMessage(notation: SpacingNotation, msg: Contro
     await cfg.update(`view.${notation}`, msg.field === 'table' ? 'table' : 'tree', target);
     return;
   }
-  if (msg.control === 'scope' && notation !== 'activities') {
+  if (msg.control === 'scope' && notation !== 'action') {
     if (msg.field === 'reset') {
       await cfg.update(`scope.${notation}.rootId`, '', target);
       await cfg.update(`scope.${notation}.maxLevel`, -1, target);
