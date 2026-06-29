@@ -70,8 +70,8 @@ const SILENT_NOTATIONS = new Set([
   'driver', 'equipment', 'factor', 'goal', 'registry', 'relation', 'role', 'rule',
   'stakeholder', 'target-state',
   // View / diagram notations
-  'activities', 'activity-card', 'applications', 'blocks', 'bpmn',
-  'capability-map', 'compliance-impact', 'coverage-metric', 'dga', 'dgca', 'fga', 'fgca',
+  'action', 'action-card', 'applications', 'blocks', 'bpmn',
+  'capability-map', 'compliance-impact', 'coverage-metric', 'dga', 'dgca',
   'goals', 'issues', 'process-blueprint', 'process-map', 'products', 'scenarios',
 ]);
 
