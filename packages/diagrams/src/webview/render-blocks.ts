@@ -31,13 +31,14 @@ const NAME_ID_GAP = 6; // gap between last name centre and first ID centre
 
 /** Word-wrap `text` to at most `maxLines` lines of `maxChars` each. */
 function wrapWords(text: string, maxChars: number, maxLines: number): string[] {
+  const safeMax = Math.max(2, maxChars);
   const words = text.split(' ');
   const lines: string[] = [];
   let cur = '';
   for (let i = 0; i < words.length; i++) {
     const w = words[i];
     const next = cur ? `${cur} ${w}` : w;
-    if (next.length <= maxChars) {
+    if (next.length <= safeMax) {
       cur = next;
     } else {
       if (cur) lines.push(cur);
@@ -45,14 +46,14 @@ function wrapWords(text: string, maxChars: number, maxLines: number): string[] {
       if (lines.length >= maxLines) break;
       if (lines.length === maxLines - 1) {
         const rest = words.slice(i).join(' ');
-        lines.push(rest.length <= maxChars ? rest : rest.slice(0, maxChars - 1) + '…');
+        lines.push(rest.length <= safeMax ? rest : rest.slice(0, safeMax - 1) + '…');
         return lines;
       }
-      cur = w.length <= maxChars ? w : w.slice(0, maxChars - 1) + '…';
+      cur = w.length <= safeMax ? w : w.slice(0, safeMax - 1) + '…';
     }
   }
   if (cur && lines.length < maxLines) lines.push(cur);
-  return lines.length ? lines : [text.slice(0, maxChars - 1) + '…'];
+  return lines.length ? lines : [text.slice(0, safeMax - 1) + '…'];
 }
 
 /** Split an ID (no spaces) across at most 2 lines, breaking at `_` or `-`. */
@@ -84,12 +85,25 @@ function levelClassForDepth(depth: number): string {
   return `level-${idx}`;
 }
 
-/** Truncate at a word boundary so labels never break in the middle of a word. */
-function wordTruncate(text: string, maxChars: number): string {
-  if (text.length <= maxChars) return text;
-  const cut = text.slice(0, maxChars - 1);
+// Reserve a small horizontal margin so text never abuts the rounded corners.
+const TEXT_MARGIN_X = 8;
+
+/** Truncate `text` to at most `maxChars` characters, at a word boundary when possible. */
+function truncateLine(text: string, maxChars: number): string {
+  const safeMax = Math.max(2, maxChars);
+  if (text.length <= safeMax) return text;
+  const cut = text.slice(0, safeMax - 1);
   const lastSpace = cut.lastIndexOf(' ');
-  return (lastSpace > maxChars / 2 ? cut.slice(0, lastSpace) : cut) + '…';
+  return (lastSpace > safeMax / 2 ? cut.slice(0, lastSpace) : cut) + '…';
+}
+
+/** Single-line ID truncation that prefers `_`/`-` separators before falling back to a hard cut. */
+function truncateId(id: string, maxChars: number): string {
+  const safeMax = Math.max(2, maxChars);
+  if (id.length <= safeMax) return id;
+  const cut = id.slice(0, safeMax - 1);
+  const sepIdx = Math.max(cut.lastIndexOf('_'), cut.lastIndexOf('-'));
+  return (sepIdx > safeMax / 3 ? cut.slice(0, sepIdx) : cut) + '…';
 }
 
 function emitBlockSvg(b: LaidOutBlock, ox: number, oy: number, parts: string[]): void {
@@ -99,11 +113,12 @@ function emitBlockSvg(b: LaidOutBlock, ox: number, oy: number, parts: string[]):
     `<rect class="diagram-node ${cls}" x="${b.x + ox}" y="${b.y + oy}" width="${b.width}" height="${b.height}" rx="6"/>`,
   );
 
+  const innerW = Math.max(0, b.width - TEXT_MARGIN_X * 2);
   const isLeaf = b.children.length === 0;
   if (isLeaf) {
     // Leaf block: name (up to 3 lines) then ID (up to 2 lines), centred vertically.
-    const maxCharsName = Math.max(4, Math.floor(b.width / CHAR_W));
-    const maxCharsId = Math.max(4, Math.floor(b.width / CHAR_W_ID));
+    const maxCharsName = Math.max(4, Math.floor(innerW / CHAR_W));
+    const maxCharsId = Math.max(4, Math.floor(innerW / CHAR_W_ID));
     const nameLines = wrapWords(b.name, maxCharsName, 3);
     const idLines = wrapId(b.id, maxCharsId);
     const nameTotalSpan = (nameLines.length - 1) * LINE_H;
@@ -122,14 +137,25 @@ function emitBlockSvg(b: LaidOutBlock, ox: number, oy: number, parts: string[]):
       );
     }
   } else {
-    // Container block: name + (ID) on the single header line; ID in grey.
-    const headerY = b.y + oy + b.headerHeight / 2;
-    const idSuffix = ` (${b.id})`;
-    const idSuffixW = idSuffix.length * CHAR_W_ID;
-    const nameMaxChars = Math.max(4, Math.floor((b.width - idSuffixW) / CHAR_W));
-    const nameText = wordTruncate(b.name, nameMaxChars);
+    // Container block: name (text-primary) above, ID (text-id, grey) below — both
+    // single-line, truncated with `…` to fit within `b.width`. The header strip is
+    // only `headerHeight` tall (default 28px), which is enough for one line each at
+    // the configured text sizes. Stacking the ID as its own text-id element keeps
+    // the wrapping/truncation rule consistent with leaves and guarantees no overflow
+    // for any combination of name/ID length.
+    const maxCharsName = Math.max(4, Math.floor(innerW / CHAR_W));
+    const maxCharsId = Math.max(4, Math.floor(innerW / CHAR_W_ID));
+    const nameText = truncateLine(b.name, maxCharsName);
+    const idText = truncateId(b.id, maxCharsId);
+    const headerMid = b.y + oy + b.headerHeight / 2;
+    const halfSpan = (LINE_H + LINE_H_ID) / 4;
+    const nameY = Math.round(headerMid - halfSpan);
+    const idY = Math.round(headerMid + halfSpan);
     parts.push(
-      `<text class="text-primary" x="${cx}" y="${headerY}" text-anchor="middle" dominant-baseline="central">${escXml(nameText)}<tspan fill="var(--ts-text-secondary, #64748b)" font-size="10" font-weight="600">${escXml(idSuffix)}</tspan></text>`,
+      `<text class="text-primary" x="${cx}" y="${nameY}" text-anchor="middle" dominant-baseline="central">${escXml(nameText)}</text>`,
+    );
+    parts.push(
+      `<text class="text-id" x="${cx}" y="${idY}" text-anchor="middle" dominant-baseline="central">${escXml(idText)}</text>`,
     );
     for (const c of b.children) emitBlockSvg(c, ox, oy, parts);
   }
