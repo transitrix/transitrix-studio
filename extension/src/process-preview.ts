@@ -162,6 +162,10 @@ export class ProcessPreview {
       const nonce = genNonce();
       const { panel: controlsPanel, script: controlsScript } = buildBpmnControls(nonce, this.uniformLaneHeight);
 
+      // Title sourced from the process name — the same top-level name field
+      // that all other diagram types expose in their title header.
+      const processTitle = layout.process.name || undefined;
+
       this.panel.webview.html = buildDiagramFrame({
         filename,
         notation: 'BPMN Process',
@@ -169,6 +173,7 @@ export class ProcessPreview {
         errorMsg,
         warnings: warningMsgs,
         themeId,
+        title: processTitle,
         saveSvgCommand: SAVE_BPMN_PROCESS_SVG_COMMAND,
         spacingCommand: OPEN_BPMN_SETTINGS_COMMAND,
         themeCommand: OPEN_THEME_COMMAND,
