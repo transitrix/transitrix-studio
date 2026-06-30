@@ -340,28 +340,6 @@
           "default": -1,
           "description": "DGA preview: scope to a goal-level cap. Show only goals at this level and above, plus their connected drivers/activities. -1 = no cap. Ignored when a scope root id is set."
         },
-        "transitrix.scope.fgca.rootId": {
-          "type": "string",
-          "default": "",
-          "description": "FGCA preview: scope to a single goal. Set the goal id to show only that goal plus the factors/changes/activities connected to it. Empty = show all. Takes precedence over the level cap."
-        },
-        "transitrix.scope.fgca.maxLevel": {
-          "type": "integer",
-          "minimum": -1,
-          "default": -1,
-          "description": "FGCA preview: scope to a goal-level cap. Show only goals at this level and above, plus their connected factors/changes/activities. -1 = no cap. Ignored when a scope root id is set."
-        },
-        "transitrix.scope.fga.rootId": {
-          "type": "string",
-          "default": "",
-          "description": "FGA preview: scope to a single goal. Set the goal id to show only that goal plus the factors/activities connected to it. Empty = show all. Takes precedence over the level cap."
-        },
-        "transitrix.scope.fga.maxLevel": {
-          "type": "integer",
-          "minimum": -1,
-          "default": -1,
-          "description": "FGA preview: scope to a goal-level cap. Show only goals at this level and above, plus their connected factors/activities. -1 = no cap. Ignored when a scope root id is set."
-        },
         "transitrix.view.dgca": {
           "type": "string",
           "enum": [
@@ -379,24 +357,6 @@
           ],
           "default": "tree",
           "description": "DGA preview: 'tree' renders the Driver→Goal→Activity chain diagram; 'table' renders the chain flattened into a table with merged cells. Toggle live from the preview toolbar."
-        },
-        "transitrix.view.fgca": {
-          "type": "string",
-          "enum": [
-            "tree",
-            "table"
-          ],
-          "default": "tree",
-          "description": "FGCA preview: 'tree' renders the Factor→Goal→Change→Activity chain diagram; 'table' renders the chain flattened into a table with merged cells. Toggle live from the preview toolbar."
-        },
-        "transitrix.view.fga": {
-          "type": "string",
-          "enum": [
-            "tree",
-            "table"
-          ],
-          "default": "tree",
-          "description": "FGA preview: 'tree' renders the Factor→Goal→Activity chain diagram; 'table' renders the chain flattened into a table with merged cells. Toggle live from the preview toolbar."
         }
       }
     },
