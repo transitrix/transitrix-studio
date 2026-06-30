@@ -4,19 +4,20 @@ Migration notes for adopters upgrading across major changes.
 
 ---
 
-## 1.x → 2.0 (planned)
+## 2.x — deprecated notation aliases removed (2.7.x, 2026-06)
 
-### FGCA/FGA → DGCA/DGA notation rename (breaking at 2.0)
+The deprecated notation shims that had been carried for backwards compatibility
+since the methodology renames are fully removed in the 2.7.x release line.
 
-The `fgca` and `fga` notation keys, file extensions, and UI strings have been
-renamed to `dgca` and `dga` to reflect the "Driver" terminology that replaced
-"Factor" across the methodology.
+### FGCA/FGA → DGCA/DGA
 
-**1.x behaviour (current):** both old and new names are accepted. A deprecation
-warning is emitted when the legacy `notation: fgca` or `notation: fga` key is
-encountered.
+The `fgca` and `fga` notation keys and file extensions have been renamed to
+`dgca` and `dga` (Driver-Goal-Change-Activity / Driver-Goal-Activity), reflecting
+the "Driver" terminology that replaced "Factor" across the methodology.
 
-**2.0:** legacy keys will be dropped. Migrate before upgrading.
+**Current state (2.7.x+):** the legacy names are removed. The CLI validators
+reject `notation: fgca` / `notation: fga` with errors. The VS Code extension no
+longer activates for `*.fgca.transitrix.yaml` / `*.fga.transitrix.yaml` files.
 
 #### Migration steps
 
@@ -39,7 +40,8 @@ encountered.
    convention — rename to `DGCA-*` / `DGA-*`. (Not required; the validator
    accepts any string `id`.)
 
-4. Update VS Code settings keys if you have workspace-level overrides:
+4. Update VS Code settings keys if you have workspace-level overrides.
+   The old keys are deprecated and will be removed in a future 2.x patch:
    - `transitrix.spacing.fgca.*` → `transitrix.spacing.dgca.*`
    - `transitrix.spacing.fga.*` → `transitrix.spacing.dga.*`
    - `transitrix.curvature.fgca` → `transitrix.curvature.dgca`
@@ -50,4 +52,77 @@ encountered.
    - `transitrix.view.fga` → `transitrix.view.dga`
 
 5. Update any scripts or CI commands that reference `fgca`/`fga` notation
-   names in `cervin validate` / `transitrix validate` invocations.
+   names in `transitrix validate` invocations.
+
+---
+
+### activities/activity-card → action/action-card
+
+The `activities` and `activity-card` notation keys and file extensions have been
+renamed to `action` and `action-card`. The `activities-tree` extension is now
+`actions-tree`.
+
+**Current state (2.7.x+):** the legacy names are removed. The CLI validators
+reject `notation: activities` / `notation: activity-card` with errors. The VS
+Code extension no longer activates for `*.activities.transitrix.yaml`,
+`*.activity-card.transitrix.yaml`, or `*.activities-tree.transitrix.yaml` files.
+
+#### Migration steps
+
+1. Rename files:
+   - `*.activities.transitrix.yaml` → `*.action.transitrix.yaml`
+   - `*.activity-card.transitrix.yaml` → `*.action-card.transitrix.yaml`
+   - `*.activities-tree.transitrix.yaml` → `*.actions-tree.transitrix.yaml`
+
+2. Update the `notation:` header inside each file:
+
+   ```yaml
+   # before
+   notation: activities      # or: activity-card
+
+   # after
+   notation: action          # or: action-card
+   ```
+
+3. Update the root key in YAML files that used the old key:
+
+   ```yaml
+   # before
+   activities:
+     - id: ACT-001
+       ...
+
+   # after
+   actions:
+     - id: ACTION-001
+       ...
+   ```
+
+   Same for `activity_card:` → `action_card:`.
+
+4. Update VS Code settings keys if you have workspace-level overrides.
+   The old keys are deprecated and will be removed in a future 2.x patch:
+   - `transitrix.spacing.activities.*` → `transitrix.spacing.action.*`
+   - `transitrix.curvature.activities` → `transitrix.curvature.action`
+   - `transitrix.entryCurvature.activities` → `transitrix.entryCurvature.action`
+
+5. Update any scripts or CI commands that reference `activities` /
+   `activity-card` notation names in `transitrix validate` invocations.
+
+---
+
+## 1.x → 2.0
+
+### Cervin → Transitrix rename (breaking at 2.0.0)
+
+All `cervin` compatibility shims introduced in 1.x are removed in 2.0.0.
+See [CHANGELOG.md](CHANGELOG.md) — 2.0.0 section — for the full list of removed
+items and drop-in replacements.
+
+Summary of what changed:
+
+- `cervin` CLI binary → `transitrix`
+- `cervin.*` VS Code settings → `transitrix.*`
+- `cervin.*` VS Code commands → `transitrix.*`
+- `.cervinrc` project config → `.transitrixrc` (identical JSON schema)
+- `"[cervin-yaml]"` in settings.json → `"[transitrix-yaml]"`
