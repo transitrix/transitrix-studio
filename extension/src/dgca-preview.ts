@@ -100,8 +100,8 @@ function chainTableHtml(table: ChainTable): string {
   return `<div class="chain-table-wrap"><table class="chain-table"><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
 }
 
-/** Assembles the interactive control-panel model shared by FGCA and FGA. */
-function fgcaControlsModel(
+/** Assembles the interactive control-panel model shared by DGCA and DGA. */
+function chainControlsModel(
   gaps: { horizontalGap: number; verticalGap: number },
   defaults: { horizontalGap: number; verticalGap: number },
   curvature: number,
@@ -123,9 +123,9 @@ function fgcaControlsModel(
 
 interface ChainPreviewParams {
   /** Toolbar / frame notation label. */
-  notation: 'DGCA' | 'DGA' | 'FGCA' | 'FGA';
+  notation: 'DGCA' | 'DGA';
   /** Settings namespace + view key (`transitrix.{spacing,curvature,scope,view}.<this>`). */
-  viewNotation: 'dgca' | 'dga' | 'fgca' | 'fga';
+  viewNotation: 'dgca' | 'dga';
   /** FGA hides the Change column. */
   hideChanges: boolean;
   /** SVG title-block heading (tree view). */
@@ -198,7 +198,7 @@ function renderChainPreview(
     if (scopeWarning) warnings.push(`${scopeWarning.code}: ${scopeWarning.message}`);
     svg = buildSvg(parsedDoc, p.hideChanges, { colGap: gaps.horizontalGap, rowGap: gaps.verticalGap, curvature, entryCurvature, scope }, p.heading, filename, docDate, docVersion);
   }
-  const model = fgcaControlsModel(gaps, spacingDefaults, curvature, scope, goalOptions, maxLevelPresent);
+  const model = chainControlsModel(gaps, spacingDefaults, curvature, scope, goalOptions, maxLevelPresent);
   const html = buildDiagramFrame({
     filename, notation: p.notation, svgContent: svg, errorMsg, warnings, themeId,
     saveSvgCommand: p.saveSvgCommand,
@@ -311,12 +311,12 @@ export class DGCAPreview {
   async refreshIfSiblingSaved(doc: vscode.TextDocument): Promise<void> {
     if (!this.panel || !this.trackedUri) return;
     if (!doc.fileName.endsWith('.yaml')) return;
-    const fgcaUri = vscode.Uri.parse(this.trackedUri);
-    const canonRoot = findCanonRoot(fgcaUri);
+    const viewUri = vscode.Uri.parse(this.trackedUri);
+    const canonRoot = findCanonRoot(viewUri);
     if (!canonRoot) return;
     if (!isUnderCanon(canonRoot, doc.uri)) return;
-    const fgcaDoc = await vscode.workspace.openTextDocument(fgcaUri);
-    await this.pushDocument(fgcaDoc);
+    const viewDoc = await vscode.workspace.openTextDocument(viewUri);
+    await this.pushDocument(viewDoc);
   }
 
   private async loadSnapshotMarkers(): Promise<SnapshotMarker[]> {
@@ -450,7 +450,7 @@ export class DGCAPreview {
 
   saveAsPng(): Promise<void> {
     const sourceUri = this.trackedUri ? vscode.Uri.parse(this.trackedUri) : undefined;
-    return savePngFromSvg({ ...this.pngTarget(), sourceUri, stripExt: /\.(dgca|fgca)\.transitrix\.yaml$/ });
+    return savePngFromSvg({ ...this.pngTarget(), sourceUri, stripExt: /\.dgca\.transitrix\.yaml$/ });
   }
 
   copyAsPng(): Promise<void> {
@@ -464,7 +464,7 @@ export class DGCAPreview {
     }
     const sourceUri = this.trackedUri ? vscode.Uri.parse(this.trackedUri) : undefined;
     const stem = sourceUri
-      ? path.basename(sourceUri.fsPath).replace(/\.(dgca|fgca)\.transitrix\.yaml$/, '')
+      ? path.basename(sourceUri.fsPath).replace(/\.dgca\.transitrix\.yaml$/, '')
       : 'diagram';
     const defaultUri = sourceUri
       ? vscode.Uri.file(path.join(path.dirname(sourceUri.fsPath), `${stem}.svg`))
@@ -659,7 +659,7 @@ export class DGAPreview {
 
   saveAsPng(): Promise<void> {
     const sourceUri = this.trackedUri ? vscode.Uri.parse(this.trackedUri) : undefined;
-    return savePngFromSvg({ ...this.pngTarget(), sourceUri, stripExt: /\.(dga|fga)\.transitrix\.yaml$/ });
+    return savePngFromSvg({ ...this.pngTarget(), sourceUri, stripExt: /\.dga\.transitrix\.yaml$/ });
   }
 
   copyAsPng(): Promise<void> {
@@ -673,7 +673,7 @@ export class DGAPreview {
     }
     const sourceUri = this.trackedUri ? vscode.Uri.parse(this.trackedUri) : undefined;
     const stem = sourceUri
-      ? path.basename(sourceUri.fsPath).replace(/\.(dga|fga)\.transitrix\.yaml$/, '')
+      ? path.basename(sourceUri.fsPath).replace(/\.dga\.transitrix\.yaml$/, '')
       : 'diagram';
     const defaultUri = sourceUri
       ? vscode.Uri.file(path.join(path.dirname(sourceUri.fsPath), `${stem}.svg`))
