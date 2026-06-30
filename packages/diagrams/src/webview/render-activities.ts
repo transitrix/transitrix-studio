@@ -144,6 +144,18 @@ export interface RenderActivitiesOptions {
   curvature?: number;
   /** Entry curvature at the target node; defaults to `curvature` when omitted. */
   entryCurvature?: number;
+  /**
+   * When true (the default), activities with `activity_type === 'project'` are
+   * excluded from the network layout. Project container nodes add visual noise
+   * in the PSND view because the diagram itself already represents the project
+   * scope; suppressing them declutters the network without altering canonical
+   * data. Set to false to render all activities regardless of type.
+   *
+   * Convention: Network/diagram views suppress project nodes by default.
+   * Text/document views (Tree) keep them visible and compensate with the
+   * Action name in the view header.
+   */
+  suppressProjectNodes?: boolean;
 }
 
 /**
@@ -161,15 +173,28 @@ export interface RenderActivitiesOptions {
  * than short-circuiting.
  */
 export function renderActivitiesSvg(doc: ActivityDoc, options: RenderActivitiesOptions = {}): string {
-  const { title = '', gaps = {}, curvature = DEFAULT_EDGE_CURVATURE, entryCurvature } = options;
+  const {
+    title = '',
+    gaps = {},
+    curvature = DEFAULT_EDGE_CURVATURE,
+    entryCurvature,
+    suppressProjectNodes = true,
+  } = options;
 
-  const layout: ActivitiesLayout = layoutActivities(doc, gaps);
+  // #421: Suppress project-type container nodes in the network layout by
+  // default (see suppressProjectNodes JSDoc). A shallow copy avoids mutating
+  // the caller's doc.
+  const renderDoc: ActivityDoc = suppressProjectNodes
+    ? { ...doc, activities: (doc.activities ?? []).filter((a) => a.activity_type?.toLowerCase() !== 'project') }
+    : doc;
+
+  const layout: ActivitiesLayout = layoutActivities(renderDoc, gaps);
 
   if (layout.nodes.length === 0) {
     return `<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" viewBox="0 0 0 0"></svg>`;
   }
 
-  const cpm = computeCpm(doc.activities ?? []);
+  const cpm = computeCpm(renderDoc.activities ?? []);
   const titleH = title ? 24 : 0;
   const w = layout.bounds.width + N_PAD * 2;
   const h = layout.bounds.height + N_PAD * 2 + titleH;
