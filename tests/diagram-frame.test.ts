@@ -40,6 +40,48 @@ describe('buildDiagramFrame error strip', () => {
   });
 });
 
+// #420 — Title header: BPMN (and other diagram types) pass a `title` option so
+// the frame renders a .frame-header block matching the standard visual treatment.
+describe('buildDiagramFrame title header', () => {
+  it('renders frame-header when title is provided', () => {
+    const html = buildDiagramFrame({
+      ...base,
+      svgContent: '<svg/>',
+      title: 'Order Fulfilment Process',
+    });
+    expect(html).toContain('class="frame-header"');
+    expect(html).toContain('class="frame-title"');
+    expect(html).toContain('Order Fulfilment Process');
+  });
+
+  it('emits no frame-header when title is omitted', () => {
+    const html = buildDiagramFrame({ ...base, svgContent: '<svg/>' });
+    expect(html).not.toContain('class="frame-header"');
+    expect(html).not.toContain('class="frame-title"');
+  });
+
+  it('escapes special characters in the title', () => {
+    const html = buildDiagramFrame({
+      ...base,
+      svgContent: '<svg/>',
+      title: '<Process> & "Test"',
+    });
+    expect(html).toContain('&lt;Process&gt; &amp; &quot;Test&quot;');
+    expect(html).not.toContain('<Process>');
+  });
+
+  it('renders subtitle when provided alongside title', () => {
+    const html = buildDiagramFrame({
+      ...base,
+      svgContent: '<svg/>',
+      title: 'Main title',
+      subtitle: 'Sub description',
+    });
+    expect(html).toContain('class="frame-subtitle"');
+    expect(html).toContain('Sub description');
+  });
+});
+
 describe('buildDiagramFrame warnings strip', () => {
   it('renders warnings in a collapsible strip, collapsed by default', () => {
     const html = buildDiagramFrame({
