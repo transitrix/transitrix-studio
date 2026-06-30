@@ -29,7 +29,7 @@ export function prepareSvgForExport(svg: string, themeId: ThemeId = 'transitrix'
 }
 
 export interface DiagramFrameOpts {
-  /** Short filename shown in toolbar (e.g. "strategy-2026.fgca.transitrix.yaml"). */
+  /** Short filename shown in toolbar (e.g. "strategy-2026.dgca.transitrix.yaml"). */
   filename: string;
   /** Human-readable notation name shown in toolbar (e.g. "FGCA", "Goal tree"). */
   notation: string;
