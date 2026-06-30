@@ -44,6 +44,15 @@
   `activities`, `activity-card` removed; canonical `action` / `action-card`
   mappings added.
 
+### Fixed
+
+- **Nested Blocks — no label overflow on container headers.** Container block
+  headers now stack the name (`text-primary`) above the ID (`text-id`, grey)
+  and truncate each line with `…` to fit within the block width, instead of
+  appending the ID as a single inline suffix that could spill past the rect
+  for long identifiers. Leaf blocks retain the 3-line name / 2-line ID
+  wrapping rule with the same horizontal-margin guarantee.
+
 ### Internal
 
 - **`FGCAPreview` → `DGCAPreview`, `FGAPreview` → `DGAPreview`.** Internal
