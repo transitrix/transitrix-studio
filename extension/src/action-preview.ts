@@ -443,8 +443,12 @@ function buildTreeHtml(doc: ActivityDoc, filename: string, date: string, version
   }
 
   const versionPart = version ? ` · v${escXml(version)}` : '';
+  // #421: show the Action name (doc.title) in the tree-view header when present.
+  // The project container block is visible in this view and the heading
+  // compensates with the document-level Action name for human readability.
+  const actionName = doc.title ? `${escXml(doc.title)} — ` : '';
   const titleHtml = `<div class="diagram-title-block diagram-title-block-html">
-  <div class="text-header">Tree view — Initiative → Programme → Project → Task</div>
+  <div class="text-header">${actionName}Tree view — Initiative → Programme → Project → Task</div>
   <div class="text-secondary">${escXml(filename)}</div>
   <div class="text-secondary">${escXml(date)}${versionPart}</div>
 </div>`;
@@ -452,9 +456,33 @@ function buildTreeHtml(doc: ActivityDoc, filename: string, date: string, version
   return `${titleHtml}<div class="tree-view">${roots.map((r) => renderNode(r)).join('')}</div>`;
 }
 
+/**
+ * Renderer/view convention (#421):
+ *
+ * Network (PSND) view — project container nodes (activity_type === 'project')
+ * are suppressed by default. The diagram itself represents the project scope,
+ * so the container adds visual noise without conveying additional information.
+ * Canonical parent linkage is preserved in the raw doc; only the rendered
+ * node list is narrowed.
+ *
+ * Text/Tree view — project container nodes remain visible for human readability.
+ * The tree-view heading includes the document's Action name (doc.title) so the
+ * reader knows which action they are reviewing even when the project node is
+ * the root of the hierarchy.
+ */
 function buildActivityViews(doc: ActivityDoc, gaps: ActivitiesLayoutOptions, curvature: number, entryCurvature: number | undefined, filename: string, date: string, version?: string): ActivityViews {
+  // #421: Suppress project-type container nodes in the Network (PSND) view only.
+  // A shallow copy is sufficient — only the activities array is replaced; all
+  // other doc fields (project block, title, dates, etc.) are shared by reference
+  // and are not mutated.
+  const networkDoc: ActivityDoc = {
+    ...doc,
+    activities: (doc.activities ?? []).filter(
+      (a) => a.activity_type?.toLowerCase() !== 'project',
+    ),
+  };
   const networkHeading = 'Network view — Project Schedule Network Diagram (PSND)';
-  const networkSvgStr = networkSvg(doc, gaps, curvature, entryCurvature, networkHeading, filename, date, version);
+  const networkSvgStr = networkSvg(networkDoc, gaps, curvature, entryCurvature, networkHeading, filename, date, version);
   const gantt: GanttResult = computeGanttLayout(doc);
 
   const dateLine = date;
