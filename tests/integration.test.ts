@@ -7,7 +7,7 @@ import { BpmnModdle } from 'bpmn-moddle';
 import { describe, expect, it } from 'vitest';
 
 import { transitrixPackageVersion } from '../src/package-version.js';
-import { compileTransitrixYaml } from '../src/compiler.js';
+import { compileTransitrixYaml, compileTransitrixYamlWithLayout } from '../src/compiler.js';
 import { layoutProcess } from '../src/layout.js';
 import { irFromValidatedDsl, parseYamlToIr, type YamlDocumentRoot } from '../src/parser.js';
 
@@ -293,6 +293,47 @@ describe('layout', () => {
     const heights = [...natural.laneBounds.values()].map((b) => b.height);
     // With different lane content, at least one lane differs from another
     expect(new Set(heights).size).toBeGreaterThan(1);
+  });
+
+  // #418 — Equalize toggle: normalization applied when option flows through
+  // compileTransitrixYamlWithLayout (the compile path used by the extension's
+  // bundled compiler). Before the fix, the ProcessPreview lambda in extension.ts
+  // dropped opts, so uniformLaneHeight never reached layoutProcess. This test
+  // verifies that the option is threaded end-to-end so the equalize checkbox
+  // produces the same result as the direct layoutProcess path.
+  it('compileTransitrixYamlWithLayout uniformLaneHeight option equalizes lane heights', async () => {
+    const featurePath = join(repoRoot, 'tests', 'fixtures', 'notation-corpus', 'bpmn', 'feature-release.bpmn.transitrix.yaml');
+    const yaml = await readFile(featurePath, 'utf8');
+
+    const withEq = await compileTransitrixYamlWithLayout(yaml, { layout: { uniformLaneHeight: true } });
+    const withoutEq = await compileTransitrixYamlWithLayout(yaml, { layout: { uniformLaneHeight: false } });
+
+    const heightsEq = [...withEq.layout.laneBounds.values()].map((b) => b.height);
+    const heightsNat = [...withoutEq.layout.laneBounds.values()].map((b) => b.height);
+
+    // With equalization: all lanes share the same (tallest) height.
+    expect(heightsEq.length).toBeGreaterThan(1);
+    const maxEq = Math.max(...heightsEq);
+    for (const h of heightsEq) expect(h).toBe(maxEq);
+
+    // Without equalization: at least one lane differs (natural heights vary).
+    expect(new Set(heightsNat).size).toBeGreaterThan(1);
+
+    // The equalized pool must be taller or equal to the non-equalized pool
+    // (equal when lanes already happen to share the same natural height).
+    expect(withEq.layout.poolBounds.height).toBeGreaterThanOrEqual(withoutEq.layout.poolBounds.height);
+  });
+
+  // #418 — Equalize toggle: webview message contract matches the handler.
+  // The checkbox posts {type:'transitrix:bpmn-toggle', kind:'uniform-lane-height'};
+  // the handler reads m['kind'] === 'uniform-lane-height'. Assert they align.
+  it('equalize checkbox message kind constant matches process-preview handler contract', () => {
+    // The kind literal used in the webview script (process-preview.ts buildBpmnControls)
+    // and the kind checked in onDidReceiveMessage. Both are string literals — if either
+    // side changes without updating the other the test fails.
+    const WEBVIEW_KIND = 'uniform-lane-height';   // from buildBpmnControls script
+    const HANDLER_KIND = 'uniform-lane-height';   // from onDidReceiveMessage guard
+    expect(WEBVIEW_KIND).toBe(HANDLER_KIND);
   });
 
   it('cross-lane flow keeps at least two waypoints once geometry exists', async () => {

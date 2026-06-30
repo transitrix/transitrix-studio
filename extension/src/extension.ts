@@ -229,8 +229,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     }
     return processLayoutPromise;
   }
-  const processPreview = new ProcessPreview((yaml: string) =>
-    processLayoutFn().then((fn) => fn(yaml)),
+  const processPreview = new ProcessPreview((yaml: string, opts?: BpmnDisplayOpts) =>
+    processLayoutFn().then((fn) => fn(yaml, opts)),
   );
 
   const goalsPreview = new GoalsPreview(context.extensionUri);
