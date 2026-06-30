@@ -7,7 +7,7 @@ import type { ControlMessage, PreviewView } from './preview-controls.js';
 // mirroring the existing `transitrix.theme` pattern, and re-renders previews
 // on change. In-preview live sliders are deferred to PR2.
 
-export type SpacingNotation = 'goals' | 'dgca' | 'dga' | 'fgca' | 'fga' | 'action';
+export type SpacingNotation = 'goals' | 'dgca' | 'dga' | 'action';
 
 export interface SpacingGaps {
   /** px gap between columns (horizontal). */
@@ -37,7 +37,7 @@ export const OPEN_SPACING_SETTINGS_COMMAND = 'transitrixStudio.openSpacingSettin
 // PR1 persistence pattern as spacing: settings-backed, re-rendered on change,
 // in-preview slider deferred to the joint enableScripts call.
 
-export type CurvatureNotation = 'goals' | 'dgca' | 'dga' | 'fgca' | 'fga' | 'action';
+export type CurvatureNotation = 'goals' | 'dgca' | 'dga' | 'action';
 
 // Must match DEFAULT_EDGE_CURVATURE in @transitrix/diagrams so an unconfigured
 // preview is visually unchanged.
@@ -71,7 +71,7 @@ export const ENTRY_CURVATURE_CONFIG_SECTION = 'transitrix.entryCurvature';
 // pattern as spacing: settings-backed, re-rendered on change. The in-preview
 // root-picker dropdown is deferred to the joint enableScripts PR2.
 
-export type ScopeNotation = 'goals' | 'dgca' | 'dga' | 'fgca' | 'fga';
+export type ScopeNotation = 'goals' | 'dgca' | 'dga';
 
 /**
  * Resolves the configured scope for a notation. A non-empty `rootId` wins over
@@ -93,14 +93,14 @@ export const SCOPE_CONFIG_SECTION = 'transitrix.scope';
 /** Command that opens Settings filtered to the scope controls. */
 export const OPEN_SCOPE_SETTINGS_COMMAND = 'transitrixStudio.openScopeSettings';
 
-// ── Tree ↔ table view (vkgeorgia/strategy#137) ──────────────────────────────
+// ── Tree ↔ table view ────────────────────────────────────────────────────────
 //
-// FGCA/FGA previews can render as the tree/chain diagram (default) or as a
+// DGCA/DGA previews can render as the tree/chain diagram (default) or as a
 // flattened chain table. Same settings-backed persistence as the controls
 // above: the in-preview toolbar toggle writes `transitrix.view.<notation>` and
 // the preview re-renders.
 
-export type ViewNotation = 'dgca' | 'dga' | 'fgca' | 'fga';
+export type ViewNotation = 'dgca' | 'dga';
 
 /** Reads the persisted view for a notation. Defaults to 'tree' (no change). */
 export function readView(notation: ViewNotation): PreviewView {
@@ -149,7 +149,7 @@ export async function applyControlMessage(notation: SpacingNotation, msg: Contro
     await cfg.update(`entryCurvature.${notation}`, clamp(Number(msg.value), 0, 3), target);
     return;
   }
-  if (msg.control === 'view' && (notation === 'dgca' || notation === 'dga' || notation === 'fgca' || notation === 'fga')) {
+  if (msg.control === 'view' && (notation === 'dgca' || notation === 'dga')) {
     await cfg.update(`view.${notation}`, msg.field === 'table' ? 'table' : 'tree', target);
     return;
   }

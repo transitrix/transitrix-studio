@@ -7,7 +7,7 @@ import { escXml } from '@transitrix/diagrams/webview/render-util.js';
 // PR1 shipped the same controls as VS Code settings + a "…" toolbar link that
 // opens Settings. PR2 adds live, in-preview controls. Per Valerii's joint
 // `enableScripts` posture call (2026-06-02), the four interactive previews
-// (goals / fgca / fga / activities) now run with scripts enabled under a strict
+// (goals / dgca / dga / action) now run with scripts enabled under a strict
 // nonce-based CSP. This module is the *pure* string-building half of that work
 // — it never imports `vscode`, so it is unit-testable:
 //
