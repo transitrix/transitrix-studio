@@ -628,10 +628,10 @@ const ACTIVITIES_WEBVIEW_CSS = `
 
 const ACTIVITIES_STYLES = ACTIVITIES_WEBVIEW_CSS + ACTIVITIES_DIAGRAM_CSS;
 
-// ── ActivitiesPreview webview class ───────────────────────────────────────────
+// ── ActionPreview webview class ───────────────────────────────────────────────
 
-export class ActivitiesPreview {
-  readonly panelTitle = 'Activities Preview';
+export class ActionPreview {
+  readonly panelTitle = 'Action Preview';
   private panel: vscode.WebviewPanel | undefined;
   private trackedUri: string | undefined;
   // Saved separately so Save .svg can offer whichever view the user wants —
@@ -654,7 +654,7 @@ export class ActivitiesPreview {
       this.panel.reveal(vscode.ViewColumn.Beside, true);
     } else {
       this.panel = vscode.window.createWebviewPanel(
-        'activitiesPreview',
+        'actionPreview',
         `${this.panelTitle} — ${path.basename(doc.fileName)}`,
         { viewColumn: vscode.ViewColumn.Beside, preserveFocus: false },
         {
@@ -668,7 +668,7 @@ export class ActivitiesPreview {
           enableCommandUris: ['transitrixStudio.saveActivitiesAsSvg', 'transitrixStudio.saveActivitiesAsPng', 'transitrixStudio.copyActivitiesAsPng', OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND, OPEN_THEME_COMMAND],
         },
       );
-      this.panel.webview.onDidReceiveMessage((m) => { void applyControlMessage('activities', m); });
+      this.panel.webview.onDidReceiveMessage((m) => { void applyControlMessage('action', m); });
       this.panel.onDidDispose(() => { this.panel = undefined; this.trackedUri = undefined; });
     }
     await this.pushDocument(doc);
@@ -697,9 +697,9 @@ export class ActivitiesPreview {
     let warnings: string[] = [];
 
     const spacingDefaults = { horizontalGap: ACTIVITIES_DEFAULT_H_GAP, verticalGap: ACTIVITIES_DEFAULT_V_GAP };
-    const spacing = readSpacing('activities', spacingDefaults);
-    const curvature = readCurvature('activities');
-    const entryCurvature = readEntryCurvature('activities');
+    const spacing = readSpacing('action', spacingDefaults);
+    const curvature = readCurvature('action');
+    const entryCurvature = readEntryCurvature('action');
 
     try {
       const parsed = coerceDatesToIsoStrings(yaml.load(yamlText) as unknown);
