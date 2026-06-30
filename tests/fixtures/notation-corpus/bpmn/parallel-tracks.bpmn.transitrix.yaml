@@ -1,0 +1,78 @@
+notation: bpmn
+# CORPUS CELL: M-Mi-A-Mi-2
+# Element count: 9 (4 tasks, 2 events, 3 gateways)
+# Cross-lane flows: 4/8 (50%)
+# Cycles: none (acyclic)
+# Gateway density: 33% (3/9 elements)
+# Lanes: 2 (user, agent)
+# Purpose: Two-lane inclusive-gateway split into asymmetric parallel tracks.
+#          OKF track has two sequential tasks in the Agent lane; Canon track
+#          has one.  Validates crossing-free routing when converging S-curves
+#          from different source columns would otherwise interleave.
+
+process:
+  id: parallel-tracks
+  name: Parallel Tracks
+  pools:
+    - id: pool-1
+      name: System
+      lanes:
+        - id: lane-user
+          name: User
+          elements:
+            - id: start
+              type: startEvent
+              name: Start
+            - id: gw-split
+              type: inclusiveGateway
+              name: Split Work
+            - id: task-prepare
+              type: task
+              name: Prepare Context
+            - id: gw-join
+              type: inclusiveGateway
+              name: Collect Results
+            - id: end
+              type: endEvent
+              name: Done
+        - id: lane-agent
+          name: Agent
+          elements:
+            - id: task-okf
+              type: task
+              name: Process OKF
+            - id: task-okf-review
+              type: task
+              name: Review OKF
+            - id: task-canon
+              type: task
+              name: Process Canon
+
+  flows:
+    - id: f-start
+      from: start
+      to: gw-split
+    - id: f-split-prepare
+      from: gw-split
+      to: task-prepare
+    - id: f-split-okf
+      from: gw-split
+      to: task-okf
+    - id: f-split-canon
+      from: gw-split
+      to: task-canon
+    - id: f-prepare-join
+      from: task-prepare
+      to: gw-join
+    - id: f-okf-review
+      from: task-okf
+      to: task-okf-review
+    - id: f-review-join
+      from: task-okf-review
+      to: gw-join
+    - id: f-canon-join
+      from: task-canon
+      to: gw-join
+    - id: f-join-end
+      from: gw-join
+      to: end
