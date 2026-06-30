@@ -1,5 +1,61 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+
+- **LOCATION primitive — validator + `unit_located_at` relation.** `LOCATION`
+  is now a first-class business-layer element. `unit_located_at` validates the
+  business-unit → LOCATION relation with `BLOC-001..003` and `LOC-001..003`
+  rules; mismatched subject/target types produce a `layer_semantics` error.
+
+- **BUSINESS_SERVICE primitive — validator + relation layer-semantics.**
+  `BUSINESS_SERVICE` elements validate with `BSVC-001..003`; the `provides`
+  and `used_by` relations enforce source/target type constraints.
+
+- **INTEGRATION primitive — validator + `interface_semantics` enforcement.**
+  `INTEGRATION` elements validate with `INTG-001..003`; the new
+  `interface_semantics` relation kind enforces source/target constraints with
+  `INTG-004..005` rules.
+
+- **NODE + TECHNOLOGY_SERVICE primitives — validators + `hosts`/`uses` relations.**
+  `NODE` and `TECHNOLOGY_SERVICE` validate with `NODE-001..003` /
+  `TSVC-001..003`; the `hosts` and `uses` relations carry `TSVC-003`
+  layer-semantics enforcement.
+
+### Removed
+
+- **Deprecated notation aliases `fgca`, `fga`, `activities`, `activity-card`.**
+  The CLI validators now emit errors (not warnings) for these legacy notation
+  values. Canonical replacements: `dgca`, `dga`, `action`, `action-card`.
+  See [RELEASING.md](RELEASING.md) for migration steps.
+
+- **Deprecated VS Code file-extension support for `*.fgca`, `*.fga`,
+  `*.activities`, `*.activity-card`, `*.activities-tree`.** The extension no
+  longer activates for these file patterns; preview commands, language entries,
+  and activation events for the deprecated suffixes are removed. Use the
+  canonical equivalents: `*.dgca`, `*.dga`, `*.action`, `*.action-card`,
+  `*.actions-tree`.
+
+- **Deprecated org canon examples and IntelliJ plugin notation entries.**
+  `canon/views/fgca/` and `canon/views/fga/` removed; `canon/views/activities/`
+  and `canon/views/activity-card/` renamed to `action/` and `action-card/`.
+  IntelliJ plugin's deprecated suffix→kind mappings for `fgca`, `fga`,
+  `activities`, `activity-card` removed; canonical `action` / `action-card`
+  mappings added.
+
+### Internal
+
+- **`FGCAPreview` → `DGCAPreview`, `FGAPreview` → `DGAPreview`.** Internal
+  preview class names, webview panel IDs (`fgcaPreview` → `dgcaPreview`,
+  `fgaPreview` → `dgaPreview`), and `when`-clause guards updated to canonical
+  names.
+
+- **IntelliJ `until-build` widened to 262** for JetBrains 2026.2
+  compatibility.
+
+---
+
 ## [2.7.0] — 2026-06-26
 
 ### Added
