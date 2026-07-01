@@ -1,8 +1,25 @@
 # Changelog
 
-## [Unreleased]
+## [2.8.0] — 2026-07-01
 
 ### Added
+
+- **BPMN — Title header.** BPMN diagram views now render a `.frame-header`
+  title block sourced from `layout.process.name`, matching the title
+  treatment already used by every other notation.
+
+- **Network view (PSND) — project container node hidden by default.**
+  Activities with `activity_type: project` are suppressed from the rendered
+  node list in Network view; the diagram already represents the project
+  scope, so the container added visual noise. Canonical parent linkage is
+  unchanged — only the rendered list is narrowed, via a new
+  `suppressProjectNodes` option (defaults to `true`) on `renderActivitiesSvg`.
+
+- **Tree view — Action name in header.** The tree-view heading now shows the
+  document's Action name (`doc.title`) when present, so the reader can
+  identify which action they're viewing even when the project node is the
+  root of the hierarchy. The project container itself stays visible in this
+  view.
 
 - **LOCATION primitive — validator + `unit_located_at` relation.** `LOCATION`
   is now a first-class business-layer element. `unit_located_at` validates the
@@ -46,6 +63,11 @@
 
 ### Fixed
 
+- **BPMN — equalize toggle now applies normalization.** The `ProcessPreview`
+  lambda in the extension dropped the `opts` argument, so `uniformLaneHeight`
+  never reached `layoutProcess` regardless of the equalize checkbox state.
+  Opts now thread end-to-end through the compile path the extension uses.
+
 - **Nested Blocks — no label overflow on container headers.** Container block
   headers now stack the name (`text-primary`) above the ID (`text-id`, grey)
   and truncate each line with `…` to fit within the block width, instead of
@@ -59,6 +81,10 @@
   preview class names, webview panel IDs (`fgcaPreview` → `dgcaPreview`,
   `fgaPreview` → `dgaPreview`), and `when`-clause guards updated to canonical
   names.
+
+- **Dead `fgca`/`fga` scope, view, and spacing-config settings removed** from
+  the VS Code extension's internal types and `package.json` settings
+  contributions, following the notation-alias removal above.
 
 - **IntelliJ `until-build` widened to 262** for JetBrains 2026.2
   compatibility.
