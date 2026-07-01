@@ -139,6 +139,28 @@ function dedupePoints(pts: { x: number; y: number }[]): { x: number; y: number }
   return res;
 }
 
+/** Remove intermediate waypoints that are collinear with their neighbours.
+ *  Three consecutive points A→B→C are collinear when A→B and B→C share the
+ *  same axis direction (both horizontal or both vertical); B is a redundant
+ *  inflection point and can be dropped without changing the path shape. */
+function removeCollinear(pts: { x: number; y: number }[]): { x: number; y: number }[] {
+  if (pts.length <= 2) return pts;
+  const out: { x: number; y: number }[] = [pts[0]];
+  for (let i = 1; i < pts.length - 1; i++) {
+    const prev = out[out.length - 1];
+    const curr = pts[i];
+    const next = pts[i + 1];
+    const prevHoriz = Math.abs(prev.y - curr.y) < 0.5;
+    const nextHoriz = Math.abs(curr.y - next.y) < 0.5;
+    const prevVert  = Math.abs(prev.x - curr.x) < 0.5;
+    const nextVert  = Math.abs(curr.x - next.x) < 0.5;
+    if ((prevHoriz && nextHoriz) || (prevVert && nextVert)) continue;
+    out.push(curr);
+  }
+  out.push(pts[pts.length - 1]);
+  return out;
+}
+
 function diagonalFallbackRects(a: Bounds, b: Bounds): { x: number; y: number }[] {
   return [
     { x: a.x + a.width / 2, y: a.y + a.height / 2 },
@@ -637,11 +659,17 @@ export async function layoutProcess(
   // Assign exit ports for cross-lane gateway flows: bottom when target is in a
   // lower lane, top when target is in a higher lane.  This makes the first segment
   // leave in the port direction (down/up) rather than always going right first.
+  // Restriction: only apply to ADJACENT lanes (|srcIdx - tgtIdx| == 1).  When a
+  // flow skips one or more intermediate lanes the chanY routing would descend
+  // through those lanes and cross their internal flows — so non-adjacent cross-lane
+  // gateway flows fall back to the right-exit S-curve which avoids that descent.
   for (const f of ir.flows) {
     const fb = elements.get(f.from);
     const tb = elements.get(f.to);
     if (!fb || !tb) continue;
-    if (elementLane.get(f.from) === elementLane.get(f.to)) continue;
+    const fromLane = elementLane.get(f.from);
+    const toLane   = elementLane.get(f.to);
+    if (fromLane === toLane) continue;
     if (!GATEWAY_TYPES.has(elementTypeMap.get(f.from) ?? '')) continue;
     const targetClearlyLeft = tb.x + tb.width / 2 < fb.x - fb.width / 2;
     if (targetClearlyLeft) continue;
@@ -717,6 +745,49 @@ export async function layoutProcess(
     }
   }
 
+  // --- Converging S-curve crossing prevention ---
+  // When ≥2 flows from different source X positions all target the same element
+  // and approach from the left, their mid-point S-curves can interleave (cross):
+  // the vertical bend of the leftmost source's curve can fall inside the horizontal
+  // segment of the rightmost source's curve.  Detect this and switch affected flows
+  // to an "approach-column" route: all bend at the same fixed X just before the
+  // target, so their vertical segments are collinear (overlap) rather than crossing.
+  const useApproachColumn = new Set<string>();
+  {
+    // Group left-approach flows by target element.
+    type InItem = { flowId: string; sourceRight: number };
+    const incomingByTarget = new Map<string, { tb: Bounds; items: InItem[] }>();
+    for (const f of ir.flows) {
+      const fb = elements.get(f.from);
+      const tb = elements.get(f.to);
+      if (!fb || !tb) continue;
+      // Only flows that use the default right-exit S-curve (no special port, no backward).
+      if (flowExitPort.has(f.id)) continue;       // already has top/bottom assignment
+      const exitX    = fb.x + fb.width;
+      const approachX = tb.x - GATEWAY_BRANCH_CLEARANCE_PX;
+      if (exitX >= approachX) continue;            // source at or past approach column
+      const entry = incomingByTarget.get(f.to) ?? { tb, items: [] };
+      entry.items.push({ flowId: f.id, sourceRight: exitX });
+      incomingByTarget.set(f.to, entry);
+    }
+    // For each target: check whether midX values would interleave.
+    for (const { tb, items } of incomingByTarget.values()) {
+      if (items.length < 2) continue;
+      items.sort((a, b) => a.sourceRight - b.sourceRight);
+      let crossing = false;
+      for (let i = 0; i < items.length - 1 && !crossing; i++) {
+        // Flows from the same X column share midX and merely overlap (same vertical
+        // segment) — that is not a crossing, so skip pairs with identical sourceRight.
+        if (items[i].sourceRight >= items[i + 1].sourceRight) continue;
+        const midX_i = (items[i].sourceRight + tb.x) / 2;
+        if (midX_i > items[i + 1].sourceRight) crossing = true;
+      }
+      if (crossing) {
+        for (const item of items) useApproachColumn.add(item.flowId);
+      }
+    }
+  }
+
   const flows: PositionedSequenceFlow[] = ir.flows.map((f) => {
     const fb = elements.get(f.from);
     const tb = elements.get(f.to);
@@ -735,10 +806,29 @@ export async function layoutProcess(
             ?.elements.filter((el) => el.id !== f.to)
             .flatMap((el) => { const b = elements.get(el.id); return b ? [b] : []; })
         : undefined;
-      wps = fromL === toL
-        ? routeSameLane(fb, tb, exitOffset, exitPort, isSourceGateway)
-        : routeCrossLane(fb, tb, fromLaneBound, toLaneBound, exitPort, o.laneVerticalGap, targetLaneEls);
+
+      if (useApproachColumn.has(f.id)) {
+        // Approach-column routing: all converging flows bend at the same fixed X
+        // before the target, so their vertical segments overlap (same column) rather
+        // than crossing each other.
+        const approachX = tb.x - GATEWAY_BRANCH_CLEARANCE_PX;
+        const ex = fb.x + fb.width;
+        const ey = fb.y + fb.height / 2;
+        const iy = tb.y + tb.height / 2;
+        wps = dedupePoints([
+          { x: ex, y: ey },
+          { x: approachX, y: ey },
+          { x: approachX, y: iy },
+          { x: tb.x, y: iy },
+        ]);
+      } else {
+        wps = fromL === toL
+          ? routeSameLane(fb, tb, exitOffset, exitPort, isSourceGateway)
+          : routeCrossLane(fb, tb, fromLaneBound, toLaneBound, exitPort, o.laneVerticalGap, targetLaneEls);
+      }
+
       if (wps.length < 2) wps = diagonalFallbackRects(fb, tb);
+      wps = removeCollinear(wps);
     }
     return { ...f, waypoints: wps };
   });
