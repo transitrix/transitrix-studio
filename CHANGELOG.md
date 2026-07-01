@@ -63,6 +63,12 @@
 
 ### Fixed
 
+- **BPMN — fewer routing crossings and redundant bends.** Collinear
+  intermediate waypoints (no direction change) are now stripped from routed
+  edges, and converging S-curve flows into the same join element are routed
+  via a shared approach column when their midpoints would otherwise
+  interleave, avoiding crossings. Adds the `parallel-tracks` corpus fixture.
+
 - **BPMN — equalize toggle now applies normalization.** The `ProcessPreview`
   lambda in the extension dropped the `opts` argument, so `uniformLaneHeight`
   never reached `layoutProcess` regardless of the equalize checkbox state.
