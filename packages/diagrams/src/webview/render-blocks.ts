@@ -16,6 +16,7 @@ import { layoutNestedBlocks } from '../blocks/layout.js';
 import type { BlocksFile, BlocksLayout, LaidOutBlock } from '../blocks/types.js';
 import { generateSvgEmbedCss, type ThemeId } from '../theme/index.js';
 import { escXml } from './render-util.js';
+import { ENTITY_NODE_RX } from './notation-style.js';
 
 const PAD = 24;
 
@@ -25,9 +26,12 @@ const CHAR_W = 7;
 const CHAR_W_ID = 6;
 
 // Vertical spacing between line centres.
-const LINE_H = 14;    // name lines (text-primary)
-const LINE_H_ID = 12; // id lines (text-id)
-const NAME_ID_GAP = 6; // gap between last name centre and first ID centre
+const LINE_H = 14;     // name lines (text-primary, 12 px font)
+const LINE_H_ID = 12;  // id lines (text-id, 10 px font)
+// Minimum gap to avoid overlap: half of name text height (6 px) + half of id
+// text height (5 px) = 11 px. Use 14 px to match the name-line separation and
+// leave a 3 px visual buffer — same as the gap between consecutive name lines.
+const NAME_ID_GAP = 14;
 
 /** Word-wrap `text` to at most `maxLines` lines of `maxChars` each. */
 function wrapWords(text: string, maxChars: number, maxLines: number): string[] {
@@ -110,7 +114,7 @@ function emitBlockSvg(b: LaidOutBlock, ox: number, oy: number, parts: string[]):
   const cls = levelClassForDepth(b.depth);
   const cx = b.x + ox + b.width / 2;
   parts.push(
-    `<rect class="diagram-node ${cls}" x="${b.x + ox}" y="${b.y + oy}" width="${b.width}" height="${b.height}" rx="6"/>`,
+    `<rect class="diagram-node ${cls}" x="${b.x + ox}" y="${b.y + oy}" width="${b.width}" height="${b.height}" rx="${ENTITY_NODE_RX}"/>`,
   );
 
   const innerW = Math.max(0, b.width - TEXT_MARGIN_X * 2);
