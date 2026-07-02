@@ -59,6 +59,15 @@ function extractLabels(svg: string): Array<{ cls: string; text: string }> {
   return out;
 }
 
+/** Extract {class, y} for each text element in SVG document order. */
+function extractTextY(svg: string): Array<{ cls: string; y: number }> {
+  const re = /<text class="(text-(?:primary|id))"[^>]*\by="([^"]+)"/g;
+  const out: Array<{ cls: string; y: number }> = [];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(svg))) out.push({ cls: m[1], y: parseFloat(m[2]) });
+  return out;
+}
+
 describe('renderBlocksSvg — leaf labels', () => {
   it('wraps a long name to at most 3 lines and truncates with …', () => {
     const longName =
@@ -151,5 +160,50 @@ describe('renderBlocksSvg — container headers', () => {
     }
     // At least one primary line must have been truncated.
     expect(primaries.some((l) => l.text.endsWith('…'))).toBe(true);
+  });
+});
+
+describe('renderBlocksSvg — name/ID vertical overlap regression (follows-up on #419)', () => {
+  // Root cause: NAME_ID_GAP was 6 px. text-primary is 12 px tall (±6 px around
+  // centre) and text-id is 10 px tall (±5 px around centre). The minimum gap
+  // between centres to avoid overlap is 11 px; a gap of 6 caused 5 px of overlap.
+  // Fix: NAME_ID_GAP = 14 (3 px visual buffer, matching the gap between name lines).
+
+  const NAME_HALF_H = 6;  // half of text-primary font size (12 px)
+  const ID_HALF_H = 5;    // half of text-id font size (10 px)
+
+  it('leaf node: last name line bottom does not overlap first ID line top (1 name + 1 ID)', () => {
+    const svg = renderBlocksSvg(leafDoc('Short', 'BLK-1'));
+    const positions = extractTextY(svg);
+    const nameY = positions.filter(p => p.cls === 'text-primary').map(p => p.y);
+    const idY = positions.filter(p => p.cls === 'text-id').map(p => p.y);
+    expect(nameY.length).toBeGreaterThan(0);
+    expect(idY.length).toBeGreaterThan(0);
+    const lastNameBottom = Math.max(...nameY) + NAME_HALF_H;
+    const firstIdTop = Math.min(...idY) - ID_HALF_H;
+    expect(firstIdTop).toBeGreaterThan(lastNameBottom);
+  });
+
+  it('leaf node: no overlap with a 3-word name (2 name lines + 1 ID)', () => {
+    const svg = renderBlocksSvg(leafDoc('Three Word Name', 'BLK-001'));
+    const positions = extractTextY(svg);
+    const nameY = positions.filter(p => p.cls === 'text-primary').map(p => p.y);
+    const idY = positions.filter(p => p.cls === 'text-id').map(p => p.y);
+    const lastNameBottom = Math.max(...nameY) + NAME_HALF_H;
+    const firstIdTop = Math.min(...idY) - ID_HALF_H;
+    expect(firstIdTop).toBeGreaterThan(lastNameBottom);
+  });
+
+  it('leaf node: no overlap with a long name (3 name lines) and wrapped ID (2 lines)', () => {
+    const longName =
+      'Personal data records that linger after consent withdrawal across many systems and archives';
+    const longId = 'VERY_LONG_BLOCK_IDENTIFIER_WITH_MANY_SEGMENTS_AND_MORE';
+    const svg = renderBlocksSvg(leafDoc(longName, longId));
+    const positions = extractTextY(svg);
+    const nameY = positions.filter(p => p.cls === 'text-primary').map(p => p.y);
+    const idY = positions.filter(p => p.cls === 'text-id').map(p => p.y);
+    const lastNameBottom = Math.max(...nameY) + NAME_HALF_H;
+    const firstIdTop = Math.min(...idY) - ID_HALF_H;
+    expect(firstIdTop).toBeGreaterThan(lastNameBottom);
   });
 });

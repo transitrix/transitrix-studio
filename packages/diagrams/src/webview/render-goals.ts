@@ -15,6 +15,7 @@ import type { GoalTree, GoalTreeLayout, LaidOutEdge } from '../goals/types.js';
 import { horizontalCubicEdgePath, DEFAULT_EDGE_CURVATURE } from '../edge-path.js';
 import { generateSvgEmbedCss, type ThemeId } from '../theme/index.js';
 import { escXml } from './render-util.js';
+import { ENTITY_NODE_RX } from './notation-style.js';
 
 const NODE_W = 250;
 const NODE_H = 72;
@@ -130,7 +131,7 @@ export function renderGoalsLayoutSvg(layout: GoalTreeLayout, options: RenderGoal
       const typeLabel = n.data.type ?? '';
       const idText = String(n.data.id);
       return `<g>
-  <rect class="diagram-node level-${level}" x="${x}" y="${y}" width="${n.width}" height="${n.height}" rx="8"/>
+  <rect class="diagram-node level-${level}" x="${x}" y="${y}" width="${n.width}" height="${n.height}" rx="${ENTITY_NODE_RX}"/>
   <text class="text-primary" x="${x + n.width / 2}" y="${nameY1}" text-anchor="middle" dominant-baseline="central">${escXml(line1)}</text>${twoLines ? `
   <text class="text-primary" x="${x + n.width / 2}" y="${nameY2}" text-anchor="middle" dominant-baseline="central">${escXml(line2)}</text>` : ''}${typeLabel ? `
   <text class="text-secondary" x="${x + n.width / 2}" y="${typeY}" text-anchor="middle" dominant-baseline="central">${escXml(typeLabel)}</text>` : ''}
