@@ -243,3 +243,48 @@ describe('computeGanttLayout — pinned mode', () => {
     expect(r.links[0].targetId).toBe('B');
   });
 });
+
+describe('computeGanttLayout — project-type activity suppression (regression for follow-up to #421)', () => {
+  // A project-type container activity is classified as a phase and rolls up into
+  // a bar spanning the full timeline. buildActivityViews filters project-type
+  // activities before calling computeGanttLayout so this bar never reaches the
+  // rendered Gantt. These tests confirm: (a) the container bar exists when NOT
+  // filtered, and (b) filtering it out still yields correct leaf/phase bars.
+
+  const docWithProjectContainer: ActivityDoc = {
+    notation: 'action',
+    title: 'Platform Launch Action',
+    project: { start_date: '2026-06-01' },
+    activities: [
+      { id: 'PROJ-1', name: 'Platform Launch', activity_type: 'project' },
+      { id: 'TASK-1', name: 'Design', activity_type: 'task', duration: 3, parent: 'PROJ-1' },
+      { id: 'TASK-2', name: 'Implement', activity_type: 'task', duration: 5, parent: 'PROJ-1', predecessors: ['TASK-1'] },
+    ],
+  };
+
+  it('includes the project container as a phase bar when not pre-filtered', () => {
+    const r = assertRenders(computeGanttLayout(docWithProjectContainer));
+    const projBar = r.bars.find(b => b.id === 'PROJ-1');
+    expect(projBar).toBeDefined();
+    expect(projBar!.kind).toBe('phase');
+  });
+
+  it('still renders leaf tasks correctly when project-type activity is pre-filtered', () => {
+    const filteredDoc: ActivityDoc = {
+      ...docWithProjectContainer,
+      activities: docWithProjectContainer.activities.filter(
+        (a) => a.activity_type?.toLowerCase() !== 'project',
+      ),
+    };
+    const r = assertRenders(computeGanttLayout(filteredDoc));
+    // Project container bar must not appear.
+    expect(r.bars.find(b => b.id === 'PROJ-1')).toBeUndefined();
+    // Leaf tasks must still render with correct dates.
+    const t1 = r.bars.find(b => b.id === 'TASK-1')!;
+    const t2 = r.bars.find(b => b.id === 'TASK-2')!;
+    expect(t1).toBeDefined();
+    expect(t2).toBeDefined();
+    expect(t1.startDate).toBe('2026-06-01');
+    expect(t2.startDate).toBe('2026-06-04'); // ES = 3 (after TASK-1)
+  });
+});

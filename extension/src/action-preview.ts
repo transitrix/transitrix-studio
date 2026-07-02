@@ -3,7 +3,7 @@ import { escXml } from '@transitrix/diagrams/webview/render-util.js';
 import * as vscode from 'vscode';
 import yaml from 'js-yaml';
 import { buildDiagramFrame, prepareSvgForExport, type ThemeId, OPEN_THEME_COMMAND } from './diagram-frame.js';
-import { TITLE_BLOCK_H, titleBlockSvg, todayIso } from './svg-title-block.js';
+import { TITLE_BLOCK_H, todayIso } from './svg-title-block.js';
 import {
   validateActivities,
   layoutActivities,
@@ -41,15 +41,40 @@ function truncate(s: string, maxLen: number): string {
 // supplies the SVG presentation layer only.
 
 const N_PAD = 24;
+// Extra SVG title-block line height for the optional action-name line.
+const ACTIVITY_ACTION_NAME_H = 16;
 
-function networkSvg(doc: ActivityDoc, gaps: ActivitiesLayoutOptions = {}, curvature: number = DEFAULT_EDGE_CURVATURE, entryCurvature?: number, heading?: string, filename?: string, date?: string, version?: string): string {
+/**
+ * SVG title block for activity views — extends the shared 3-line block with an
+ * optional 4th line for the document's Action name (doc.title). When present,
+ * the action name appears immediately after the heading as its own text element,
+ * pushing filename and date down by ACTIVITY_ACTION_NAME_H px.
+ */
+function activityTitleBlockSvg(heading: string, filename: string, date: string, x: number, top: number, actionName?: string): string {
+  const dateLine = `Generated: ${date}`;
+  let y = top + 14;
+  const lines: string[] = [
+    `<text class="text-header" x="${x}" y="${y}">${escXml(heading)}</text>`,
+  ];
+  y += 16;
+  if (actionName) {
+    lines.push(`<text class="text-secondary" x="${x}" y="${y}">${escXml(actionName)}</text>`);
+    y += 16;
+  }
+  lines.push(`<text class="text-secondary" x="${x}" y="${y}">${escXml(filename)}</text>`);
+  y += 16;
+  lines.push(`<text class="text-secondary" x="${x}" y="${y}">${escXml(dateLine)}</text>`);
+  return `<g class="diagram-title-block">\n  ${lines.join('\n  ')}\n</g>`;
+}
+
+function networkSvg(doc: ActivityDoc, gaps: ActivitiesLayoutOptions = {}, curvature: number = DEFAULT_EDGE_CURVATURE, entryCurvature?: number, heading?: string, filename?: string, date?: string, version?: string, actionName?: string): string {
   const layout: ActivitiesLayout = layoutActivities(doc, gaps);
   if (layout.nodes.length === 0) {
     return '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="60"><text class="text-primary" x="10" y="40">No activities</text></svg>';
   }
 
   const showTitle = heading != null && filename != null && date != null;
-  const titleH = showTitle ? TITLE_BLOCK_H : 0;
+  const titleH = showTitle ? (TITLE_BLOCK_H + (actionName ? ACTIVITY_ACTION_NAME_H : 0)) : 0;
   const cpm = computeCpm(doc.activities ?? []);
   const W = layout.bounds.width + N_PAD * 2;
   const H = layout.bounds.height + N_PAD * 2 + titleH;
@@ -58,7 +83,7 @@ function networkSvg(doc: ActivityDoc, gaps: ActivitiesLayoutOptions = {}, curvat
 
   const body = renderActivitiesNetworkBody(layout, cpm, ox, oy, curvature, entryCurvature);
 
-  const titleSvg = showTitle ? titleBlockSvg(heading!, filename!, date!, N_PAD, N_PAD, version) : '';
+  const titleSvg = showTitle ? activityTitleBlockSvg(heading!, filename!, date!, N_PAD, N_PAD, actionName) : '';
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
 ${ACTIVITIES_NETWORK_DEFS}
 ${titleSvg}
@@ -85,7 +110,7 @@ function daysBetween(startISO: string, endISO: string): number {
   return Math.round(ms / 86_400_000);
 }
 
-function ganttSvg(layout: GanttLayout, heading?: string, filename?: string, date?: string, version?: string): string {
+function ganttSvg(layout: GanttLayout, heading?: string, filename?: string, date?: string, version?: string, actionName?: string): string {
   // Sort bars by start date then id for stable display order.
   const bars = [...layout.bars].sort((a, b) => {
     if (a.startDate !== b.startDate) return a.startDate < b.startDate ? -1 : 1;
@@ -93,7 +118,7 @@ function ganttSvg(layout: GanttLayout, heading?: string, filename?: string, date
   });
 
   const showTitle = heading != null && filename != null && date != null;
-  const titleH = showTitle ? TITLE_BLOCK_H : 0;
+  const titleH = showTitle ? (TITLE_BLOCK_H + (actionName ? ACTIVITY_ACTION_NAME_H : 0)) : 0;
   const totalDays = daysBetween(layout.timelineStart, layout.timelineEnd) + 1;
   const timelineWidth = totalDays * G_DAY_W;
   const W = G_LABEL_COL_W + timelineWidth + G_PAD * 2;
@@ -342,7 +367,7 @@ function ganttSvg(layout: GanttLayout, heading?: string, filename?: string, date
     }
   }
 
-  const titleSvg = showTitle ? titleBlockSvg(heading!, filename!, date!, G_PAD, G_PAD, version) : '';
+  const titleSvg = showTitle ? activityTitleBlockSvg(heading!, filename!, date!, G_PAD, G_PAD, actionName) : '';
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
 <defs>
   <marker id="gantt-arrow" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto" markerUnits="userSpaceOnUse">
@@ -392,8 +417,12 @@ function activityTypeBadgeClass(type: string | undefined): string {
   return `tree-badge tree-badge-${type.toLowerCase().replace(/\s+/g, '-')}`;
 }
 
-function buildTreeHtml(doc: ActivityDoc, filename: string, date: string, version?: string): string {
-  const activities = doc.activities ?? [];
+function buildTreeHtml(doc: ActivityDoc, filename: string, date: string, version?: string, actionName?: string): string {
+  // Suppress project-type container nodes from the tree view — same convention
+  // as the Network view. The Action name in the header identifies the scope.
+  const activities = (doc.activities ?? []).filter(
+    (a) => a.activity_type?.toLowerCase() !== 'project',
+  );
   if (activities.length === 0) {
     return '<div class="section-notice">No activities to display.</div>';
   }
@@ -443,12 +472,11 @@ function buildTreeHtml(doc: ActivityDoc, filename: string, date: string, version
   }
 
   const versionPart = version ? ` · v${escXml(version)}` : '';
-  // #421: show the Action name (doc.title) in the tree-view header when present.
-  // The project container block is visible in this view and the heading
-  // compensates with the document-level Action name for human readability.
-  const actionName = doc.title ? `${escXml(doc.title)} — ` : '';
+  const actionNameLine = actionName
+    ? `\n  <div class="text-secondary">${escXml(actionName)}</div>`
+    : '';
   const titleHtml = `<div class="diagram-title-block diagram-title-block-html">
-  <div class="text-header">${actionName}Tree view — Initiative → Programme → Project → Task</div>
+  <div class="text-header">Tree view — Initiative → Programme → Project → Task</div>${actionNameLine}
   <div class="text-secondary">${escXml(filename)}</div>
   <div class="text-secondary">${escXml(date)}${versionPart}</div>
 </div>`;
@@ -457,46 +485,47 @@ function buildTreeHtml(doc: ActivityDoc, filename: string, date: string, version
 }
 
 /**
- * Renderer/view convention (#421):
+ * Renderer/view convention (follow-up to #421):
  *
- * Network (PSND) view — project container nodes (activity_type === 'project')
- * are suppressed by default. The diagram itself represents the project scope,
- * so the container adds visual noise without conveying additional information.
- * Canonical parent linkage is preserved in the raw doc; only the rendered
- * node list is narrowed.
- *
- * Text/Tree view — project container nodes remain visible for human readability.
- * The tree-view heading includes the document's Action name (doc.title) so the
- * reader knows which action they are reviewing even when the project node is
- * the root of the hierarchy.
+ * Project-type container nodes (activity_type === 'project') are suppressed
+ * from ALL rendered views — Network, Gantt, and Tree. The diagram already
+ * represents the project scope; rendering the container as a node or bar adds
+ * visual noise. The doc.title (Action name) is shown in each view's header as
+ * its own line so the reader can identify the action without the container node.
+ * Canonical parent linkage is preserved in the raw doc; only the rendered node
+ * lists are narrowed. doc.project.start_date (used by the Gantt for computed
+ * mode) is on the project block, not on any activity — filtering activities
+ * does not affect Gantt date computation.
  */
 function buildActivityViews(doc: ActivityDoc, gaps: ActivitiesLayoutOptions, curvature: number, entryCurvature: number | undefined, filename: string, date: string, version?: string): ActivityViews {
-  // #421: Suppress project-type container nodes in the Network (PSND) view only.
-  // A shallow copy is sufficient — only the activities array is replaced; all
-  // other doc fields (project block, title, dates, etc.) are shared by reference
-  // and are not mutated.
-  const networkDoc: ActivityDoc = {
-    ...doc,
-    activities: (doc.activities ?? []).filter(
-      (a) => a.activity_type?.toLowerCase() !== 'project',
-    ),
-  };
+  // Suppress project-type container nodes from all views. A shallow copy is
+  // sufficient — only the activities array is replaced; all other doc fields
+  // (project block, title, dates, etc.) are shared by reference and not mutated.
+  const filteredActivities = (doc.activities ?? []).filter(
+    (a) => a.activity_type?.toLowerCase() !== 'project',
+  );
+  const filteredDoc: ActivityDoc = { ...doc, activities: filteredActivities };
+  const actionName = doc.title ?? undefined;
+
   const networkHeading = 'Network view — Project Schedule Network Diagram (PSND)';
-  const networkSvgStr = networkSvg(networkDoc, gaps, curvature, entryCurvature, networkHeading, filename, date, version);
-  const gantt: GanttResult = computeGanttLayout(doc);
+  const networkSvgStr = networkSvg(filteredDoc, gaps, curvature, entryCurvature, networkHeading, filename, date, version, actionName);
+  const gantt: GanttResult = computeGanttLayout(filteredDoc);
 
   const dateLine = date;
 
   if (isGanttUnavailable(gantt)) {
     // No SVG to embed the title into — fall back to an HTML title block plus
     // the notice so the unavailable path still shows the same paragraph.
+    const actionNameLine = actionName
+      ? `\n  <div class="text-secondary">${escXml(actionName)}</div>`
+      : '';
     const ganttBody = `<div class="diagram-title-block diagram-title-block-html">
-  <div class="text-header">Gantt view — unavailable</div>
+  <div class="text-header">Gantt view — unavailable</div>${actionNameLine}
   <div class="text-secondary">${escXml(filename)}</div>
   <div class="text-secondary">${escXml(dateLine)}</div>
 </div>
 <div class="section-notice">${escXml(gantt.reason)}</div>`;
-    const treeHtmlStr = buildTreeHtml(doc, filename, date, version);
+    const treeHtmlStr = buildTreeHtml(doc, filename, date, version, actionName);
     return { networkSvg: networkSvgStr, ganttBody, ganttSvg: '', treeHtml: treeHtmlStr };
   }
 
@@ -504,8 +533,8 @@ function buildActivityViews(doc: ActivityDoc, gaps: ActivitiesLayoutOptions, cur
     ? `computed mode (project ${gantt.timelineStart} → ${gantt.timelineEnd})`
     : `pinned mode (${gantt.timelineStart} → ${gantt.timelineEnd})`;
   const ganttHeading = `Gantt view — ${modeLabel}`;
-  const ganttSvgStr = ganttSvg(gantt, ganttHeading, filename, date, version);
-  const treeHtmlStr = buildTreeHtml(doc, filename, date, version);
+  const ganttSvgStr = ganttSvg(gantt, ganttHeading, filename, date, version, actionName);
+  const treeHtmlStr = buildTreeHtml(doc, filename, date, version, actionName);
   return { networkSvg: networkSvgStr, ganttBody: ganttSvgStr, ganttSvg: ganttSvgStr, treeHtml: treeHtmlStr };
 }
 
