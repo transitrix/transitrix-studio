@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [2.9.0] — 2026-07-03
 
 ### Changed
 
@@ -19,6 +19,23 @@
   entry, gateway vertex distribution, top/bottom cross-lane gateway exits,
   left-face U-turn loops) are unchanged. `elkjs` is no longer used by the
   BPMN layout path.
+
+### Fixed
+
+- **Action preview — project node suppressed in Gantt and Tree views, Action
+  name on its own header line.** The project-container suppression added for
+  the Network view in 2.8.0 now also applies to the Gantt view (no more
+  full-width phase rollup bar for the project container) and the Tree view
+  (the project node no longer renders as the root tree block). The Action
+  name renders as its own line immediately below the view heading instead of
+  being merged into the heading text; SVG/PNG exports reserve 16 px for the
+  extra line. (#341)
+
+- **Blocks — name/ID text overlap fixed, entity-node style unified with
+  Goals.** Leaf block nodes rendered the grey ID line 5 px into the last name
+  line (`NAME_ID_GAP` 6 → 14). Block and Goals entity boxes now share the
+  same corner radius via the new `notation-style.ts` constant
+  `ENTITY_NODE_RX = 8`, removing the per-renderer style drift. (#342)
 
 ## [2.8.0] — 2026-07-01
 
