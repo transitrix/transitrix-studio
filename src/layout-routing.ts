@@ -68,6 +68,16 @@ const TRACK_MAX_OFFSET_PX = 18;
 /** Minimum free strip height to qualify as a horizontal corridor. */
 const MIN_CORRIDOR_PX = 14;
 
+/**
+ * Clearance for the per-element "hug" rows a skip-level flow uses to bypass
+ * a single node (buildGrid, below) — comfortably larger than the minimum
+ * legal OBSTACLE_MARGIN_PX. A* minimises path length, so it always prefers
+ * the tightest legal candidate row; without a deliberately wider gap here,
+ * a bypass arc reads as skimming the node's edge even when the lane has
+ * plenty of headroom to spare.
+ */
+const HUG_CLEARANCE_PX = 20;
+
 type Dir = 0 | 1 | 2 | 3; // R, D, L, U
 const DX = [1, 0, -1, 0] as const;
 const DY = [0, 1, 0, -1] as const;
@@ -91,6 +101,16 @@ function portDir(port: Port): Dir {
     case 'bottom': return 1;
     case 'left':   return 2;
     case 'top':    return 3;
+  }
+}
+
+/** Direction of travel when ARRIVING at (moving into) the given face. */
+function entryDir(port: Port): Dir {
+  switch (port) {
+    case 'left':   return 0; // moving right, into the left face
+    case 'top':    return 1; // moving down, into the top face
+    case 'right':  return 2; // moving left, into the right face
+    case 'bottom': return 3; // moving up, into the bottom face
   }
 }
 
@@ -154,11 +174,15 @@ export function planPorts(ir: ProcessIr, p: Placement): Map<string, FlowPlan> {
   // Exit-port overrides (gateway vertex distribution + cross-lane verticals).
   const flowExitPort = new Map<string, Port>();
   const flowExitYOffset = new Map<string, number>();
+  // Entry-port overrides (join-side vertex distribution — see below).
+  const flowEntryPort = new Map<string, Port>();
 
   // Same-lane forward gateway flows grouped by source.
-  const fwdSameLaneByGw = new Map<string, Array<{ id: string; toB: Bounds }>>();
+  const fwdSameLaneByGw = new Map<string, Array<{ id: string; toB: Bounds; colSpan: number }>>();
   // Same-lane forward flows from non-gateway sources grouped by source.
   const fwdSameLaneByTask = new Map<string, Array<{ id: string; targetX: number }>>();
+  // Same-lane forward flows INTO a gateway, grouped by target (join side).
+  const fwdSameLaneIntoGw = new Map<string, Array<{ id: string; colSpan: number }>>();
 
   for (const f of ir.flows) {
     const fb = p.elements.get(f.from);
@@ -167,14 +191,40 @@ export function planPorts(ir: ProcessIr, p: Placement): Map<string, FlowPlan> {
     const sameLane = p.laneOf.get(f.from) === p.laneOf.get(f.to);
     if (!sameLane || isBackward(fb, tb)) continue;
     if (GATEWAY_TYPES.has(p.typeOf.get(f.from) ?? '')) {
+      const colSpan = Math.abs((p.columnOf.get(f.to) ?? 0) - (p.columnOf.get(f.from) ?? 0));
       const arr = fwdSameLaneByGw.get(f.from) ?? [];
-      arr.push({ id: f.id, toB: tb });
+      arr.push({ id: f.id, toB: tb, colSpan });
       fwdSameLaneByGw.set(f.from, arr);
     } else {
       const arr = fwdSameLaneByTask.get(f.from) ?? [];
       arr.push({ id: f.id, targetX: tb.x });
       fwdSameLaneByTask.set(f.from, arr);
     }
+    if (GATEWAY_TYPES.has(p.typeOf.get(f.to) ?? '')) {
+      const colSpan = Math.abs((p.columnOf.get(f.to) ?? 0) - (p.columnOf.get(f.from) ?? 0));
+      const arr = fwdSameLaneIntoGw.get(f.to) ?? [];
+      arr.push({ id: f.id, colSpan });
+      fwdSameLaneIntoGw.set(f.to, arr);
+    }
+  }
+
+  // Join-side vertex distribution: when a gateway receives both a "direct"
+  // same-lane predecessor (the immediately preceding column) and a
+  // "skip-level" one (bypassing an intervening node in the same row),
+  // forcing both onto the default LEFT face makes the skip-level flow
+  // converge on the exact same entry point as the direct one — it then has
+  // to detour around the intervening node just to reach that shared point.
+  // Routing the skip-level entry through TOP (falling back to BOTTOM for a
+  // second one) instead gives it a short, independent approach and keeps
+  // the direct flow's straight-through path uncluttered.
+  for (const [, flows] of fwdSameLaneIntoGw) {
+    if (flows.length <= 1) continue;
+    const direct = flows.some((f) => f.colSpan <= 1);
+    const skip = flows.filter((f) => f.colSpan > 1);
+    if (!direct || skip.length === 0) continue;
+    skip.forEach((f, i) => {
+      flowEntryPort.set(f.id, i % 2 === 0 ? 'top' : 'bottom');
+    });
   }
 
   // Non-gateway sources with several forward same-lane exits: spread the exit
@@ -188,9 +238,19 @@ export function planPorts(ir: ProcessIr, p: Placement): Map<string, FlowPlan> {
     });
   }
 
-  // Gateway same-lane forward flows: one diamond vertex per directional group.
-  //   most-above target → TOP vertex, most-below → BOTTOM vertex,
-  //   level targets and extras → RIGHT vertex with Y-offset spread.
+  // Gateway same-lane forward flows: one diamond vertex per directional
+  // group — most-above target → TOP, most-below → BOTTOM, everything else
+  // → RIGHT. A gateway has three usable forward vertices (left is reserved
+  // for backward loops); never let two or more flows double up on one of
+  // them while another sits completely unclaimed. Whichever flows don't win
+  // the top/bottom vertex outright are ranked by how much they'd benefit
+  // from a vertex of their own — a skip-level flow (colSpan > 1, bypassing
+  // an intervening node) has genuine travel budget for a wide arc from
+  // TOP/BOTTOM; a merely-further-above/below extra is next; a flow that's
+  // level with the gateway and adjacent (colSpan ≤ 1, nothing to detour
+  // around) benefits least and is the last to be moved off RIGHT. Only once
+  // every vertex is spoken for does a further flow double up on RIGHT,
+  // spread by Y-offset — an inherent limit of a 3-vertex shape.
   for (const [sourceId, flows] of fwdSameLaneByGw) {
     if (flows.length <= 1) continue;
     const gwB = p.elements.get(sourceId)!;
@@ -203,16 +263,29 @@ export function planPorts(ir: ProcessIr, p: Placement): Map<string, FlowPlan> {
       .filter((f) => f.toB.y + f.toB.height / 2 > gwCY + GATEWAY_VERTEX_THRESHOLD_PX)
       .sort((a, b) => (b.toB.y + b.toB.height / 2) - (a.toB.y + a.toB.height / 2));
 
-    if (above.length > 0) flowExitPort.set(above[0].id, 'top');
-    if (below.length > 0) flowExitPort.set(below[0].id, 'bottom');
+    let topTaken = false;
+    let bottomTaken = false;
+    if (above.length > 0) { flowExitPort.set(above[0].id, 'top'); topTaken = true; }
+    if (below.length > 0) { flowExitPort.set(below[0].id, 'bottom'); bottomTaken = true; }
 
-    const rightFlows = [
+    const overflow = [
       ...above.slice(1),
       ...flows.filter(
         (f) => Math.abs(f.toB.y + f.toB.height / 2 - gwCY) <= GATEWAY_VERTEX_THRESHOLD_PX,
       ),
       ...below.slice(1),
-    ].sort((a, b) => a.toB.y - b.toB.y);
+    ].sort((a, b) => b.colSpan - a.colSpan || a.toB.y - b.toB.y);
+
+    if (overflow.length > 1 && !topTaken) {
+      flowExitPort.set(overflow.shift()!.id, 'top');
+      topTaken = true;
+    }
+    if (overflow.length > 1 && !bottomTaken) {
+      flowExitPort.set(overflow.shift()!.id, 'bottom');
+      bottomTaken = true;
+    }
+
+    const rightFlows = overflow.sort((a, b) => a.toB.y - b.toB.y);
     if (rightFlows.length > 1) {
       const total = (rightFlows.length - 1) * MULTI_EXIT_OFFSET_STEP_PX;
       rightFlows.forEach((f, i) => {
@@ -221,9 +294,24 @@ export function planPorts(ir: ProcessIr, p: Placement): Map<string, FlowPlan> {
     }
   }
 
+  // Vertex ports already claimed at a node by the join-side entry
+  // distribution above (e.g. a skip-level flow entering via 'top') — consulted
+  // below so a gateway's own outgoing cross-lane flow doesn't converge on the
+  // same vertex an incoming flow is already using.
+  const usedEntryPort = new Map<string, Set<Port>>();
+  for (const f of ir.flows) {
+    const port = flowEntryPort.get(f.id);
+    if (!port) continue;
+    const set = usedEntryPort.get(f.to) ?? new Set<Port>();
+    set.add(port);
+    usedEntryPort.set(f.to, set);
+  }
+
   // Cross-lane gateway flows: bottom vertex when the target lane is below,
   // top vertex when above (unless the target is clearly to the left —
-  // those route as backward-style left U-turns).
+  // those route as backward-style left U-turns, or the vertex is already
+  // claimed by an incoming join-side flow at this same gateway — see above —
+  // in which case the default RIGHT exit is left in place instead).
   for (const f of ir.flows) {
     const fb = p.elements.get(f.from);
     const tb = p.elements.get(f.to);
@@ -235,8 +323,9 @@ export function planPorts(ir: ProcessIr, p: Placement): Map<string, FlowPlan> {
     if (targetClearlyLeft) continue;
     const targetBelow = tb.y >= fb.y + fb.height - EPSILON_PX;
     const targetAbove = tb.y + tb.height <= fb.y + EPSILON_PX;
-    if (targetBelow) flowExitPort.set(f.id, 'bottom');
-    else if (targetAbove) flowExitPort.set(f.id, 'top');
+    const claimed = usedEntryPort.get(f.from);
+    if (targetBelow && !claimed?.has('bottom')) flowExitPort.set(f.id, 'bottom');
+    else if (targetAbove && !claimed?.has('top')) flowExitPort.set(f.id, 'top');
   }
 
   const plans = new Map<string, FlowPlan>();
@@ -258,9 +347,12 @@ export function planPorts(ir: ProcessIr, p: Placement): Map<string, FlowPlan> {
     const yOffset = exitPort === 'right' ? (flowExitYOffset.get(f.id) ?? 0) : 0;
 
     const start = portPoint(fb, exitPort, yOffset);
-    // Entry is always the left face, approached moving right; the straight
-    // vertical fast path (top/bottom face) is handled before the search.
-    const end = portPoint(tb, 'left');
+    // Entry defaults to the left face, approached moving right; join-side
+    // vertex distribution (above) overrides this for a skip-level incoming
+    // flow sharing a gateway with a direct one. The straight vertical fast
+    // path (top/bottom face) is handled before the search.
+    const entryPort = backward || targetClearlyLeft ? 'left' : (flowEntryPort.get(f.id) ?? 'left');
+    const end = portPoint(tb, entryPort);
 
     const colSpan = Math.abs(
       (p.columnOf.get(f.to) ?? 0) - (p.columnOf.get(f.from) ?? 0),
@@ -272,7 +364,7 @@ export function planPorts(ir: ProcessIr, p: Placement): Map<string, FlowPlan> {
       start,
       startDir: portDir(exitPort),
       end,
-      endDir: 0, // moving right into the left face
+      endDir: entryDir(entryPort),
       backward,
       columnSpan: colSpan,
     });
@@ -349,6 +441,23 @@ export function buildGrid(
     }
     if (lb.y + lb.height - cursor >= MIN_CORRIDOR_PX) {
       ys.push((cursor + lb.y + lb.height) / 2);
+    }
+
+    // Per-element hug rows, in addition to the merge above. The lane-wide
+    // merge treats any two elements that overlap in Y as one obstacle block —
+    // right for elements genuinely stacked at the same X, but it also erases
+    // the local clearance around a *shorter* neighbour standing next to a
+    // taller one at a different column (same row-centre, common case: a
+    // gateway beside a task). A skip-level edge that only needs to hop over
+    // that one taller node then finds no row until the lane's outer margin,
+    // producing a detour spanning the whole lane instead of hugging the node.
+    // Adding each element's own top/bottom edge as a raw candidate fixes
+    // this without touching the merge: hBlocked/vBlocked already gate every
+    // grid segment per element, so a row that's genuinely blocked somewhere
+    // along its length simply goes unused there — safe to add unconditionally.
+    for (const [id, b] of p.elements) {
+      if (p.laneOf.get(id) !== laneId) continue;
+      ys.push(b.y - HUG_CLEARANCE_PX, b.y + b.height + HUG_CLEARANCE_PX);
     }
   }
   if (o.laneVerticalGap >= 8) {
