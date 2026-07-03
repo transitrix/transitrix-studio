@@ -830,7 +830,10 @@ describe('layout', () => {
     const endB = layout.elements.get('end')!;
 
     const wps = crossFlow!.waypoints;
-    expect(wps.length).toBeGreaterThanOrEqual(4);
+    // Layout v2: isolated bot-task-1/bot-task-2 stack in the first column, so
+    // a 3-point L-path (down + right) may already be obstacle-free; the
+    // substance of RD-127 is the no-intersection assertions below.
+    expect(wps.length).toBeGreaterThanOrEqual(3);
 
     // Helper: check if a point is inside bounds (with margin).
     function pointInBox(p: { x: number; y: number }, b: { x: number; y: number; width: number; height: number }): boolean {
@@ -970,15 +973,30 @@ describe('layout', () => {
     expect(toHealth, 'gw-deploy-split → task-health must exist').toBeDefined();
     expect(toStaging, 'gw-deploy-split → task-staging must exist').toBeDefined();
 
-    // Health Check is above gw-deploy-split → must exit TOP vertex (wp[0].y === gwB.y)
-    const healthStart = toHealth!.waypoints[0];
-    expect(healthStart.x).toBeCloseTo(gwCX, 0);
-    expect(healthStart.y).toBeCloseTo(gwTop, 0);
+    // Which branch lands above/below is a placement decision (layout v2
+    // follows lane declaration order); the TX-023 convention under test is
+    // that the ABOVE branch exits the TOP vertex and the BELOW branch exits
+    // the BOTTOM vertex.
+    const healthB = layout.elements.get('task-health')!;
+    const stagingB = layout.elements.get('task-staging')!;
+    const gwCY = gwB.y + gwB.height / 2;
+    const [aboveFlow, belowFlow] =
+      healthB.y + healthB.height / 2 < gwCY
+        ? [toHealth!, toStaging!]
+        : [toStaging!, toHealth!];
+    expect(
+      (healthB.y + healthB.height / 2 < gwCY) !==
+        (stagingB.y + stagingB.height / 2 < gwCY),
+      'one branch above, one below',
+    ).toBe(true);
 
-    // Deploy to Staging is below gw-deploy-split → must exit BOTTOM vertex (wp[0].y === gwB.y + gwB.height)
-    const stagingStart = toStaging!.waypoints[0];
-    expect(stagingStart.x).toBeCloseTo(gwCX, 0);
-    expect(stagingStart.y).toBeCloseTo(gwBottom, 0);
+    const aboveStart = aboveFlow.waypoints[0];
+    expect(aboveStart.x).toBeCloseTo(gwCX, 0);
+    expect(aboveStart.y).toBeCloseTo(gwTop, 0);
+
+    const belowStart = belowFlow.waypoints[0];
+    expect(belowStart.x).toBeCloseTo(gwCX, 0);
+    expect(belowStart.y).toBeCloseTo(gwBottom, 0);
   });
 
   it('TX-023 — R4 cross-lane gateway exit: gw-decision → task-pay exits BOTTOM', async () => {
