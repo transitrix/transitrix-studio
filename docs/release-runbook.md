@@ -113,4 +113,3 @@ npm deprecate @transitrix/diagrams@1.0.0 "Broken — use 1.0.1+"
   [`docs/openvsx-publish-runbook.md`](openvsx-publish-runbook.md) — the
   marketplace-specific notes the workflows codify.
 - [`docs/cli.md`](cli.md) — CLI install docs.
-- Strategy hub `vkgeorgia/strategy#199` — the original npm-publish decisions.
