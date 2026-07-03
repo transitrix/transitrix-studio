@@ -26,5 +26,5 @@ Defined in [`notations/ELEMENT_PRIMITIVES.md`](../../../../../../notations/ELEME
 ## See also
 
 - Element-primitive schema: [`notations/ELEMENT_PRIMITIVES.md`](../../../../../../notations/ELEMENT_PRIMITIVES.md) §7.17, layer §6.1.
-- Sibling activities catalogue: [`../activities/`](../activities/).
+- Sibling actions catalogue: [`../actions/`](../actions/).
 - Sibling changes catalogue: [`../changes/`](../changes/).

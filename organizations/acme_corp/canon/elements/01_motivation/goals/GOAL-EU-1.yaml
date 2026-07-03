@@ -11,7 +11,7 @@ name: "Launch in 3 EU markets"
 type: "Strategic Goal"
 level: 1
 factors:
-  - FACTOR-EU-REG-1
+  - DRIVER-EU-REG-1
 description: >
   Establish operational presence in three EU markets within the 2026 plan
   horizon. Driven by the closing EU regulatory window.

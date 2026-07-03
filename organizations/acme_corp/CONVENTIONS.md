@@ -16,21 +16,21 @@ Use exactly these prefixes; the abbreviated forms `ACT`, `CHG`, `FAC`, `CAP`, `S
 
 | TYPE | What it is | Layer folder |
 |---|---|---|
-| `FACTOR` | strategic driver (external / internal) | `01_motivation/factors/` |
+| `DRIVER` | strategic driver (external / internal) | `01_motivation/factors/` |
 | `GOAL` | strategic or tactical goal | `01_motivation/goals/` |
 | `CONSTRAINT` | design / operating constraint | `01_motivation/constraints/` |
 | `REQUIREMENT` | positive obligation | `01_motivation/requirements/` |
+| `ACTOR` | active-structure identity — `person`, `business_unit`, or `system` | `02_business/actors/` |
+| `STAKEHOLDER` | interest-holding actor (`internal` / `external`); references an `ACTOR` for identity | `01_motivation/stakeholders/` |
 | `CAPABILITY` | capability — V/H address, e.g. `CAPABILITY-V1.2` | `02_business/capabilities/` |
 | `PROCESS` | business process | `02_business/processes/` |
 | `PRODUCT` | product or service | `02_business/products/` |
 | `ROLE` | business role | `02_business/roles/` |
-| `UNIT` | organisational unit | `02_business/units/` |
-| `EMPLOYEE` | named employee | `02_business/employees/` |
 | `RULE` | business rule | `02_business/rules/` |
 | `APPLICATION` | application | `03_application/applications/` |
 | `INTEGRATION` | integration between applications | `03_application/integrations/` |
 | `CHANGE` | business transformation (BDN change layer) | `05_implementation/changes/` |
-| `ACTIVITY` | initiative / workstream | `05_implementation/activities/` |
+| `ACTION` | initiative / workstream | `05_implementation/actions/` |
 
 `SCENARIO`, `ISSUE` are **view-defined** (live inside their view document, not as standalone element files) — see [`ELEMENT_PRIMITIVES.md`](../../notations/ELEMENT_PRIMITIVES.md) §4.
 
@@ -40,23 +40,22 @@ Use exactly these prefixes; the abbreviated forms `ACT`, `CHG`, `FAC`, `CAP`, `S
 
 | TYPE | Notation file |
 |---|---|
-| `FGCA` | `*.fgca.transitrix.yaml` |
-| `FGA` | `*.fga.transitrix.yaml` |
+| `DGCA` | `*.dgca.transitrix.yaml` |
 | `GOALS_TREE` | `*.goals.transitrix.yaml` |
+| `ACTIVITIES_NET` | `*.activities.transitrix.yaml` |
 | `CAPABILITY_MAP` | `*.capability-map.transitrix.yaml` |
 | `PROCESS_MAP` | `*.process-map.transitrix.yaml` |
-| `ACTIVITIES_NET` | `*.activities.transitrix.yaml` |
 | `PRODUCTS_CAT` | `*.products.transitrix.yaml` |
 | `APPLICATIONS_CAT` | `*.applications.transitrix.yaml` |
 | `SCENARIOS` | `*.scenarios.transitrix.yaml` |
 | `BLOCKS` | `*.blocks.transitrix.yaml` |
-| `ISSUES_CAT` | `*.issues.transitrix.yaml` |
 | `PROCESS_BLUEPRINT` | `*.process-blueprint.transitrix.yaml` |
-| `ACTIVITY_CARD` | `*.activity-card.transitrix.yaml` |
+| `ACTION_CARD` | `*.action-card.transitrix.yaml` |
+| `COMPLIANCE_IMPACT` | `*.compliance-impact.transitrix.yaml` |
 
 #### Domain codes
 
-Optional middle segments — short uppercase abbreviations (`ORD`, `PAY`, `USR`, `EU`, `OPS`, …): `GOAL-REVENUE-1`, `ACTIVITY-CRM-EU-1`, `PROCESS-ORD-FULFILL-1`.
+Optional middle segments — short uppercase abbreviations (`ORD`, `PAY`, `USR`, `EU`, `OPS`, …): `GOAL-REVENUE-1`, `ACTION-CRM-EU-1`, `PROCESS-ORD-FULFILL-1`.
 
 #### Sequence numbers
 
@@ -79,11 +78,11 @@ Plain positive integers from `1`, **no leading zeros**: `GOAL-REV-1`, `ROLE-SALE
 
 ### File names
 
-Element primitives are named **`<ID>.yaml`** — the file name *is* the canonical ID (`GOAL-REVENUE-1.yaml`, `APPLICATION-OMS-1.yaml`). View documents are `<domain>.<short-name>.transitrix.yaml` (`strategy-2026.goals.transitrix.yaml`). No spaces; no underscores standing in for hyphens.
+Element primitives are named **`<ID>.yaml`** — the file name *is* the canonical ID (`GOAL-REVENUE-1.yaml`, `APPLICATION-OMS-1.yaml`). View documents are `<domain>.<ext>.transitrix.yaml` (`strategy-2026.dgca.transitrix.yaml`). No spaces; no underscores standing in for hyphens.
 
 ### Relation IDs
 
-First-class relations are `REL-[<middle>-]<INTEGER>` ([`IDS_AND_REFERENCES.md`](../../notations/IDS_AND_REFERENCES.md) §1), one file per relation in `canon/relations/`. The *kind* of link lives in the file's `type` field (closed enum `parent` / `goal_parent` / `activity_goal` / `unit_parent`), not in the ID — though a readable convention encodes the endpoints in the middle segments: `REL-CAP-V11-PARENT-1`. See [`notations/elements/17-relations.md`](../../notations/elements/17-relations.md).
+First-class relations are `REL-[<middle>-]<INTEGER>` ([`IDS_AND_REFERENCES.md`](../../notations/IDS_AND_REFERENCES.md) §1), one file per relation in `canon/relations/`. The *kind* of link lives in the file's `type` field (closed enum `parent` / `goal_parent` / `action_goal` / `unit_parent`), not in the ID — though a readable convention encodes the endpoints in the middle segments: `REL-CAP-V11-PARENT-1`. See [`notations/elements/17-relations.md`](../../notations/elements/17-relations.md).
 
 ### Directory organisation
 
@@ -145,7 +144,7 @@ Before committing:
 - [ ] Cross-references resolve to a defined element of the correct TYPE.
 - [ ] Dates are quoted ISO 8601.
 - [ ] Descriptions explain "what" and "why".
-- [ ] Validates in Studio / `npx @transitrix/cli validate <file>`.
+- [ ] Validates in Studio / `npx @transitrix/cli validate <file>` (Windows PowerShell: use `npx.cmd`).
 
 ## Common mistakes
 

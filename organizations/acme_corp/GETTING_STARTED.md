@@ -9,7 +9,7 @@ The fastest path for a brand-new repo is the **onboarding Skill** (`/transitrix:
 - Git.
 - VS Code with **Transitrix Studio** — live diagram preview + inline validation as you edit (recommended).
 - Basic YAML.
-- *Optional:* `npx @transitrix/cli validate <file>` for command-line validation.
+- *Optional:* `npx @transitrix/cli validate <file>` for command-line validation. On Windows PowerShell with a restricted execution policy, use `npx.cmd` instead of `npx` — see Step 5.
 
 ## Step 1 — Understand the layout
 
@@ -23,7 +23,7 @@ Read [`notations/README.md`](../../notations/README.md) for the notation index a
 
 ## Step 2 — Author your first view (a Goals tree)
 
-The Goals tree is the simplest starting point. The onboarding Skill copies a starter template (`templates/goals.goals.transitrix.yaml` from its bundle) into `canon/views/goals/<domain>.goals.transitrix.yaml`; in this repo a worked example already lives under [`canon/views/goals/`](canon/views/goals/). Keep the `notation: goals` / `spec_version:` header — it's required ([`CONTRACT.md`](../../notations/CONTRACT.md) §1). Fill the `FILL-ME` placeholders. A Goals tree is flat top-level arrays — `goal_types[]` + `goals[]`, hierarchy via `parent: GOAL-…` ([`notations/views/04-goals.md`](../../notations/views/04-goals.md)).
+The Goals tree is the simplest starting point. The onboarding Skill copies a starter template (`templates/goals.dgca.transitrix.yaml` from its bundle) into `canon/views/goals/<domain>.dgca.transitrix.yaml`; in this repo a worked example already lives under [`canon/views/goals/`](canon/views/goals/). Keep the `notation: goals` / `spec_version:` header — it's required ([`CONTRACT.md`](../../notations/CONTRACT.md) §1). Fill the `FILL-ME` placeholders. A Goals tree is flat top-level arrays — `goal_types[]` + `goals[]`, hierarchy via `parent: GOAL-…` ([`notations/views/04-goals.md`](../../notations/views/04-goals.md)).
 
 ## Step 3 — Create an element primitive
 
@@ -42,13 +42,14 @@ The view then references the element by ID — it doesn't duplicate it.
 
 Two ways to link, depending on whether time matters ([`ELEMENT_PRIMITIVES.md`](../../notations/ELEMENT_PRIMITIVES.md) §3, [`elements/17-relations.md`](../../notations/elements/17-relations.md)):
 
-- **Inline cross-reference** — a typed-ID field: `owner_role: ROLE-…`, `goal.factors: [FACTOR-…]`, `activity.goals: [GOAL-…]`, `rule.applies_to: [PROCESS-…]`. Plural → array, singular → one ID ([`IDS_AND_REFERENCES.md`](../../notations/IDS_AND_REFERENCES.md) §5). Timeless within the host file. This covers most links.
-- **First-class time-aware relation (`REL`)** — a `canon/relations/REL-…yaml` file with its own `valid_from`/`valid_to`. Use it only for the links where history matters. The `type` enum is **closed**: `parent`, `goal_parent`, `activity_goal`, `unit_parent` ([`17-relations.md`](../../notations/elements/17-relations.md) §3). A re-parenting is two REL files (one ended, one new) — see `canon/relations/REL-CAP-V11-PARENT-*.yaml`.
+- **Inline cross-reference** — a typed-ID field: `owner_role: ROLE-…`, `goal.factors: [DRIVER-…]`, `action.goals: [GOAL-…]`, `rule.applies_to: [PROCESS-…]`. Plural → array, singular → one ID ([`IDS_AND_REFERENCES.md`](../../notations/IDS_AND_REFERENCES.md) §5). Timeless within the host file. This covers most links.
+- **First-class time-aware relation (`REL`)** — a `canon/relations/REL-…yaml` file with its own `valid_from`/`valid_to`. Use it only for the links where history matters. The `type` enum is **closed**: `parent`, `goal_parent`, `action_goal`, `unit_parent` ([`17-relations.md`](../../notations/elements/17-relations.md) §3). A re-parenting is two REL files (one ended, one new) — see `canon/relations/REL-CAP-V11-PARENT-*.yaml`.
 
 ## Step 5 — Validate
 
 - **Studio** previews and validates on save.
-- **CLI:** `npx @transitrix/cli validate canon/views/goals/strategy-2026.goals.transitrix.yaml`.
+- **CLI:** `npx @transitrix/cli validate canon/views/goals/strategy-2026.dgca.transitrix.yaml`. All canonical `*.<short-name>.transitrix.yaml` extensions are accepted without `--ext`; pass `--ext <notation-name>` only for a non-canonical extension outside the built-in registry.
+- **On Windows PowerShell** with a restricted execution policy (the default on many workstations), invoke as `npx.cmd @transitrix/cli validate <file>` — the unsuffixed `npx` resolves to a `.ps1` wrapper that the policy refuses to launch. From `cmd.exe`, WSL, or a shell on macOS/Linux, plain `npx` is fine.
 - The rules: the shared header (`HDR-001..004`, [`CONTRACT.md`](../../notations/CONTRACT.md) §2), lifecycle (`LIFECYCLE-001..004`, §7), element placement (`ELEM-001..005`, [`ELEMENT_PRIMITIVES.md`](../../notations/ELEMENT_PRIMITIVES.md) §9), plus each notation's own "Validation rules" table.
 
 ## Step 6 — Commit and open a PR
@@ -66,7 +67,7 @@ Architecture changes review as a diff, like code.
 
 Based on what you built, add the adjacent artefact ([`notations/README.md`](../../notations/README.md) family selection):
 
-- Built a **Goals tree** → add an **FGCA**/**FGA** to link goals to driving factors and delivery activities.
+- Built a **Goals tree** → add an **FGCA**/**FGA** to link goals to driving factors and delivery actions.
 - Built **FGCA** → add a **Capability map** for the same domain.
 - Built a **Capability map** → add an **Applications catalogue**.
 

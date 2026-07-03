@@ -7,7 +7,7 @@ notation: process
 id: PROCESS-DSR-HANDLE-1
 name: "Data Subject Request Handling"
 owner_role: ROLE-DPO-1
-maturity: 2
+# maturity — time-varying, see PROCESS-DSR-HANDLE-1.history.yaml (CONTRACT.md §9)
 bpmn_file: "canon/views/bpmn/data-subject-erasure.bpmn.transitrix.yaml"
 description: >
   Receive, verify, and fulfil data-subject rights requests (access, erasure,

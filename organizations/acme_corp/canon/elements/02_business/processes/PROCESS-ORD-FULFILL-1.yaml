@@ -9,7 +9,7 @@ id: PROCESS-ORD-FULFILL-1
 name: "Order Fulfilment"
 owner_role: ROLE-OPS-1
 capability: CAPABILITY-V1
-maturity: 2
+# maturity — time-varying, see PROCESS-ORD-FULFILL-1.history.yaml (CONTRACT.md §9)
 description: >
   End-to-end fulfilment of a customer order, from validated intake through
   pick / pack / ship to close-out.

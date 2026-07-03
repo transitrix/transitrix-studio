@@ -1,0 +1,11 @@
+# Versioned-attribute sidecar for PROCESS-ORD-FULFILL-1.
+# Schema: notations/CONTRACT.md §9.1.
+# Time-varying attributes live here, not inline on the element.
+# Current-value resolution: pick the entry with the largest valid_from <= today.
+
+target: PROCESS-ORD-FULFILL-1
+
+attribute_versions:
+
+  maturity:
+    - { valid_from: "2026-05-26", value: 2 }

@@ -9,15 +9,23 @@ The **operational layer** for the team applying Transitrix to the `acme_corp` mo
 ```
 operations/
 ├── README.md            # this file — local rules
+├── config/              # environment-level settings (scan-sources.yaml, …)
 ├── decisions/           # ADR-NNNN-<slug>.md — Architecture Decision Records
+├── users/               # per-user state — one subfolder per GitHub username
+│   └── <github-username>/
+│       └── settings.md  # user preferences (YAML frontmatter)
 └── work-items/          # WI-NNNN-<slug>.md — Work Items
 ```
 
-## Two file shapes
+## File shapes
 
 - **ADR — Architecture Decision Record.** A short, append-only record of a decision about how the team runs the model. Once `status: accepted` the body is immutable; a later decision that changes course is a **new** ADR that names this one in its `superseded_by:` field. Schema: [`method/team-operations.md`](../../../method/team-operations.md) §3.1. Template: [`../.templates/operations/ADR-template.md`](../.templates/operations/ADR-template.md).
 
 - **WI — Work Item.** A short record of a piece of work the team has in flight or queued. Mutable while active; `closed` when done — not deleted. Schema: [`method/team-operations.md`](../../../method/team-operations.md) §3.2. Template: [`../.templates/operations/WI-template.md`](../.templates/operations/WI-template.md).
+
+- **Per-user settings** (`users/<github-username>/settings.md`). User preferences: output language, report format, ingest focus layers, and any adopter-specific fields. Created on first interaction with a new user; updated in place. Template: [`../.templates/operations/settings-template.md`](../.templates/operations/settings-template.md).
+
+- **Environment config** (`config/`). Environment-level files shared across all users — e.g. `scan-sources.yaml` (reg-intel scanner watch-list). Not a notation file; not zoned. Edited by the administrator, not by individual users.
 
 ## What goes where — local rules
 

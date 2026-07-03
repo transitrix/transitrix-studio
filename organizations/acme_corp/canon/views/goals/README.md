@@ -4,7 +4,7 @@ Hierarchical goals trees. Each tree references Goal elements stored atomically u
 
 ## File convention
 
-`*.goals.transitrix.yaml`
+`*.dgca.transitrix.yaml`
 
 ## Skeleton
 

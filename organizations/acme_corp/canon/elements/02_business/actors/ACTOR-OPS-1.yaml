@@ -9,7 +9,9 @@ type: business_unit                     # person | business_unit | system
 description: >
   The operations organisation — owns order-fulfilment operations and the
   related processes / capabilities.
-contact: "ops@acme.example"
+
+extensions:
+  contact: "ops@acme.example"
 
 # Admission record (CONTRACT.md §6)
 zone: canon

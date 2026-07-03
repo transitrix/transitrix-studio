@@ -10,7 +10,7 @@ name: "Cut support response time by half"
 type: "Strategic Goal"
 level: 1
 factors:
-  - FACTOR-COMP-1
+  - DRIVER-COMP-1
 description: >
   Halve the customer-support response time (P50) by the end of Q2 2026,
   restoring it to under two hours.

@@ -5,8 +5,6 @@
 
 notation: bpmn
 spec_version: "0.1"
-name: "Data Subject Erasure Request (GDPR Art. 17)"
-generated_at: "2026-06-10"
 
 process:
   id: PROCESS-DSR-HANDLE-1
@@ -17,6 +15,7 @@ process:
       lanes:
         - id: LANE-SUPPORT
           name: "Customer Support"
+          performed_by_role: ROLE-CS-1
           elements:
             - id: SE-REQUEST
               type: startEvent
@@ -24,6 +23,7 @@ process:
             - id: TASK-VERIFY-IDENTITY
               type: userTask
               name: "Verify data-subject identity"
+              supported_by_application: APPLICATION-CRM-1   # identity lookup via CRM
             - id: GW-VERIFIED
               type: exclusiveGateway
               name: "Identity verified?"
@@ -38,6 +38,7 @@ process:
               name: "Confirm erasure & notify subject"
         - id: LANE-DPO
           name: "Data Protection Officer"
+          performed_by_role: ROLE-DPO-1
           elements:
             - id: TASK-LOG-REQUEST
               type: task
@@ -56,6 +57,8 @@ process:
               name: "Request closed & evidenced"
         - id: LANE-OPS
           name: "Operations & Engineering"
+          performed_by_role: ROLE-OPS-1
+          supported_by_application: APPLICATION-OMS-1      # lane default: OMS orchestrates erasure
           elements:
             - id: TASK-LOCATE
               type: task

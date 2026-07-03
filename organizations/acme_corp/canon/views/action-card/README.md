@@ -1,6 +1,6 @@
 # `canon/views/action-card/`
 
-Single-project narrative cards. Each card binds to one project Activity (`project: ACTIVITY-…`) and adds narrative milestones; the motivation chain and child activities are pulled by reference from the DGCA and Action documents rather than duplicated.
+Single-project narrative cards. Each card binds to one project Action (`project: ACTION-…`) and adds narrative milestones; the motivation chain and child actions are pulled by reference from the FGCA and Action documents rather than duplicated.
 
 ## File convention
 
@@ -10,7 +10,7 @@ See [`notations/views/18-action-card.md`](../../../../../notations/views/18-acti
 
 ## Lifecycle
 
-The card is a view, not an element — it carries no lifecycle. The project Activity it binds to and any `delivers_changes: [CHANGE-…]` it names bear their lifecycle on their own canonical files.
+The card is a view, not an element — it carries no lifecycle. The project Action it binds to and any `delivers_changes: [CHANGE-…]` it names bear their lifecycle on their own canonical files.
 
 ## See also
 

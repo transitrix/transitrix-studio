@@ -76,8 +76,8 @@ The canonical layout an adopter inherits from the `acme_corp` template:
 │   │   ├── 03_application/         # APPLICATION, SERVICE, INTERFACE, DATA_OBJECT
 │   │   └── 04_technology/          # NODE, ARTIFACT, DEVICE, …
 │   └── views/                      # one subfolder per notation (extensions in canon/views/README.md)
-│       ├── bpmn/   fgca/   fga/   goals/   capabilities/   processmap/
-│       ├── activities/   blocks/   scenarios/
+│       ├── bpmn/   dgca/   fga/   goals/   capabilities/   processmap/
+│       ├── action/   blocks/   scenarios/
 │       └── applications/   products/   issues/   process-blueprint/
 ├── field/                          # raw inputs — interviews, surveys, observations, drafts
 └── codex/                          # external laws/regulations + internal policies/standards
@@ -120,8 +120,8 @@ The root `transitrix.yaml` pins which methodology release this repo conforms to 
 
 ```yaml
 transitrix: 1
-methodology_version: "0.5.0"
-notations: [fgca, goals, activities, issues, capability-map, codex]
+methodology_version: "0.7.0"
+notations: [dgca, goals, action, capability-map, codex]
 zones: [canon, field, codex]
 ```
 
@@ -153,8 +153,8 @@ Every typed element ID follows the canonical grammar in `notations/IDS_AND_REFER
 <TYPE>-[<middle segment(s)>-]<INTEGER>
 ```
 
-- **TYPE** — uppercase, letters / digits / underscore, starts with a letter (`FACTOR`, `GOAL`, `PROCESS_BLUEPRINT`, `BUSINESS_OBJECT`).
-- **Middle segments** — optional, notation-specific, for disambiguation (`GOAL-RETENTION-12`, `ACTIVITY-Q3-2026-7`).
+- **TYPE** — uppercase, letters / digits / underscore, starts with a letter (`DRIVER`, `GOAL`, `PROCESS_BLUEPRINT`, `BUSINESS_OBJECT`).
+- **Middle segments** — optional, notation-specific, for disambiguation (`GOAL-RETENTION-12`, `ACTION-Q3-2026-7`).
 - **INTEGER** — terminal positive integer, **no leading zeros** (`-1`, not `-001`).
 - **Exception:** `CAPABILITY-V1.2`, `CAPABILITY-H1.2.3` — capabilities use V/H diagram addresses instead of plain integers (capped at three levels).
 
@@ -169,22 +169,7 @@ Deprecated three-letter abbreviations (`ACT`, `CHG`, `FAC`, `CAP`, `SCN`) — do
 Every notation file is validated before commit. Two sanctioned paths:
 
 - **Transitrix Studio (VS Code extension)** — install from the Marketplace (`transitrix.transitrix-studio`). The extension validates on save and shows error annotations in the editor.
-- **Transitrix CLI** — `npx @transitrix/cli validate path/to/your.fgca.transitrix.yaml`. Use in CI or when working without VS Code.
-
-**The agent validates files itself — it does not wait for a human to read the preview.** The CLI's `validate <file>` routes on the document's `notation:` field to the same per-notation checks the Studio preview runs, so the agent gets the identical findings as structured output. Run the closed loop on every file it touches:
-
-```sh
-# Per file — --json → machine-readable findings; exit 1 on any error-level finding.
-npx @transitrix/cli validate canon/views/goals/eu-strategy.goals.transitrix.yaml --json
-# parse findings → fix the YAML → re-run until exit 0
-
-# Whole repo — one sweep over canon/views/** plus canon cross-reference checks.
-npx @transitrix/cli validate --scope=repo --json
-```
-
-`--scope=repo` runs the per-notation validators over every file under `canon/views/**` (BPMN via the IR pipeline) **and** the canon cross-reference checks (referential integrity, id uniqueness, atomicity, policy) in a single invocation — the fastest way for the agent to find everything to fix.
-
-Diagram notations covered per file: `goals`, `fgca`, `fga`, `activities`, `activity-card`, `process-blueprint`, `blocks`, `applications`, `capability-map`, `products`, `scenarios`, `process-map`, and `bpmn`. Aggregate views that have no single-file validator (`compliance-impact`, `coverage-metric`) are reported as `skipped` (not silently passed) — validate those in the Studio preview for now.
+- **Transitrix CLI** — `npx @transitrix/cli validate path/to/your.fgca.transitrix.yaml`. Use in CI or when working without VS Code. All canonical `*.transitrix.yaml` notation extensions are accepted without `--ext`; pass `--ext <notation-name>` only for a non-canonical extension outside the built-in registry. On Windows PowerShell with a restricted execution policy, invoke as `npx.cmd @transitrix/cli validate <file>` — plain `npx` resolves to a `.ps1` wrapper that the policy refuses to launch.
 
 The agent does **not** commit files with `error`-level validation findings. `warning`-level findings are surfaced to the adopter and committed only with explicit acknowledgement. The agent does not auto-suppress validation rules.
 
@@ -238,7 +223,7 @@ issues_catalogue:
       name: "Order-fulfilment SLA gap"
       status: open                          # open | in_progress | blocked | resolved | closed
       description: "p95 latency regressed after the new payment-routing release."
-      relates_to: [ACTIVITY-1, GOAL-1]
+      relates_to: [ACTION-1, GOAL-1]
       owner_role: ROLE-1
 ```
 
@@ -269,6 +254,119 @@ Every non-trivial change goes through PR review by the adopter:
 5. The adopter — or a reviewer the adopter designates — merges. The agent does **not** merge its own PRs, even when permissions allow it.
 
 Trivial changes (typo fixes inside a description string, README polish) may be committed directly to `main` if the adopter has explicitly opted into a direct-commit workflow. Default: PR every time.
+
+---
+
+## 12. Methodology version awareness
+
+When a user requests a feature or skill, the agent:
+
+1. Reads `methodology_version` from `transitrix.yaml` (the adopter's pinned version).
+2. Compares it against the required version for the requested feature or skill (see §14 for skill min-versions).
+3. If the required version is higher than the pin:
+   - Tell the user: _"This requires methodology **vX.Y** — you are on **vA.B**. Ask your administrator to run the upgrade procedure described in `RELEASING.md §Adopter upgrade procedure`."_
+   - Do **not** attempt the operation.
+4. If the pin meets the requirement: proceed normally.
+
+The agent may also read the public `github.com/transitrix/methodology` releases page (read-only) to check whether a newer version is available, so it can proactively inform the user: _"Methodology **vX.Y** is available — ask your administrator about upgrading."_
+
+The agent **never** edits `transitrix.yaml` to change the `methodology_version` pin. That step belongs to the administrator, after running the migration recipe.
+
+---
+
+## 13. User identity and per-user settings
+
+User identity is derived from the authenticated GitHub username. Per-user state lives at:
+
+```
+operations/users/<github-username>/
+  settings.md          # user preferences (YAML frontmatter)
+```
+
+**On first interaction with a new user:**
+
+1. Check whether `operations/users/<github-username>/settings.md` exists.
+2. If not: ask the user for the settings below; create the file from `.templates/operations/settings-template.md` with their answers and apply defaults for anything not answered.
+
+**Default settings** (`ADOPTER-FILL-ME` — adjust per your organisation):
+
+```yaml
+---
+github_username: firstname.lastname
+language: en
+report_format: markdown
+colour_scheme: default
+ingest_focus_layers: [motivation, business, application]
+---
+```
+
+**Ingest personalisation.** Before running the ingest skill, read `operations/users/<github-username>/settings.md` to load the user's data-source preferences, focus layers, and any per-user intake conventions. The ingest procedure itself follows the standard `/transitrix:ingest` skill; only the data context varies by user.
+
+The `operations/users/<github-username>/` directory is git-tracked — it contains preferences and workflow state, never model content.
+
+---
+
+## 14. Skill routing
+
+Before invoking any skill:
+
+1. Read `methodology_version` from `transitrix.yaml`.
+2. Check that `Min version` in the table below ≤ the adopter's pinned version.
+3. If the requirement is not met: follow §12 (tell the user, do not run the skill).
+4. If met: invoke the skill.
+
+Skills are installed and updated by the **administrator** (not by the agent at runtime). If a skill listed here is not present in this repo, ask the administrator — do not fetch or install skills autonomously.
+
+`ADOPTER-FILL-ME` — remove rows for skills not installed in this repo; add rows for any custom skills your organisation has added.
+
+| Skill | When to use | Invocation | Min version |
+|-------|-------------|------------|-------------|
+| Onboarding | Set up a new Transitrix repo or orient in an existing one | `/transitrix:onboard` | 0.5.0 |
+| Ingest | Load raw material into the field zone and produce canon candidates | `/transitrix:ingest` | 0.6.0 |
+| Repo-check | Read-only health check — counts, integrity flags, tooling version match | `/transitrix:repo-check` | 0.6.0 |
+| Report | Generate a reproducible compliance report | `/transitrix:report` | 0.6.0 |
+| Reg-intel | Scan regulatory sources for changes and produce a review digest | `/transitrix:reg-intel` | 0.6.0 |
+
+---
+
+## 15. Feedback channel
+
+User feedback, issues, and improvement ideas are recorded in `feedback.md` at the repository root. This file is the adopter's upward channel to the methodology team and must be safe to share outside the organisation.
+
+**Before writing any entry**, the agent rephrases it in abstract terms. The following are **strictly prohibited** in `feedback.md`:
+
+- Organisation and legal entity names
+- Employee, manager, or executive names
+- Product, project, and system names — use "the system", "the process", "the product"
+- Internal codes, ticket numbers, and IDs
+- Numeric metrics, targets, and KPIs
+- Dates tied to specific business operations or events
+- Any other data that could identify the adopter's organisation, clients, or personnel
+
+If the agent cannot abstract an entry safely without losing the essential point, it asks the user for a generic rephrasing before writing — it does **not** write and redact after the fact.
+
+**Entry format:**
+
+```markdown
+## YYYY-MM-DD — [category: ux | feature-request | bug | process]
+
+[Abstract description of the issue or idea. No company data.]
+```
+
+The agent appends to `feedback.md`; it never edits or deletes existing entries.
+
+---
+
+## 16. Recommended IDE extensions
+
+The following extensions are recommended for contributors working in this repository. The agent should mention them when a user is setting up their environment or when it detects that a relevant feature is unavailable.
+
+| Extension | IDE | Purpose | Install |
+|-----------|-----|---------|---------|
+| **Mermaid** | VS Code | Renders Mermaid diagrams (flowcharts, sequence diagrams, ER diagrams) inline in Markdown preview | Search `bierner.markdown-mermaid` in the Extensions panel |
+| **Transitrix Studio** | VS Code | Real-time notation validation, schema hints, and view rendering for Transitrix artefacts | Search `transitrix.transitrix-studio` in the Extensions panel |
+
+Both extensions are **read-only** with respect to the model — they render and validate, they do not modify files.
 
 ---
 

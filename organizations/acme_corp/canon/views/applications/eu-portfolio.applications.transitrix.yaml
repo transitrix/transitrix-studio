@@ -4,8 +4,6 @@
 
 notation: applications
 spec_version: "0.1"
-name: "Acme Corp — EU Applications Portfolio"
-generated_at: "2026-06-10"
 
 applications_catalogue:
   id: APPLICATIONS_CAT-EU-1

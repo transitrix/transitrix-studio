@@ -4,15 +4,13 @@
 
 notation: process-map
 spec_version: "0.1"
-name: "Acme Corp — Process Landscape"
-generated_at: "2026-06-10"
 
 process_map:
   id: PM-ACME-1
   name: "Acme Corp — Process Landscape"
   description: "Top-level catalogue of operating, supporting, and management processes."
   version: "1.0"
-  updated_at: "2026-06-10"
+  updated_at: "2026-06-24"
 
   groups:
     - id: GRP-OPERATING
@@ -24,7 +22,7 @@ process_map:
           name: "Order Fulfilment"
           owner_role: ROLE-OPS-1
           capability: CAPABILITY-V1
-          maturity: 2
+          # maturity — time-varying, resolved from PROCESS-ORD-FULFILL-1.history.yaml
           status: "Active"
           valid_from: "2026-05-26"
           valid_to: null
@@ -32,7 +30,7 @@ process_map:
           name: "Customer Onboarding"
           owner_role: ROLE-SALES-1
           capability: CAPABILITY-V2
-          maturity: 1
+          # maturity — time-varying, resolved from PROCESS-CUST-ONBOARD-1.history.yaml
           status: "Active"
           valid_from: "2026-05-26"
           valid_to: null
@@ -46,7 +44,7 @@ process_map:
           name: "Customer Support Resolution"
           owner_role: ROLE-CS-1
           status: "Active"
-          maturity: 2
+          # maturity — time-varying, resolved from PROCESS-CS-RESOLVE-1.history.yaml
           valid_from: "2026-05-26"
           valid_to: null
 
@@ -59,14 +57,14 @@ process_map:
           name: "Annual Strategy Planning"
           owner_role: ROLE-EXEC-1
           status: "Active"
-          maturity: 2
+          # maturity — time-varying, resolved from PROCESS-STRAT-PLAN-1.history.yaml
           valid_from: "2026-05-26"
           valid_to: null
         - process_id: PROCESS-DSR-HANDLE-1
           name: "Data Subject Request Handling"
           owner_role: ROLE-DPO-1
           capability: CAPABILITY-H1
-          maturity: 2
+          # maturity — time-varying, resolved from PROCESS-DSR-HANDLE-1.history.yaml
           status: "Active"
           bpmn_file: "canon/views/bpmn/data-subject-erasure.bpmn.transitrix.yaml"
           valid_from: "2026-05-26"

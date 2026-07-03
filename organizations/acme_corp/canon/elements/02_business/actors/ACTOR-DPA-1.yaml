@@ -11,7 +11,9 @@ description: >
   The national data-protection regulator with oversight of personal-data
   processing. Modelled as an identity so stakeholders / relations can point
   at it; its external standing is carried on the referencing STAKEHOLDER.
-external_ref: "https://example.gov/data-protection-authority"
+
+extensions:
+  external_ref: "https://example.gov/data-protection-authority"
 
 # Admission record (CONTRACT.md §6)
 zone: canon

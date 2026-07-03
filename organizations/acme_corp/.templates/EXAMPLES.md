@@ -6,7 +6,7 @@ Concrete, canon-valid examples of every element TYPE and view notation already l
 
 | Layer | TYPE | Example file |
 |---|---|---|
-| 01_motivation | `FACTOR` | `01_motivation/factors/FACTOR-EU-REG-1.yaml`, `FACTOR-COMP-1.yaml` |
+| 01_motivation | `DRIVER` | `01_motivation/factors/DRIVER-EU-REG-1.yaml`, `DRIVER-COMP-1.yaml` |
 | 01_motivation | `GOAL` | `01_motivation/goals/GOAL-REVENUE-1.yaml`, `GOAL-EU-1.yaml`, … |
 | 01_motivation | `CONSTRAINT` | `01_motivation/constraints/CONSTRAINT-GDPR-RESIDENCY-1.yaml` |
 | 01_motivation | `REQUIREMENT` | `01_motivation/requirements/REQUIREMENT-DATA-ERASURE-1.yaml`, … |
@@ -17,7 +17,7 @@ Concrete, canon-valid examples of every element TYPE and view notation already l
 | 02_business | `RULE` | `02_business/rules/RULE-DUAL-APPROVAL-1.yaml` |
 | 03_application | `APPLICATION` | `03_application/applications/APPLICATION-OMS-1.yaml`, `APPLICATION-CRM-1.yaml` |
 | 05_implementation | `CHANGE` | `05_implementation/changes/CHANGE-EU-CRM-1.yaml`, … |
-| 05_implementation | `ACTIVITY` | `05_implementation/activities/ACTIVITY-CRM-EU-1.yaml`, … |
+| 05_implementation | `ACTION` | `05_implementation/actions/ACTION-CRM-EU-1.yaml`, … |
 
 Each carries the canonical envelope ([`notations/ELEMENT_PRIMITIVES.md`](../../../notations/ELEMENT_PRIMITIVES.md) §3): `notation:` header, identity, admission record ([`CONTRACT.md`](../../../notations/CONTRACT.md) §6), and lifecycle (§7). Per-folder READMEs document each folder's schema.
 
@@ -35,7 +35,7 @@ External authority (`codex/external/<jurisdiction>/LAW-…`, `REGULATION-…`) a
 
 ## View documents — `canon/views/<notation>/`
 
-One worked skeleton per notation under `canon/views/` (fgca, fga, goals, capabilities, processmap, products, applications, activities, issues, blocks, scenarios, bpmn, process-blueprint). Each references the element primitives above by canonical ID.
+One worked skeleton per notation under `canon/views/` (fgca, fga, goals, capabilities, processmap, products, applications, action, issues, blocks, scenarios, bpmn, process-blueprint). Each references the element primitives above by canonical ID.
 
 ## Copy-and-fill templates — `.templates/`
 

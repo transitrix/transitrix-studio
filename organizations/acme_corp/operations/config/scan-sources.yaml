@@ -1,0 +1,22 @@
+# operations/config/scan-sources.yaml — reg-intel scanner watch-list for acme_corp.
+# The scanner (transitrix-reg-intel list-due) reads this file for source discovery;
+# it does not walk codex/ on disk. Schema: notations/elements/14-codex.md §3.7.
+#
+# Each entry with type: codex points at an admitted codex artefact. The artefact's
+# scan: block holds the runtime state (last_scanned_at, next_scan_due, change_detected)
+# updated by update-scan after each run. cadence here SHOULD match scan_frequency there.
+
+sources:
+  - id: LAW-GDPR-1
+    type: codex
+    path_or_url: codex/external/eu/LAW-GDPR-1.yaml
+    cadence: quarterly
+    domain: data-protection-privacy
+    notes: "GDPR — live regulation; primary data-protection obligation for EU operations"
+
+  - id: LAW-NIS2-1
+    type: codex
+    path_or_url: codex/external/eu/LAW-NIS2-1.yaml
+    cadence: quarterly
+    domain: cybersecurity
+    notes: "NIS2 — live directive; transposition varies by member state; monitor for national implementing rules"

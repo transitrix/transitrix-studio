@@ -5,8 +5,6 @@
 
 notation: process-blueprint
 spec_version: "0.1"
-name: "Order fulfilment — operational blueprint"
-generated_at: "2026-06-10"
 
 process_blueprint:
   id: PROCESS_BLUEPRINT-FULFIL-1

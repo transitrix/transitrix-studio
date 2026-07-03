@@ -6,7 +6,7 @@ id: PROCESS-CUST-ONBOARD-1
 name: "Customer Onboarding"
 owner_role: ROLE-SALES-1
 capability: CAPABILITY-V2
-maturity: 1
+# maturity — time-varying, see PROCESS-CUST-ONBOARD-1.history.yaml (CONTRACT.md §9)
 description: >
   Bring a new customer from signed agreement to first productive use.
 

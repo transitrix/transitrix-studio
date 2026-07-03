@@ -1,33 +1,20 @@
 # Single-project narrative card for the GDPR remediation programme.
-# Notation spec: notations/views/18-action-card.md. Binds to ACTIVITY-GDPR-REMEDIATION-1
-# and adds narrative milestones; the motivation chain and child activities are
-# pulled by reference from canon elements + relations — not duplicated here:
-#   canon/elements/01_motivation/drivers/DRIVER-EU-REG-1.yaml        → standing EU regulatory driver
-#   canon/elements/01_motivation/assessments/ASSESSMENT-GDPR-GAPS-2026-1.yaml → April 2026 gap finding
-#   canon/elements/01_motivation/goals/GOAL-EU-1.yaml                → strategic goal
-#   canon/elements/05_implementation/changes/CHANGE-GDPR-COMPLIANCE-1.yaml   → required delta
-#   canon/elements/05_implementation/activities/ACTIVITY-GDPR-REMEDIATION-1.yaml → this project
-#   canon/elements/05_implementation/activities/ACTIVITY-GDPR-ERASURE-1.yaml  → workstream 1
-#   canon/elements/05_implementation/activities/ACTIVITY-GDPR-DSR-1.yaml      → workstream 2
-#   canon/elements/05_implementation/activities/ACTIVITY-GDPR-CONSENT-1.yaml  → workstream 3
-#   canon/relations/REL-GDPR-REM-GOAL-EU-1.yaml                     → activity → goal link
+# Notation spec: notations/views/18-action-card.md. Binds to a project Action
+# and adds narrative milestones; the motivation chain and child actions are
+# pulled by reference from the FGCA and Action documents, not duplicated here.
 
 notation: action-card
 spec_version: "0.1"
-name: "GDPR Remediation — Activity Card"
-generated_at: "2026-06-10"
 
-activity_card:
-  id: ACTIVITY_CARD-GDPR-REMEDIATION-1
-  project: ACTIVITY-GDPR-REMEDIATION-1
+action_card:
+  id: ACTION_CARD-GDPR-REMEDIATION-1
+  project: ACTION-GDPR-REMEDIATION-1
 
   description: >
-    Programme of work closing the three EU data-protection gaps surfaced by the
-    April 2026 internal gap assessment: extending the erasure pipeline to the
-    7-year cold-storage archive, standing up the end-to-end data-subject-request
-    workflow, and reworking onboarding consent to meet Art. 7 GDPR standards.
-    Spans 2026-Q2 through 2026-Q4; clears the supervisory-authority pre-audit
-    gate required for EU market entry.
+    Programme of work closing the EU data-protection gaps surfaced by the 2026
+    gap assessment: extending the erasure pipeline to the cold-storage archive,
+    standing up data-subject-request handling, and reworking onboarding consent.
+    Spans 2026-Q2 through 2026-Q4 and clears the supervisory-authority pre-audit.
 
   milestones:
     - id: MILESTONE-GDPR-ERASURE-CLOSED-1
@@ -35,18 +22,8 @@ activity_card:
       date: "2026-09-15"
       description: >
         Erasure pipeline extended to the 7-year order-history archive, moving
-        ASSERTION-ECOMM-GDPR-ERASURE-1 out of non_compliant. Hard gate for
-        the supervisory-authority pre-audit.
-      delivers_changes:
-        - CHANGE-GDPR-COMPLIANCE-1
-
-    - id: MILESTONE-GDPR-DSR-LIVE-1
-      name: "Data-subject-request workflow operational"
-      date: "2026-10-31"
-      description: >
-        End-to-end DSR workflow live: intake, identity verification, fulfilment,
-        and audit logging cover all Art. 15–22 GDPR rights across CRM-managed
-        customer records.
+        ASSERTION-ECOMM-GDPR-ERASURE-1 out of non_compliant. Hard gate for the
+        pre-audit.
       delivers_changes:
         - CHANGE-GDPR-COMPLIANCE-1
 
@@ -54,20 +31,7 @@ activity_card:
       name: "Supervisory-authority pre-audit cleared"
       date: "2026-10-31"
       description: >
-        Data Protection Officer presents closed erasure and DSR gaps to the
-        supervisory authority. Consent remediation (ACTIVITY-GDPR-CONSENT-1)
-        is in flight and completes by 2026-11-30; EU go-live proceeds under
-        the new regime once all three gaps are closed.
-      delivers_changes:
-        - CHANGE-GDPR-COMPLIANCE-1
-
-    - id: MILESTONE-GDPR-CONSENT-REWORKED-1
-      name: "Onboarding consent flow Art. 7 compliant"
-      date: "2026-11-30"
-      description: >
-        Customer onboarding consent screens redesigned for Art. 7 GDPR:
-        granular, freely-given consent per processing purpose, clear
-        one-click withdrawal mechanism, and compliant audit trail.
-        Moves ASSERTION-ECOMM-GDPR-CONSENT-1 from partial to compliant.
+        Data Protection Officer presents closed gaps and the DSR workflow to the
+        supervisory authority; EU go-live proceeds under the new regime.
       delivers_changes:
         - CHANGE-GDPR-COMPLIANCE-1

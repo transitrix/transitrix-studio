@@ -4,21 +4,21 @@
 #   canon/elements/05_implementation/<plural-type>/<ID>.yaml
 #
 # TYPEs in this layer:
-#   ACTIVITY  notation: activity  folder activities/  fields: ELEMENT_PRIMITIVES.md §7.4  (ArchiMate Work Package; recursive via parent)
+#   ACTION    notation: action    folder actions/     fields: ELEMENT_PRIMITIVES.md §7.4  (ArchiMate Work Package; recursive via parent)
 #   CHANGE    notation: change    folder changes/     fields: §7.3                       (ArchiMate Gap; multi-scale via parent)
 #   MILESTONE folder milestones/ reserved (§6.2) — standalone registration owned by the MILESTONE TYPE task
 #
 # Worked examples: organizations/acme_corp/canon/elements/05_implementation/.
 
-notation: activity                     # element TYPE short name (lowercased TYPE)
-id: ACTIVITY-EXAMPLE-1                  # canonical ID — IDS_AND_REFERENCES.md §1
+notation: action                       # element TYPE short name (lowercased TYPE)
+id: ACTION-EXAMPLE-1                    # canonical ID — IDS_AND_REFERENCES.md §1
 name: "Human-readable label"
 description: >
   One-paragraph elaboration.
 
 # ── per-TYPE fields (ELEMENT_PRIMITIVES.md §7) ──
-# ACTIVITY:  duration_days ; goals: [GOAL-…] ; delivers_changes: [CHANGE-…] ;
-#            predecessors: [ACTIVITY-…] (inline/timeless) ; parent: ACTIVITY-… ;
+# ACTION:    duration_days ; goals: [GOAL-…] ; delivers_changes: [CHANGE-…] ;
+#            predecessors: [ACTION-…] (inline/timeless) ; parent: ACTION-… ;
 #            start_date / end_date (schedule — distinct from valid_from/valid_to)
 # CHANGE:    goals: [GOAL-…] ; parent: CHANGE-… (multi-scale decomposition)
 

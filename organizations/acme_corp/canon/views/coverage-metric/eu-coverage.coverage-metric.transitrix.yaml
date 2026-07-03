@@ -2,11 +2,9 @@
 # Opens in Transitrix Studio; notation spec: notations/views/22-coverage-metric.md.
 
 notation: coverage-metric
-spec_version: "0.2"
-name: "acme_corp — EU Coverage Metric (GDPR + NIS2)"
-generated_at: "2026-06-10"
+spec_version: "0.1"
 
-view:
+coverage_metric:
   id: COVERAGE_METRIC-ACME-EU-1
   name: "acme_corp — EU Coverage Metric (GDPR + NIS2)"
   description: >
@@ -15,19 +13,21 @@ view:
     that are compliant, partial, under review, non-compliant, or gap
     (no assertion filed).
   date: "2026-06-10"
-  version: "0.2"
+  version: "0.1"
   author: "v.korobeinikov"
 
-  regimes:
-    include:
+  scope:
+    jurisdictions:
+      - eu
+    codex:
       - LAW-GDPR-1
       - LAW-NIS2-1
-
-  subjects:
-    products:
-      - PRODUCT-ECOMM-1
-      - PRODUCT-SUPPORT-1
+    subjects:
+      products:
+        - PRODUCT-ECOMM-1
+        - PRODUCT-SUPPORT-1
 
   thresholds:
     green: 0.80
     amber: 0.50
+    red: 0.00

@@ -12,7 +12,7 @@ TYPE registry: [`notations/IDS_AND_REFERENCES.md`](../../../../../../notations/I
 
 Defined in [`notations/ELEMENT_PRIMITIVES.md`](../../../../../../notations/ELEMENT_PRIMITIVES.md) §7.2 over the common envelope §3:
 
-- Identity + goal fields: `notation: goal`, `id`, `name`, optional `type` (goal-type label), `level`, `factors: [FACTOR-…]`, `description`, `link`.
+- Identity + goal fields: `notation: goal`, `id`, `name`, optional `type` (goal-type label), `level`, `factors: [DRIVER-…]`, `description`, `link`.
 - Admission record ([`CONTRACT.md`](../../../../../../notations/CONTRACT.md) §6) and primitive lifecycle ([`CONTRACT.md`](../../../../../../notations/CONTRACT.md) §7).
 
 A goal's **`parent`** (`GOAL → GOAL`) is a first-class time-aware relation (`goal_parent`, [`notations/elements/17-relations.md`](../../../../../../notations/elements/17-relations.md) §3); it is carried inline by the goals-tree view in v0.x and is **not** stored on the element file.
@@ -22,8 +22,8 @@ A goal's **`parent`** (`GOAL → GOAL`) is a first-class time-aware relation (`g
 | File | Notes |
 |---|---|
 | `GOAL-REVENUE-1.yaml` | Root strategy goal (`level: 0`) |
-| `GOAL-EU-1.yaml` | Strategic goal driven by `FACTOR-EU-REG-1` |
-| `GOAL-OPS-1.yaml` | Strategic goal driven by `FACTOR-COMP-1` |
+| `GOAL-EU-1.yaml` | Strategic goal driven by `DRIVER-EU-REG-1` |
+| `GOAL-OPS-1.yaml` | Strategic goal driven by `DRIVER-COMP-1` |
 | `GOAL-CUST-1.yaml` | Strategic goal behind the onboarding activity network |
 
 ## See also

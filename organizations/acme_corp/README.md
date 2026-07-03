@@ -12,11 +12,11 @@ acme_corp/
 ├── AGENTS.md                    # assistant-neutral agent guide (canonical for all assistants)
 ├── canon/                       # validated model — the authoritative zone
 │   ├── elements/                # element primitives, one file per element, by ArchiMate layer
-│   │   ├── 01_motivation/       # FACTOR, GOAL, CONSTRAINT, REQUIREMENT
+│   │   ├── 01_motivation/       # DRIVER, GOAL, CONSTRAINT, REQUIREMENT
 │   │   ├── 02_business/         # CAPABILITY, PROCESS, PRODUCT, ROLE, UNIT, EMPLOYEE, RULE
 │   │   ├── 03_application/      # APPLICATION, INTEGRATION
 │   │   ├── 04_technology/       # (no registry element TYPE yet)
-│   │   └── 05_implementation/   # CHANGE, ACTIVITY
+│   │   └── 05_implementation/   # CHANGE, ACTION
 │   ├── relations/               # first-class time-aware relations (REL) — notations/elements/17-relations.md
 │   ├── assertions/              # compliance assertions (ASSERTION) — notations/elements/16-assertion.md
 │   └── views/                   # render-able view documents, one subfolder per notation
@@ -31,6 +31,20 @@ acme_corp/
 ```
 
 The three **zones** (`canon` / `field` / `codex`) are parallel, not stacked — see [`notations/CONTRACT.md`](../../notations/CONTRACT.md) §5. The `operations/` folder sits alongside the zones as a separate **operational layer**: it records how the team applying Transitrix runs itself (decisions and work items), not the enterprise being modelled. See [`method/team-operations.md`](../../method/team-operations.md) for the convention and [`operations/README.md`](operations/README.md) for the local rules.
+
+## 🗺 Notation coverage
+
+One model, every layer, every stakeholder.
+
+**Native notation** (Transitrix Studio or CLI) covers the business layers — Motivation through Business: Goals, FGA/FGCA, Capability Map, Process Map, BPMN, Process Blueprint, Scenarios, Compliance Impact.
+
+**Mermaid complementary views** (any Markdown preview, no extra tooling) extend coverage to the technical and strategic-planning layers:
+
+- [`canon/views/sequence/`](canon/views/sequence/) — application-layer interaction (Sequence)
+- [`canon/views/state/`](canon/views/state/) — application-managed object lifecycle (State)
+- [`canon/views/quadrant/`](canon/views/quadrant/) — strategic goal prioritisation (Quadrant)
+
+All Mermaid views are derived from the same element primitives in `canon/elements/` — no duplication.
 
 ## 🚀 Quick start
 
@@ -47,8 +61,8 @@ Every element file carries the common envelope — `notation:` header, identity,
 ### 2. Author a view
 
 ```bash
-cp .templates/goals.goals.transitrix.yaml \
-   canon/views/goals/strategy-2026.goals.transitrix.yaml
+cp .templates/goals.dgca.transitrix.yaml \
+   canon/views/goals/strategy-2026.dgca.transitrix.yaml
 # Fill the FILL-ME placeholders; keep the notation: / spec_version: header.
 ```
 
@@ -68,11 +82,11 @@ The canonical TYPE registry is [`notations/IDS_AND_REFERENCES.md`](../../notatio
 
 | Layer | TYPEs |
 |---|---|
-| **01_motivation** | `FACTOR`, `GOAL`, `CONSTRAINT`, `REQUIREMENT` |
+| **01_motivation** | `DRIVER`, `GOAL`, `CONSTRAINT`, `REQUIREMENT` |
 | **02_business** | `CAPABILITY` (V/H sub-grammar), `PROCESS`, `PRODUCT`, `ROLE`, `UNIT`, `EMPLOYEE`, `RULE` |
 | **03_application** | `APPLICATION`, `INTEGRATION` |
 | **04_technology** | *(no registry element TYPE yet)* |
-| **05_implementation** | `CHANGE`, `ACTIVITY` |
+| **05_implementation** | `CHANGE`, `ACTION` |
 
 Other registry TYPEs live outside the layered element tree: `REL` (`canon/relations/`), `ASSERTION` (`canon/assertions/`), codex artefacts (`LAW`/`REGULATION`/`POLICY`/`INTERNAL_STANDARD`, in `codex/`), and field artefacts (`INTERVIEW`/`SURVEY`/`OBSERVATION`/`DRAFT`, in `field/`).
 
@@ -81,7 +95,7 @@ Other registry TYPEs live outside the layered element tree: `REL` (`canon/relati
 Transitrix models links two ways (see [`ELEMENT_PRIMITIVES.md`](../../notations/ELEMENT_PRIMITIVES.md) §3 and [`elements/17-relations.md`](../../notations/elements/17-relations.md)):
 
 - **Inline cross-references** — a typed-ID field on an element or view entry (`owner_role: ROLE-…`, `goals: [GOAL-…]`, `applies_to: [PROCESS-…]`). Plural field → array, singular → one ID ([`IDS_AND_REFERENCES.md`](../../notations/IDS_AND_REFERENCES.md) §5). Timeless within the host file.
-- **First-class time-aware relations (`REL`)** — a `canon/relations/REL-…yaml` file with its own `valid_from`/`valid_to`, for links where the temporal dimension matters. The `type` enum is **closed**: `parent`, `goal_parent`, `activity_goal`, `unit_parent` ([`17-relations.md`](../../notations/elements/17-relations.md) §3). A re-parenting is two REL files (one ended, one new).
+- **First-class time-aware relations (`REL`)** — a `canon/relations/REL-…yaml` file with its own `valid_from`/`valid_to`, for links where the temporal dimension matters. The `type` enum is **closed**: `parent`, `goal_parent`, `action_goal`, `unit_parent` ([`17-relations.md`](../../notations/elements/17-relations.md) §3). A re-parenting is two REL files (one ended, one new).
 
 ## ✅ Validation model
 

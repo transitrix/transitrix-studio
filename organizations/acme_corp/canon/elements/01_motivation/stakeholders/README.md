@@ -15,7 +15,7 @@ Defined in [`notations/elements/20-stakeholders.md`](../../../../../../notations
 - Fields: `notation: stakeholder`, `id`, `name`, `type` (`internal` | `external`, required), `actor: ACTOR-…` (**required**), optional `concern` / `interest` / `influence` / `description`.
 - Admission record ([`CONTRACT.md`](../../../../../../notations/CONTRACT.md) §6) and primitive lifecycle ([`CONTRACT.md`](../../../../../../notations/CONTRACT.md) §7).
 
-Stake in a specific `GOAL` / `ACTIVITY` / `CAPABILITY` is a `stakeholding` `REL` ([`17-relations.md`](../../../../../../notations/elements/17-relations.md) §3), not an inline field.
+Stake in a specific `GOAL` / `ACTION` / `CAPABILITY` is a `stakeholding` `REL` ([`17-relations.md`](../../../../../../notations/elements/17-relations.md) §3), not an inline field.
 
 ## Examples in this folder
 

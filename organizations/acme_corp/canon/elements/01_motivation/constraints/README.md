@@ -78,4 +78,4 @@ valid_to: null
 
 - TYPE registry: [`notations/IDS_AND_REFERENCES.md`](../../../../../../notations/IDS_AND_REFERENCES.md) §3.1 (`CONSTRAINT`), §4 (uniqueness scope).
 - Sibling rules catalogue: [`../../02_business/rules/`](../../02_business/rules/).
-- FGCA cross-reference field `references_constraint:` on FACTOR: [`notations/views/02-fgca.md`](../../../../../../notations/views/02-fgca.md) § Fields → `factors[]`.
+- FGCA cross-reference field `references_constraint:` on DRIVER: [`notations/views/02-fgca.md`](../../../../../../notations/views/02-fgca.md) § Fields → `factors[]`.

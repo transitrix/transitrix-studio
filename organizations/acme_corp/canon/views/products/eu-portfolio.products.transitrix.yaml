@@ -4,8 +4,6 @@
 
 notation: products
 spec_version: "0.1"
-name: "Acme Corp — EU Products Portfolio"
-generated_at: "2026-06-10"
 
 products_catalogue:
   id: PRODUCTS_CAT-EU-1

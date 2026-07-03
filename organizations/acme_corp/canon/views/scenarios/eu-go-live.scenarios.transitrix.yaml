@@ -1,14 +1,14 @@
 # Scenario — EU go-live under full GDPR/NIS2 compliance. Notation spec:
 # notations/views/11-scenarios.md. The inline scenario entry carries CONTRACT.md §7
-# lifecycle; the referenced goals/capabilities/activities/products/processes/apps
+# lifecycle; the referenced goals/capabilities/actions/products/processes/apps
 # carry theirs on their own element files.
 
 notation: scenarios
 spec_version: "0.1"
-name: "EU Go-Live 2026"
+title: "EU Go-Live 2026"
 description: "Target scenario: live in three EU markets with all compliance gaps closed."
 version: "1.0"
-generated_at: "2026-06-10"
+date: "2026-06-10"
 
 scenario:
   id: SCENARIO-EU-GOLIVE-1
@@ -34,9 +34,9 @@ scenario:
     - capability_id: CAPABILITY-H1
 
   activities:
-    - activity_id: ACTIVITY-CRM-EU-1
-    - activity_id: ACTIVITY-GDPR-ERASURE-PIPELINE-1
-    - activity_id: ACTIVITY-GDPR-DSR-WORKFLOW-1
+    - activity_id: ACTION-CRM-EU-1
+    - activity_id: ACTION-GDPR-ERASURE-PIPELINE-1
+    - activity_id: ACTION-GDPR-DSR-WORKFLOW-1
 
   products:
     - product_id: PRODUCT-ECOMM-1

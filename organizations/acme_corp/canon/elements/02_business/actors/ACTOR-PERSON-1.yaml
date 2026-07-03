@@ -14,7 +14,9 @@ id: ACTOR-PERSON-1
 name: "Alex Doe (example)"
 type: person
 description: "Synthetic person actor demonstrating identity-vs-engagement."
-contact: "alex.doe@acme.example"
+
+extensions:
+  contact: "alex.doe@acme.example"
 
 # Admission record (CONTRACT.md §6)
 zone: canon

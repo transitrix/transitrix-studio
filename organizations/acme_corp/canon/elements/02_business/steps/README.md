@@ -4,7 +4,7 @@ Promoted process-flow **step** elements. A step is a single node (task / event /
 
 ## Steps are canonical-by-containment — this folder holds only *promoted* steps
 
-A step's definition home is its `PROCESS` element, where it is authored inline in `flow.steps[]` and carries no admission record of its own (the PROCESS carries it). A step is **addressable** by its `STEP-…` id but is **not** materialised as a file here until it is *promoted* — which happens only when a **second document first references it**: a step-level `CHANGE`, a `RULE.applies_to`, an `ACTIVITY` realising it, or an `ASSERTION` (`subject` / `realised_via`).
+A step's definition home is its `PROCESS` element, where it is authored inline in `flow.steps[]` and carries no admission record of its own (the PROCESS carries it). A step is **addressable** by its `STEP-…` id but is **not** materialised as a file here until it is *promoted* — which happens only when a **second document first references it**: a step-level `CHANGE`, a `RULE.applies_to`, an `ACTION` realising it, or an `ASSERTION` (`subject` / `realised_via`).
 
 **This org has no promoted steps yet.** Every flow step remains canonical-by-containment inside its process (e.g. `STEP-ORD-FULFILL-1…7` live in [`../processes/PROCESS-ORD-FULFILL-1.yaml`](../processes/PROCESS-ORD-FULFILL-1.yaml)); no second document references a step. This README documents the shape and the mechanical promotion for when that first cross-reference appears.
 
