@@ -29,6 +29,8 @@ import { genNonce, buildControlsPanel, buildControlsScript } from './preview-con
 const ACTIVITIES_DEFAULT_H_GAP = 80;
 const ACTIVITIES_DEFAULT_V_GAP = 24;
 
+const EXPORT_TREE_MARKDOWN_COMMAND = 'transitrixStudio.exportActionTreeAsMarkdown';
+
 // ── Shared helpers ───────────────────────────────────────────────────────────
 
 function truncate(s: string, maxLen: number): string {
@@ -133,7 +135,7 @@ function ganttSvg(layout: GanttLayout, heading?: string, filename?: string, date
     `<rect class="diagram-node gantt-header" x="${ox}" y="${oy}" width="${G_LABEL_COL_W + timelineWidth}" height="${G_HEADER_H}"/>`,
   );
   headerParts.push(
-    `<text class="text-secondary" x="${ox + 12}" y="${oy + G_HEADER_H / 2}" dominant-baseline="central">Activity</text>`,
+    `<text class="text-secondary" x="${ox + 12}" y="${oy + G_HEADER_H / 2}" dominant-baseline="central">Actions</text>`,
   );
   // Month band: walk days, group by yyyy-mm.
   const months: Array<{ label: string; startCol: number; endCol: number }> = [];
@@ -174,12 +176,14 @@ function ganttSvg(layout: GanttLayout, heading?: string, filename?: string, date
         `<rect class="gantt-row-alt" x="${ox}" y="${rowY}" width="${G_LABEL_COL_W + timelineWidth}" height="${G_ROW_H}"/>`,
       );
     }
-    // Label column
+    // Label column — name on top (primary), id below in smaller grey text.
+    // Stacked rather than side-by-side: a single row width isn't enough to
+    // show both without overlap once the id gets past a handful of characters.
     rowParts.push(
-      `<text class="text-id" x="${ox + 8}" y="${rowY + G_ROW_H / 2}" dominant-baseline="central">${escXml(bar.id)}</text>`,
+      `<text class="text-primary" x="${ox + 8}" y="${rowY + 15}" dominant-baseline="central">${escXml(truncate(bar.name, 28))}</text>`,
     );
     rowParts.push(
-      `<text class="text-secondary" x="${ox + 56}" y="${rowY + G_ROW_H / 2}" dominant-baseline="central">${escXml(truncate(bar.name, 22))}</text>`,
+      `<text class="text-id" x="${ox + 8}" y="${rowY + 29}" dominant-baseline="central">${escXml(truncate(bar.id, 30))}</text>`,
     );
 
     // Bar geometry
@@ -397,6 +401,8 @@ interface ActivityViews {
   ganttSvg: string;
   /** HTML tree view body. Always non-empty when activities validated. */
   treeHtml: string;
+  /** Nested-list Markdown rendering of the same hierarchy as treeHtml. Used by "Export tree as .md". */
+  treeMarkdown: string;
 }
 
 // ── Tree view renderer ───────────────────────────────────────────────────────
@@ -418,11 +424,11 @@ function activityTypeBadgeClass(type: string | undefined): string {
 }
 
 function buildTreeHtml(doc: ActivityDoc, filename: string, date: string, version?: string, actionName?: string): string {
-  // Suppress project-type container nodes from the tree view — same convention
-  // as the Network view. The Action name in the header identifies the scope.
-  const activities = (doc.activities ?? []).filter(
-    (a) => a.activity_type?.toLowerCase() !== 'project',
-  );
+  // Unlike Network and Gantt, the Tree view keeps project-type container
+  // nodes visible — it's the WBS/hierarchy view, so the root of the tree is
+  // exactly where the project scope belongs (#337). Network/Gantt suppress it
+  // because those diagrams have no natural place for a durationless container.
+  const activities = doc.activities ?? [];
   if (activities.length === 0) {
     return '<div class="section-notice">No activities to display.</div>';
   }
@@ -481,21 +487,82 @@ function buildTreeHtml(doc: ActivityDoc, filename: string, date: string, version
   <div class="text-secondary">${escXml(date)}${versionPart}</div>
 </div>`;
 
-  return `${titleHtml}<div class="tree-view">${roots.map((r) => renderNode(r)).join('')}</div>`;
+  // The tree's actual root is the Action document itself (the Action name
+  // shown in the title block above) — not a forest of independent top-level
+  // activities. Wrapping `roots` under one synthetic node makes that
+  // structure visible: every activity nests under the plan it belongs to,
+  // matching the "virtual root" convention (elements/24-action.md §1) scaled
+  // down to this single document instead of the whole portfolio.
+  const docRootLabel = actionName ?? filename;
+  const docRootHtml = `<details class="tree-node tree-node-doc-root" open><summary class="tree-node-row tree-node-doc-root-row"><div class="tree-node-label"><span class="tree-node-name">${escXml(docRootLabel)}</span></div></summary><div class="tree-children">${roots.map((r) => renderNode(r)).join('')}</div></details>`;
+
+  return `${titleHtml}<div class="tree-view">${docRootHtml}</div>`;
+}
+
+/** Nested-list Markdown rendering of the same hierarchy as {@link buildTreeHtml}. */
+function buildTreeMarkdown(doc: ActivityDoc, actionName?: string): string {
+  const activities = doc.activities ?? [];
+  const heading = actionName ? `# ${actionName} — action decomposition` : '# Action decomposition';
+  if (activities.length === 0) {
+    return `${heading}\n\nNo activities to display.\n`;
+  }
+
+  const childrenOf = new Map<string | undefined, Activity[]>();
+  for (const act of activities) {
+    const key = act.parent ?? undefined;
+    if (!childrenOf.has(key)) childrenOf.set(key, []);
+    childrenOf.get(key)!.push(act);
+  }
+  const sortFn = (a: Activity, b: Activity): number => {
+    const diff = activityTypeLevel(a.activity_type) - activityTypeLevel(b.activity_type);
+    return diff !== 0 ? diff : a.id.localeCompare(b.id);
+  };
+  for (const [, kids] of childrenOf) kids.sort(sortFn);
+
+  const lines: string[] = [];
+  function renderNode(act: Activity, depth: number): void {
+    const metaParts: string[] = [];
+    if (act.activity_type) metaParts.push(act.activity_type);
+    if (act.owner) metaParts.push(act.owner);
+    if (act.start_date && act.end_date) metaParts.push(`${act.start_date} → ${act.end_date}`);
+    else if (act.start_date) metaParts.push(`from ${act.start_date}`);
+    const meta = metaParts.length ? ` — ${metaParts.join(' · ')}` : '';
+    lines.push(`${'  '.repeat(depth)}- ${act.name} (\`${act.id}\`)${meta}`);
+    for (const kid of childrenOf.get(act.id) ?? []) renderNode(kid, depth + 1);
+  }
+
+  const allIds = new Set(activities.map((a) => a.id));
+  const orphans = activities.filter((a) => a.parent && !allIds.has(a.parent));
+  const roots = [...(childrenOf.get(undefined) ?? []), ...orphans].sort(sortFn);
+
+  if (roots.length === 0) {
+    return `${heading}\n\nNo root activities found — check parent references.\n`;
+  }
+
+  // Mirror buildTreeHtml's synthetic doc-root: one top-level bullet for the
+  // Action document itself, with every parentless/orphan activity nested
+  // under it — not a flat list of independent top-level bullets.
+  const docRootLabel = actionName ?? 'Action';
+  lines.push(`- ${docRootLabel}`);
+  for (const root of roots) renderNode(root, 1);
+  return `${heading}\n\n${lines.join('\n')}\n`;
 }
 
 /**
- * Renderer/view convention (follow-up to #421):
+ * Renderer/view convention (follow-up to #421, corrected by #341's Tree
+ * regression):
  *
  * Project-type container nodes (activity_type === 'project') are suppressed
- * from ALL rendered views — Network, Gantt, and Tree. The diagram already
- * represents the project scope; rendering the container as a node or bar adds
- * visual noise. The doc.title (Action name) is shown in each view's header as
- * its own line so the reader can identify the action without the container node.
- * Canonical parent linkage is preserved in the raw doc; only the rendered node
- * lists are narrowed. doc.project.start_date (used by the Gantt for computed
- * mode) is on the project block, not on any activity — filtering activities
- * does not affect Gantt date computation.
+ * from the Network and Gantt views — those diagrams have no natural place for
+ * a durationless container, and rendering it as a node/bar adds visual noise.
+ * The Tree view is the WBS/hierarchy view and keeps the project node visible
+ * as the root — that's exactly where a reader expects to see the project
+ * scope. The doc.title (Action name) is additionally shown in each view's
+ * header as its own line. Canonical parent linkage is preserved in the raw
+ * doc; only the Network/Gantt rendered node lists are narrowed.
+ * doc.project.start_date (used by the Gantt for computed mode) is on the
+ * project block, not on any activity — filtering activities does not affect
+ * Gantt date computation.
  */
 function buildActivityViews(doc: ActivityDoc, gaps: ActivitiesLayoutOptions, curvature: number, entryCurvature: number | undefined, filename: string, date: string, version?: string): ActivityViews {
   // Suppress project-type container nodes from all views. A shallow copy is
@@ -510,6 +577,7 @@ function buildActivityViews(doc: ActivityDoc, gaps: ActivitiesLayoutOptions, cur
   const networkHeading = 'Network view — Project Schedule Network Diagram (PSND)';
   const networkSvgStr = networkSvg(filteredDoc, gaps, curvature, entryCurvature, networkHeading, filename, date, version, actionName);
   const gantt: GanttResult = computeGanttLayout(filteredDoc);
+  const treeMarkdownStr = buildTreeMarkdown(doc, actionName);
 
   const dateLine = date;
 
@@ -526,7 +594,7 @@ function buildActivityViews(doc: ActivityDoc, gaps: ActivitiesLayoutOptions, cur
 </div>
 <div class="section-notice">${escXml(gantt.reason)}</div>`;
     const treeHtmlStr = buildTreeHtml(doc, filename, date, version, actionName);
-    return { networkSvg: networkSvgStr, ganttBody, ganttSvg: '', treeHtml: treeHtmlStr };
+    return { networkSvg: networkSvgStr, ganttBody, ganttSvg: '', treeHtml: treeHtmlStr, treeMarkdown: treeMarkdownStr };
   }
 
   const modeLabel = gantt.mode === 'computed'
@@ -535,7 +603,7 @@ function buildActivityViews(doc: ActivityDoc, gaps: ActivitiesLayoutOptions, cur
   const ganttHeading = `Gantt view — ${modeLabel}`;
   const ganttSvgStr = ganttSvg(gantt, ganttHeading, filename, date, version, actionName);
   const treeHtmlStr = buildTreeHtml(doc, filename, date, version, actionName);
-  return { networkSvg: networkSvgStr, ganttBody: ganttSvgStr, ganttSvg: ganttSvgStr, treeHtml: treeHtmlStr };
+  return { networkSvg: networkSvgStr, ganttBody: ganttSvgStr, ganttSvg: ganttSvgStr, treeHtml: treeHtmlStr, treeMarkdown: treeMarkdownStr };
 }
 
 function buildCanvasContent(views: ActivityViews): string {
@@ -681,6 +749,10 @@ const ACTIVITIES_WEBVIEW_CSS = `
   .tree-badge-programme { background: #eff6ff; color: #2563eb; border: 1px solid #93c5fd; }
   .tree-badge-project { background: var(--ts-layer-activity, #d4edda); color: #166534; border: 1px solid #86efac; }
   .tree-badge-task { background: var(--ts-bg-subtle, #f1f5f9); color: var(--ts-text-muted, #64748b); border: 1px solid var(--ts-border, #cbd5e1); }
+  /* Doc-root row — the Action document itself, distinct from its activities. */
+  .tree-node-doc-root-row { border-color: var(--ts-brand-orange, #ff4d00); background: var(--ts-bg-subtle, #f8fafc); }
+  .tree-node-doc-root-row .tree-node-name { font-weight: 700; font-size: 14px; }
+  .tree-node-doc-root > .tree-children { margin-left: 8px; }
 `;
 
 const ACTIVITIES_STYLES = ACTIVITIES_WEBVIEW_CSS + ACTIVITIES_DIAGRAM_CSS;
@@ -697,6 +769,7 @@ export class ActionPreview {
   // to ask the user when both views are available.
   private lastNetworkSvg = '';
   private lastGanttSvg = '';
+  private lastTreeMarkdown = '';
 
   constructor(private readonly extensionUri: vscode.Uri) {}
 
@@ -722,7 +795,7 @@ export class ActionPreview {
           enableScripts: true,
           retainContextWhenHidden: true,
           localResourceRoots: [vscode.Uri.joinPath(this.extensionUri, 'media')],
-          enableCommandUris: ['transitrixStudio.saveActivitiesAsSvg', 'transitrixStudio.saveActivitiesAsPng', 'transitrixStudio.copyActivitiesAsPng', OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND, OPEN_THEME_COMMAND],
+          enableCommandUris: ['transitrixStudio.saveActivitiesAsSvg', 'transitrixStudio.saveActivitiesAsPng', 'transitrixStudio.copyActivitiesAsPng', EXPORT_TREE_MARKDOWN_COMMAND, OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND, OPEN_THEME_COMMAND],
         },
       );
       this.panel.webview.onDidReceiveMessage((m) => { void applyControlMessage('action', m); });
@@ -778,6 +851,7 @@ export class ActionPreview {
         bodyContent = buildCanvasContent(views);
         this.lastNetworkSvg = views.networkSvg;
         this.lastGanttSvg = views.ganttSvg;
+        this.lastTreeMarkdown = views.treeMarkdown;
       }
     } catch (e) {
       errorMsg = (e as Error).message ?? 'Parse error';
@@ -786,6 +860,7 @@ export class ActionPreview {
     if (!bodyContent) {
       this.lastNetworkSvg = '';
       this.lastGanttSvg = '';
+      this.lastTreeMarkdown = '';
     }
 
     const themeId = vscode.workspace
@@ -802,7 +877,7 @@ export class ActionPreview {
 
     return buildDiagramFrame({
       filename,
-      notation: 'Activities (PSND + Gantt)',
+      notation: 'Actions (PSND + Gantt)',
       bodyContent,
       errorMsg,
       warnings,
@@ -814,8 +889,29 @@ export class ActionPreview {
       spacingCommand: OPEN_SPACING_SETTINGS_COMMAND,
       curvatureCommand: OPEN_CURVATURE_SETTINGS_COMMAND,
       themeCommand: OPEN_THEME_COMMAND,
+      extraButtons: [{ command: EXPORT_TREE_MARKDOWN_COMMAND, label: 'Export tree as .md', title: 'Save the Tree view decomposition as a nested Markdown list' }],
       interactive: { nonce, controlsPanel, controlsScript: buildControlsScript(nonce) },
     });
+  }
+
+  /** Save the Tree view's current hierarchy as a nested Markdown list. */
+  async exportTreeAsMarkdown(): Promise<void> {
+    if (!this.lastTreeMarkdown) {
+      vscode.window.showWarningMessage('No diagram rendered yet. Open a *.action.transitrix.yaml or *.dgca.transitrix.yaml (with notation: action) file first.');
+      return;
+    }
+    const sourceUri = this.trackedUri ? vscode.Uri.parse(this.trackedUri) : undefined;
+    const stem = sourceUri
+      ? path.basename(sourceUri.fsPath).replace(/\.(action|dgca)\.transitrix\.yaml$/, '')
+      : 'action-tree';
+    const suffixed = `${stem}-tree.md`;
+    const defaultUri = sourceUri
+      ? vscode.Uri.file(path.join(path.dirname(sourceUri.fsPath), suffixed))
+      : vscode.Uri.file(suffixed);
+    const target = await vscode.window.showSaveDialog({ defaultUri, filters: { 'Markdown': ['md'] } });
+    if (!target) return;
+    await vscode.workspace.fs.writeFile(target, Buffer.from(this.lastTreeMarkdown, 'utf-8'));
+    vscode.window.showInformationMessage(`Saved: ${path.basename(target.fsPath)}`);
   }
 
   /**
