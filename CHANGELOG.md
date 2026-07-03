@@ -1,5 +1,41 @@
 # Changelog
 
+## [2.9.1] — 2026-07-03
+
+### Added
+
+- **Action preview — Tree view document root, export as Markdown.** The Tree
+  tab's hierarchy now nests under a single synthetic root node labelled with
+  the Action's own name (`doc.title`) instead of rendering a flat forest of
+  independent top-level activities — matching the "virtual root" convention
+  one level above Initiative (methodology `elements/24-action.md` §1), scaled
+  to one document. A new "Export tree as .md" toolbar button
+  (`transitrixStudio.exportActionTreeAsMarkdown`) saves the same hierarchy as
+  a nested Markdown list.
+
+### Fixed
+
+- **BPMN — skip-level same-lane flows no longer force a shared vertex or
+  detour the whole lane.** Four related routing fixes in
+  `src/layout-routing.ts`: (1) `buildGrid` now also adds a per-element "hug"
+  corridor row above/below each node, so a flow bypassing a single taller
+  neighbour finds a short local detour instead of the lane's outer margin;
+  that hug clearance is widened from the 6px minimum obstacle margin to a
+  visually comfortable 20px. (2) A gateway with both a direct
+  (adjacent-column) and a skip-level incoming flow no longer forces both onto
+  the same entry point — the skip-level one gets its own top/bottom face.
+  (3) The equivalent applies on the exit side: a gateway never crowds two or
+  more forward flows onto one vertex while another sits free. (4) A
+  gateway's own outgoing cross-lane flow no longer contends for a vertex an
+  incoming skip-level flow already claimed.
+
+- **Action preview — Gantt row labels no longer overlap.** The id/name pair
+  in the label column was laid out side by side with only a fixed offset,
+  which overflowed into the name text once the id got past a handful of
+  characters. Labels now stack (name above, id below, matching the entity
+  label convention used elsewhere) and the header reads "Actions" (Activity
+  is reserved for the process domain).
+
 ## [2.9.0] — 2026-07-03
 
 ### Changed

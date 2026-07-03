@@ -14,6 +14,9 @@ version: "0.1"
 date: "2026-06-10"
 author: "Acme Compliance Office"
 
+project:
+  start_date: "2026-03-01"
+
 actions:
   - id: ACTION-GDPR-GAP-1
     name: "GDPR & NIS2 gap assessment"

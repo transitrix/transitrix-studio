@@ -382,6 +382,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand('transitrixStudio.copyDGAAsPng', () => dgaPreview.copyAsPng()),
     vscode.commands.registerCommand('transitrixStudio.saveActivitiesAsPng', () => actionPreview.saveAsPng()),
     vscode.commands.registerCommand('transitrixStudio.copyActivitiesAsPng', () => actionPreview.copyAsPng()),
+    vscode.commands.registerCommand('transitrixStudio.exportActionTreeAsMarkdown', () => actionPreview.exportTreeAsMarkdown()),
     vscode.commands.registerCommand('transitrixStudio.previewApplications', async () => {
       const doc = vscode.window.activeTextEditor?.document;
       if (!doc || !isApplicationsFile(doc)) {

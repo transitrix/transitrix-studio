@@ -2,7 +2,7 @@
   "name": "transitrix-studio",
   "displayName": "Transitrix Studio",
   "publisher": "transitrix",
-  "version": "2.9.0",
+  "version": "2.9.1",
   "description": "Architecture-as-code for the modern enterprise. Author 17 notations — goals, processes, capabilities, BPMN, applications, more — as plain YAML, get live diagrams in VS Code. Diffable in git. AI-friendly. Open source. Built on ArchiMate 3.2 and BPMN 2.0.",
   "license": "MIT",
   "icon": "icon.png",
@@ -557,6 +557,12 @@
         "title": "Transitrix: Save activity network as SVG",
         "category": "Transitrix",
         "icon": "$(save)"
+      },
+      {
+        "command": "transitrixStudio.exportActionTreeAsMarkdown",
+        "title": "Transitrix: Export action tree as Markdown",
+        "category": "Transitrix",
+        "icon": "$(export)"
       },
       {
         "command": "transitrixStudio.previewProducts",

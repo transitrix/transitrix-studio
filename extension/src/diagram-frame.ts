@@ -107,6 +107,14 @@ export interface DiagramFrameOpts {
    */
   themeCommand?: string;
   /**
+   * Extra command-URI toolbar buttons beyond the fixed save/spacing/theme
+   * slots above — e.g. a notation-specific export action (Action preview's
+   * "Export tree as .md"). Rendered after the built-in buttons, in order.
+   * Same opt-in contract as `saveSvgCommand`: the preview's webview must
+   * include each `command` in `enableCommandUris`.
+   */
+  extraButtons?: Array<{ command: string; label: string; title: string }>;
+  /**
    * When true, adds a "Legend" toggle button to the toolbar (CSS-only, no scripts).
    * The SVG must wrap its legend elements in `<g class="diagram-legend-col">`.
    * Follows the same pattern as the title toggle (TX-R009).
@@ -413,6 +421,7 @@ export function buildDiagramFrame(opts: DiagramFrameOpts): string {
     themeId = 'transitrix', extraStyles = '', fixPrompt = '',
     title, subtitle, version, date,
     saveSvgCommand, savePngCommand, copyPngCommand, spacingCommand, curvatureCommand, scopeCommand, themeCommand,
+    extraButtons = [],
     interactive, legendToggle, snapshotUi,
   } = opts;
 
@@ -516,6 +525,11 @@ export function buildDiagramFrame(opts: DiagramFrameOpts): string {
   }
   if (showCopyPng) {
     actionParts.push(`<a href="command:${escXml(copyPngCommand!)}" class="toolbar-btn" title="Copy the current diagram to the clipboard as a PNG image">Copy image</a>`);
+  }
+  if (canvasContent) {
+    for (const b of extraButtons) {
+      actionParts.push(`<a href="command:${escXml(b.command)}" class="toolbar-btn" title="${escXml(b.title)}">${escXml(b.label)}</a>`);
+    }
   }
   if (showSpacing) {
     actionParts.push(`<a href="command:${escXml(spacingCommand!)}" class="toolbar-btn" title="Adjust the horizontal/vertical spacing for this notation in Settings">Spacing…</a>`);
