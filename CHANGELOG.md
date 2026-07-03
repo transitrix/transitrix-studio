@@ -1,5 +1,25 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+
+- **BPMN — layout engine v2 (lane-aware Sugiyama placement + channel-routed
+  orthogonal A\*).** The previous hybrid (global ELK pass for X, per-lane ELK
+  passes for Y, per-flow routing heuristics) is replaced by a single coherent
+  pipeline in `src/layout-placement.ts` / `src/layout-routing.ts`:
+  cycle-broken longest-path columns shared by all lanes, barycenter row
+  ordering aware of cross-lane edges, PAVA-based Y assignment (straight
+  chains, symmetric gateway fans, spine on the lane axis), and a sparse-grid
+  A\* router with bend/congestion/crossing penalties plus track nudging for
+  parallel segments. Routed paths can no longer clip element shapes; corpus
+  totals improve from 155 → 139 bends, 353 → 297 px median spine deviation
+  and 2 → 1 port violations, with crossings at the structural minimum per
+  diagram (see `docs/bpmn-routing.md`). Port conventions (right exit / left
+  entry, gateway vertex distribution, top/bottom cross-lane gateway exits,
+  left-face U-turn loops) are unchanged. `elkjs` is no longer used by the
+  BPMN layout path.
+
 ## [2.8.0] — 2026-07-01
 
 ### Added

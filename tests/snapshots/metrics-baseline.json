@@ -1,6 +1,6 @@
 {
   "version": "0.1",
-  "date": "2026-06-30T20:30:07.179Z",
+  "date": "2026-07-03T05:33:42.126Z",
   "corpusCount": 9,
   "successCount": 9,
   "errorCount": 0,
@@ -12,52 +12,52 @@
       "metrics": {
         "crossings": 1,
         "bends": 6,
-        "edgeLength": 1813.6666666666665,
+        "edgeLength": 1868,
         "waypointDensity": 2.6,
         "spineDeviation": 0,
-        "emptyArea": 0.5869700748129676,
+        "emptyArea": 0.48125,
         "portViolations": 0,
         "portUniqueness": 1,
         "laneAxisAlignment": 1,
         "layoutScore": 0
       },
-      "timestamp": "2026-06-30T20:30:06.661Z"
+      "timestamp": "2026-07-03T05:33:42.036Z"
     },
     "feature-release.bpmn.transitrix.yaml": {
       "status": "success",
       "elementCount": 12,
       "flowCount": 13,
       "metrics": {
-        "crossings": 0,
-        "bends": 12,
-        "edgeLength": 3300,
-        "waypointDensity": 2.923076923076923,
+        "crossings": 1,
+        "bends": 13,
+        "edgeLength": 3428,
+        "waypointDensity": 3,
         "spineDeviation": 0,
         "emptyArea": 0.5500909090909091,
         "portViolations": 0,
-        "portUniqueness": 0.75,
+        "portUniqueness": 1,
         "laneAxisAlignment": 1,
         "layoutScore": 0
       },
-      "timestamp": "2026-06-30T20:30:06.723Z"
+      "timestamp": "2026-07-03T05:33:42.055Z"
     },
     "large-cyclic-workflow.bpmn.transitrix.yaml": {
       "status": "success",
       "elementCount": 21,
       "flowCount": 25,
       "metrics": {
-        "crossings": 1,
-        "bends": 27,
-        "edgeLength": 6602.666666666667,
-        "waypointDensity": 3.08,
-        "spineDeviation": 82,
-        "emptyArea": 0.7965322633390317,
-        "portViolations": 2,
+        "crossings": 2,
+        "bends": 28,
+        "edgeLength": 7479,
+        "waypointDensity": 3.12,
+        "spineDeviation": 66,
+        "emptyArea": 0.793134974640294,
+        "portViolations": 1,
         "portUniqueness": 1,
         "laneAxisAlignment": 1,
         "layoutScore": 0
       },
-      "timestamp": "2026-06-30T20:30:06.786Z"
+      "timestamp": "2026-07-03T05:33:42.074Z"
     },
     "order-fulfillment.bpmn.transitrix.yaml": {
       "status": "success",
@@ -66,16 +66,16 @@
       "metrics": {
         "crossings": 0,
         "bends": 2,
-        "edgeLength": 664,
+        "edgeLength": 728,
         "waypointDensity": 2.3333333333333335,
         "spineDeviation": 0,
-        "emptyArea": 0.5462701149425288,
+        "emptyArea": 0.5622894736842106,
         "portViolations": 0,
         "portUniqueness": 1,
         "laneAxisAlignment": 1,
         "layoutScore": 0
       },
-      "timestamp": "2026-06-30T20:30:06.832Z"
+      "timestamp": "2026-07-03T05:33:42.080Z"
     },
     "parallel-tracks.bpmn.transitrix.yaml": {
       "status": "success",
@@ -83,17 +83,17 @@
       "flowCount": 9,
       "metrics": {
         "crossings": 0,
-        "bends": 8,
-        "edgeLength": 2040,
-        "waypointDensity": 2.888888888888889,
-        "spineDeviation": 41,
+        "bends": 6,
+        "edgeLength": 2104,
+        "waypointDensity": 2.6666666666666665,
+        "spineDeviation": 33,
         "emptyArea": 0.6834468042259194,
         "portViolations": 0,
         "portUniqueness": 0.6666666666666666,
-        "laneAxisAlignment": 1,
+        "laneAxisAlignment": 0.8333333333333334,
         "layoutScore": 0
       },
-      "timestamp": "2026-06-30T20:30:06.889Z"
+      "timestamp": "2026-07-03T05:33:42.087Z"
     },
     "simple-approval.bpmn.transitrix.yaml": {
       "status": "success",
@@ -102,16 +102,16 @@
       "metrics": {
         "crossings": 0,
         "bends": 8,
-        "edgeLength": 1422,
+        "edgeLength": 1450,
         "waypointDensity": 3.142857142857143,
-        "spineDeviation": 41,
+        "spineDeviation": 33,
         "emptyArea": 0.7764882411250177,
         "portViolations": 0,
         "portUniqueness": 1,
         "laneAxisAlignment": 1,
         "layoutScore": 0
       },
-      "timestamp": "2026-06-30T20:30:06.952Z"
+      "timestamp": "2026-07-03T05:33:42.094Z"
     },
     "simple-linear.bpmn.transitrix.yaml": {
       "status": "success",
@@ -129,7 +129,7 @@
         "laneAxisAlignment": 1,
         "layoutScore": 0
       },
-      "timestamp": "2026-06-30T20:30:07.013Z"
+      "timestamp": "2026-07-03T05:33:42.099Z"
     },
     "small-dense-approval.bpmn.transitrix.yaml": {
       "status": "success",
@@ -138,34 +138,34 @@
       "metrics": {
         "crossings": 0,
         "bends": 14,
-        "edgeLength": 2038,
+        "edgeLength": 2066,
         "waypointDensity": 3.272727272727273,
-        "spineDeviation": 41,
+        "spineDeviation": 33,
         "emptyArea": 0.8091206777597997,
         "portViolations": 0,
         "portUniqueness": 1,
         "laneAxisAlignment": 1,
         "layoutScore": 0
       },
-      "timestamp": "2026-06-30T20:30:07.077Z"
+      "timestamp": "2026-07-03T05:33:42.106Z"
     },
     "xlarge-stress-test.bpmn.transitrix.yaml": {
       "status": "success",
       "elementCount": 41,
       "flowCount": 54,
       "metrics": {
-        "crossings": 1,
-        "bends": 78,
-        "edgeLength": 11516.583333333332,
-        "waypointDensity": 3.4444444444444446,
-        "spineDeviation": 148,
-        "emptyArea": 0.8282701728700941,
+        "crossings": 0,
+        "bends": 62,
+        "edgeLength": 11526,
+        "waypointDensity": 3.1481481481481484,
+        "spineDeviation": 132,
+        "emptyArea": 0.8201716840253008,
         "portViolations": 0,
-        "portUniqueness": 0.7592592592592592,
+        "portUniqueness": 0.8148148148148148,
         "laneAxisAlignment": 1,
         "layoutScore": 0
       },
-      "timestamp": "2026-06-30T20:30:07.178Z"
+      "timestamp": "2026-07-03T05:33:42.125Z"
     }
   }
 }
