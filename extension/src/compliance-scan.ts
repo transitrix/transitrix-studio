@@ -65,8 +65,9 @@ export async function scanComplianceCanon(): Promise<ScannedCanon> {
 // no warning is emitted. The warning is reserved for truly unrecognised values
 // (e.g. a typo like "asssertion") that might indicate a miscategorised file.
 const SILENT_NOTATIONS = new Set([
-  // Element notations
-  'activity', 'actor', 'assessment', 'business_object', 'change', 'constraint',
+  // Element notations (constraint is now handled by ingestComplianceDoc — kept
+  // out of this silent-skip list so a typo like 'constrain' still warns).
+  'activity', 'actor', 'assessment', 'business_object', 'change',
   'driver', 'equipment', 'factor', 'goal', 'registry', 'relation', 'role', 'rule',
   'stakeholder', 'target-state',
   // View / diagram notations

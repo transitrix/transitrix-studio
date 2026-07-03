@@ -1,5 +1,31 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **Requirement traceability + hierarchy view.** A new
+  `transitrixStudio.previewRequirementTrace` command opens a script-less
+  webview for any `REQUIREMENT-*.yaml` or `CONSTRAINT-*.yaml` file. The view
+  shows two halves, both origin-agnostic (`legislative` / `process-product` /
+  `project-product`):
+  - **Trace chain** — `derived_from` codex sources → the element itself → any
+    `ASSERTION` targeting it (`about`) → the asserted `subject` +
+    `realised_via` elements. Every id is click-to-open. `REQ-COVERAGE-001` is
+    surfaced inline when no assertion targets the requirement.
+  - **Hierarchy** — the `parent` chain (immediate parent to root, per the new
+    `parent` field on REQUIREMENT / CONSTRAINT) plus direct children of the
+    element.
+
+  Assertion coverage is REQUIREMENT-only per `16-assertion.md` §1; a
+  CONSTRAINT-side trace shows sources + hierarchy only and notes the v1 scope
+  boundary inline. The extension activates on `REQUIREMENT-*.yaml`,
+  `CONSTRAINT-*.yaml`, or `ASSERTION-*.yaml` in the workspace, and the
+  editor-title bar surfaces a "Preview requirement trace + hierarchy" action
+  when a REQUIREMENT or CONSTRAINT file is open. Under the hood,
+  `@transitrix/diagrams` gains a pure `buildRequirementTrace` builder over
+  the existing compliance reverse-index (extended with `requirementsByParent`).
+
 ## [2.9.1] — 2026-07-03
 
 ### Added

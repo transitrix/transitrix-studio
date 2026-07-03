@@ -65,7 +65,8 @@ export function ingestComplianceDoc(canon: ComplianceCanon, doc: unknown): strin
     canon.subjects.push({ id, name: str(d.name) ?? id });
     return id;
   }
-  if (d.notation === 'requirement') {
+  if (d.notation === 'requirement' || d.notation === 'constraint') {
+    const origin = str(d.origin);
     canon.requirements.push({
       id,
       name: str(d.name) ?? id,
@@ -73,6 +74,11 @@ export function ingestComplianceDoc(canon: ComplianceCanon, doc: unknown): strin
       derived_from: strArray(d.derived_from),
       admitted_at: str(d.admitted_at),
       deadline: str(d.deadline),
+      origin: origin === 'legislative' || origin === 'process-product' || origin === 'project-product' ? origin : undefined,
+      parent: str(d.parent),
+      element_kind: d.notation,
+      description: str(d.description),
+      next_review_at: str(d.next_review_at),
     });
     return id;
   }

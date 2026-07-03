@@ -19,15 +19,17 @@ export function buildComplianceIndex(input: ComplianceIndexInput): ComplianceInd
   const requirementsByLaw = new Map<string, IndexRequirement[]>();
   const assertionsByRequirement = new Map<string, IndexAssertion[]>();
   const assertionsBySubject = new Map<string, IndexAssertion[]>();
+  const requirementsByParent = new Map<string, IndexRequirement[]>();
 
   for (const r of input.requirements) {
     requirementById.set(r.id, r);
     for (const law of r.derived_from ?? []) push(requirementsByLaw, law, r);
+    if (r.parent) push(requirementsByParent, r.parent, r);
   }
   for (const a of input.assertions) {
     push(assertionsByRequirement, a.about, a);
     push(assertionsBySubject, a.subject, a);
   }
 
-  return { requirementById, requirementsByLaw, assertionsByRequirement, assertionsBySubject };
+  return { requirementById, requirementsByLaw, assertionsByRequirement, assertionsBySubject, requirementsByParent };
 }

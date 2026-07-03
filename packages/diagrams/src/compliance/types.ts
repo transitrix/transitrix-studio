@@ -4,8 +4,9 @@
 // single-product view here, and the gap dashboard in Phase 4.
 
 import type { AssertionStatus } from '../assertion/types.js';
+import type { ComplianceCodexDoc } from './classify.js';
 
-/** Projection of a REQUIREMENT the compliance views need. */
+/** Projection of a REQUIREMENT (or CONSTRAINT) the compliance views need. */
 export interface IndexRequirement {
   id: string;
   name: string;
@@ -20,6 +21,38 @@ export interface IndexRequirement {
    * past or imminent, CV-3 renders an urgent decoration on the cell.
    */
   deadline?: string;
+  /**
+   * Origin taxonomy (15-requirement.md §2.1): `legislative`, `process-product`,
+   * or `project-product`. Distinguishes the context from which the obligation
+   * was derived. Undefined for existing pre-taxonomy admissions (treated as
+   * `legislative` by tooling that supports origin-based filtering).
+   */
+  origin?: 'legislative' | 'process-product' | 'project-product';
+  /**
+   * Same-TYPE `parent` reference: the higher-scale obligation this one
+   * decomposes from (15-requirement.md §2.4; ELEMENT_PRIMITIVES.md §7.13 for
+   * CONSTRAINT). Origin-agnostic, structure-only. Enables the hierarchy half
+   * of the requirement traceability view.
+   */
+  parent?: string;
+  /**
+   * Motivation-layer element kind. `requirement` = positive obligation
+   * (15-requirement.md); `constraint` = restriction / prohibition
+   * (ELEMENT_PRIMITIVES.md §7.13). ASSERTION coverage applies to `requirement`
+   * only (16-assertion.md §1); the hierarchy half applies to both.
+   */
+  element_kind?: 'requirement' | 'constraint';
+  /**
+   * Longer-form description of the obligation (15-requirement.md §2). Optional;
+   * used by the requirement traceability view to show the requirement body
+   * inline. Not used by matrix / list views.
+   */
+  description?: string;
+  /**
+   * `next_review_at` review-checkpoint date (15-requirement.md §2.3; ISO 8601).
+   * Present when the author has scheduled a review; drives `REQ-STALE-001`.
+   */
+  next_review_at?: string;
 }
 
 // ── Temporal status (CV-3) ──────────────────────────────────────────────────
@@ -106,6 +139,11 @@ export interface ComplianceIndex {
   assertionsByRequirement: Map<string, IndexAssertion[]>;
   /** Subject id (product / process / capability) → assertions about it. */
   assertionsBySubject: Map<string, IndexAssertion[]>;
+  /**
+   * Parent id → the requirements/constraints that name it in `parent`
+   * (15-requirement.md §2.4). Enables the requirement-hierarchy view.
+   */
+  requirementsByParent: Map<string, IndexRequirement[]>;
 }
 
 // ── Single-law tree ─────────────────────────────────────────────────────────
@@ -133,4 +171,66 @@ export interface ProductView {
   productId: string;
   /** Requirements bound to the product via an assertion, requirement-id-sorted. */
   requirements: ProductRequirementStatus[];
+}
+
+// ── Requirement traceability + hierarchy view ───────────────────────────────
+
+/** A codex artefact resolved from a requirement's `derived_from` reference. */
+export interface TraceSourceRef {
+  /** Verbatim id from `derived_from`. Always present. */
+  id: string;
+  /** The codex artefact, when resolved by the scan. Absent for dangling refs. */
+  codex?: ComplianceCodexDoc;
+}
+
+/** A named element (subject or realising element) resolved by the trace. */
+export interface TraceElementRef {
+  id: string;
+  /** Element name when resolved by the scan; absent for dangling refs. */
+  name?: string;
+}
+
+/** One ASSERTION targeting the traced requirement, with subject + realising elements. */
+export interface TraceAssertionRow {
+  assertion: IndexAssertion;
+  subject: TraceElementRef;
+  /** Elements named in the assertion's `realised_via` list (may be empty). */
+  realisedVia: TraceElementRef[];
+}
+
+/**
+ * Requirement traceability + hierarchy view.
+ *
+ * Two halves, both origin-agnostic (15-requirement.md §2.1):
+ *  1. Trace chain — `derived_from` source(s) → the element itself → any
+ *     ASSERTION targeting it (`about`) → the asserted `subject` + `realised_via`
+ *     elements. Origin-agnostic per 15-requirement.md §2.1; assertion coverage
+ *     applies to REQUIREMENT only (16-assertion.md §1) — CONSTRAINT trace shows
+ *     only the source chain + hierarchy.
+ *  2. Hierarchy — `parent` chain (ancestors, root last of the array) + children
+ *     (any element whose `parent` names this one), sorted by id.
+ */
+export interface RequirementTrace {
+  /** The element being traced (REQUIREMENT or CONSTRAINT). Falls back to a
+   *  stub carrying the id as its name when the element is missing from the
+   *  scan (a dangling `parent` or a repository being edited). */
+  requirement: IndexRequirement;
+  /** Backward-trace: `derived_from` codex artefacts, verbatim order. */
+  sources: TraceSourceRef[];
+  /** Forward-trace via ASSERTION. Empty for CONSTRAINT elements (16-assertion.md §1) or for a REQUIREMENT with no filed assertion. */
+  assertions: TraceAssertionRow[];
+  /** Parent chain: immediate parent first, root last. Empty when the element has no `parent`. */
+  ancestors: IndexRequirement[];
+  /** Direct children: elements naming this one as their `parent`, id-sorted. */
+  children: IndexRequirement[];
+}
+
+/**
+ * The complementary data the trace builder needs to name subjects and realising
+ * elements. Names are resolved by looking up the id in this map; unresolved ids
+ * surface as the id alone (a dangling reference).
+ */
+export interface TraceElementCatalog {
+  /** id → human-readable name (or the id itself when unnamed). */
+  nameById: Map<string, string>;
 }

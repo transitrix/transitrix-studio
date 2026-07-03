@@ -21,6 +21,7 @@ import { ComplianceMatrixPreview } from './compliance-matrix-preview.js';
 import { ComplianceImpactPreview } from './compliance-impact-preview.js';
 import { SingleLawPreview } from './single-law-preview.js';
 import { SingleProductPreview } from './single-product-preview.js';
+import { RequirementTracePreview } from './requirement-trace-preview.js';
 import { GapDashboardPreview } from './gap-dashboard-preview.js';
 import { CoverageMetricPreview } from './coverage-metric-preview.js';
 import { openComplianceFile } from './compliance-scan.js';
@@ -110,6 +111,10 @@ function isSingleLawFile(doc: vscode.TextDocument): boolean {
 
 function isSingleProductFile(doc: vscode.TextDocument): boolean {
   return /^PRODUCT-.*\.ya?ml$/i.test(path.basename(doc.fileName));
+}
+
+function isRequirementTraceFile(doc: vscode.TextDocument): boolean {
+  return /^(REQUIREMENT|CONSTRAINT)-.*\.ya?ml$/i.test(path.basename(doc.fileName));
 }
 
 function probeDocNotation(doc: vscode.TextDocument): string | undefined {
@@ -250,6 +255,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const complianceImpactPreview = new ComplianceImpactPreview(context.extensionUri);
   const singleLawPreview = new SingleLawPreview(context.extensionUri);
   const singleProductPreview = new SingleProductPreview(context.extensionUri);
+  const requirementTracePreview = new RequirementTracePreview(context.extensionUri);
   const gapDashboardPreview = new GapDashboardPreview(context.extensionUri);
   const coverageMetricPreview = new CoverageMetricPreview(context.extensionUri);
 
@@ -472,6 +478,17 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       await singleProductPreview.showOrReveal(doc);
     }),
     vscode.commands.registerCommand('transitrixStudio.refreshSingleProduct', () => singleProductPreview.refresh()),
+    // Requirement traceability + hierarchy view —
+    // triggered from a REQUIREMENT-*.yaml or CONSTRAINT-*.yaml file's
+    // editor-title bar. Shows the trace chain (derived_from → element →
+    // ASSERTION → subject + realised_via) and the hierarchy (parent chain +
+    // direct children); origin-agnostic per 15-requirement.md §2.1.
+    vscode.commands.registerCommand('transitrixStudio.previewRequirementTrace', async () => {
+      const doc = vscode.window.activeTextEditor?.document;
+      if (!doc) { vscode.window.showWarningMessage('Open a REQUIREMENT or CONSTRAINT file first.'); return; }
+      await requirementTracePreview.showOrReveal(doc);
+    }),
+    vscode.commands.registerCommand('transitrixStudio.refreshRequirementTrace', () => requirementTracePreview.refresh()),
     // Gap dashboard (vkgeorgia/strategy#84 Phase 4) — repo-wide, palette-invoked.
     vscode.commands.registerCommand('transitrixStudio.previewGapDashboard', () => gapDashboardPreview.showOrReveal()),
     vscode.commands.registerCommand('transitrixStudio.refreshGapDashboard', () => gapDashboardPreview.refresh()),
@@ -550,6 +567,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         void complianceImpactPreview.refresh();
         void singleLawPreview.refresh();
         void singleProductPreview.refresh();
+        void requirementTracePreview.refresh();
         void gapDashboardPreview.refresh();
         void coverageMetricPreview.refreshConfig();
       }
@@ -564,11 +582,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       void dgcaPreview.refreshIfSiblingSaved(doc);
       // Compliance views are repo-wide: re-scan the open ones whenever a canon
       // artefact (by filename convention) is saved. No-op when no panel is open.
-      if (/^(PRODUCT|REQUIREMENT|ASSERTION|LAW|REGULATION|POLICY|INTERNAL_STANDARD)-.*\.ya?ml$/.test(path.basename(doc.fileName))) {
+      if (/^(PRODUCT|REQUIREMENT|CONSTRAINT|ASSERTION|LAW|REGULATION|POLICY|INTERNAL_STANDARD)-.*\.ya?ml$/.test(path.basename(doc.fileName))) {
         void complianceMatrixPreview.refresh();
         void complianceImpactPreview.refresh();
         void singleLawPreview.refresh();
         void singleProductPreview.refresh();
+        void requirementTracePreview.refresh();
         void gapDashboardPreview.refresh();
       }
       if (isGoalsFile(doc)) { void goalsPreview.refreshSaved(doc); return; }
@@ -617,6 +636,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       if (isComplianceImpactFile(doc)) { await complianceImpactPreview.showOrReveal(); return; }
       if (isSingleLawFile(doc)) { await singleLawPreview.showOrReveal(doc); return; }
       if (isSingleProductFile(doc)) { await singleProductPreview.showOrReveal(doc); return; }
+      if (isRequirementTraceFile(doc)) { await requirementTracePreview.showOrReveal(doc); return; }
       if (documentMatchesCervinSource(doc)) { await openBpmnPreviewForDocument(doc); return; }
     }),
   );
