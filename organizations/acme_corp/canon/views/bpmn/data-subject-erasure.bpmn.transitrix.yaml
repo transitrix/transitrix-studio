@@ -49,6 +49,9 @@ process:
             - id: TASK-FLAG-GAP
               type: task
               name: "Flag archive exception for manual review"
+            - id: GW-CONFIRM-JOIN
+              type: exclusiveGateway
+              name: "Erasure path joined"
             - id: TASK-RECORD-CLOSURE
               type: task
               name: "Record completion within 30-day window"
@@ -89,9 +92,11 @@ process:
       to: TASK-FLAG-GAP
       condition: "data present in 7-year archive (known gap)"
     - from: GW-ARCHIVE
-      to: TASK-CONFIRM
+      to: GW-CONFIRM-JOIN
       default: true
     - from: TASK-FLAG-GAP
+      to: GW-CONFIRM-JOIN
+    - from: GW-CONFIRM-JOIN
       to: TASK-CONFIRM
     - from: TASK-CONFIRM
       to: TASK-RECORD-CLOSURE
