@@ -1,25 +1,27 @@
 # Release runbook
 
-How a Transitrix Studio release ships. Since the CI publish workflows landed
-(2026-06), **publishing the GitHub Release is the trigger for everything
-except the CLI** — the manual npm procedure this runbook used to describe
-survives only for `@transitrix/cli`.
+How a Transitrix Studio release ships: **publishing the GitHub Release is
+the trigger for everything** — npm packages, both VS Code marketplaces, and
+the JetBrains plugin all publish from CI.
 
 ## What publishes where
 
 | Artifact | Pipeline | Trigger |
 |---|---|---|
-| `@transitrix/diagrams` → npm | `.github/workflows/npm-publish.yml` | GitHub Release **published** (or `workflow_dispatch`) |
+| `@transitrix/diagrams` + `@transitrix/cli` → npm | `.github/workflows/npm-publish.yml` | GitHub Release **published** (or `workflow_dispatch`) |
 | VS Code extension → VS Code Marketplace | `.github/workflows/vscode-marketplace-publish.yml` | same |
 | VS Code extension → Open VSX (Cursor / VSCodium / Windsurf) | `.github/workflows/openvsx-publish.yml` | same |
 | IntelliJ plugin → JetBrains Marketplace | `.github/workflows/jetbrains-publish.yml` | same (plugin version derived from the release tag, `v` prefix stripped) |
-| `@transitrix/cli` → npm | **manual** (see below) | maintainer runs `npm publish` |
 
 Secrets backing the automation (repo Actions secrets): `NPM_TOKEN`
-(granular, read-write on `@transitrix/diagrams` only — this is why the CLI
-is not automated), `VSCE_PAT`, `OVSX_PAT`, and the JetBrains signing set
-(`CERTIFICATE_CHAIN`, `PRIVATE_KEY`, `PRIVATE_KEY_PASSWORD`,
-`PUBLISH_TOKEN`).
+(read-write on **both** `@transitrix/diagrams` and `@transitrix/cli`;
+mind the expiry if it is a granular token), `VSCE_PAT`, `OVSX_PAT`, and
+the JetBrains signing set (`CERTIFICATE_CHAIN`, `PRIVATE_KEY`,
+`PRIVATE_KEY_PASSWORD`, `PUBLISH_TOKEN`).
+
+The npm publish steps are idempotent: each compares the workspace version
+with the registry and skips when that version is already published, so
+releases that bump only one package (or neither) stay green.
 
 ## Release procedure
 
@@ -37,7 +39,7 @@ notes PRs:
   - `packages/diagrams/package.json` — bump when the diagrams library
     changed since its last published version (independent semver line);
   - `packages/cli/package.json` — bump when the bundled compiler sources
-    (`src/`) changed (independent semver line; publish is manual, step 4).
+    (`src/`) changed (independent semver line).
 - Pre-flight, from a clean tree on the release branch:
   - [ ] `npm run build` green
   - [ ] `npm run compile` + `npm run compile:extension` green
@@ -58,8 +60,10 @@ notes PRs:
 Publishing the release starts all four workflows. Watch them under
 Actions → filter event `release`:
 
-- `npm — publish @transitrix/diagrams` — verify with
-  `npm view @transitrix/diagrams version`.
+- `npm — publish packages` — `@transitrix/diagrams` first, then
+  `@transitrix/cli` (versions that are already on the registry are
+  skipped). Verify with `npm view @transitrix/diagrams version` and
+  `npm view @transitrix/cli version`.
 - `VS Code Marketplace — multi-platform publish` — per-platform VSIX build
   (`extension:prep` installs the platform-correct `@resvg/resvg-js-*`
   binary) + `vsce publish`.
@@ -71,22 +75,13 @@ Actions → filter event `release`:
 Every workflow also supports `workflow_dispatch` for re-runs (e.g. a
 transient marketplace failure) without re-publishing the release.
 
-### 4. `@transitrix/cli` — manual npm publish
+### 4. Post-publish sanity check (optional)
 
-Not covered by automation (the `NPM_TOKEN` grant is scoped to
-`@transitrix/diagrams`). The slim package is assembled by
-`scripts/build-cli-package.mjs`, which runs automatically at `prepack`;
-it bundles `src/cli.ts` + handlers into `packages/cli/dist/` and copies
-`schemas/` next to it. The package does **not** depend on
-`@transitrix/diagrams` — the diagrams source it needs is bundled in.
-
-From a clean checkout of the release commit:
-
-```bash
-npm pack --dry-run --workspace packages/cli    # inspect: dist/, schemas/, README, LICENSE only
-npm publish --access public --workspace packages/cli   # prompts npm login / 2FA OTP
-npm view @transitrix/cli version
-```
+The `@transitrix/cli` slim package is assembled by
+`scripts/build-cli-package.mjs` at `prepack`; it bundles `src/cli.ts` +
+handlers into `packages/cli/dist/` and copies `schemas/` next to it. The
+package does **not** depend on `@transitrix/diagrams` — the diagrams
+source it needs is bundled in.
 
 Sanity check the published bin on a fresh machine/directory:
 
@@ -94,6 +89,14 @@ Sanity check the published bin on a fresh machine/directory:
 npm i -g @transitrix/cli
 transitrix --help
 transitrix compile <sample>.yaml out.bpmn
+```
+
+Manual publish fallback (e.g. the token expired mid-release) — from a
+clean checkout of the release commit:
+
+```bash
+npm pack --dry-run --workspace packages/cli    # inspect: dist/, schemas/, README, LICENSE only
+npm publish --access public --workspace packages/cli   # prompts npm login / 2FA OTP
 ```
 
 ## Unpublish / yank (npm)

@@ -1,16 +1,23 @@
-name: npm — publish @transitrix/diagrams
+name: npm — publish packages
 
-# Triggered on every GitHub Release to publish @transitrix/diagrams to npm.
+# Triggered on every GitHub Release to publish the npm packages:
+#   @transitrix/diagrams  (packages/diagrams — built via its workspace build)
+#   @transitrix/cli       (packages/cli — assembled by its prepack script)
+#
+# Each publish step is idempotent: it compares the workspace version with the
+# registry and skips when that version is already published, so releases that
+# bump only one package (or neither) stay green.
 #
 # Prerequisites (one-time maintainer setup):
-#   - NPM_TOKEN — Automation-type granular access token from npmjs.com with
-#     read-write permission on the @transitrix/diagrams package.
+#   - NPM_TOKEN — npm access token with read-write permission on BOTH
+#     @transitrix/diagrams and @transitrix/cli (classic Automation token, or a
+#     granular token that lists both packages — mind the granular-token expiry).
 #     Create at: https://www.npmjs.com/settings/<user>/tokens
 #     Save as a repo Actions secret named NPM_TOKEN.
 #
-# The package version comes from packages/diagrams/package.json and is
-# versioned independently from the VS Code extension. Bump it before cutting
-# a release that includes library changes.
+# Package versions come from each workspace's package.json and are versioned
+# independently from the VS Code extension. Bump them in the release PR when
+# the corresponding sources changed.
 
 on:
   release:
@@ -22,7 +29,7 @@ permissions:
 
 jobs:
   publish:
-    name: Publish @transitrix/diagrams to npm
+    name: Publish npm packages
     runs-on: ubuntu-latest
 
     steps:
@@ -42,7 +49,7 @@ jobs:
         run: |
           if [ -z "$NPM_TOKEN" ]; then
             echo "::error::NPM_TOKEN Actions secret is not set."
-            echo "::error::Create an Automation token on npmjs.com and save it as a repo Actions secret named NPM_TOKEN."
+            echo "::error::Create an npm token with read-write access to @transitrix/diagrams AND @transitrix/cli, and save it as a repo Actions secret named NPM_TOKEN."
             exit 1
           fi
 
@@ -52,7 +59,28 @@ jobs:
       - name: Build @transitrix/diagrams
         run: npm run build --workspace packages/diagrams
 
-      - name: Publish to npm
+      # Publish order matters: diagrams first, then cli (runbook convention).
+      - name: Publish @transitrix/diagrams (skips if version already published)
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish --workspace packages/diagrams --access public
+        run: |
+          LOCAL=$(node -p "require('./packages/diagrams/package.json').version")
+          PUBLISHED=$(npm view "@transitrix/diagrams@$LOCAL" version 2>/dev/null || echo "")
+          if [ "$PUBLISHED" = "$LOCAL" ]; then
+            echo "@transitrix/diagrams@$LOCAL is already on the registry — skipping."
+          else
+            npm publish --workspace packages/diagrams --access public
+          fi
+
+      - name: Publish @transitrix/cli (skips if version already published)
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          LOCAL=$(node -p "require('./packages/cli/package.json').version")
+          PUBLISHED=$(npm view "@transitrix/cli@$LOCAL" version 2>/dev/null || echo "")
+          if [ "$PUBLISHED" = "$LOCAL" ]; then
+            echo "@transitrix/cli@$LOCAL is already on the registry — skipping."
+          else
+            # prepack (scripts/build-cli-package.mjs) assembles dist/ + schemas/.
+            npm publish --workspace packages/cli --access public
+          fi
