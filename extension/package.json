@@ -68,7 +68,8 @@
     "workspaceContains:**/*.coverage-metric.transitrix.yaml",
     "workspaceContains:**/*.compliance-impact.transitrix.yaml",
     "workspaceContains:**/ASSERTION-*.yaml",
-    "workspaceContains:**/REQUIREMENT-*.yaml"
+    "workspaceContains:**/REQUIREMENT-*.yaml",
+    "workspaceContains:**/CONSTRAINT-*.yaml"
   ],
   "contributes": {
     "configuration": {
@@ -742,6 +743,18 @@
         "icon": "$(refresh)"
       },
       {
+        "command": "transitrixStudio.previewRequirementTrace",
+        "title": "Transitrix: Preview requirement trace + hierarchy",
+        "category": "Transitrix",
+        "icon": "$(references)"
+      },
+      {
+        "command": "transitrixStudio.refreshRequirementTrace",
+        "title": "Transitrix: Refresh requirement-trace view",
+        "category": "Transitrix",
+        "icon": "$(refresh)"
+      },
+      {
         "command": "transitrixStudio.previewGapDashboard",
         "title": "Transitrix: Preview compliance gap dashboard",
         "category": "Transitrix",
@@ -945,6 +958,11 @@
         {
           "when": "resourceFilename =~ /^PRODUCT-.*\\.yaml$/",
           "command": "transitrixStudio.previewSingleProduct",
+          "group": "navigation@-10"
+        },
+        {
+          "when": "resourceFilename =~ /^(REQUIREMENT|CONSTRAINT)-.*\\.yaml$/",
+          "command": "transitrixStudio.previewRequirementTrace",
           "group": "navigation@-10"
         },
         {
