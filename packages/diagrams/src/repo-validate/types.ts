@@ -4,9 +4,8 @@
 // referential integrity, atomicity, ID uniqueness, policy — the checks that the
 // methodology's Python `.validators/lint.py` owns today. This converges those
 // checks onto the shared TypeScript model so there is a single validation
-// runtime (methodology ADR
-// `2026-06-11-validation-two-axis-model.md`; Studio referencing ADR
-// `docs/decisions/2026-06-11-validation-runtime-convergence.md`).
+// runtime (methodology ADR "Validation Two-Axis Model"; Studio decision
+// "Validation Runtime Convergence").
 //
 // The finding shape is deliberately minimal — `{ scope, id, message }`. The
 // richer `target` / `category` reporting taxonomy is explicitly DEFERRED per the

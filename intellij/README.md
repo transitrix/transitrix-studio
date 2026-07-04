@@ -3,8 +3,8 @@
 Read-only previews of Transitrix notations inside IntelliJ IDEA, parallel to
 the existing VS Code extension under [`../extension/`](../extension/).
 
-The rendering and validation technology choice is recorded in
-[`../docs/adr/0001-intellij-mvp-tech-choice.md`](../docs/adr/0001-intellij-mvp-tech-choice.md).
+The rendering and validation technology choice is recorded in ADR 0001
+(IntelliJ MVP Technology Choice).
 
 All five implementation steps from that ADR have landed:
 

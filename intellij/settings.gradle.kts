@@ -1,7 +1,7 @@
 // IntelliJ Platform plugin for Transitrix Studio.
 // Isolated Gradle build — sibling to extension/ and packages/diagrams/.
 // The repo's VS Code build never invokes Gradle and this build never invokes
-// the Node toolchain (see docs/adr/0001-intellij-mvp-tech-choice.md).
+// the Node toolchain (per the IntelliJ MVP technology choice ADR).
 
 rootProject.name = "transitrix-intellij"
 

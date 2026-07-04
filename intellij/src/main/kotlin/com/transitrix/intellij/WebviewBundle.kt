@@ -6,7 +6,7 @@ import java.nio.charset.StandardCharsets
  * Loads the bundled `@transitrix/diagrams` browser-safe webview assets from
  * the plugin classpath and assembles the JCEF host HTML.
  *
- * The shape of this assembly is set by [ADR 0001](../../../../../docs/adr/0001-intellij-mvp-tech-choice.md):
+ * The shape of this assembly is set by ADR 0001 (IntelliJ MVP Technology Choice):
  * the JS / CSS bundle is produced by `node scripts/build-webview-bundle.mjs`,
  * copied into the plugin jar under `webview/` by Gradle's `syncWebviewBundle`
  * task, and inlined into `webview/host.html` so JCEF can take the entire

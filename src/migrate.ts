@@ -3,8 +3,8 @@
 //
 // Recipe source: --recipes <dir>, default ../methodology/migrations (matching the
 // sync-examples-from-methodology.mjs convention). Transport is decoupled from the
-// CLI; production vendoring is a separate release-wiring step. See
-// docs/decisions/2026-06-14-migrate-recipe-source.md.
+// CLI; production vendoring is a separate release-wiring step (see "Migration
+// Recipe Source" decision).
 
 import { spawnSync } from 'node:child_process';
 import { cpSync, existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
