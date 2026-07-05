@@ -28,6 +28,7 @@ export interface GoalTreeViewProps {
   theme?: ThemeTokens;
   readOnly?: boolean;
   showBacklog?: boolean;
+  defaultBacklogOpen?: boolean;
   showMiniMap?: boolean;
   onChange?: (event: GoalTreeChange) => void;
   onEditRequest?: (goal: Goal) => void;
@@ -99,6 +100,7 @@ function GoalTreeViewInner({
   theme: themeProp,
   readOnly = false,
   showBacklog = false,
+  defaultBacklogOpen = true,
   showMiniMap = false,
   onChange,
   onEditRequest,
@@ -106,6 +108,7 @@ function GoalTreeViewInner({
   const theme = useMemo(() => resolveTheme(themeProp), [themeProp]);
   const [collapsedIds, setCollapsedIds] = useState<Set<number>>(new Set());
   const [hoveredId, setHoveredId] = useState<number | null>(null);
+  const [isBacklogOpen, setIsBacklogOpen] = useState(defaultBacklogOpen);
 
   const { canvas: canvasGoals, backlog: backlogGoals } = useMemo(
     () => partitionCanvasAndBacklog(tree.goals),
@@ -286,38 +289,66 @@ function GoalTreeViewInner({
     <div style={{ display: 'flex', width: '100%', height: '100%' }}>
       {showBacklogPanel && (
         <div
-          data-goaltree-backlog-zone
+          {...(isBacklogOpen ? { 'data-goaltree-backlog-zone': true } : {})}
           style={{
-            width: 220,
+            width: isBacklogOpen ? 220 : 28,
             flexShrink: 0,
             borderRight: '1px solid #e2e8f0',
-            padding: 10,
-            overflowY: 'auto',
             background: '#f8fafc',
+            display: 'flex',
+            flexDirection: 'column',
+            position: 'relative',
           }}
         >
-          <div style={{ fontWeight: 700, fontSize: 12, color: '#334155', marginBottom: 8 }}>Backlog</div>
-          {backlogGoals.map((goal) => (
-            <div
-              key={goal.id}
-              draggable={!readOnly}
-              onDragStart={(e) => onBacklogItemDragStart(e, goal.id)}
-              onDoubleClick={() => onEditRequest?.(goal)}
-              title="Drag onto a canvas card to set its parent"
-              style={{
-                padding: 8,
-                marginBottom: 6,
-                background: '#ffffff',
-                border: '1px solid #cbd5e1',
-                borderRadius: 6,
-                fontSize: 11,
-                cursor: readOnly ? 'default' : 'grab',
-              }}
-            >
-              <div style={{ fontWeight: 600 }}>{goal.name}</div>
-              <div style={{ color: '#64748b' }}>Level: {goal.level}</div>
+          <button
+            type="button"
+            aria-label={isBacklogOpen ? 'Collapse backlog' : 'Expand backlog'}
+            title={isBacklogOpen ? 'Collapse backlog' : 'Expand backlog'}
+            onClick={() => setIsBacklogOpen((v) => !v)}
+            style={{
+              alignSelf: 'flex-end',
+              margin: '6px 6px 0 6px',
+              width: 16,
+              height: 16,
+              border: '1px solid #cbd5e1',
+              borderRadius: 4,
+              background: '#ffffff',
+              color: '#64748b',
+              fontSize: 10,
+              lineHeight: '14px',
+              padding: 0,
+              cursor: 'pointer',
+              flexShrink: 0,
+            }}
+          >
+            {isBacklogOpen ? '◀' : '▶'}
+          </button>
+          {isBacklogOpen && (
+            <div style={{ padding: '4px 10px 10px', overflowY: 'auto', flex: 1 }}>
+              <div style={{ fontWeight: 700, fontSize: 12, color: '#334155', marginBottom: 8 }}>Backlog</div>
+              {backlogGoals.map((goal) => (
+                <div
+                  key={goal.id}
+                  draggable={!readOnly}
+                  onDragStart={(e) => onBacklogItemDragStart(e, goal.id)}
+                  onDoubleClick={() => onEditRequest?.(goal)}
+                  title="Drag onto a canvas card to set its parent"
+                  style={{
+                    padding: 8,
+                    marginBottom: 6,
+                    background: '#ffffff',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: 6,
+                    fontSize: 11,
+                    cursor: readOnly ? 'default' : 'grab',
+                  }}
+                >
+                  <div style={{ fontWeight: 600 }}>{goal.name}</div>
+                  <div style={{ color: '#64748b' }}>Level: {goal.level}</div>
+                </div>
+              ))}
             </div>
-          ))}
+          )}
         </div>
       )}
 
