@@ -22,12 +22,12 @@ function getTypeForLevel(tree: GoalTree, level: number): string {
   return gt?.name ?? '';
 }
 
-function updateDescendantLevels(goals: Goal[], id: number, levelDelta: number): void {
-  for (const g of goals) {
+function updateDescendantLevels(clone: GoalTree, id: number, levelDelta: number, maxLevel: number): void {
+  for (const g of clone.goals) {
     if (g.parent_id === id) {
-      g.level += levelDelta;
-      g.type = '';
-      updateDescendantLevels(goals, g.id, levelDelta);
+      g.level = Math.min(g.level + levelDelta, maxLevel);
+      g.type = getTypeForLevel(clone, g.level);
+      updateDescendantLevels(clone, g.id, levelDelta, maxLevel);
     }
   }
 }
@@ -70,7 +70,7 @@ export function reparent(tree: GoalTree, sourceId: number, targetId: number): Mu
   source.parent_id = targetId;
   source.level = newLevel;
   source.type = getTypeForLevel(clone, newLevel);
-  if (levelDelta !== 0) updateDescendantLevels(clone.goals, sourceId, levelDelta);
+  if (levelDelta !== 0) updateDescendantLevels(clone, sourceId, levelDelta, maxLevel);
 
   const v = validateGoalTree(clone);
   if (!v.valid) return refusalError(v.errors[0]?.message ?? 'Validation failed after reparent');
