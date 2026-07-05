@@ -297,6 +297,35 @@ describe('GoalTreeView', () => {
     });
   });
 
+  it('backlog panel is collapsible — toggle hides and restores content', async () => {
+    const tree: GoalTree = {
+      goal_types: [
+        { name: 'Strategy', level: 0 },
+        { name: 'Business Goal', level: 1 },
+      ],
+      goals: [
+        { id: 1, name: 'Root goal', type: 'Strategy', level: 0, parent_id: 0 },
+        { id: 2, name: 'Orphaned goal', type: 'Business Goal', level: 1, parent_id: 999 },
+      ],
+    };
+    render(<GoalTreeView tree={tree} showBacklog />);
+    await waitFor(() => {
+      expect(screen.getByText('Backlog')).toBeTruthy();
+    });
+
+    // Collapse
+    screen.getByLabelText('Collapse backlog').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await waitFor(() => {
+      expect(screen.queryByText('Backlog')).toBeNull();
+    });
+
+    // Expand again
+    screen.getByLabelText('Expand backlog').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await waitFor(() => {
+      expect(screen.getByText('Backlog')).toBeTruthy();
+    });
+  });
+
   it('fires onEditRequest on double-click', async () => {
     const onEditRequest = vi.fn();
     render(<GoalTreeView tree={makeTree()} onEditRequest={onEditRequest} />);
