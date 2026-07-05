@@ -26,6 +26,13 @@
   `@transitrix/diagrams` gains a pure `buildRequirementTrace` builder over
   the existing compliance reverse-index (extended with `requirementsByParent`).
 
+### Changed
+
+- **`@transitrix/diagrams` patch bump (1.6.0 → 1.6.1).** Comment-only change
+  in `repo-validate/types.ts` — cites the validation-convergence ADRs by
+  title instead of by repo-local file path, following the ADR
+  centralization migration. No source or API change.
+
 ## [2.9.1] — 2026-07-03
 
 ### Added
@@ -488,7 +495,7 @@ See the **Migration guide** section below for drop-in replacements.
 - `extension/package.json` — `activationEvents` extended to cover all eleven notation suffixes (activities, blocks, applications, products, process-map, scenarios, capability-map, process-blueprint, activity-card, issues) so previews and editor-title buttons activate from a cold VS Code window.
 
 ### Docs
-- New ADR `docs/adr/0001-intellij-mvp-tech-choice.md` — records the rendering / validation technology choice for the upcoming IntelliJ IDEA extension MVP (JCEF + bundled `@transitrix/diagrams`). Tracking work only; no plugin code in this release.
+- New ADR "IntelliJ MVP Technology Choice" (0001) — records the rendering / validation technology choice for the upcoming IntelliJ IDEA extension MVP (JCEF + bundled `@transitrix/diagrams`). Tracking work only; no plugin code in this release.
 
 ## [1.2.1] — 2026-05-29
 

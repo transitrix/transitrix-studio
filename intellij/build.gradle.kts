@@ -99,8 +99,7 @@ val syncWebviewBundle by tasks.registering(Copy::class) {
         if (!js.exists() || !css.exists()) {
             throw GradleException(
                 "Webview bundle missing at $webviewBundleDir. " +
-                    "Run `node scripts/build-webview-bundle.mjs` from the repo root first " +
-                    "(see docs/adr/0001-intellij-mvp-tech-choice.md step 2)."
+                    "Run `node scripts/build-webview-bundle.mjs` from the repo root first."
             )
         }
     }
