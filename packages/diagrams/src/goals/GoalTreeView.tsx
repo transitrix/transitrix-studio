@@ -12,7 +12,7 @@ import ReactFlow, {
   type NodeDragHandler,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import type { Goal, GoalTree, GoalTreeLayout, LayoutOptions } from './types.js';
+import type { Factor, Goal, GoalTree, GoalTreeLayout, LayoutOptions } from './types.js';
 import { layoutGoalTree } from './layout.js';
 import { reparent, addChild, deleteWithDescendants, moveToBacklog, restoreFromBacklog } from './mutations.js';
 import type { ThemeTokens } from './theme.js';
@@ -31,6 +31,7 @@ export interface GoalTreeViewProps {
   showMiniMap?: boolean;
   onChange?: (event: GoalTreeChange) => void;
   onEditRequest?: (goal: Goal) => void;
+  onFactorClick?: (factor: Factor) => void;
 }
 
 export type GoalTreeChange =
@@ -102,6 +103,7 @@ function GoalTreeViewInner({
   showMiniMap = false,
   onChange,
   onEditRequest,
+  onFactorClick,
 }: GoalTreeViewProps): React.ReactElement {
   const theme = useMemo(() => resolveTheme(themeProp), [themeProp]);
   const [collapsedIds, setCollapsedIds] = useState<Set<number>>(new Set());
@@ -179,9 +181,10 @@ function GoalTreeViewInner({
         onAddChild,
         onDelete: onDeleteNode,
         onToggleCollapse,
+        onFactorClick,
       },
     }));
-  }, [layout.nodes, theme, readOnly, hoveredId, collapsedIds, onAddChild, onDeleteNode, onToggleCollapse]);
+  }, [layout.nodes, theme, readOnly, hoveredId, collapsedIds, onAddChild, onDeleteNode, onToggleCollapse, onFactorClick]);
 
   const buildEdges = useCallback((): Edge[] => {
     return layout.edges.map((e) => ({
