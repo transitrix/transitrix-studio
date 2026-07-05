@@ -109,3 +109,45 @@ describe('restoreFromBacklog', () => {
     expect(r.result!.goals.find(g => g.id === 3)!.parent_id).toBe(1);
   });
 });
+
+describe('reparent — descendant type relabeling and level cap', () => {
+  const DEEP: GoalTree = {
+    goal_types: [
+      { name: 'Strategy', level: 0 },
+      { name: 'Business Goal', level: 1 },
+      { name: 'Project', level: 2 },
+      { name: 'Task', level: 3 },
+    ],
+    goals: [
+      { id: 1, name: 'Root', type: 'Strategy', level: 0, parent_id: 0 },
+      { id: 2, name: 'BG1', type: 'Business Goal', level: 1, parent_id: 1 },
+      { id: 3, name: 'Proj1', type: 'Project', level: 2, parent_id: 2 },
+      { id: 4, name: 'Task1', type: 'Task', level: 3, parent_id: 3 },
+    ],
+  };
+
+  it('relabels descendant types via getTypeForLevel when reparenting shifts levels', () => {
+    // Move Proj1 (id=3, level=2) directly under Root (id=1, level=0); delta = -1
+    // Task1 (child of Proj1, level=3): new level = 2, type should be 'Project'
+    const r = reparent(DEEP, 3, 1);
+    expect(r.ok).toBe(true);
+    const proj = r.result!.goals.find(g => g.id === 3)!;
+    const task = r.result!.goals.find(g => g.id === 4)!;
+    expect(proj.level).toBe(1);
+    expect(proj.type).toBe('Business Goal');
+    expect(task.level).toBe(2);
+    expect(task.type).toBe('Project');
+  });
+
+  it('caps descendant level at maxLevel and refuses when that violates GOALS-012', () => {
+    // Move Root (id=1, level=0) under Root2 (id=5, level=0); delta = +1
+    // BG1: 1→2, Proj1: 2→3 (maxLevel), Task1: 3→4, capped at 3
+    // Task1 (capped level=3) under Proj1 (level=3) violates GOALS-012 → refused
+    const tree: GoalTree = {
+      ...DEEP,
+      goals: [...DEEP.goals, { id: 5, name: 'Root2', type: 'Strategy', level: 0, parent_id: 0 }],
+    };
+    const r = reparent(tree, 1, 5);
+    expect(r.ok).toBe(false);
+  });
+});
