@@ -26,6 +26,13 @@
   `@transitrix/diagrams` gains a pure `buildRequirementTrace` builder over
   the existing compliance reverse-index (extended with `requirementsByParent`).
 
+### Changed
+
+- **`@transitrix/diagrams` patch bump (1.6.0 → 1.6.1).** Comment-only change
+  in `repo-validate/types.ts` — cites the validation-convergence ADRs by
+  title instead of by repo-local file path, following the ADR
+  centralization migration. No source or API change.
+
 ## [2.9.1] — 2026-07-03
 
 ### Added
