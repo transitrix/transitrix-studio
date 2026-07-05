@@ -23,6 +23,7 @@ export interface GoalNodeData {
   onAddChild: (parentId: number, parentLevel: number) => void;
   onDelete: (id: number) => void;
   onToggleCollapse: (id: number) => void;
+  onFactorClick?: (factor: Factor) => void;
 }
 
 const GoalNode = memo(({ data }: { data: GoalNodeData }) => {
@@ -130,6 +131,10 @@ const GoalNode = memo(({ data }: { data: GoalNodeData }) => {
           {(openPanel === 'positive' ? positive : negative).map((f) => (
             <div
               key={f.id}
+              onClick={(e) => {
+                e.stopPropagation();
+                data.onFactorClick?.(f);
+              }}
               style={{
                 background: openPanel === 'positive' ? '#f0fdf4' : '#fef2f2',
                 border: `1px solid ${openPanel === 'positive' ? '#bbf7d0' : '#fecaca'}`,
@@ -138,6 +143,7 @@ const GoalNode = memo(({ data }: { data: GoalNodeData }) => {
                 padding: '4px 6px',
                 fontSize: 10,
                 textAlign: 'left',
+                cursor: data.onFactorClick ? 'pointer' : 'default',
               }}
             >
               <div style={{ fontWeight: 700 }}>{f.name}</div>

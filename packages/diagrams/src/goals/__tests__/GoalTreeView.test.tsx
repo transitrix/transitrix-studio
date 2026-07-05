@@ -297,6 +297,25 @@ describe('GoalTreeView', () => {
     });
   });
 
+  it('fires onFactorClick with the clicked factor when a popover item is clicked', async () => {
+    const onFactorClick = vi.fn();
+    render(<GoalTreeView tree={makeTree()} onFactorClick={onFactorClick} />);
+    await waitFor(() => {
+      expect(screen.getByText('Cut churn')).toBeTruthy();
+    });
+
+    // Open the negative-factor panel on "Cut churn" (id=3, has risk factor "Support backlog")
+    const negativeBadge = screen.getByLabelText('1 negative factor');
+    negativeBadge.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    // The popover item for the risk factor should now be in the DOM
+    const factorItem = await waitFor(() => screen.getByText('Support backlog'));
+    factorItem.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    await waitFor(() => expect(onFactorClick).toHaveBeenCalledTimes(1));
+    expect(onFactorClick.mock.calls[0][0]).toMatchObject({ id: 10, name: 'Support backlog', impact_type: 'risk' });
+  });
+
   it('backlog panel is collapsible — toggle hides and restores content', async () => {
     const tree: GoalTree = {
       goal_types: [
