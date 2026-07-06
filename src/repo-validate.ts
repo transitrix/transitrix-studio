@@ -23,6 +23,7 @@ import {
   validateNotationDoc,
   isFileValidatableNotation,
   notationOf,
+  resolveValidatorKey,
   loadNotationYaml,
 } from './validate-notation.js';
 import { parseYamlToIr } from './parser.js';
@@ -110,6 +111,8 @@ export interface ViewFinding {
 export interface RepoScopeResult {
   canon: RepoFinding[];
   views: ViewFinding[];
+  /** Per-file codex artefact findings from `codex/**` (#518 Phase C2). */
+  codex: ViewFinding[];
   skipped: Array<{ file: string; notation: string }>;
 }
 
@@ -207,27 +210,90 @@ export function runViewValidate(root: string): {
   return { findings, skipped };
 }
 
+/** Collect YAML paths under `<root>/codex/**`. */
+function loadCodexDocs(root: string): Array<{ path: string; text: string }> {
+  const docs: Array<{ path: string; text: string }> = [];
+  let entries: string[] = [];
+  try {
+    entries = readdirSync(path.join(root, 'codex'), { recursive: true }) as string[];
+  } catch {
+    return docs;
+  }
+  for (const rel of entries) {
+    if (typeof rel !== 'string' || !isYaml(rel) || shouldSkip(rel)) continue;
+    const fullRel = path.join('codex', rel);
+    let text: string;
+    try {
+      text = readFileSync(path.join(root, fullRel), 'utf-8');
+    } catch {
+      continue;
+    }
+    docs.push({ path: fullRel.replace(/\\/g, '/'), text });
+  }
+  return docs;
+}
+
+/** Validate every codex artefact under `codex/**` (#518 Phase C2). */
+export function runCodexValidate(root: string): ViewFinding[] {
+  const findings: ViewFinding[] = [];
+  for (const doc of loadCodexDocs(root)) {
+    let data: unknown;
+    try {
+      data = loadNotationYaml(doc.text);
+    } catch (e) {
+      findings.push({
+        file: doc.path,
+        notation: 'codex',
+        ruleId: 'YAML',
+        severity: 'error',
+        message: (e as Error).message,
+      });
+      continue;
+    }
+    const key = resolveValidatorKey(data);
+    if (key !== 'codex') continue;
+    for (const f of validateNotationDoc('codex', data, { filePath: doc.path }).findings) {
+      if (f.severity === 'info') continue;
+      findings.push({
+        file: doc.path,
+        notation: 'codex',
+        ruleId: f.ruleId,
+        severity: f.severity,
+        message: f.message,
+      });
+    }
+  }
+  return findings;
+}
+
 /** Load the canon model under `root` and run the repo-scope checks: canon
- *  cross-references plus a per-file notation sweep over canon/views/**. */
+ *  cross-references plus per-file notation sweep over canon/views/** and codex/**. */
 export function runRepoValidate(root: string): RepoScopeResult {
   const canon = validateRepoModel(loadRepoModel(root));
   const { findings: views, skipped } = runViewValidate(root);
-  return { canon, views, skipped };
+  const codex = runCodexValidate(root);
+  return { canon, views, codex, skipped };
 }
 
 /** True when the run has a blocking finding — a canon finding or a view error.
  *  View warnings and skipped files do not fail the run. */
 export function repoScopeHasErrors(result: RepoScopeResult): boolean {
-  return result.canon.length > 0 || result.views.some((v) => v.severity === 'error');
+  return (
+    result.canon.length > 0
+    || result.views.some((v) => v.severity === 'error')
+    || result.codex.some((c) => c.severity === 'error')
+  );
 }
 
 /** Print the repo-scope result (human or JSON). Returns nothing; the caller sets
  *  the exit code via repoScopeHasErrors(). */
 export function reportRepoFindings(root: string, result: RepoScopeResult, useJson: boolean): void {
-  const { canon, views, skipped } = result;
+  const { canon, views, codex, skipped } = result;
   const viewErrors = views.filter((v) => v.severity === 'error');
   const viewWarnings = views.filter((v) => v.severity === 'warning');
-  const valid = canon.length === 0 && viewErrors.length === 0;
+  const codexErrors = codex.filter((c) => c.severity === 'error');
+  const codexWarnings = codex.filter((c) => c.severity === 'warning');
+  const valid = canon.length === 0 && viewErrors.length === 0 && codexErrors.length === 0;
 
   if (useJson) {
     console.log(
@@ -236,11 +302,9 @@ export function reportRepoFindings(root: string, result: RepoScopeResult, useJso
           scope: 'repo',
           root,
           valid,
-          // Canon cross-reference findings — frozen {scope,id,message} shape.
           findings: canon,
-          // Per-file notation findings from the canon/views/** sweep.
           views: { valid: viewErrors.length === 0, findings: views },
-          // View files whose notation has no file-scope CLI validator yet.
+          codex: { valid: codexErrors.length === 0, findings: codex },
           skipped,
         },
         null,
@@ -284,6 +348,21 @@ export function reportRepoFindings(root: string, result: RepoScopeResult, useJso
     console.log();
   }
 
+  if (codex.length > 0) {
+    console.log('Codex (codex/):');
+    let currentFile = '';
+    for (const c of codex) {
+      if (c.file !== currentFile) {
+        console.log(`  ${c.file} [codex]`);
+        currentFile = c.file;
+      }
+      const mark =
+        c.severity === 'error' ? `\x1b[31m✗ ${c.ruleId}\x1b[0m` : `\x1b[33m⚠ ${c.ruleId}\x1b[0m`;
+      console.log(`    ${mark} ${c.message}`);
+    }
+    console.log();
+  }
+
   if (skipped.length > 0) {
     console.log(
       `Skipped — notation not yet validated by the CLI (check in the preview): ${skipped.length} file${skipped.length === 1 ? '' : 's'}`,
@@ -304,6 +383,14 @@ export function reportRepoFindings(root: string, result: RepoScopeResult, useJso
   if (viewWarnings.length > 0) {
     parts.push(
       `\x1b[33m${viewWarnings.length}\x1b[0m view warning${viewWarnings.length === 1 ? '' : 's'}`,
+    );
+  }
+  if (codexErrors.length > 0) {
+    parts.push(`\x1b[31m${codexErrors.length}\x1b[0m codex error${codexErrors.length === 1 ? '' : 's'}`);
+  }
+  if (codexWarnings.length > 0) {
+    parts.push(
+      `\x1b[33m${codexWarnings.length}\x1b[0m codex warning${codexWarnings.length === 1 ? '' : 's'}`,
     );
   }
   if (parts.length > 0) {

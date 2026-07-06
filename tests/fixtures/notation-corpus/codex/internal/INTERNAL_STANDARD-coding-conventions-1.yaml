@@ -1,0 +1,13 @@
+# Worked example — internal codex artefact.
+
+zone: codex
+id: INTERNAL_STANDARD-coding-conventions-1
+name: "Engineering Coding Conventions"
+type: INTERNAL_STANDARD
+description: "Internal coding standards for in-house development."
+issuing_authority: "VP Engineering"
+effective_date: "2026-01-01"
+admitted_at: "2026-05-27"
+admitted_by: "vp.engineering"
+gate_checks:
+  source_authority: "VP Engineering"

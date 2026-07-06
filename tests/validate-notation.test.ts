@@ -26,6 +26,7 @@ import { validateRequirement } from '../packages/diagrams/src/requirement/valida
 import { validateAssertion } from '../packages/diagrams/src/assertion/validate.js';
 import { parseImpactViewConfig } from '../packages/diagrams/src/compliance/impact.js';
 import { parseCoverageMetricConfig } from '../packages/diagrams/src/compliance/coverage-metric.js';
+import { validateCodex } from '../packages/diagrams/src/codex/validate.js';
 
 const corpusRoot = join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'notation-corpus');
 
@@ -49,8 +50,8 @@ const GROUP_B = [
   'process-map',
 ];
 
-// Group C — compliance suite wired in #518 Phase C1.
-const GROUP_C = ['requirement', 'assertion', 'compliance-impact', 'coverage-metric'];
+// Group C — compliance suite wired in #518 Phase C1–C2.
+const GROUP_C = ['requirement', 'assertion', 'compliance-impact', 'coverage-metric', 'codex'];
 
 const ALL_NOTATIONS = [...GROUP_A, ...GROUP_B, ...GROUP_C];
 
@@ -90,6 +91,11 @@ describe('validate-notation — canonical extension helpers (#343)', () => {
   it('inferNotationFromFilename recognises element filenames by typed-id prefix', () => {
     expect(inferNotationFromFilename('canon/elements/REQUIREMENT-DATA-ERASURE-1.yaml')).toBe('requirement');
     expect(inferNotationFromFilename('canon/elements/ASSERTION-CRM-DATA-ERASURE-1.yaml')).toBe('assertion');
+  });
+
+  it('inferNotationFromFilename recognises codex typed-id filenames', () => {
+    expect(inferNotationFromFilename('codex/external/eu/LAW-GDPR-1.yaml')).toBe('codex');
+    expect(inferNotationFromFilename('codex/internal/INTERNAL_STANDARD-coding-conventions-1.yaml')).toBe('codex');
   });
 
   it('inferNotationFromFilename returns undefined for non-canonical names', () => {
@@ -159,6 +165,31 @@ describe('validate-notation — element notation corpus validates clean (#518 C1
         expect(report.isValid).toBe(true);
       });
     }
+  }
+});
+
+describe('validate-notation — codex corpus validates clean (#518 C2)', () => {
+  function codexFixtures(): string[] {
+    const root = join(corpusRoot, 'codex');
+    const out: string[] = [];
+    for (const zone of ['external/EU', 'internal']) {
+      const dir = join(root, zone);
+      for (const f of readdirSync(dir).filter((x) => x.endsWith('.yaml'))) {
+        out.push(join(dir, f));
+      }
+    }
+    return out;
+  }
+
+  for (const file of codexFixtures()) {
+    const name = file.slice(corpusRoot.length + 1).replace(/\\/g, '/');
+    it(`${name} → valid`, () => {
+      const data = loadNotationYaml(readFileSync(file, 'utf8'));
+      const report = validateNotationDoc('codex', data, { filePath: name });
+      const errors = report.findings.filter((f) => f.severity === 'error');
+      expect(errors, JSON.stringify(errors, null, 2)).toEqual([]);
+      expect(report.isValid).toBe(true);
+    });
   }
 });
 
@@ -268,5 +299,16 @@ describe('validate-notation — parity with the preview validator (#258, #518 C1
     const report = validateNotationDoc('coverage-metric', broken);
     expect(report.isValid).toBe(false);
     expect(report.findings.filter((f) => f.severity === 'error').length).toBe(raw.errors.length);
+  });
+
+  it('codex: CLI findings mirror validateCodex with folder jurisdiction', () => {
+    const broken = { zone: 'codex', id: 'LAW-X-1', name: 'X', jurisdiction: 'ge' };
+    const raw = validateCodex(broken, { folderJurisdiction: 'eu' });
+    const report = validateNotationDoc('codex', broken, {
+      filePath: 'codex/external/eu/LAW-X-1.yaml',
+    });
+    expect(report.isValid).toBe(raw.valid);
+    expect(report.findings.filter((f) => f.severity === 'error').map((f) => f.ruleId))
+      .toEqual(raw.errors.map((e) => e.code));
   });
 });
