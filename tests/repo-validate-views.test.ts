@@ -36,13 +36,14 @@ describe('repo-scope views sweep (#258)', () => {
   beforeAll(() => {
     root = mkdtempSync(join(tmpdir(), 'tx-views-'));
     // A clean Group A file, a deliberately broken one, a BPMN file (validated via
-    // the IR pipeline), a Group B file (now covered too, since #179), and an
-    // aggregate view (coverage-metric) that has no single-file validator → skipped.
+    // the IR pipeline), a Group B file, and Group C compliance views (covered
+    // since #518 C1).
     copyCorpus(root, 'canon/views/goals/good.goals.transitrix.yaml', 'goals/strategy-2026.goals.transitrix.yaml');
     write(root, 'canon/views/goals/bad.goals.transitrix.yaml', 'notation: goals\nid: x\nname: Bad\ngoals: []\n');
     copyCorpus(root, 'canon/views/bpmn/ok.bpmn.transitrix.yaml', 'bpmn/simple-approval.bpmn.transitrix.yaml');
     copyCorpus(root, 'canon/views/applications/p.applications.transitrix.yaml', 'applications/portfolio-2026.applications.transitrix.yaml');
     copyCorpus(root, 'canon/views/coverage-metric/c.coverage-metric.transitrix.yaml', 'coverage-metric/eu-coverage.coverage-metric.transitrix.yaml');
+    copyCorpus(root, 'canon/views/compliance-impact/ci.compliance-impact.view.yaml', 'compliance-impact/gdpr-nis2.compliance-impact.view.yaml');
   });
 
   afterAll(() => {
@@ -79,10 +80,12 @@ describe('repo-scope views sweep (#258)', () => {
     expect(findings.filter((f) => f.notation === 'applications' && f.severity === 'error')).toEqual([]);
   });
 
-  it('reports notations with no file-scope validator as skipped, not silently passed', () => {
+  it('validates Group C compliance views (#518 C1), not skipped', () => {
     const { skipped, findings } = runViewValidate(root);
-    expect(skipped.some((s) => s.notation === 'coverage-metric')).toBe(true);
-    expect(findings.some((f) => f.notation === 'coverage-metric')).toBe(false);
+    expect(skipped.some((s) => s.notation === 'coverage-metric')).toBe(false);
+    expect(skipped.some((s) => s.notation === 'compliance-impact')).toBe(false);
+    expect(findings.filter((f) => f.notation === 'coverage-metric' && f.severity === 'error')).toEqual([]);
+    expect(findings.filter((f) => f.notation === 'compliance-impact' && f.severity === 'error')).toEqual([]);
   });
 
   it('runRepoValidate combines canon + views and fails on a view error', () => {
@@ -101,17 +104,19 @@ describe('repo-scope views sweep — clean tree passes (#258)', () => {
     copyCorpus(root, 'canon/views/goals/good.goals.transitrix.yaml', 'goals/strategy-2026.goals.transitrix.yaml');
     copyCorpus(root, 'canon/views/applications/p.applications.transitrix.yaml', 'applications/portfolio-2026.applications.transitrix.yaml');
     copyCorpus(root, 'canon/views/coverage-metric/c.coverage-metric.transitrix.yaml', 'coverage-metric/eu-coverage.coverage-metric.transitrix.yaml');
+    copyCorpus(root, 'canon/views/compliance-impact/ci.compliance-impact.view.yaml', 'compliance-impact/gdpr-nis2.compliance-impact.view.yaml');
   });
 
   afterAll(() => {
     rmSync(root, { recursive: true, force: true });
   });
 
-  it('clean Group A + Group B files pass; only uncovered views are skipped', () => {
+  it('clean Group A + Group B + Group C files pass with no skipped views', () => {
     const result = runRepoValidate(root);
     expect(result.views.filter((f) => f.severity === 'error')).toEqual([]);
     expect(repoScopeHasErrors(result)).toBe(false);
     expect(result.skipped.some((s) => s.notation === 'applications')).toBe(false);
-    expect(result.skipped.some((s) => s.notation === 'coverage-metric')).toBe(true);
+    expect(result.skipped.some((s) => s.notation === 'coverage-metric')).toBe(false);
+    expect(result.skipped.some((s) => s.notation === 'compliance-impact')).toBe(false);
   });
 });

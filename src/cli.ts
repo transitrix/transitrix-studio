@@ -290,7 +290,8 @@ async function handleValidateCommand(argv: string[]): Promise<void> {
     console.error('             BPMN, or any diagram notation routed by its notation: field');
     console.error('             (goals, dgca, dga, fgca, fga, activities, activity-card,');
     console.error('             process-blueprint, blocks, applications, capability-map,');
-    console.error('             products, scenarios, process-map) — same checks as the preview.');
+    console.error('             products, scenarios, process-map, requirement, assertion,');
+    console.error('             compliance-impact, coverage-metric) — same checks as the preview.');
     console.error('             Canonical notation extensions are accepted without --ext.');
     console.error('repo scope — whole-canon checks (referential integrity, atomicity,');
     console.error('             id uniqueness, policy) over <root> (default: cwd).');
@@ -373,11 +374,9 @@ async function handleValidateCommand(argv: string[]): Promise<void> {
       }
       return;
     }
-    // Recognised notation, but no file-scope CLI validator yet — aggregate views
-    // like compliance-impact / coverage-metric that derive from other docs rather
-    // than validating standalone. Be honest: don't claim valid and don't mis-run
-    // the BPMN path — say so and exit 0 (the file itself isn't in error), so an
-    // agent loop isn't blocked on it.
+    // Recognised notation, but no file-scope CLI validator yet — e.g. a future view
+    // type not wired in validate-notation.ts. Be honest: don't claim valid and
+    // don't mis-run the BPMN path.
     const notice =
       `notation "${probedNotation}" is not yet validated by the CLI — check it in ` +
       `the Transitrix Studio preview, or run whole-canon checks with --scope=repo.`;
