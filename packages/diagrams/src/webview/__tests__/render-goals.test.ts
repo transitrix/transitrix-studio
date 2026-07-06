@@ -65,8 +65,22 @@ describe('renderGoalsSvg', () => {
     expect(svg).toContain('height="0"');
   });
 
-  it('omits the title block when treeName is missing', () => {
-    const svg = renderGoalsSvg(SIMPLE_TREE);
-    expect(svg).not.toContain('Goal tree —');
+  it('shows canonical goal ids in node labels when present', () => {
+    const tree: GoalTree = {
+      goal_types: [{ name: 'Strategy', level: 0 }],
+      goals: [
+        {
+          id: 1,
+          canonical_id: 'GOAL-REVENUE-1',
+          name: 'Triple revenue',
+          type: 'Strategy',
+          level: 0,
+          parent_id: 0,
+        },
+      ],
+    };
+    const svg = renderGoalsSvg(tree);
+    expect(svg).toContain('GOAL-REVENUE-1');
+    expect(svg).not.toMatch(/>\s*1\s*</);
   });
 });

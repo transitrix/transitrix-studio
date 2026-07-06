@@ -122,8 +122,10 @@ describe('parseCanonicalGoals', () => {
   it('maps canonical IDs to internal numeric ids; parent_id is the parent\'s mapped id', () => {
     const r = parseCanonicalGoals(VALID);
     expect(r.parsed?.goals[0].id).toBe(1);
+    expect(r.parsed?.goals[0].canonical_id).toBe('GOAL-1');
     expect(r.parsed?.goals[0].parent_id).toBe(0);
     expect(r.parsed?.goals[1].id).toBe(2);
+    expect(r.parsed?.goals[1].canonical_id).toBe('GOAL-2');
     expect(r.parsed?.goals[1].parent_id).toBe(1);
   });
 });

@@ -1,5 +1,6 @@
 import type { Goal, GoalTree, LayoutOptions, GoalTreeLayout, LaidOutNode, LaidOutEdge } from './types.js';
 import type { Scope } from '../scope.js';
+import { displayGoalId } from './parse-canonical.js';
 
 const DEFAULT_NODE_WIDTH = 250;
 const DEFAULT_NODE_HEIGHT = 80;
@@ -23,7 +24,7 @@ export function selectScopedGoals(goals: Goal[], scope: Scope): Goal[] {
     if (!children.has(g.parent_id)) children.set(g.parent_id, []);
     children.get(g.parent_id)!.push(g.id);
   }
-  const root = goals.find(g => String(g.id) === scope.rootGoalId);
+  const root = goals.find(g => displayGoalId(g) === scope.rootGoalId);
   if (!root) return [];
   const keep = new Set<number>();
   const stack = [root.id];

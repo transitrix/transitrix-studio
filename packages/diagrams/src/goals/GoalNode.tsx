@@ -1,6 +1,7 @@
 import React, { memo, useState } from 'react';
 import { Handle, Position } from 'reactflow';
 import type { Factor, Goal } from './types.js';
+import { displayGoalId } from './parse-canonical.js';
 import type { ThemeTokens } from './theme.js';
 
 const NODE_WIDTH = 250;
@@ -92,7 +93,7 @@ const GoalNode = memo(({ data }: { data: GoalNodeData }) => {
           {goal.name}
         </div>
         <div style={{ fontSize: 10, color: theme.cardMetaColor, marginTop: 2 }}>
-          ID: {goal.id} | Lvl: {goal.level}
+          ID: {displayGoalId(goal)} | Lvl: {goal.level}
           {goal.tag ? ` | #${goal.tag}` : ''}
         </div>
       </div>
