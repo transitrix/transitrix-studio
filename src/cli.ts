@@ -291,8 +291,8 @@ async function handleValidateCommand(argv: string[]): Promise<void> {
     console.error('             BPMN, or any diagram notation routed by its notation: field');
     console.error('             (goals, dgca, dga, fgca, fga, activities, activity-card,');
     console.error('             process-blueprint, blocks, applications, capability-map,');
-    console.error('             products, scenarios, process-map, requirement, assertion,');
-    console.error('             compliance-impact, coverage-metric, codex) — same checks as the preview.');
+    console.error('             products, scenarios, process-map, requirement, constraint,');
+    console.error('             assertion, compliance-impact, coverage-metric, codex) — same checks as the preview.');
     console.error('             Canonical notation extensions are accepted without --ext.');
     console.error('repo scope — whole-canon checks (referential integrity, atomicity,');
     console.error('             id uniqueness, policy) over <root> (default: cwd).');

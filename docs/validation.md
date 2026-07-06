@@ -48,6 +48,7 @@ validators the VS Code preview uses:
 | Path | File-scope | Repo-scope cross-document |
 |------|------------|---------------------------|
 | `canon/elements/**/REQUIREMENT-*.yaml` | `REQ-*` shape | `REQ-002`/`003` with scanned `CanonCatalog` |
+| `canon/elements/**/CONSTRAINT-*.yaml` | `CONST-*` shape | `CONST-004`/`005` with scanned `CanonCatalog` |
 | `canon/assertions/ASSERTION-*.yaml` | `ASSERT-*` shape | `ASSERT-002`..`005` + `ASSERT-007`/`008` warnings |
 | `codex/**` | `CODEX-*` | folder jurisdiction (`CODEX-005`) |
 | `canon/views/**.compliance-impact.*` | `COMPIMP-001` parse | `COMPIMP-REF`, `COMPIMP-009`..`011`, `buildImpactMatrix` |

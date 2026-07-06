@@ -50,8 +50,8 @@ const GROUP_B = [
   'process-map',
 ];
 
-// Group C — compliance suite wired in #518 Phase C1–C2.
-const GROUP_C = ['requirement', 'assertion', 'compliance-impact', 'coverage-metric', 'codex'];
+// Group C — compliance suite wired in #518 Phase C1–C4.
+const GROUP_C = ['requirement', 'constraint', 'assertion', 'compliance-impact', 'coverage-metric', 'codex'];
 
 const ALL_NOTATIONS = [...GROUP_A, ...GROUP_B, ...GROUP_C];
 
@@ -96,6 +96,10 @@ describe('validate-notation — canonical extension helpers (#343)', () => {
   it('inferNotationFromFilename recognises codex typed-id filenames', () => {
     expect(inferNotationFromFilename('codex/external/eu/LAW-GDPR-1.yaml')).toBe('codex');
     expect(inferNotationFromFilename('codex/internal/INTERNAL_STANDARD-coding-conventions-1.yaml')).toBe('codex');
+  });
+
+  it('inferNotationFromFilename recognises constraint typed-id filenames', () => {
+    expect(inferNotationFromFilename('canon/elements/constraints/CONSTRAINT-GDPR-1.yaml')).toBe('constraint');
   });
 
   it('inferNotationFromFilename returns undefined for non-canonical names', () => {
@@ -165,6 +169,19 @@ describe('validate-notation — element notation corpus validates clean (#518 C1
         expect(report.isValid).toBe(true);
       });
     }
+  }
+});
+
+describe('validate-notation — constraint corpus validates clean (#518 C4)', () => {
+  const dir = join(corpusRoot, 'constraint');
+  for (const f of readdirSync(dir).filter((x) => x.endsWith('.yaml'))) {
+    it(`${f} → valid`, () => {
+      const data = loadNotationYaml(readFileSync(join(dir, f), 'utf8'));
+      const report = validateNotationDoc('constraint', data);
+      const errors = report.findings.filter((x) => x.severity === 'error');
+      expect(errors, JSON.stringify(errors, null, 2)).toEqual([]);
+      expect(report.isValid).toBe(true);
+    });
   }
 });
 

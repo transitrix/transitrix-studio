@@ -421,12 +421,12 @@ export function runComplianceValidate(root: string, ctx: RepoValidateContext): V
       continue;
     }
     const notation = notationOf(data);
-    if (notation !== 'requirement') continue;
-    for (const f of validateNotationDoc('requirement', data, validateOpts).findings) {
+    if (notation !== 'requirement' && notation !== 'constraint') continue;
+    for (const f of validateNotationDoc(notation, data, validateOpts).findings) {
       if (f.severity === 'info') continue;
       findings.push({
         file: fullRel,
-        notation: 'requirement',
+        notation,
         ruleId: f.ruleId,
         severity: f.severity,
         message: f.message,
@@ -485,10 +485,10 @@ export function runGapDashboardWarnings(ctx: RepoValidateContext): ViewFinding[]
   for (const req of report.requirementsWithoutAssertions) {
     findings.push({
       file: ctx.pathById.get(req.id) ?? req.id,
-      notation: 'requirement',
+      notation: req.element_kind ?? 'requirement',
       ruleId: 'GAP-REQ-NO-ASSERT',
       severity: 'warning',
-      message: `Requirement "${req.id}" has no assertion targeting it.`,
+      message: `${req.element_kind === 'constraint' ? 'Constraint' : 'Requirement'} "${req.id}" has no assertion targeting it.`,
     });
   }
   for (const a of report.assertionsWithoutEvidence) {
