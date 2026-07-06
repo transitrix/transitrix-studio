@@ -19,6 +19,10 @@
  * (SVG for the diagram notations, an HTML fragment for the catalogue
  * notations). The JVM host drops whatever `svg` carries into the DOM, so the
  * field name is historical — it transports any self-contained markup.
+ *
+ * Import validators/types from leaf modules (e.g. `capability-map/validate.js`),
+ * never from package `index.ts` barrels that also re-export React views —
+ * esbuild cannot tree-shake those and the JCEF bundle would pull in React.
  */
 import yaml from 'js-yaml';
 
@@ -30,8 +34,8 @@ import { validateApplicationsCatalogue } from '../applications/index.js';
 import type { ApplicationsCatalogueFile } from '../applications/index.js';
 import { validateNestedBlocks } from '../blocks/index.js';
 import type { BlocksFile } from '../blocks/index.js';
-import { validateCapabilityMap } from '../capability-map/index.js';
-import type { CapabilityMapFile } from '../capability-map/index.js';
+import { validateCapabilityMap } from '../capability-map/validate.js';
+import type { CapabilityMapFile } from '../capability-map/types.js';
 import { parseCanonicalFGCA, parseCanonicalFGA } from '../fgca/parse-canonical.js';
 import { parseCanonicalGoals } from '../goals/parse-canonical.js';
 import { validateProcessBlueprint } from '../process-blueprint/index.js';
