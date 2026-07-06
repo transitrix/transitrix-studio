@@ -8,6 +8,7 @@
 import type { AssertionStatus } from '../assertion/types.js';
 import type { ComplianceCanon } from './classify.js';
 import { buildComplianceIndex } from './reverse-index.js';
+import type { CanonCatalog } from '../typed-id.js';
 import type { IndexAssertion } from './types.js';
 
 // ── Config types ─────────────────────────────────────────────────────────────
@@ -91,6 +92,55 @@ export interface CoverageMatrix {
   version?: string;
   rows: CoverageRow[];
   thresholds: CoverageMetricThresholds;
+}
+
+/** Repo-scope cross-reference finding for a coverage-metric view (#518 C3). */
+export interface CoverageViewFinding {
+  code: string;
+  severity: 'error' | 'warning';
+  message: string;
+}
+
+/**
+ * Repo-scope cross-reference checks for a parsed coverage-metric view config.
+ * Surfaces unresolved product and regime ids before `buildCoverageMatrix` runs.
+ */
+export function collectCoverageViewResolutionFindings(
+  config: CoverageMetricConfig,
+  catalog: CanonCatalog,
+  complianceCanon: ComplianceCanon,
+): CoverageViewFinding[] {
+  const findings: CoverageViewFinding[] = [];
+  const codexIds = new Set(complianceCanon.codex.map((c) => c.id));
+
+  for (const id of config.subjects?.products ?? []) {
+    const t = catalog.typeOf(id);
+    if (t === undefined) {
+      findings.push({
+        code: 'COVMET-REF',
+        severity: 'error',
+        message: `subjects.products: "${id}" does not resolve to an admitted artefact.`,
+      });
+    } else if (t !== 'PRODUCT') {
+      findings.push({
+        code: 'COVMET-REF',
+        severity: 'error',
+        message: `subjects.products: "${id}" resolves to ${t}, not PRODUCT.`,
+      });
+    }
+  }
+
+  for (const id of config.regimes?.include ?? []) {
+    if (!codexIds.has(id)) {
+      findings.push({
+        code: 'COVMET-REF',
+        severity: 'error',
+        message: `regimes.include: "${id}" does not resolve to an admitted codex artefact.`,
+      });
+    }
+  }
+
+  return findings;
 }
 
 // ── Parser ───────────────────────────────────────────────────────────────────

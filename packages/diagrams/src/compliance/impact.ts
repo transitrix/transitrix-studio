@@ -10,6 +10,7 @@
 import type { AssertionStatus } from '../assertion/types.js';
 import type { ComplianceCanon } from './classify.js';
 import { buildComplianceIndex } from './reverse-index.js';
+import type { CanonCatalog } from '../typed-id.js';
 import type { ComplianceIndex, IndexAssertion, IndexRequirement, ObjectDetailInput, ObjectDetailDef, DeadlineStatus } from './types.js';
 
 /** Filter selecting REQUIREMENTs by codex source (jurisdiction / regime keys
@@ -75,11 +76,76 @@ export interface ImpactColumn {
   subjectType: 'product' | 'process' | 'capability';
 }
 
-/** A structural validation finding emitted by the matrix builder. */
 export interface ImpactFinding {
   code: string;
   severity: 'error' | 'warning';
   message: string;
+}
+
+/**
+ * Repo-scope cross-reference checks for a parsed compliance-impact view config
+ * (#518 Phase C3). Surfaces unresolved subject, obligation, and regime ids before
+ * `buildImpactMatrix` runs.
+ */
+export function collectImpactViewResolutionFindings(
+  config: ImpactViewConfig,
+  catalog: CanonCatalog,
+  complianceCanon: ComplianceCanon,
+): ImpactFinding[] {
+  const findings: ImpactFinding[] = [];
+  const codexIds = new Set(complianceCanon.codex.map((c) => c.id));
+
+  const subjectChecks: Array<{
+    ids: string[] | undefined;
+    expectedType: string;
+    path: string;
+  }> = [
+    { ids: config.subjects.products, expectedType: 'PRODUCT', path: 'subjects.products' },
+    { ids: config.subjects.processes, expectedType: 'PROCESS', path: 'subjects.processes' },
+    { ids: config.subjects.capabilities, expectedType: 'CAPABILITY', path: 'subjects.capabilities' },
+  ];
+
+  for (const { ids, expectedType, path } of subjectChecks) {
+    for (const id of ids ?? []) {
+      const t = catalog.typeOf(id);
+      if (t === undefined) {
+        findings.push({
+          code: 'COMPIMP-REF',
+          severity: 'error',
+          message: `${path}: "${id}" does not resolve to an admitted artefact.`,
+        });
+      } else if (t !== expectedType) {
+        findings.push({
+          code: 'COMPIMP-REF',
+          severity: 'error',
+          message: `${path}: "${id}" resolves to ${t}, not ${expectedType}.`,
+        });
+      }
+    }
+  }
+
+  for (const id of config.obligations.include ?? []) {
+    const t = catalog.typeOf(id);
+    if (t === undefined || t !== 'REQUIREMENT') {
+      findings.push({
+        code: 'COMPIMP-REF',
+        severity: 'error',
+        message: `obligations.include: "${id}" does not resolve to an admitted REQUIREMENT.`,
+      });
+    }
+  }
+
+  for (const id of config.obligations.filter?.derived_from_codex ?? []) {
+    if (!codexIds.has(id)) {
+      findings.push({
+        code: 'COMPIMP-REF',
+        severity: 'error',
+        message: `obligations.filter.derived_from_codex: "${id}" does not resolve to an admitted codex artefact.`,
+      });
+    }
+  }
+
+  return findings;
 }
 
 /**

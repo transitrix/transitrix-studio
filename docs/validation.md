@@ -40,6 +40,27 @@ passes with zero findings):
 - **Policy** — an element marked `Active`/`Production` (`metadata.status`) with no `metadata.owner`.
 - **ArchiMate layer-semantics** — *deferred* (lint.py ships this as a no-op stub; ported faithfully as a no-op until the methodology defines the rules).
 
+### Compliance suite (`--scope=repo`, #518)
+
+Repo-scope validation also sweeps the compliance notation surface with the same
+validators the VS Code preview uses:
+
+| Path | File-scope | Repo-scope cross-document |
+|------|------------|---------------------------|
+| `canon/elements/**/REQUIREMENT-*.yaml` | `REQ-*` shape | `REQ-002`/`003` with scanned `CanonCatalog` |
+| `canon/assertions/ASSERTION-*.yaml` | `ASSERT-*` shape | `ASSERT-002`..`005` + `ASSERT-007`/`008` warnings |
+| `codex/**` | `CODEX-*` | folder jurisdiction (`CODEX-005`) |
+| `canon/views/**.compliance-impact.*` | `COMPIMP-001` parse | `COMPIMP-REF`, `COMPIMP-009`..`011`, `buildImpactMatrix` |
+| `canon/views/**.coverage-metric.*` | `COVMET-*` parse | `COVMET-REF`, `buildCoverageMatrix` |
+
+**Derived views** (no YAML config file) — `compliance-matrix`, `gap-dashboard`,
+`single-law`, `single-product`, `requirement-trace` — are built interactively in
+the preview / `export-compliance`; they are not separate file validators.
+
+File-scope `transitrix validate <requirement.yaml>` runs shape rules only unless
+you pass a catalogue (repo-scope builds one automatically from `canon/**` +
+`codex/**`).
+
 ```
 $ transitrix validate --scope=repo --root organizations/acme_corp
 ✓ organizations/acme_corp — repo-scope validation passed
