@@ -1,4 +1,5 @@
 // File-scope validation for diagram notations (vkgeorgia/strategy#258).
+// Group C (compliance suite): vkgeorgia/strategy#518 Phase C1.
 //
 // The VS Code preview renders its red error block from per-notation validators
 // in @transitrix/diagrams. This module exposes those same validators to the CLI
@@ -38,6 +39,10 @@ import { validateCapabilityMap } from '@transitrix/diagrams/capability-map/valid
 import { validateProductsCatalogue } from '@transitrix/diagrams/products/validate.js';
 import { validateScenario } from '@transitrix/diagrams/scenarios/validate.js';
 import { validateProcessMap } from '@transitrix/diagrams/process-map/validate.js';
+import { validateRequirement } from '@transitrix/diagrams/requirement/validate.js';
+import { validateAssertion } from '@transitrix/diagrams/assertion/validate.js';
+import { parseImpactViewConfig } from '@transitrix/diagrams/compliance/impact.js';
+import { parseCoverageMetricConfig } from '@transitrix/diagrams/compliance/coverage-metric.js';
 
 /** The shape every notation validator returns: code/message findings split into
  *  blocking errors and advisory warnings. The concrete result types carry extra
@@ -49,6 +54,59 @@ interface NotationValidationResult {
 }
 
 type NotationValidator = (input: unknown) => NotationValidationResult;
+
+function mapPackageResult(result: {
+  valid: boolean;
+  errors: Array<{ code: string; message: string }>;
+  warnings: Array<{ code: string; message: string }>;
+}): NotationValidationResult {
+  return {
+    valid: result.valid,
+    errors: result.errors.map((e) => ({ code: e.code, message: e.message })),
+    warnings: result.warnings.map((w) => ({ code: w.code, message: w.message })),
+  };
+}
+
+function validateRequirementDoc(input: unknown): NotationValidationResult {
+  // Structural / TYPE rules only — REQ-002 catalog resolution is Phase C3 (#518).
+  return mapPackageResult(validateRequirement(input));
+}
+
+function validateAssertionDoc(input: unknown): NotationValidationResult {
+  const today = new Date().toISOString().slice(0, 10);
+  return mapPackageResult(validateAssertion(input, { today }));
+}
+
+function validateComplianceImpactDoc(input: unknown): NotationValidationResult {
+  const r = parseImpactViewConfig(input);
+  if (r.ok) return { valid: true, errors: [], warnings: [] };
+  return {
+    valid: false,
+    errors: r.errors.map((message) => ({ code: 'COMPIMP-001', message })),
+    warnings: [],
+  };
+}
+
+function splitComplianceCode(message: string, fallback: string): { code: string; message: string } {
+  const m = message.match(/^([A-Z][A-Z0-9_-]+):\s*(.*)$/s);
+  if (m) return { code: m[1], message: m[2].length > 0 ? m[2] : message };
+  return { code: fallback, message };
+}
+
+function validateCoverageMetricDoc(input: unknown): NotationValidationResult {
+  const r = parseCoverageMetricConfig(input);
+  if (!r.ok) {
+    return {
+      valid: false,
+      errors: r.errors.map((message) => splitComplianceCode(message, 'COVMET-001')),
+      warnings: [],
+    };
+  }
+  const warnings = (r.config.warnings ?? []).map((message) =>
+    splitComplianceCode(message, 'COVMET-WARN'),
+  );
+  return { valid: true, errors: [], warnings };
+}
 
 // Keyed by the document's `notation:` field value — see the corpus under
 // tests/fixtures/notation-corpus/<notation>/.
@@ -67,15 +125,38 @@ const VALIDATORS: Record<string, NotationValidator> = {
   products: validateProductsCatalogue,
   scenarios: validateScenario,
   'process-map': validateProcessMap,
+  // Group C — compliance suite (vkgeorgia/strategy#518 Phase C1).
+  requirement: validateRequirementDoc,
+  assertion: validateAssertionDoc,
+  'compliance-impact': validateComplianceImpactDoc,
+  'coverage-metric': validateCoverageMetricDoc,
 };
 
 /** Notation field values the CLI can validate per file. */
 export const FILE_VALIDATABLE_NOTATIONS = Object.keys(VALIDATORS);
 
-/** Canonical file extensions the validate command accepts without `--ext`, one
- *  per notation key: `.goals.transitrix.yaml`, `.dgca.transitrix.yaml`, etc. */
+/** View notations whose on-disk suffix is `.<notation>.transitrix.yaml`.
+ *  Element notations (requirement, assertion) use typed-id filenames instead. */
+export const NOTATIONS_WITH_CANONICAL_VIEW_EXTENSION: readonly string[] = [
+  'goals',
+  'dgca',
+  'dga',
+  'action',
+  'action-card',
+  'process-blueprint',
+  'blocks',
+  'applications',
+  'capability-map',
+  'products',
+  'scenarios',
+  'process-map',
+  'compliance-impact',
+  'coverage-metric',
+];
+
+/** Canonical file extensions the validate command accepts without `--ext`. */
 export const CANONICAL_NOTATION_FILE_EXTENSIONS: readonly string[] =
-  FILE_VALIDATABLE_NOTATIONS.map((n) => `.${n}.transitrix.yaml`);
+  NOTATIONS_WITH_CANONICAL_VIEW_EXTENSION.map((n) => `.${n}.transitrix.yaml`);
 
 /** Return the notation inferred from the file's canonical extension (e.g.
  *  `foo.dgca.transitrix.yaml` → `"dgca"`), or `undefined` for non-canonical
@@ -83,9 +164,12 @@ export const CANONICAL_NOTATION_FILE_EXTENSIONS: readonly string[] =
  *  extension file is missing its `notation:` field. */
 export function inferNotationFromFilename(filePath: string): string | undefined {
   const lower = filePath.replace(/\\/g, '/').toLowerCase();
-  for (const notation of FILE_VALIDATABLE_NOTATIONS) {
+  for (const notation of NOTATIONS_WITH_CANONICAL_VIEW_EXTENSION) {
     if (lower.endsWith(`.${notation}.transitrix.yaml`)) return notation;
   }
+  const base = lower.split('/').pop() ?? lower;
+  if (base.startsWith('requirement-') && base.endsWith('.yaml')) return 'requirement';
+  if (base.startsWith('assertion-') && base.endsWith('.yaml')) return 'assertion';
   return undefined;
 }
 

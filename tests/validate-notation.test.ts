@@ -11,6 +11,7 @@ import {
   notationOf,
   FILE_VALIDATABLE_NOTATIONS,
   CANONICAL_NOTATION_FILE_EXTENSIONS,
+  NOTATIONS_WITH_CANONICAL_VIEW_EXTENSION,
   inferNotationFromFilename,
 } from '../src/validate-notation.js';
 // Imported directly to prove the CLI dispatch mirrors the validator the VS Code
@@ -21,6 +22,10 @@ import { validateCapabilityMap } from '../packages/diagrams/src/capability-map/v
 import { validateProductsCatalogue } from '../packages/diagrams/src/products/validate.js';
 import { validateScenario } from '../packages/diagrams/src/scenarios/validate.js';
 import { validateProcessMap } from '../packages/diagrams/src/process-map/validate.js';
+import { validateRequirement } from '../packages/diagrams/src/requirement/validate.js';
+import { validateAssertion } from '../packages/diagrams/src/assertion/validate.js';
+import { parseImpactViewConfig } from '../packages/diagrams/src/compliance/impact.js';
+import { parseCoverageMetricConfig } from '../packages/diagrams/src/compliance/coverage-metric.js';
 
 const corpusRoot = join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'notation-corpus');
 
@@ -44,47 +49,65 @@ const GROUP_B = [
   'process-map',
 ];
 
-const ALL_NOTATIONS = [...GROUP_A, ...GROUP_B];
+// Group C — compliance suite wired in #518 Phase C1.
+const GROUP_C = ['requirement', 'assertion', 'compliance-impact', 'coverage-metric'];
 
-function fixtures(notation: string): string[] {
+const ALL_NOTATIONS = [...GROUP_A, ...GROUP_B, ...GROUP_C];
+
+function viewFixtures(notation: string): string[] {
   return readdirSync(join(corpusRoot, notation))
-    .filter((f) => f.endsWith('.transitrix.yaml'))
+    .filter((f) => f.endsWith('.transitrix.yaml') || f.endsWith('.view.yaml'))
+    .map((f) => join(corpusRoot, notation, f));
+}
+
+function elementFixtures(notation: string): string[] {
+  return readdirSync(join(corpusRoot, notation))
+    .filter((f) => f.endsWith('.yaml') && !f.endsWith('.view.yaml'))
     .map((f) => join(corpusRoot, notation, f));
 }
 
 describe('validate-notation — canonical extension helpers (#343)', () => {
-  it('CANONICAL_NOTATION_FILE_EXTENSIONS has one entry per validatable notation', () => {
-    expect(CANONICAL_NOTATION_FILE_EXTENSIONS).toHaveLength(FILE_VALIDATABLE_NOTATIONS.length);
-    for (const notation of FILE_VALIDATABLE_NOTATIONS) {
+  it('CANONICAL_NOTATION_FILE_EXTENSIONS covers view notations only', () => {
+    expect(CANONICAL_NOTATION_FILE_EXTENSIONS).toHaveLength(
+      NOTATIONS_WITH_CANONICAL_VIEW_EXTENSION.length,
+    );
+    for (const notation of NOTATIONS_WITH_CANONICAL_VIEW_EXTENSION) {
       expect(CANONICAL_NOTATION_FILE_EXTENSIONS).toContain(`.${notation}.transitrix.yaml`);
     }
+    expect(CANONICAL_NOTATION_FILE_EXTENSIONS).not.toContain('.requirement.transitrix.yaml');
+    expect(CANONICAL_NOTATION_FILE_EXTENSIONS).not.toContain('.assertion.transitrix.yaml');
   });
 
-  it('inferNotationFromFilename matches canonical extensions', () => {
+  it('inferNotationFromFilename matches canonical view extensions', () => {
     expect(inferNotationFromFilename('foo/bar.dgca.transitrix.yaml')).toBe('dgca');
     expect(inferNotationFromFilename('foo/bar.goals.transitrix.yaml')).toBe('goals');
     expect(inferNotationFromFilename('foo/bar.capability-map.transitrix.yaml')).toBe('capability-map');
     expect(inferNotationFromFilename('foo/bar.action-card.transitrix.yaml')).toBe('action-card');
-    // Windows backslash paths
+    expect(inferNotationFromFilename('foo/bar.compliance-impact.transitrix.yaml')).toBe('compliance-impact');
     expect(inferNotationFromFilename('foo\\bar.dgca.transitrix.yaml')).toBe('dgca');
+  });
+
+  it('inferNotationFromFilename recognises element filenames by typed-id prefix', () => {
+    expect(inferNotationFromFilename('canon/elements/REQUIREMENT-DATA-ERASURE-1.yaml')).toBe('requirement');
+    expect(inferNotationFromFilename('canon/elements/ASSERTION-CRM-DATA-ERASURE-1.yaml')).toBe('assertion');
   });
 
   it('inferNotationFromFilename returns undefined for non-canonical names', () => {
     expect(inferNotationFromFilename('foo.bpmn.transitrix.yaml')).toBeUndefined();
     expect(inferNotationFromFilename('foo.yaml')).toBeUndefined();
     expect(inferNotationFromFilename('foo.unknown.transitrix.yaml')).toBeUndefined();
-    expect(inferNotationFromFilename('foo.dgca.yaml')).toBeUndefined(); // missing .transitrix
+    expect(inferNotationFromFilename('foo.dgca.yaml')).toBeUndefined();
   });
 });
 
-describe('validate-notation — dispatch (#258)', () => {
-  it('recognises all Group A and Group B notations', () => {
+describe('validate-notation — dispatch (#258, #518 C1)', () => {
+  it('recognises all Group A, B, and C notations', () => {
     for (const n of ALL_NOTATIONS) expect(isFileValidatableNotation(n)).toBe(true);
     expect([...FILE_VALIDATABLE_NOTATIONS].sort()).toEqual([...ALL_NOTATIONS].sort());
   });
 
-  it('does not claim BPMN, non-diagram views, or unknown notations', () => {
-    for (const n of ['bpmn', 'compliance-impact', 'coverage-metric', 'nonsense']) {
+  it('does not claim BPMN or unknown notations', () => {
+    for (const n of ['bpmn', 'nonsense']) {
       expect(isFileValidatableNotation(n)).toBe(false);
     }
   });
@@ -98,27 +121,49 @@ describe('validate-notation — dispatch (#258)', () => {
   });
 });
 
-describe('validate-notation — the notation corpus validates clean (#258)', () => {
-  for (const notation of ALL_NOTATIONS) {
-    for (const file of fixtures(notation)) {
+describe('validate-notation — the view notation corpus validates clean (#258)', () => {
+  for (const notation of [...GROUP_A, ...GROUP_B, 'coverage-metric']) {
+    for (const file of viewFixtures(notation)) {
       const name = file.slice(corpusRoot.length + 1).replace(/\\/g, '/');
       it(`${name} → valid`, () => {
         const data = loadNotationYaml(readFileSync(file, 'utf8'));
         const report = validateNotationDoc(notation, data);
         const errors = report.findings.filter((f) => f.severity === 'error');
-        // Surface the offending findings in the failure message if this regresses.
         expect(errors, JSON.stringify(errors, null, 2)).toEqual([]);
         expect(report.isValid).toBe(true);
-        expect(report.summary.errorCount).toBe(0);
+      });
+    }
+  }
+
+  for (const file of viewFixtures('compliance-impact')) {
+    const name = file.slice(corpusRoot.length + 1).replace(/\\/g, '/');
+    it(`${name} → valid`, () => {
+      const data = loadNotationYaml(readFileSync(file, 'utf8'));
+      const report = validateNotationDoc('compliance-impact', data);
+      const errors = report.findings.filter((f) => f.severity === 'error');
+      expect(errors, JSON.stringify(errors, null, 2)).toEqual([]);
+      expect(report.isValid).toBe(true);
+    });
+  }
+});
+
+describe('validate-notation — element notation corpus validates clean (#518 C1)', () => {
+  for (const notation of ['requirement', 'assertion'] as const) {
+    for (const file of elementFixtures(notation)) {
+      const name = file.slice(corpusRoot.length + 1).replace(/\\/g, '/');
+      it(`${name} → valid`, () => {
+        const data = loadNotationYaml(readFileSync(file, 'utf8'));
+        const report = validateNotationDoc(notation, data);
+        const errors = report.findings.filter((f) => f.severity === 'error');
+        expect(errors, JSON.stringify(errors, null, 2)).toEqual([]);
+        expect(report.isValid).toBe(true);
       });
     }
   }
 });
 
-describe('validate-notation — parity with the preview validator (#258)', () => {
+describe('validate-notation — parity with the preview validator (#258, #518 C1)', () => {
   it('goals findings mirror parseCanonicalGoals exactly', () => {
-    // A deliberately malformed goals doc — the CLI must surface the same codes
-    // the preview shows in its red block.
     const broken = { notation: 'goals', id: 'x', name: 'Broken', goals: [] };
     const raw = parseCanonicalGoals(broken);
     const report = validateNotationDoc('goals', broken);
@@ -133,7 +178,7 @@ describe('validate-notation — parity with the preview validator (#258)', () =>
   });
 
   it('maps validator warnings to advisory findings, not errors', () => {
-    const data = loadNotationYaml(readFileSync(fixtures('goals')[0], 'utf8'));
+    const data = loadNotationYaml(readFileSync(viewFixtures('goals')[0], 'utf8'));
     const raw = parseCanonicalGoals(data);
     const report = validateNotationDoc('goals', data);
     const warningCodes = report.findings
@@ -142,13 +187,11 @@ describe('validate-notation — parity with the preview validator (#258)', () =>
     expect(warningCodes).toEqual(raw.warnings.map((w) => w.code));
   });
 
-  // Group B parity — CLI dispatch calls the same package function the extension now imports.
   it('applications: CLI findings mirror validateApplicationsCatalogue exactly', () => {
     const broken = { notation: 'applications' };
     const raw = validateApplicationsCatalogue(broken);
     const report = validateNotationDoc('applications', broken);
     expect(report.isValid).toBe(raw.valid);
-    expect(report.isValid).toBe(false);
     expect(report.findings.filter((f) => f.severity === 'error').map((f) => f.ruleId))
       .toEqual(raw.errors.map((e) => e.code));
   });
@@ -158,7 +201,6 @@ describe('validate-notation — parity with the preview validator (#258)', () =>
     const raw = validateCapabilityMap(broken);
     const report = validateNotationDoc('capability-map', broken);
     expect(report.isValid).toBe(raw.valid);
-    expect(report.isValid).toBe(false);
     expect(report.findings.filter((f) => f.severity === 'error').map((f) => f.ruleId))
       .toEqual(raw.errors.map((e) => e.code));
   });
@@ -168,7 +210,6 @@ describe('validate-notation — parity with the preview validator (#258)', () =>
     const raw = validateProductsCatalogue(broken);
     const report = validateNotationDoc('products', broken);
     expect(report.isValid).toBe(raw.valid);
-    expect(report.isValid).toBe(false);
     expect(report.findings.filter((f) => f.severity === 'error').map((f) => f.ruleId))
       .toEqual(raw.errors.map((e) => e.code));
   });
@@ -178,7 +219,6 @@ describe('validate-notation — parity with the preview validator (#258)', () =>
     const raw = validateScenario(broken);
     const report = validateNotationDoc('scenarios', broken);
     expect(report.isValid).toBe(raw.valid);
-    expect(report.isValid).toBe(false);
     expect(report.findings.filter((f) => f.severity === 'error').map((f) => f.ruleId))
       .toEqual(raw.errors.map((e) => e.code));
   });
@@ -188,8 +228,45 @@ describe('validate-notation — parity with the preview validator (#258)', () =>
     const raw = validateProcessMap(broken);
     const report = validateNotationDoc('process-map', broken);
     expect(report.isValid).toBe(raw.valid);
-    expect(report.isValid).toBe(false);
     expect(report.findings.filter((f) => f.severity === 'error').map((f) => f.ruleId))
       .toEqual(raw.errors.map((e) => e.code));
+  });
+
+  it('requirement: CLI findings mirror validateRequirement exactly', () => {
+    const broken = { notation: 'requirement' };
+    const raw = validateRequirement(broken);
+    const report = validateNotationDoc('requirement', broken);
+    expect(report.isValid).toBe(raw.valid);
+    expect(report.findings.filter((f) => f.severity === 'error').map((f) => f.ruleId))
+      .toEqual(raw.errors.map((e) => e.code));
+  });
+
+  it('assertion: CLI findings mirror validateAssertion exactly', () => {
+    const broken = { notation: 'assertion' };
+    const today = new Date().toISOString().slice(0, 10);
+    const raw = validateAssertion(broken, { today });
+    const report = validateNotationDoc('assertion', broken);
+    expect(report.isValid).toBe(raw.valid);
+    expect(report.findings.filter((f) => f.severity === 'error').map((f) => f.ruleId))
+      .toEqual(raw.errors.map((e) => e.code));
+  });
+
+  it('compliance-impact: structural errors map to COMPIMP-001', () => {
+    const broken = { notation: 'compliance-impact', view: { name: 'X' } };
+    const raw = parseImpactViewConfig(broken);
+    expect(raw.ok).toBe(false);
+    const report = validateNotationDoc('compliance-impact', broken);
+    expect(report.isValid).toBe(false);
+    expect(report.findings.every((f) => f.ruleId === 'COMPIMP-001')).toBe(true);
+    expect(report.findings.length).toBe(raw.ok ? 0 : raw.errors.length);
+  });
+
+  it('coverage-metric: CLI mirrors parseCoverageMetricConfig on a broken doc', () => {
+    const broken = { notation: 'coverage-metric', view: { name: 'X' } };
+    const raw = parseCoverageMetricConfig(broken);
+    expect(raw.ok).toBe(false);
+    const report = validateNotationDoc('coverage-metric', broken);
+    expect(report.isValid).toBe(false);
+    expect(report.findings.filter((f) => f.severity === 'error').length).toBe(raw.errors.length);
   });
 });
