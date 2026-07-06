@@ -6,7 +6,7 @@
  *
  * - Flat top-level arrays, no `fgca:` wrapper.
  * - Typed string IDs per `IDS_AND_REFERENCES.md` (`FACTOR-1`,
- *   `GOAL-RET-1`, `CHANGE-1`, `ACTIVITY-ONBOARD-1`).
+ *   `GOAL-RET-1`, `CHANGE-1`, `ACTION-ONBOARD-1` (legacy `ACTIVITY-*` accepted).
  * - Plural canonical-direction cross-references: `goal.factors`,
  *   `change.goals`, `activity.changes`, `activity.goals`.
  * - Per-notation validation codes `FGCA-001 … FGCA-015`.
@@ -50,7 +50,8 @@ const DRIVER_ID_RE = /^DRIVER(-[A-Z0-9][A-Z0-9_]*)*-\d+$/;
 const FACTOR_OR_DRIVER_ID_RE = /^(FACTOR|DRIVER)(-[A-Z0-9][A-Z0-9_]*)*-\d+$/;
 const GOAL_ID_RE = /^GOAL(-[A-Z0-9][A-Z0-9_]*)*-\d+$/;
 const CHANGE_ID_RE = /^CHANGE(-[A-Z0-9][A-Z0-9_]*)*-\d+$/;
-const ACTIVITY_ID_RE = /^ACTIVITY(-[A-Z0-9][A-Z0-9_]*)*-\d+$/;
+// ACTION is canonical since methodology 1.0; ACTIVITY accepted for legacy docs.
+const ACTION_OR_ACTIVITY_ID_RE = /^(ACTION|ACTIVITY)(-[A-Z0-9][A-Z0-9_]*)*-\d+$/;
 const FGCA_DOC_ID_RE = /^(FGCA|DGCA)(-[A-Z0-9][A-Z0-9_]*)*-\d+$/;
 const CONSTRAINT_ID_RE = /^CONSTRAINT(-[A-Z0-9][A-Z0-9_]*)*-\d+$/;
 
@@ -61,6 +62,15 @@ function isNonEmptyString(v: unknown): v is string {
 function asObjectArray(v: unknown): Array<Record<string, unknown>> | null {
   if (!Array.isArray(v)) return null;
   return v.map((el) => (el && typeof el === 'object' ? (el as Record<string, unknown>) : null) as Record<string, unknown>);
+}
+
+/** DGA mode (`view_config.layers.changes: off`) may omit the changes layer. */
+function isChangesLayerOff(raw: Record<string, unknown>): boolean {
+  const vc = raw['view_config'];
+  if (!vc || typeof vc !== 'object') return false;
+  const layers = (vc as Record<string, unknown>)['layers'];
+  if (!layers || typeof layers !== 'object') return false;
+  return (layers as Record<string, unknown>)['changes'] === 'off';
 }
 
 
@@ -114,7 +124,10 @@ export function parseCanonicalFGCA(input: unknown): CanonicalFGCAResult {
 
   const factorsRaw = asObjectArray(raw['factors']);
   const goalsRaw = asObjectArray(raw['goals']);
-  const changesRaw = asObjectArray(raw['changes']);
+  let changesRaw = asObjectArray(raw['changes']);
+  if (changesRaw === null && raw['changes'] === undefined && isChangesLayerOff(raw)) {
+    changesRaw = [];
+  }
   const activitiesRaw = asObjectArray(raw['actions']);
   if (activitiesRaw === null && 'activities' in raw) {
     errors.push({ code: 'FGCA-004', message: '"activities" key is not accepted — rename to "actions"', path: 'actions' });
@@ -177,7 +190,7 @@ export function parseCanonicalFGCA(input: unknown): CanonicalFGCAResult {
   factors.forEach((el, i) => checkLayerElement(el, `factors[${i}]`, FACTOR_OR_DRIVER_ID_RE, factorIds));
   goals.forEach((el, i) => checkLayerElement(el, `goals[${i}]`, GOAL_ID_RE, goalIds));
   changes.forEach((el, i) => checkLayerElement(el, `changes[${i}]`, CHANGE_ID_RE, changeIds));
-  activities.forEach((el, i) => checkLayerElement(el, `activities[${i}]`, ACTIVITY_ID_RE, activityIds));
+  activities.forEach((el, i) => checkLayerElement(el, `activities[${i}]`, ACTION_OR_ACTIVITY_ID_RE, activityIds));
 
   if (errors.length > 0) return { valid: false, errors, warnings };
 

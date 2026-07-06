@@ -35,6 +35,31 @@ describe('parseCanonicalFGCA', () => {
     expect(r.parsed?.activities).toHaveLength(1);
   });
 
+  it('accepts ACTION-* ids (methodology 1.0) alongside legacy ACTIVITY-*', () => {
+    const r = parseCanonicalFGCA({
+      ...VALID,
+      actions: [
+        { id: 'ACTION-CRM-EU-1', name: 'CRM rollout', changes: ['CHANGE-1'] },
+        { id: 'ACTIVITY-2', name: 'Legacy workstream', changes: ['CHANGE-1'] },
+      ],
+    });
+    expect(r.valid, JSON.stringify(r.errors)).toBe(true);
+    expect(r.parsed?.activities.map((a) => a.id)).toEqual(['ACTION-CRM-EU-1', 'ACTIVITY-2']);
+  });
+
+  it('defaults changes to [] when view_config.layers.changes is off (DGA-in-dgca)', () => {
+    const r = parseCanonicalFGCA({
+      ...VALID,
+      changes: undefined,
+      view_config: { layers: { changes: 'off' } },
+      actions: [
+        { id: 'ACTION-DISCOVERY-1', name: 'Gap assessment', goals: ['GOAL-1'] },
+      ],
+    });
+    expect(r.valid, JSON.stringify(r.errors)).toBe(true);
+    expect(r.parsed?.changes).toEqual([]);
+  });
+
   it('FGCA-001: rejects non-object input', () => {
     expect(parseCanonicalFGCA(null).errors[0].code).toBe('FGCA-001');
     expect(parseCanonicalFGCA('string').errors[0].code).toBe('FGCA-001');
@@ -196,6 +221,15 @@ describe('parseCanonicalFGA', () => {
     expect(r.parsed?.factors).toHaveLength(1);
     expect(r.parsed?.goals).toHaveLength(1);
     expect(r.parsed?.activities).toHaveLength(1);
+  });
+
+  it('accepts ACTION-* ids in FGA mode', () => {
+    const r = parseCanonicalFGA({
+      ...VALID_FGA,
+      actions: [{ id: 'ACTION-GDPR-DSR-WORKFLOW-1', name: 'DSR workflow', goals: ['GOAL-1'] }],
+    });
+    expect(r.valid, JSON.stringify(r.errors)).toBe(true);
+    expect(r.parsed?.activities[0].id).toBe('ACTION-GDPR-DSR-WORKFLOW-1');
   });
 
   it('populates activity.goal_id from activity.goals[] (the FGA edge-driving field)', () => {
