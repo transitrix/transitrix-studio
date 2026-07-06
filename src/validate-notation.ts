@@ -40,6 +40,7 @@ import { validateProductsCatalogue } from '@transitrix/diagrams/products/validat
 import { validateScenario } from '@transitrix/diagrams/scenarios/validate.js';
 import { validateProcessMap } from '@transitrix/diagrams/process-map/validate.js';
 import { validateRequirement } from '@transitrix/diagrams/requirement/validate.js';
+import { validateConstraint } from '@transitrix/diagrams/constraint/validate.js';
 import { validateAssertion } from '@transitrix/diagrams/assertion/validate.js';
 import { parseImpactViewConfig } from '@transitrix/diagrams/compliance/impact.js';
 import { parseCoverageMetricConfig } from '@transitrix/diagrams/compliance/coverage-metric.js';
@@ -85,6 +86,10 @@ function validateRequirementDoc(input: unknown, options: ValidateNotationOptions
 function validateAssertionDoc(input: unknown, options: ValidateNotationOptions = {}): NotationValidationResult {
   const today = new Date().toISOString().slice(0, 10);
   return mapPackageResult(validateAssertion(input, { catalog: options.catalog, today }));
+}
+
+function validateConstraintDoc(input: unknown, options: ValidateNotationOptions = {}): NotationValidationResult {
+  return mapPackageResult(validateConstraint(input, { catalog: options.catalog }));
 }
 
 function validateComplianceImpactDoc(input: unknown): NotationValidationResult {
@@ -139,8 +144,9 @@ const VALIDATORS: Record<string, NotationValidator> = {
   products: wrapValidator(validateProductsCatalogue),
   scenarios: wrapValidator(validateScenario),
   'process-map': wrapValidator(validateProcessMap),
-  // Group C — compliance suite (#518 Phase C1–C3).
+  // Group C — compliance suite (#518 Phase C1–C4).
   requirement: validateRequirementDoc,
+  constraint: validateConstraintDoc,
   assertion: validateAssertionDoc,
   'compliance-impact': wrapValidator(validateComplianceImpactDoc),
   'coverage-metric': wrapValidator(validateCoverageMetricDoc),
@@ -152,7 +158,7 @@ const VALIDATORS: Record<string, NotationValidator> = {
 export const FILE_VALIDATABLE_NOTATIONS = Object.keys(VALIDATORS);
 
 /** View notations whose on-disk suffix is `.<notation>.transitrix.yaml`.
- *  Element notations (requirement, assertion) use typed-id filenames instead. */
+ *  Element notations (requirement, constraint, assertion) use typed-id filenames instead. */
 export const NOTATIONS_WITH_CANONICAL_VIEW_EXTENSION: readonly string[] = [
   'goals',
   'dgca',
@@ -185,6 +191,7 @@ export function inferNotationFromFilename(filePath: string): string | undefined 
   }
   const base = lower.split('/').pop() ?? lower;
   if (base.startsWith('requirement-') && base.endsWith('.yaml')) return 'requirement';
+  if (base.startsWith('constraint-') && base.endsWith('.yaml')) return 'constraint';
   if (base.startsWith('assertion-') && base.endsWith('.yaml')) return 'assertion';
   const rawBase = (filePath.replace(/\\/g, '/').split('/').pop() ?? '').replace(/\.ya?ml$/i, '');
   const idType = typeOfId(rawBase);
