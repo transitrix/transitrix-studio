@@ -12,6 +12,7 @@
  */
 import { layoutGoalTree } from '../goals/layout.js';
 import type { GoalTree, GoalTreeLayout, LaidOutEdge } from '../goals/types.js';
+import { displayGoalId } from '../goals/parse-canonical.js';
 import { horizontalCubicEdgePath, DEFAULT_EDGE_CURVATURE } from '../edge-path.js';
 import { generateSvgEmbedCss, type ThemeId } from '../theme/index.js';
 import { escXml } from './render-util.js';
@@ -129,7 +130,7 @@ export function renderGoalsLayoutSvg(layout: GoalTreeLayout, options: RenderGoal
       const typeY = twoLines ? y + 43 : y + 35;
       const idY = twoLines ? y + 59 : y + 55;
       const typeLabel = n.data.type ?? '';
-      const idText = String(n.data.id);
+      const idText = displayGoalId(n.data);
       return `<g>
   <rect class="diagram-node level-${level}" x="${x}" y="${y}" width="${n.width}" height="${n.height}" rx="${ENTITY_NODE_RX}"/>
   <text class="text-primary" x="${x + n.width / 2}" y="${nameY1}" text-anchor="middle" dominant-baseline="central">${escXml(line1)}</text>${twoLines ? `

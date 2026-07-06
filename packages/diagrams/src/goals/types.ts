@@ -10,6 +10,8 @@ export interface Factor {
 
 export interface Goal {
   id: number;
+  /** Canonical typed id from the YAML (`GOAL-…`) when parsed from canonical form. */
+  canonical_id?: string;
   name: string;
   type: string;
   level: number;

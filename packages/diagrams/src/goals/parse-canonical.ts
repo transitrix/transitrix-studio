@@ -36,6 +36,11 @@ export interface CanonicalGoalsResult extends ValidationResult {
 const GOAL_ID_RE = /^GOAL(-[A-Z0-9][A-Z0-9_]*)*-\d+$/;
 const GOALS_DOC_ID_RE = /^GOALS(-[A-Z0-9][A-Z0-9_]*)*-\d+$/;
 
+/** Display id for previews — canonical `GOAL-…` when present, else internal numeric id. */
+export function displayGoalId(goal: { id: number; canonical_id?: string }): string {
+  return goal.canonical_id ?? String(goal.id);
+}
+
 function isNonEmptyString(v: unknown): v is string {
   return typeof v === 'string' && v.trim().length > 0;
 }
@@ -267,6 +272,7 @@ export function parseCanonicalGoals(input: unknown): CanonicalGoalsResult {
       isNonEmptyString(parent) && idToInternal.has(parent) ? idToInternal.get(parent)! : 0;
     return {
       id: idToInternal.get(o['id'] as string)!,
+      canonical_id: o['id'] as string,
       name: o['name'] as string,
       type: o['type'] as string,
       level: o['level'] as number,

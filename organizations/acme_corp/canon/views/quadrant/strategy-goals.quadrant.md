@@ -6,9 +6,9 @@
     - canon/views/goals/eu-strategy.dgca.transitrix.yaml
         goal hierarchy: id, name, type (level 0/1/2), parent linkage.
         Y-axis (Strategic Importance): goal level — level 0 (Strategy) = highest;
-          level 1 (Strategic Goal) = high; level 2 (Enabling Goal) = medium.
+          level 1 (Strategic Goal) = high; level 2 (Project Goal) = medium.
         X-axis (Implementation Urgency): inferred from goal type and description —
-          an enabling goal described as an explicit gate condition for a near-term
+          a project goal described as an explicit gate condition for a near-term
           milestone ranks most urgent; a 2028-horizon strategy goal ranks least.
 
   Not a duplicate of the Goals tree: the goals tree shows hierarchy.
@@ -45,7 +45,7 @@ quadrantChart
 |---|---|---|---|
 | `GOAL-REVENUE-1` | 0 | Strategy | Highest importance (root goal); 2028 horizon = low urgency |
 | `GOAL-EU-1` | 1 | Strategic Goal | EU launch gate — near-term, very high impact |
-| `GOAL-EU-COMPLIANCE-1` | 2 | Enabling Goal | Explicit gate condition for `GOAL-EU-1`; most urgent |
+| `GOAL-EU-COMPLIANCE-1` | 2 | Project Goal | Explicit gate condition for `GOAL-EU-1`; most urgent |
 | `GOAL-CUST-1` | 1 | Strategic Goal | Medium-horizon; high but not gate-critical |
 | `GOAL-OPS-1` | 1 | Strategic Goal | Ongoing operational; moderate urgency and importance |
 

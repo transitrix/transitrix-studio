@@ -134,9 +134,9 @@ export class GoalsPreview {
         const docDate = (typeof meta.generated_at === 'string' ? meta.generated_at : undefined)
           ?? (typeof meta.date === 'string' ? meta.date : undefined)
           ?? todayIso();
-        goalOptions = v.parsed.goals.map(g => ({ id: String(g.id), name: g.name ?? '' }));
+        goalOptions = v.parsed.goals.map(g => ({ id: g.canonical_id ?? String(g.id), name: g.name ?? '' }));
         maxLevelPresent = v.parsed.goals.reduce((m, g) => Math.max(m, typeof g.level === 'number' ? g.level : 0), 0);
-        const scopeWarning = checkScopeRoot(scope, v.parsed.goals.map(g => g.id));
+        const scopeWarning = checkScopeRoot(scope, v.parsed.goals.map(g => g.canonical_id ?? g.id));
         if (scopeWarning) warnings.push(`${scopeWarning.code}: ${scopeWarning.message}`);
         const layout = layoutGoalTree(v.parsed, {
           nodeWidth: NODE_W,

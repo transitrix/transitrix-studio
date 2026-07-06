@@ -15,7 +15,7 @@ author: "Acme Strategy Office"
 goal_types:
   - { name: "Strategy",       level: 0 }
   - { name: "Strategic Goal", level: 1 }
-  - { name: "Enabling Goal",  level: 2 }
+  - { name: "Project Goal",   level: 2 }
 
 goals:
   - id: GOAL-REVENUE-1
@@ -35,7 +35,7 @@ goals:
 
   - id: GOAL-EU-COMPLIANCE-1
     name: "Achieve full GDPR & NIS2 compliance"
-    type: "Enabling Goal"
+    type: "Project Goal"
     level: 2
     parent: GOAL-EU-1
     description: >
