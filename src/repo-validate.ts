@@ -20,6 +20,19 @@ import {
   type RepoModelInput,
 } from '@transitrix/diagrams/repo-validate';
 import {
+  buildComplianceScan,
+  buildComplianceIndex,
+  buildGapReport,
+  buildImpactMatrix,
+  buildCoverageMatrix,
+  collectImpactViewResolutionFindings,
+  collectCoverageViewResolutionFindings,
+  parseImpactViewConfig,
+  parseCoverageMetricConfig,
+  type ComplianceScanResult,
+  type ScannedYamlDoc,
+} from '@transitrix/diagrams/compliance';
+import {
   validateNotationDoc,
   isFileValidatableNotation,
   notationOf,
@@ -113,7 +126,51 @@ export interface RepoScopeResult {
   views: ViewFinding[];
   /** Per-file codex artefact findings from `codex/**` (#518 Phase C2). */
   codex: ViewFinding[];
+  /** REQUIREMENT / ASSERTION element files validated with the repo catalogue (#518 C3). */
+  compliance: ViewFinding[];
   skipped: Array<{ file: string; notation: string }>;
+}
+
+export interface RepoValidateContext {
+  catalog: ComplianceScanResult['catalog'];
+  complianceCanon: ComplianceScanResult['complianceCanon'];
+  pathById: ComplianceScanResult['pathById'];
+}
+
+/** Collect parsed YAML under `<root>/canon/**` and `<root>/codex/**` for the
+ *  compliance catalogue (#518 Phase C3). */
+export function loadComplianceYamlDocs(root: string): ScannedYamlDoc[] {
+  const docs: ScannedYamlDoc[] = [];
+  for (const zone of ['canon', 'codex'] as const) {
+    let entries: string[] = [];
+    try {
+      entries = readdirSync(path.join(root, zone), { recursive: true }) as string[];
+    } catch {
+      continue;
+    }
+    for (const rel of entries) {
+      if (typeof rel !== 'string' || !isYaml(rel) || shouldSkip(rel)) continue;
+      const fullRel = path.join(zone, rel).replace(/\\/g, '/');
+      try {
+        const text = readFileSync(path.join(root, fullRel), 'utf-8');
+        docs.push({ path: fullRel, data: loadNotationYaml(text) });
+      } catch {
+        // YAML syntax errors are surfaced by the per-file validators.
+        continue;
+      }
+    }
+  }
+  return docs;
+}
+
+/** Build the compliance projection + `CanonCatalog` from a repo root. */
+export function buildRepoValidateContext(root: string): RepoValidateContext {
+  const scan = buildComplianceScan(loadComplianceYamlDocs(root));
+  return {
+    catalog: scan.catalog,
+    complianceCanon: scan.complianceCanon,
+    pathById: scan.pathById,
+  };
 }
 
 /** Collect the raw text of every YAML doc under `<root>/canon/views/**`. */
@@ -142,7 +199,10 @@ function loadViewDocs(root: string): Array<{ path: string; text: string }> {
 /** Validate every Group A notation file under canon/views/** with the same
  *  per-notation validator the VS Code preview uses, so a repo-scope run surfaces
  *  the per-file errors an adopter would otherwise read off each preview. */
-export function runViewValidate(root: string): {
+export function runViewValidate(
+  root: string,
+  ctx?: RepoValidateContext,
+): {
   findings: ViewFinding[];
   skipped: Array<{ file: string; notation: string }>;
 } {
@@ -196,7 +256,73 @@ export function runViewValidate(root: string): {
       skipped.push({ file: doc.path, notation });
       continue;
     }
-    for (const f of validateNotationDoc(notation, data).findings) {
+
+    const validateOpts = { catalog: ctx?.catalog };
+
+    if (notation === 'compliance-impact' && ctx) {
+      for (const f of validateNotationDoc(notation, data, validateOpts).findings) {
+        if (f.severity === 'info') continue;
+        findings.push({
+          file: doc.path,
+          notation,
+          ruleId: f.ruleId,
+          severity: f.severity,
+          message: f.message,
+        });
+      }
+      const parsed = parseImpactViewConfig(data);
+      if (parsed.ok) {
+        for (const f of collectImpactViewResolutionFindings(parsed.config, ctx.catalog, ctx.complianceCanon)) {
+          findings.push({
+            file: doc.path,
+            notation,
+            ruleId: f.code,
+            severity: f.severity,
+            message: f.message,
+          });
+        }
+        const matrix = buildImpactMatrix(ctx.complianceCanon, parsed.config);
+        for (const f of matrix.findings) {
+          findings.push({
+            file: doc.path,
+            notation,
+            ruleId: f.code,
+            severity: f.severity,
+            message: f.message,
+          });
+        }
+      }
+      continue;
+    }
+
+    if (notation === 'coverage-metric' && ctx) {
+      for (const f of validateNotationDoc(notation, data, validateOpts).findings) {
+        if (f.severity === 'info') continue;
+        findings.push({
+          file: doc.path,
+          notation,
+          ruleId: f.ruleId,
+          severity: f.severity,
+          message: f.message,
+        });
+      }
+      const parsed = parseCoverageMetricConfig(data);
+      if (parsed.ok) {
+        for (const f of collectCoverageViewResolutionFindings(parsed.config, ctx.catalog, ctx.complianceCanon)) {
+          findings.push({
+            file: doc.path,
+            notation,
+            ruleId: f.code,
+            severity: f.severity,
+            message: f.message,
+          });
+        }
+        buildCoverageMatrix(ctx.complianceCanon, parsed.config);
+      }
+      continue;
+    }
+
+    for (const f of validateNotationDoc(notation, data, validateOpts).findings) {
       if (f.severity === 'info') continue;
       findings.push({
         file: doc.path,
@@ -266,13 +392,139 @@ export function runCodexValidate(root: string): ViewFinding[] {
   return findings;
 }
 
+/** Validate REQUIREMENT elements under `canon/elements/**` and ASSERTION files
+ *  under `canon/assertions/**` with the repo catalogue (#518 Phase C3). */
+export function runComplianceValidate(root: string, ctx: RepoValidateContext): ViewFinding[] {
+  const findings: ViewFinding[] = [];
+  const validateOpts = { catalog: ctx.catalog };
+
+  let elementEntries: string[] = [];
+  try {
+    elementEntries = readdirSync(path.join(root, 'canon', 'elements'), { recursive: true }) as string[];
+  } catch {
+    elementEntries = [];
+  }
+  for (const rel of elementEntries) {
+    if (typeof rel !== 'string' || !isYaml(rel) || shouldSkip(rel)) continue;
+    const fullRel = path.join('canon', 'elements', rel).replace(/\\/g, '/');
+    let data: unknown;
+    try {
+      data = loadNotationYaml(readFileSync(path.join(root, fullRel), 'utf-8'));
+    } catch (e) {
+      findings.push({
+        file: fullRel,
+        notation: '',
+        ruleId: 'YAML',
+        severity: 'error',
+        message: (e as Error).message,
+      });
+      continue;
+    }
+    const notation = notationOf(data);
+    if (notation !== 'requirement') continue;
+    for (const f of validateNotationDoc('requirement', data, validateOpts).findings) {
+      if (f.severity === 'info') continue;
+      findings.push({
+        file: fullRel,
+        notation: 'requirement',
+        ruleId: f.ruleId,
+        severity: f.severity,
+        message: f.message,
+      });
+    }
+  }
+
+  let assertionEntries: string[] = [];
+  try {
+    assertionEntries = readdirSync(path.join(root, 'canon', 'assertions'), { recursive: true }) as string[];
+  } catch {
+    assertionEntries = [];
+  }
+  for (const rel of assertionEntries) {
+    if (typeof rel !== 'string' || !isYaml(rel) || shouldSkip(rel)) continue;
+    const fullRel = path.join('canon', 'assertions', rel).replace(/\\/g, '/');
+    let data: unknown;
+    try {
+      data = loadNotationYaml(readFileSync(path.join(root, fullRel), 'utf-8'));
+    } catch (e) {
+      findings.push({
+        file: fullRel,
+        notation: '',
+        ruleId: 'YAML',
+        severity: 'error',
+        message: (e as Error).message,
+      });
+      continue;
+    }
+    const notation = notationOf(data);
+    if (notation !== 'assertion') continue;
+    for (const f of validateNotationDoc('assertion', data, validateOpts).findings) {
+      if (f.severity === 'info') continue;
+      findings.push({
+        file: fullRel,
+        notation: 'assertion',
+        ruleId: f.ruleId,
+        severity: f.severity,
+        message: f.message,
+      });
+    }
+  }
+
+  return findings;
+}
+
+/** Optional repo-scope gap-dashboard aggregates as warnings (#518 C3). */
+export function runGapDashboardWarnings(ctx: RepoValidateContext): ViewFinding[] {
+  const findings: ViewFinding[] = [];
+  const index = buildComplianceIndex({
+    requirements: ctx.complianceCanon.requirements,
+    assertions: ctx.complianceCanon.assertions,
+  });
+  const report = buildGapReport(index, { today: new Date().toISOString().slice(0, 10) });
+
+  for (const req of report.requirementsWithoutAssertions) {
+    findings.push({
+      file: ctx.pathById.get(req.id) ?? req.id,
+      notation: 'requirement',
+      ruleId: 'GAP-REQ-NO-ASSERT',
+      severity: 'warning',
+      message: `Requirement "${req.id}" has no assertion targeting it.`,
+    });
+  }
+  for (const a of report.assertionsWithoutEvidence) {
+    findings.push({
+      file: ctx.pathById.get(a.id) ?? a.id,
+      notation: 'assertion',
+      ruleId: 'ASSERT-007',
+      severity: 'warning',
+      message: `Assertion "${a.id}" has status ${a.status} but no evidence.`,
+    });
+  }
+  for (const a of report.staleAssertions) {
+    findings.push({
+      file: ctx.pathById.get(a.id) ?? a.id,
+      notation: 'assertion',
+      ruleId: 'ASSERT-008',
+      severity: 'warning',
+      message: `Assertion "${a.id}" next_review_at (${a.next_review_at}) is in the past.`,
+    });
+  }
+
+  return findings;
+}
+
 /** Load the canon model under `root` and run the repo-scope checks: canon
  *  cross-references plus per-file notation sweep over canon/views/** and codex/**. */
 export function runRepoValidate(root: string): RepoScopeResult {
+  const ctx = buildRepoValidateContext(root);
   const canon = validateRepoModel(loadRepoModel(root));
-  const { findings: views, skipped } = runViewValidate(root);
+  const { findings: views, skipped } = runViewValidate(root, ctx);
   const codex = runCodexValidate(root);
-  return { canon, views, codex, skipped };
+  const compliance = [
+    ...runComplianceValidate(root, ctx),
+    ...runGapDashboardWarnings(ctx),
+  ];
+  return { canon, views, codex, compliance, skipped };
 }
 
 /** True when the run has a blocking finding — a canon finding or a view error.
@@ -282,18 +534,25 @@ export function repoScopeHasErrors(result: RepoScopeResult): boolean {
     result.canon.length > 0
     || result.views.some((v) => v.severity === 'error')
     || result.codex.some((c) => c.severity === 'error')
+    || result.compliance.some((c) => c.severity === 'error')
   );
 }
 
 /** Print the repo-scope result (human or JSON). Returns nothing; the caller sets
  *  the exit code via repoScopeHasErrors(). */
 export function reportRepoFindings(root: string, result: RepoScopeResult, useJson: boolean): void {
-  const { canon, views, codex, skipped } = result;
+  const { canon, views, codex, compliance, skipped } = result;
   const viewErrors = views.filter((v) => v.severity === 'error');
   const viewWarnings = views.filter((v) => v.severity === 'warning');
   const codexErrors = codex.filter((c) => c.severity === 'error');
   const codexWarnings = codex.filter((c) => c.severity === 'warning');
-  const valid = canon.length === 0 && viewErrors.length === 0 && codexErrors.length === 0;
+  const complianceErrors = compliance.filter((c) => c.severity === 'error');
+  const complianceWarnings = compliance.filter((c) => c.severity === 'warning');
+  const valid =
+    canon.length === 0
+    && viewErrors.length === 0
+    && codexErrors.length === 0
+    && complianceErrors.length === 0;
 
   if (useJson) {
     console.log(
@@ -305,6 +564,7 @@ export function reportRepoFindings(root: string, result: RepoScopeResult, useJso
           findings: canon,
           views: { valid: viewErrors.length === 0, findings: views },
           codex: { valid: codexErrors.length === 0, findings: codex },
+          compliance: { valid: complianceErrors.length === 0, findings: compliance },
           skipped,
         },
         null,
@@ -363,6 +623,21 @@ export function reportRepoFindings(root: string, result: RepoScopeResult, useJso
     console.log();
   }
 
+  if (compliance.length > 0) {
+    console.log('Compliance (requirements / assertions):');
+    let currentFile = '';
+    for (const c of compliance) {
+      if (c.file !== currentFile) {
+        console.log(`  ${c.file} [${c.notation || 'yaml'}]`);
+        currentFile = c.file;
+      }
+      const mark =
+        c.severity === 'error' ? `\x1b[31m✗ ${c.ruleId}\x1b[0m` : `\x1b[33m⚠ ${c.ruleId}\x1b[0m`;
+      console.log(`    ${mark} ${c.message}`);
+    }
+    console.log();
+  }
+
   if (skipped.length > 0) {
     console.log(
       `Skipped — notation not yet validated by the CLI (check in the preview): ${skipped.length} file${skipped.length === 1 ? '' : 's'}`,
@@ -391,6 +666,16 @@ export function reportRepoFindings(root: string, result: RepoScopeResult, useJso
   if (codexWarnings.length > 0) {
     parts.push(
       `\x1b[33m${codexWarnings.length}\x1b[0m codex warning${codexWarnings.length === 1 ? '' : 's'}`,
+    );
+  }
+  if (complianceErrors.length > 0) {
+    parts.push(
+      `\x1b[31m${complianceErrors.length}\x1b[0m compliance error${complianceErrors.length === 1 ? '' : 's'}`,
+    );
+  }
+  if (complianceWarnings.length > 0) {
+    parts.push(
+      `\x1b[33m${complianceWarnings.length}\x1b[0m compliance warning${complianceWarnings.length === 1 ? '' : 's'}`,
     );
   }
   if (parts.length > 0) {

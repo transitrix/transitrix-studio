@@ -83,6 +83,7 @@ describe('repo-scope codex sweep (#518 C2)', () => {
   it('runRepoValidate includes codex findings in error gate', () => {
     const result = runRepoValidate(root);
     expect(result.codex.some((c) => c.ruleId === 'CODEX-005')).toBe(true);
+    expect(result.compliance).toEqual([]);
     expect(repoScopeHasErrors(result)).toBe(true);
   });
 });
@@ -108,6 +109,7 @@ describe('repo-scope codex sweep — clean tree passes (#518 C2)', () => {
   it('clean codex tree passes with no codex errors', () => {
     const result = runRepoValidate(root);
     expect(result.codex.filter((c) => c.severity === 'error')).toEqual([]);
+    expect(result.compliance.filter((c) => c.severity === 'error')).toEqual([]);
     expect(repoScopeHasErrors(result)).toBe(false);
   });
 });

@@ -1,0 +1,14 @@
+notation: product
+id: PRODUCT-MOBILE-1
+name: "Acme Mobile"
+description: "Mobile product line for compliance C3 fixtures."
+
+zone: canon
+admitted_at: "2026-05-28"
+admitted_by: "v.korobeinikov"
+gate_checks:
+  uniqueness: pass
+  consistency: pass
+  completeness: pass
+valid_from: "2026-01-01"
+valid_to: null

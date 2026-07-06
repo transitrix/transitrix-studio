@@ -49,7 +49,7 @@ import {
   folderJurisdictionFromPath,
 } from '@transitrix/diagrams/codex/validate.js';
 import { CODEX_ARTEFACT_TYPES } from '@transitrix/diagrams/codex/types.js';
-import { typeOfId } from '@transitrix/diagrams/typed-id.js';
+import { typeOfId, type CanonCatalog } from '@transitrix/diagrams/typed-id.js';
 
 /** The shape every notation validator returns: code/message findings split into
  *  blocking errors and advisory warnings. The concrete result types carry extra
@@ -60,7 +60,11 @@ interface NotationValidationResult {
   warnings: Array<{ code: string; message: string }>;
 }
 
-type NotationValidator = (input: unknown) => NotationValidationResult;
+type NotationValidator = (input: unknown, options?: ValidateNotationOptions) => NotationValidationResult;
+
+function wrapValidator(fn: (input: unknown) => NotationValidationResult): NotationValidator {
+  return (input, _options = {}) => fn(input);
+}
 
 function mapPackageResult(result: {
   valid: boolean;
@@ -74,14 +78,13 @@ function mapPackageResult(result: {
   };
 }
 
-function validateRequirementDoc(input: unknown): NotationValidationResult {
-  // Structural / TYPE rules only — REQ-002 catalog resolution is Phase C3 (#518).
-  return mapPackageResult(validateRequirement(input));
+function validateRequirementDoc(input: unknown, options: ValidateNotationOptions = {}): NotationValidationResult {
+  return mapPackageResult(validateRequirement(input, { catalog: options.catalog }));
 }
 
-function validateAssertionDoc(input: unknown): NotationValidationResult {
+function validateAssertionDoc(input: unknown, options: ValidateNotationOptions = {}): NotationValidationResult {
   const today = new Date().toISOString().slice(0, 10);
-  return mapPackageResult(validateAssertion(input, { today }));
+  return mapPackageResult(validateAssertion(input, { catalog: options.catalog, today }));
 }
 
 function validateComplianceImpactDoc(input: unknown): NotationValidationResult {
@@ -115,7 +118,7 @@ function validateCoverageMetricDoc(input: unknown): NotationValidationResult {
   return { valid: true, errors: [], warnings };
 }
 
-function validateCodexDoc(input: unknown): NotationValidationResult {
+function validateCodexDoc(input: unknown, _options: ValidateNotationOptions = {}): NotationValidationResult {
   return mapPackageResult(validateCodex(input));
 }
 
@@ -123,24 +126,24 @@ function validateCodexDoc(input: unknown): NotationValidationResult {
 // tests/fixtures/notation-corpus/<notation>/.
 const VALIDATORS: Record<string, NotationValidator> = {
   // Group A — validator lives in the shared package and is the one the preview calls.
-  goals: parseCanonicalGoals,
-  dgca: parseCanonicalFGCA,
-  dga: parseCanonicalFGA,
-  action: validateActivities,
-  'action-card': validateActivityCard,
-  'process-blueprint': validateProcessBlueprint,
-  blocks: validateNestedBlocks,
+  goals: wrapValidator(parseCanonicalGoals),
+  dgca: wrapValidator(parseCanonicalFGCA),
+  dga: wrapValidator(parseCanonicalFGA),
+  action: wrapValidator(validateActivities),
+  'action-card': wrapValidator(validateActivityCard),
+  'process-blueprint': wrapValidator(validateProcessBlueprint),
+  blocks: wrapValidator(validateNestedBlocks),
   // Group B — deduped from inline preview copies in Phase B; package is now canonical.
-  applications: validateApplicationsCatalogue,
-  'capability-map': validateCapabilityMap,
-  products: validateProductsCatalogue,
-  scenarios: validateScenario,
-  'process-map': validateProcessMap,
-  // Group C — compliance suite (#518 Phase C1).
+  applications: wrapValidator(validateApplicationsCatalogue),
+  'capability-map': wrapValidator(validateCapabilityMap),
+  products: wrapValidator(validateProductsCatalogue),
+  scenarios: wrapValidator(validateScenario),
+  'process-map': wrapValidator(validateProcessMap),
+  // Group C — compliance suite (#518 Phase C1–C3).
   requirement: validateRequirementDoc,
   assertion: validateAssertionDoc,
-  'compliance-impact': validateComplianceImpactDoc,
-  'coverage-metric': validateCoverageMetricDoc,
+  'compliance-impact': wrapValidator(validateComplianceImpactDoc),
+  'coverage-metric': wrapValidator(validateCoverageMetricDoc),
   // Group C — codex zone (#518 Phase C2); `zone: codex`, not a notation: tag.
   codex: validateCodexDoc,
 };
@@ -216,6 +219,8 @@ export function resolveValidatorKey(data: unknown): string | undefined {
 export interface ValidateNotationOptions {
   /** Repo-relative or absolute path — used for codex folder-jurisdiction checks. */
   filePath?: string;
+  /** Admitted canon catalogue — enables REQ-002 and ASSERT-002..005 (#518 C3). */
+  catalog?: CanonCatalog;
 }
 
 /** Parse + date-coerce a YAML string exactly as the previews do, so validator
@@ -242,7 +247,7 @@ export function validateNotationDoc(
               : undefined,
           }),
         )
-      : VALIDATORS[notation](data);
+      : VALIDATORS[notation](data, options);
   const findings: ValidationFinding[] = [
     ...result.errors.map(
       (e): ValidationFinding => ({ ruleId: e.code, severity: 'error', message: e.message }),

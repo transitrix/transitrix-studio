@@ -1,0 +1,14 @@
+notation: capability
+id: CAPABILITY-V2
+name: "Customer Relationship Management"
+description: "CRM capability referenced by assertion fixtures."
+
+zone: canon
+admitted_at: "2026-05-28"
+admitted_by: "v.korobeinikov"
+gate_checks:
+  uniqueness: pass
+  consistency: pass
+  completeness: pass
+valid_from: "2026-01-01"
+valid_to: null

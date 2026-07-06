@@ -105,6 +105,25 @@ describe('repo-scope views sweep — clean tree passes (#258)', () => {
     copyCorpus(root, 'canon/views/applications/p.applications.transitrix.yaml', 'applications/portfolio-2026.applications.transitrix.yaml');
     copyCorpus(root, 'canon/views/coverage-metric/c.coverage-metric.transitrix.yaml', 'coverage-metric/eu-coverage.coverage-metric.transitrix.yaml');
     copyCorpus(root, 'canon/views/compliance-impact/ci.compliance-impact.view.yaml', 'compliance-impact/gdpr-nis2.compliance-impact.view.yaml');
+    // C3 cross-doc refs: codex + product subjects referenced by the compliance views.
+    copyCorpus(root, 'codex/external/EU/LAW-GDPR-1.yaml', 'codex/external/EU/LAW-GDPR-1.yaml');
+    copyCorpus(root, 'codex/external/EU/LAW-NIS2-1.yaml', 'codex/external/EU/LAW-NIS2-1.yaml');
+    write(
+      root,
+      'canon/elements/02_business/products/PRODUCT-ECOMM-1.yaml',
+      readFileSync(join(corpus, 'compliance-c3/PRODUCT-MOBILE-1.yaml'), 'utf8').replace(
+        'PRODUCT-MOBILE-1',
+        'PRODUCT-ECOMM-1',
+      ).replace('Acme Mobile', 'E-Commerce'),
+    );
+    write(
+      root,
+      'canon/elements/02_business/products/PRODUCT-SUPPORT-1.yaml',
+      readFileSync(join(corpus, 'compliance-c3/PRODUCT-MOBILE-1.yaml'), 'utf8').replace(
+        'PRODUCT-MOBILE-1',
+        'PRODUCT-SUPPORT-1',
+      ).replace('Acme Mobile', 'Support'),
+    );
   });
 
   afterAll(() => {

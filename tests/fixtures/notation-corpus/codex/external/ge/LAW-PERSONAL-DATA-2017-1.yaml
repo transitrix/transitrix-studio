@@ -1,0 +1,18 @@
+# Fixture — Georgian personal-data law for REQ-002 corpus tests (#518 C3).
+
+zone: codex
+id: LAW-PERSONAL-DATA-2017-1
+name: "Law on Personal Data Protection"
+type: LAW
+jurisdiction: ge
+authority: "Parliament of Georgia"
+effective_date: "2017-05-01"
+description: >
+  Georgian law on the protection of personal data.
+
+admitted_at: "2026-06-01"
+admitted_by: "v.korobeinikov"
+gate_checks:
+  uniqueness: pass
+  consistency: pass
+  completeness: pass

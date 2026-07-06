@@ -311,4 +311,26 @@ describe('validate-notation — parity with the preview validator (#258, #518 C1
     expect(report.findings.filter((f) => f.severity === 'error').map((f) => f.ruleId))
       .toEqual(raw.errors.map((e) => e.code));
   });
+
+  it('requirement: CLI applies REQ-002 when catalog is supplied (#518 C3)', () => {
+    const doc = {
+      notation: 'requirement',
+      id: 'REQUIREMENT-TEST-1',
+      name: 'T',
+      description: 'D',
+      zone: 'canon',
+      admitted_at: '2026-01-01',
+      admitted_by: 't',
+      gate_checks: {},
+      valid_from: '2026-01-01',
+      valid_to: null,
+      derived_from: ['LAW-MISSING-1'],
+    };
+    const without = validateNotationDoc('requirement', doc);
+    expect(without.findings.some((f) => f.ruleId === 'REQ-002')).toBe(false);
+    const withCatalog = validateNotationDoc('requirement', doc, {
+      catalog: { typeOf: () => undefined },
+    });
+    expect(withCatalog.findings.some((f) => f.ruleId === 'REQ-002')).toBe(true);
+  });
 });
