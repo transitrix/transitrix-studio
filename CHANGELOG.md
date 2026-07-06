@@ -2,7 +2,22 @@
 
 ## Unreleased
 
+## [2.10.0] — 2026-07-06
+
 ### Added
+
+- **Compliance validators in CLI and repo-scope scan (#518).** `transitrix validate`
+  now covers the compliance notation family end-to-end:
+  - **Requirement, Assertion, Compliance-impact, Coverage-metric** — per-notation
+    validators wired into `validate-notation` and `transitrix validate --scope=repo`
+    (#360).
+  - **Codex** — `CODEX-*` element validator plus a `codex/**` sweep in repo-scope
+    (#361).
+  - **Canon catalogue + cross-document checks** — `CanonCatalog` builds a typed
+    element index; repo-scope validates `derived_from` / `about` / `realised_via`
+    cross-references and compliance-matrix build-time invariants (#362).
+  - **Constraint** — `CONSTRAINT-*` primitive validator (`CONST-001` … `CONST-005`)
+    (#363).
 
 - **Requirement traceability + hierarchy view.** A new
   `transitrixStudio.previewRequirementTrace` command opens a script-less
@@ -26,12 +41,28 @@
   `@transitrix/diagrams` gains a pure `buildRequirementTrace` builder over
   the existing compliance reverse-index (extended with `requirementsByParent`).
 
+- **Goals — optional `onFactorClick` callback on `GoalNode` / `GoalTreeView`.**
+  Host apps (e.g. DSM) can restore factor-badge navigation without the library
+  hardcoding a route (#358).
+
+### Fixed
+
+- **DGCA — accept `ACTION-*` ids and DGA mode without a `changes` array.**
+  Canonical action terminology from methodology 1.0 is recognised in DGCA/DGA
+  validators and previews (#359).
+
+- **Goals preview — canonical `GOAL-*` ids in diagram nodes.** Parsed goals
+  retain `canonical_id` from YAML; SVG/React previews and scope root picker
+  show `GOAL-REVENUE-1` instead of internal numeric ids (#364). Regresses the
+  same class of bug fixed for FGCA in 2.6.0.
+
 ### Changed
 
-- **`@transitrix/diagrams` patch bump (1.6.0 → 1.6.1).** Comment-only change
-  in `repo-validate/types.ts` — cites the validation-convergence ADRs by
-  title instead of by repo-local file path, following the ADR
-  centralization migration. No source or API change.
+- **`@transitrix/diagrams` 1.6.0 → 1.7.6** — compliance trace builder,
+  repo-scope validation primitives, goals `canonical_id` display, DGCA action-id
+  acceptance, and `onFactorClick` extension point.
+- **`@transitrix/cli` 1.1.1 → 1.2.0** — bundles the compliance validator suite
+  for `transitrix validate` / `validate --scope=repo`.
 
 ## [2.9.1] — 2026-07-03
 
