@@ -1,5 +1,5 @@
 // File-scope validation for diagram notations (vkgeorgia/strategy#258).
-// Group C (compliance suite): #518 Phase C1.
+// Group C (compliance suite): #518 Phase C1–C2.
 //
 // The VS Code preview renders its red error block from per-notation validators
 // in @transitrix/diagrams. This module exposes those same validators to the CLI
@@ -43,6 +43,13 @@ import { validateRequirement } from '@transitrix/diagrams/requirement/validate.j
 import { validateAssertion } from '@transitrix/diagrams/assertion/validate.js';
 import { parseImpactViewConfig } from '@transitrix/diagrams/compliance/impact.js';
 import { parseCoverageMetricConfig } from '@transitrix/diagrams/compliance/coverage-metric.js';
+import {
+  validateCodex,
+  isCodexDoc,
+  folderJurisdictionFromPath,
+} from '@transitrix/diagrams/codex/validate.js';
+import { CODEX_ARTEFACT_TYPES } from '@transitrix/diagrams/codex/types.js';
+import { typeOfId } from '@transitrix/diagrams/typed-id.js';
 
 /** The shape every notation validator returns: code/message findings split into
  *  blocking errors and advisory warnings. The concrete result types carry extra
@@ -108,6 +115,10 @@ function validateCoverageMetricDoc(input: unknown): NotationValidationResult {
   return { valid: true, errors: [], warnings };
 }
 
+function validateCodexDoc(input: unknown): NotationValidationResult {
+  return mapPackageResult(validateCodex(input));
+}
+
 // Keyed by the document's `notation:` field value — see the corpus under
 // tests/fixtures/notation-corpus/<notation>/.
 const VALIDATORS: Record<string, NotationValidator> = {
@@ -130,6 +141,8 @@ const VALIDATORS: Record<string, NotationValidator> = {
   assertion: validateAssertionDoc,
   'compliance-impact': validateComplianceImpactDoc,
   'coverage-metric': validateCoverageMetricDoc,
+  // Group C — codex zone (#518 Phase C2); `zone: codex`, not a notation: tag.
+  codex: validateCodexDoc,
 };
 
 /** Notation field values the CLI can validate per file. */
@@ -170,6 +183,9 @@ export function inferNotationFromFilename(filePath: string): string | undefined 
   const base = lower.split('/').pop() ?? lower;
   if (base.startsWith('requirement-') && base.endsWith('.yaml')) return 'requirement';
   if (base.startsWith('assertion-') && base.endsWith('.yaml')) return 'assertion';
+  const rawBase = (filePath.replace(/\\/g, '/').split('/').pop() ?? '').replace(/\.ya?ml$/i, '');
+  const idType = typeOfId(rawBase);
+  if (idType && (CODEX_ARTEFACT_TYPES as readonly string[]).includes(idType)) return 'codex';
   return undefined;
 }
 
@@ -188,6 +204,20 @@ export function notationOf(data: unknown): string | undefined {
   return undefined;
 }
 
+/** Resolve the validator dispatch key: explicit `notation:` wins; codex artefacts
+ *  are keyed as `codex` when `zone: codex`. */
+export function resolveValidatorKey(data: unknown): string | undefined {
+  const notation = notationOf(data);
+  if (notation && isFileValidatableNotation(notation)) return notation;
+  if (isCodexDoc(data)) return 'codex';
+  return notation;
+}
+
+export interface ValidateNotationOptions {
+  /** Repo-relative or absolute path — used for codex folder-jurisdiction checks. */
+  filePath?: string;
+}
+
 /** Parse + date-coerce a YAML string exactly as the previews do, so validator
  *  input — and therefore findings — match the preview. Throws on a YAML syntax
  *  error (the caller maps that to a parse-error report). */
@@ -198,8 +228,21 @@ export function loadNotationYaml(text: string): unknown {
 /** Run the per-notation validator and shape its result as a ValidationReport, so
  *  the CLI prints/serialises notation findings through the same path as BPMN
  *  validation. `notation` must be one isFileValidatableNotation() accepts. */
-export function validateNotationDoc(notation: string, data: unknown): ValidationReport {
-  const result = VALIDATORS[notation](data);
+export function validateNotationDoc(
+  notation: string,
+  data: unknown,
+  options: ValidateNotationOptions = {},
+): ValidationReport {
+  const result =
+    notation === 'codex'
+      ? mapPackageResult(
+          validateCodex(data, {
+            folderJurisdiction: options.filePath
+              ? folderJurisdictionFromPath(options.filePath)
+              : undefined,
+          }),
+        )
+      : VALIDATORS[notation](data);
   const findings: ValidationFinding[] = [
     ...result.errors.map(
       (e): ValidationFinding => ({ ruleId: e.code, severity: 'error', message: e.message }),

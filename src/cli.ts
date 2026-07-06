@@ -24,6 +24,7 @@ import {
   validateNotationDoc,
   CANONICAL_NOTATION_FILE_EXTENSIONS,
   inferNotationFromFilename,
+  resolveValidatorKey,
 } from './validate-notation.js';
 import { handleExportComplianceCommand } from './export-compliance.js';
 
@@ -291,7 +292,7 @@ async function handleValidateCommand(argv: string[]): Promise<void> {
     console.error('             (goals, dgca, dga, fgca, fga, activities, activity-card,');
     console.error('             process-blueprint, blocks, applications, capability-map,');
     console.error('             products, scenarios, process-map, requirement, assertion,');
-    console.error('             compliance-impact, coverage-metric) — same checks as the preview.');
+    console.error('             compliance-impact, coverage-metric, codex) — same checks as the preview.');
     console.error('             Canonical notation extensions are accepted without --ext.');
     console.error('repo scope — whole-canon checks (referential integrity, atomicity,');
     console.error('             id uniqueness, policy) over <root> (default: cwd).');
@@ -339,50 +340,41 @@ async function handleValidateCommand(argv: string[]): Promise<void> {
     process.exit(1);
   }
 
-  // Diagram-notation routing (vkgeorgia/strategy#258): validate via the same
-  // per-notation validator the VS Code preview uses, so the CLI emits the same
-  // findings the preview shows in red. BPMN / no-notation files fall through to
-  // the IR path below.
-  const probedNotation = probeNotation(fileText);
-  if (probedNotation && probedNotation !== 'bpmn') {
-    if (isFileValidatableNotation(probedNotation)) {
-      let data: unknown;
-      try {
-        data = loadNotationYaml(fileText);
-      } catch (e) {
-        const err = e as Error;
-        if (useJson) {
-          console.log(
-            JSON.stringify(
-              { valid: false, notation: probedNotation, message: err.message },
-              null,
-              2,
-            ),
-          );
-        } else {
-          console.error(`✗ ${src}`);
-          console.error();
-          console.error(`Parse error: ${err.message}`);
-          console.error();
-        }
-        process.exit(1);
-      }
-      const report = validateNotationDoc(probedNotation, data);
-      emitFileReport(src, report, useJson, probedNotation);
+  // Diagram-notation / codex routing (#258, #518): validate via the shared
+  // per-notation validators before the BPMN/IR path.
+  let data: unknown;
+  try {
+    data = loadNotationYaml(fileText);
+  } catch (e) {
+    const err = e as Error;
+    if (useJson) {
+      console.log(JSON.stringify({ valid: false, message: err.message }, null, 2));
+    } else {
+      console.error(`✗ ${src}`);
+      console.error();
+      console.error(`Parse error: ${err.message}`);
+      console.error();
+    }
+    process.exit(1);
+  }
+
+  const validatorKey = resolveValidatorKey(data) ?? inferNotationFromFilename(src);
+  if (validatorKey && validatorKey !== 'bpmn') {
+    if (isFileValidatableNotation(validatorKey)) {
+      const report = validateNotationDoc(validatorKey, data, { filePath: src });
+      emitFileReport(src, report, useJson, validatorKey);
       if (!report.isValid) {
         process.exit(1);
       }
       return;
     }
-    // Recognised notation, but no file-scope CLI validator yet — e.g. a future view
-    // type not wired in validate-notation.ts. Be honest: don't claim valid and
-    // don't mis-run the BPMN path.
+    // Recognised notation, but no file-scope CLI validator yet.
     const notice =
-      `notation "${probedNotation}" is not yet validated by the CLI — check it in ` +
+      `notation "${validatorKey}" is not yet validated by the CLI — check it in ` +
       `the Transitrix Studio preview, or run whole-canon checks with --scope=repo.`;
     if (useJson) {
       console.log(
-        JSON.stringify({ valid: null, notation: probedNotation, covered: false, message: notice }, null, 2),
+        JSON.stringify({ valid: null, notation: validatorKey, covered: false, message: notice }, null, 2),
       );
     } else {
       console.error(`• ${src}: ${notice}`);
@@ -400,13 +392,14 @@ async function handleValidateCommand(argv: string[]): Promise<void> {
   // notation: field is absent or wrong, give a targeted error rather than the
   // generic extension list.
   const extNotation = inferNotationFromFilename(src);
-  if (extNotation && !probedNotation) {
+  if (extNotation && !resolveValidatorKey(data)) {
+    const hint = extNotation === 'codex' ? 'zone: codex' : `notation: ${extNotation}`;
     if (useJson) {
       console.log(
         JSON.stringify(
           {
             valid: false,
-            message: `missing notation: field — add 'notation: ${extNotation}' to the file`,
+            message: `missing ${hint} — add it to the file`,
           },
           null,
           2,
@@ -415,7 +408,7 @@ async function handleValidateCommand(argv: string[]): Promise<void> {
     } else {
       console.error(`✗ ${src}`);
       console.error();
-      console.error(`Missing notation: field — add 'notation: ${extNotation}' to the file.`);
+      console.error(`Missing ${hint} — add it to the file.`);
       console.error();
     }
     process.exit(1);

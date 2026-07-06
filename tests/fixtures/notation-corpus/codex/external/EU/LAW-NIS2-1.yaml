@@ -1,21 +1,20 @@
 # Worked example — CODEX (external law): EU NIS2 Directive.
-# Fictional scenario: NorthBay Retail — EU compliance demo.
-# All article text is abbreviated and illustrative; not a verbatim legal extract.
 
 zone: codex
 id: LAW-NIS2-1
 name: "NIS2 Directive — Network and Information Security"
-type: directive
+type: LAW
 jurisdiction: EU
 authority: "European Parliament and Council"
 effective_date: "2023-01-16"
 transposition_deadline: "2024-10-17"
 description: >
   Directive (EU) 2022/2555 on measures for a high common level of cybersecurity
-  across the Union. Expands the scope of NIS to cover additional sectors (including
-  digital infrastructure and online marketplaces) and introduces stronger security
-  requirements, incident reporting, and supply-chain risk management obligations.
+  across the Union.
 
-# Admission record (CONTRACT.md §6)
 admitted_at: "2026-06-01"
 admitted_by: "v.korobeinikov"
+gate_checks:
+  uniqueness: pass
+  consistency: pass
+  completeness: pass
