@@ -1,5 +1,5 @@
 // File-scope validation for diagram notations (vkgeorgia/strategy#258).
-// Group C (compliance suite): strategy#518 Phase C1.
+// Group C (compliance suite): #518 Phase C1.
 //
 // The VS Code preview renders its red error block from per-notation validators
 // in @transitrix/diagrams. This module exposes those same validators to the CLI
@@ -125,7 +125,7 @@ const VALIDATORS: Record<string, NotationValidator> = {
   products: validateProductsCatalogue,
   scenarios: validateScenario,
   'process-map': validateProcessMap,
-  // Group C — compliance suite (strategy#518 Phase C1).
+  // Group C — compliance suite (#518 Phase C1).
   requirement: validateRequirementDoc,
   assertion: validateAssertionDoc,
   'compliance-impact': validateComplianceImpactDoc,
