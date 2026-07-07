@@ -5,7 +5,7 @@
   "workspaces": [
     "packages/*"
   ],
-  "description": "VS Code extension and CLI for editing and previewing Transitrix diagrams (BPMN, Goals, FGCA, …).",
+  "description": "VS Code extension and CLI for editing and previewing Transitrix diagrams (BPMN, Goals, DGCA, …).",
   "license": "MIT",
   "homepage": "https://github.com/transitrix/transitrix-studio#readme",
   "bugs": {
