@@ -5,8 +5,6 @@
 // normalizeExtension). The extension bundles its own compiler copy and cannot share
 // imports with the CLI package. Keep both lists in sync when adding/removing extensions.
 export const DEFAULT_TRANSITRIX_FILE_EXTENSIONS = ['.bpmn.transitrix.yaml'];
-/** @deprecated Removed in 2.0.0 — use {@link DEFAULT_TRANSITRIX_FILE_EXTENSIONS}. */
-export const DEFAULT_CERVIN_FILE_EXTENSIONS = DEFAULT_TRANSITRIX_FILE_EXTENSIONS;
 
 export function normalizeExt(s: string): string {
   const t = s.trim();

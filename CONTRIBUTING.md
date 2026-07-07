@@ -58,7 +58,7 @@ conformance gates) and `"warn"` (enable a rule, e.g. an off-by-default one). An
 override **only toggles whether a rule runs** — it does not change the rule's
 built-in severity, so `"<RULE>": "warn"` does not demote an error to a warning.
 
-The legacy **`.cervinrc`** filename is **not read** (removed in CLI/runtime 2.0.0). Use `.transitrixrc` only. The legacy `schemas/cervinrc.schema.json` is kept only as a historical reference.
+The legacy **`.cervinrc`** filename is **not read** (removed in CLI/runtime 2.0.0). Use `.transitrixrc` only.
 
 ## Per-user display preferences
 

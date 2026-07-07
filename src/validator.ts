@@ -915,7 +915,7 @@ const rule_AP_ImplicitJoin: ValidationRule = {
 }
 
 /**
- * AP-GW-AS-TASK (RD-110): Gateway-as-task heuristic (off by default, enable via .cervinrc).
+ * AP-GW-AS-TASK (RD-110): Gateway-as-task heuristic (off by default, enable via .transitrixrc).
  * A gateway whose name starts with an imperative verb (e.g., "Validate", "Approve", "Check")
  * is likely a task mistakenly modeled as a gateway. Gateways are routing constructs only.
  * This is a heuristic hint, not a hard rule; some gateways may legitimately have action-like names.

@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+### Removed
+
+- **Overdue Cervin deprecated shims (P5 cleanup).**  Grace period stated at 2.0.0
+  has long elapsed (current: 3.0.0). Dropped:
+  - `src/cervinrc.ts` re-export shim module.
+  - `loadCervinrc()` from `transitrixrc.ts` — use `loadTransitrixrc()`.
+  - `DEFAULT_CERVIN_FILE_EXTENSIONS` from `cli-parse.ts` — use
+    `DEFAULT_TRANSITRIX_FILE_EXTENSIONS`.
+  - `compileCervinYaml` / `compileCervinYamlWithLayout` from `compiler.ts` — use
+    `compileTransitrixYaml` / `compileTransitrixYamlWithLayout`.
+  - `CervinrcConfig` type alias from `validator-types.ts` — use `TransitrixrcConfig`.
+  - `schemas/cervinrc.schema.json` (root, extension, and `@transitrix/cli` copies).
+
+  **Semver note:** Any consumer still importing the dropped names or referencing
+  `@transitrix/cli/schemas/cervinrc.schema.json` will break. Valerii to decide
+  whether the next `@transitrix/cli` release warrants a major bump.
+
 ## [3.0.0] — 2026-07-07
 
 ### Added

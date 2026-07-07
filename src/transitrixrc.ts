@@ -128,13 +128,6 @@ export function loadTransitrixrc(startPath: string = process.cwd()): Transitrixr
 }
 
 /**
- * @deprecated Removed in 2.0.0 — use {@link loadTransitrixrc}.
- */
-export function loadCervinrc(startPath: string = process.cwd()): TransitrixrcConfig {
-  return loadTransitrixrc(startPath)
-}
-
-/**
  * Prevent downgrade of error-severity rules.
  * Error rules are BPMN conformance gates and cannot be disabled or demoted.
  */
