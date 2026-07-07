@@ -1,6 +1,6 @@
 # `canon/elements/01_motivation/goals/`
 
-Goal element primitives — each file is one strategic or tactical goal on the ArchiMate 3.2 **motivation** layer. Goals are the most cross-referenced strategy-chain element (goals tree, FGCA, FGA, activities). The goals-tree view (`../../../views/goals/`) arranges them into a hierarchy; this folder holds their canonical records.
+Goal element primitives — each file is one strategic or tactical goal on the ArchiMate 3.2 **motivation** layer. Goals are the most cross-referenced strategy-chain element (goals tree, DGCA, DGA). The goals-tree view (`../../../views/goals/`) arranges them into a hierarchy; this folder holds their canonical records.
 
 TYPE registry: [`notations/IDS_AND_REFERENCES.md`](../../../../../../notations/IDS_AND_REFERENCES.md) §3.1 (`GOAL`).
 
@@ -30,4 +30,4 @@ A goal's **`parent`** (`GOAL → GOAL`) is a first-class time-aware relation (`g
 
 - Element-primitive schema: [`notations/ELEMENT_PRIMITIVES.md`](../../../../../../notations/ELEMENT_PRIMITIVES.md) §7.2.
 - Goals-tree notation: [`notations/views/04-goals.md`](../../../../../../notations/views/04-goals.md).
-- Views over these elements: [`../../../views/goals/`](../../../views/goals/), [`../../../views/fgca/`](../../../views/fgca/), [`../../../views/fga/`](../../../views/fga/).
+- Views over these elements: [`../../../views/goals/`](../../../views/goals/), [`../../../views/dgca/`](../../../views/dgca/).

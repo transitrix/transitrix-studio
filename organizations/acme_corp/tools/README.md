@@ -6,7 +6,7 @@ example and not intended for end users.
 ## dsm-demo-seed.sql
 
 Populates a running [DSM](https://github.com/transitrix/transitrix-dsm) instance with the
-acme-corp FGCA chain (Factor → Goal → Change → Activity) for demo and development purposes.
+acme-corp DGCA chain (Driver → Goal → Change → Action) for demo and development purposes.
 
 **When to use:** after starting DSM locally or on a dev instance, to load meaningful example
 data that mirrors the acme-corp canon.

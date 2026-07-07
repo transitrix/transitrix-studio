@@ -1,6 +1,6 @@
 # `canon/elements/05_implementation/actions/`
 
-Action element primitives — each file is one initiative / workstream (an ArchiMate 3.2 *Work Package*) on the **Implementation & Migration** layer. Actions are recursive: an initiative aggregates programmes → projects → tasks, all one TYPE via `parent`. They are arranged by the action view (`../../../views/action/`) as a precedence network, and by the FGCA / FGA chains.
+Action element primitives — each file is one initiative / workstream (an ArchiMate 3.2 *Work Package*) on the **Implementation & Migration** layer. Actions are recursive: an initiative aggregates programmes → projects → tasks, all one TYPE via `parent`. They are arranged by the action view ([`../../../views/action/`](../../../views/action/)) as a precedence network, and by the DGCA / DGA chains ([`../../../views/dgca/`](../../../views/dgca/)).
 
 TYPE registry: [`notations/IDS_AND_REFERENCES.md`](../../../../../../notations/IDS_AND_REFERENCES.md) §3.1 (`ACTION`). Layer rationale: [`notations/ELEMENT_PRIMITIVES.md`](../../../../../../notations/ELEMENT_PRIMITIVES.md) §6.1.
 
@@ -21,8 +21,8 @@ Defined in [`notations/ELEMENT_PRIMITIVES.md`](../../../../../../notations/ELEME
 
 | File | Notes |
 |---|---|
-| `ACTION-CRM-EU-1.yaml` | Delivers `CHANGE-EU-CRM-1` (FGCA chain) |
-| `ACTION-SUPPORT-1.yaml` | Serves `GOAL-OPS-1` (FGA chain) |
+| `ACTION-CRM-EU-1.yaml` | Delivers `CHANGE-EU-CRM-1` (DGCA chain) |
+| `ACTION-SUPPORT-1.yaml` | Serves `GOAL-OPS-1` (DGA chain — DGCA with Changes layer off) |
 | `ACTION-DISCOVERY-1.yaml` … `ACTION-LAUNCH-1.yaml` | Onboarding precedence network, linked by `predecessors` |
 
 ## See also

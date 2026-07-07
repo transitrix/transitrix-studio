@@ -35,7 +35,7 @@ External authority (`codex/external/<jurisdiction>/LAW-…`, `REGULATION-…`) a
 
 ## View documents — `canon/views/<notation>/`
 
-One worked skeleton per notation under `canon/views/` (fgca, fga, goals, capabilities, processmap, products, applications, action, issues, blocks, scenarios, bpmn, process-blueprint). Each references the element primitives above by canonical ID.
+One worked skeleton per notation under `canon/views/` (dgca, goals, capabilities, processmap, products, applications, action, issues, blocks, scenarios, bpmn, process-blueprint). The deprecated [`fga/`](../../canon/views/fga/) stub remains for migration reference only. Each example references the element primitives above by canonical ID.
 
 ## Copy-and-fill templates — `.templates/`
 

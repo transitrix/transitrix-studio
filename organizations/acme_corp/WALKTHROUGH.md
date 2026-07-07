@@ -32,7 +32,7 @@ Each beat links to where it lives in this repo.
 2. **The pressure — why they had to change.**
    External drivers (a GDPR enforcement wave, incoming NIS2) and the real obligations
    behind them; the coverage read shows where the model was still "dark".
-   → [`canon/views/fgca/`](canon/views/fgca/) (factors) ·
+   → [`canon/views/dgca/`](canon/views/dgca/) (drivers) ·
      [`codex/`](codex/) (the obligations) ·
      [`canon/views/coverage-metric/`](canon/views/coverage-metric/)
 
@@ -40,12 +40,12 @@ Each beat links to where it lives in this repo.
    The goal tree: compliance, resilience, growth — and the portfolio quadrant that
    shows which goals demand immediate action versus which shape the longer horizon.
    → [`canon/views/goals/`](canon/views/goals/) ·
-     [`canon/views/fgca/`](canon/views/fgca/) ·
+     [`canon/views/dgca/`](canon/views/dgca/) ·
      [`canon/views/quadrant/`](canon/views/quadrant/) (goal prioritisation — Strategy layer, Mermaid)
 
 4. **The transformation — how.**
    The changes, target capability maturity, alternative paths considered.
-   → [`canon/views/fgca/`](canon/views/fgca/) ·
+   → [`canon/views/dgca/`](canon/views/dgca/) ·
      [`canon/views/capabilities/`](canon/views/capabilities/) ·
      [`canon/views/scenarios/`](canon/views/scenarios/)
 

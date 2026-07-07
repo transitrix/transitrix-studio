@@ -33,7 +33,7 @@ scenario:
     - capability_id: CAPABILITY-V2
     - capability_id: CAPABILITY-H1
 
-  activities:
+  actions:
     - activity_id: ACTION-CRM-EU-1
     - activity_id: ACTION-GDPR-ERASURE-PIPELINE-1
     - activity_id: ACTION-GDPR-DSR-WORKFLOW-1

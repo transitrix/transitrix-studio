@@ -1,6 +1,6 @@
 # `canon/elements/05_implementation/changes/`
 
-Change element primitives — each file is one BDN **business change** (an ArchiMate 3.2 *Gap*) on the **Implementation & Migration** layer. A change is a required delta to reach the target state, at any granularity; higher-level changes decompose into lower-level ones via a `parent` relation. Changes are arranged by the FGCA view (`../../../views/fgca/`) and delivered by actions (`../actions/`).
+Change element primitives — each file is one BDN **business change** (an ArchiMate 3.2 *Gap*) on the **Implementation & Migration** layer. A change is a required delta to reach the target state, at any granularity; higher-level changes decompose into lower-level ones via a `parent` relation. Changes are arranged by the DGCA view ([`../../../views/dgca/`](../../../views/dgca/)) and delivered by actions ([`../actions/`](../actions/)).
 
 TYPE registry: [`notations/IDS_AND_REFERENCES.md`](../../../../../../notations/IDS_AND_REFERENCES.md) §3.1 (`CHANGE`). Layer rationale: [`notations/ELEMENT_PRIMITIVES.md`](../../../../../../notations/ELEMENT_PRIMITIVES.md) §6.1.
 
@@ -25,5 +25,5 @@ Defined in [`notations/ELEMENT_PRIMITIVES.md`](../../../../../../notations/ELEME
 ## See also
 
 - Element-primitive schema: [`notations/ELEMENT_PRIMITIVES.md`](../../../../../../notations/ELEMENT_PRIMITIVES.md) §7.3, layer §6.1.
-- FGCA notation: [`notations/views/02-fgca.md`](../../../../../../notations/views/02-fgca.md).
+- DGCA notation: [`notations/views/02-dgca.md`](../../../../../../notations/views/02-dgca.md).
 - Sibling actions catalogue: [`../actions/`](../actions/).

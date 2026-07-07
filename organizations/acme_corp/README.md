@@ -36,7 +36,7 @@ The three **zones** (`canon` / `field` / `codex`) are parallel, not stacked — 
 
 One model, every layer, every stakeholder.
 
-**Native notation** (Transitrix Studio or CLI) covers the business layers — Motivation through Business: Goals, FGA/FGCA, Capability Map, Process Map, BPMN, Process Blueprint, Scenarios, Compliance Impact.
+**Native notation** (Transitrix Studio or CLI) covers the business layers — Motivation through Business: Goals, DGCA/DGA, Capability Map, Process Map, BPMN, Process Blueprint, Scenarios, Compliance Impact.
 
 **Mermaid complementary views** (any Markdown preview, no extra tooling) extend coverage to the technical and strategic-planning layers:
 

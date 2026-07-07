@@ -1,0 +1,22 @@
+# adopters.yaml — machine-readable registry of downstream consumers of this repo.
+# Read by the Discovery job (scripts/discovery.mjs); never edited by the job itself.
+# Schema and semantics: transitrix/methodology §7.4 of methodology-update-propagation.md.
+#
+# acme-corp's consumers are pinned by commit SHA (not semver), because acme-corp
+# does not yet publish versioned releases. The discovery job compares each pin
+# against the current HEAD commit of this repository.
+version: 1
+consumers:
+  - repo: transitrix/transitrix-studio
+    clone: https://github.com/transitrix/transitrix-studio.git
+    role: demo-mirror
+    pin_file: organizations/acme_corp/.source-version
+    pin_key: source_commit
+    decisions_path: organizations/acme_corp/operations/decisions
+
+  - repo: transitrix/transitrix-dsm
+    clone: https://github.com/transitrix/transitrix-dsm.git
+    role: demo-consumer
+    pin_file: acme-corp-source.yaml
+    pin_key: acme_corp_version
+    decisions_path: docs/decisions

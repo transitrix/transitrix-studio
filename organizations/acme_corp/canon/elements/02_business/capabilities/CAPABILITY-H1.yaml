@@ -1,0 +1,26 @@
+# Cross-cutting compliance capability — referenced by products, scenarios,
+# and the process landscape. Diagram address H1 in the capability-map view.
+# Schema: notations/views/05-capability-map.md §13 + CONTRACT.md §6–§7.
+
+notation: capability
+id: CAPABILITY-H1
+name: "Compliance & Data Protection"
+type: supporting
+description: >
+  Cross-cutting capability covering GDPR/NIS2 obligations: data-subject
+  rights, breach reporting, and data residency. Lowest current maturity —
+  the focus of the 2026 remediation programme.
+
+target_maturity: 3
+business_process: PROCESS-DSR-HANDLE-1
+
+zone: canon
+admitted_at: "2026-07-06"
+admitted_by: "v.korobeinikov"
+gate_checks:
+  uniqueness: pass
+  consistency: pass
+  completeness: pass
+
+valid_from: "2026-05-26"
+valid_to: null
