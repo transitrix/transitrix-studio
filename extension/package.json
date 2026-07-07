@@ -2,7 +2,7 @@
   "name": "transitrix-studio",
   "displayName": "Transitrix Studio",
   "publisher": "transitrix",
-  "version": "2.10.0",
+  "version": "3.0.0",
   "description": "Architecture-as-code for the modern enterprise. Author 17 notations — goals, processes, capabilities, BPMN, applications, more — as plain YAML, get live diagrams in VS Code. Diffable in git. AI-friendly. Open source. Built on ArchiMate 3.2 and BPMN 2.0.",
   "license": "MIT",
   "icon": "icon.png",
@@ -49,7 +49,6 @@
   "main": "./out/extension.js",
   "type": "module",
   "activationEvents": [
-    "workspaceContains:**/*.cervin.yaml",
     "workspaceContains:**/*.bpmn.transitrix.yaml",
     "workspaceContains:**/*.goals.transitrix.yaml",
     "workspaceContains:**/*.dgca.transitrix.yaml",
@@ -352,11 +351,9 @@
         "id": "transitrix-yaml",
         "aliases": [
           "Transitrix BPMN YAML",
-          "BPMN YAML",
-          "cervin-yaml"
+          "BPMN YAML"
         ],
         "extensions": [
-          ".cervin.yaml",
           ".bpmn.transitrix.yaml"
         ],
         "configuration": "./language-configuration.json"
@@ -848,7 +845,7 @@
     "menus": {
       "editor/title": [
         {
-          "when": "resourceFilename =~ /\\.(cervin|bpmn\\.transitrix)\\.yaml$/",
+          "when": "resourceFilename =~ /\\.bpmn\\.transitrix\\.yaml$/",
           "command": "transitrix.openPreview",
           "group": "navigation@-10"
         },

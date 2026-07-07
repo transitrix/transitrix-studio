@@ -44,7 +44,7 @@ export class CervinPreview {
       this.panel.reveal(showOptions.viewColumn, true);
     } else {
       this.panel = vscode.window.createWebviewPanel(
-        'cervinPreview',
+        'transitrixBpmnPreview',
         `${this.panelTitle} — ${path.basename(doc.fileName)}`,
         showOptions,
         {
@@ -113,7 +113,7 @@ export class CervinPreview {
     }
 
     const stem = this.lastSourceUri
-      ? path.basename(this.lastSourceUri.fsPath).replace(/\.[^.]+\.transitrix\.yaml$|\.cervin\.yaml$/, '')
+      ? path.basename(this.lastSourceUri.fsPath).replace(/\.[^.]+\.transitrix\.yaml$/, '')
       : 'diagram';
     const filename = `${stem}.png`;
     const defaultUri = this.lastSourceUri

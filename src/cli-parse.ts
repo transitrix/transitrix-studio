@@ -1,7 +1,7 @@
 /** CLI argument parsing for `transitrix <input> <output>` (not `serve` subcommand). Pure — no process.exit. */
 
 // NOTE (RD-071): DEFAULT_TRANSITRIX_FILE_EXTENSIONS and normalizeExt are intentionally
-// duplicated in extension/src/source-files.ts (as DEFAULT_CERVIN_EXTENSIONS /
+// duplicated in extension/src/source-files.ts (as DEFAULT_TRANSITRIX_EXTENSIONS /
 // normalizeExtension). The extension bundles its own compiler copy and cannot share
 // imports with the CLI package. Keep both lists in sync when adding/removing extensions.
 export const DEFAULT_TRANSITRIX_FILE_EXTENSIONS = ['.bpmn.transitrix.yaml'];

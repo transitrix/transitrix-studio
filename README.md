@@ -10,7 +10,7 @@ Transitrix Studio brings **text-first diagram authoring** to VS Code. Instead of
 
 Studio previews the full Transitrix notation kit — **13 diagram notations** plus compliance views and canon artefacts (assertion / requirement). See [`extension/README.md`](extension/README.md) for the authoritative per-format list shipping in the VSIX, and the methodology repo for the notation specs themselves: [github.com/transitrix/methodology](https://github.com/transitrix/methodology).
 
-> **Legacy identifiers.** The `.cervin.yaml` file extension and the `cervin` CLI binary name predate the `transitrix` rename and are kept accepted for backward compatibility; new files should use the canonical `*.<short-name>.transitrix.yaml` form per the methodology (e.g. `*.bpmn.transitrix.yaml` for BPMN).
+> **Legacy identifiers.** The pre-rename `cervin` name is fully retired in extension **3.0+** and CLI **2.0+**. Use canonical `*.<short-name>.transitrix.yaml` suffixes (e.g. `*.bpmn.transitrix.yaml` for BPMN).
 
 ## Install
 

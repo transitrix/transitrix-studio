@@ -2,10 +2,30 @@
 
 ## Unreleased
 
+## 3.0.0 — 2026-07-07
+
+Legacy identifier sunset — completes the Cervin → Transitrix migration for the VS Code extension.
+
 ### Added
 
 - **Unified text-in-block layout** (`entity-text-layout.ts`): shared wrapping, truncation, and vertical placement for Goals, DGCA/DGA, Nested Blocks, Activities, Process Blueprint, and Capability Map renderers.
-- **Block size presets** (`compact` / `normal` / `wide`) via `transitrix.nodeSize.*` settings and the in-preview **Controls → Block size** row (Goals, DGCA/DGA, Activities). Smooth width/height sliders remain a documented follow-up idea.
+- **Block size presets** (`compact` / `normal` / `wide`) via `transitrix.nodeSize.*` settings and the in-preview **Controls → Block size** row (Goals, DGCA/DGA, Activities, Process Blueprint). Smooth width/height sliders remain a documented follow-up idea.
+
+### Removed
+
+- **`*.cervin.yaml` BPMN suffix.** The extension no longer activates for, syntax-highlights, or previews files with the legacy suffix. Rename to `*.bpmn.transitrix.yaml`.
+- **`cervin-yaml` language alias** and `.cervin.yaml` from the BPMN language registration.
+- **`cervin.*` settings fallbacks.** Only `transitrix.fileExtensions` and `transitrix.exportEnabled` are read.
+- **`cervin.openPreview` / `cervin.exportSvg` / `cervin.exportPng` / `cervin.exportBpmn` commands.** Update keybindings and macros to the `transitrix.*` equivalents.
+
+### Migration
+
+| Before | After |
+|--------|-------|
+| `*.cervin.yaml` | `*.bpmn.transitrix.yaml` |
+| `cervin.*` settings | `transitrix.*` |
+| `cervin.openPreview` etc. | `transitrix.*` |
+| `"[cervin-yaml]"` in settings.json | `"[transitrix-yaml]"` |
 
 ## 2.2.0 — 2026-06-24
 

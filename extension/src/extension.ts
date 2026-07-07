@@ -27,8 +27,7 @@ import { CoverageMetricPreview } from './coverage-metric-preview.js';
 import { openComplianceFile } from './compliance-scan.js';
 import type { LayoutMetrics, ValidationReport } from './types.js';
 import {
-  checkCervinSettingsMigration,
-  documentMatchesCervinSource,
+  documentMatchesTransitrixSource,
   formatExtensionHint,
   getConfiguredExtensions,
 } from './source-files.js';
@@ -176,26 +175,7 @@ function notYet(label: string): void {
   );
 }
 
-// Cervin → Transitrix command migration (CLAUDE.md §Cervin naming, P3). The
-// `cervin.*` commands are kept as deprecated aliases for one release so existing
-// keybindings and macros survive; invoking one warns once and delegates to the
-// canonical `transitrix.*` handler.
-const cervinCommandNoticeShown = new Set<string>();
-
-function noteCervinCommandDeprecation(legacyId: string, canonicalId: string): void {
-  if (cervinCommandNoticeShown.has(legacyId)) return;
-  cervinCommandNoticeShown.add(legacyId);
-  const msg = `Transitrix Studio: the '${legacyId}' command is deprecated and will be removed in 2.0.0 — use '${canonicalId}' instead.`;
-  console.warn(msg);
-  void vscode.window.showWarningMessage(msg);
-}
-
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
-  // Cervin → Transitrix settings migration (P2): warn once if a user config
-  // still relies on a legacy `cervin.*` key while its `transitrix.*` counterpart
-  // is unset.
-  checkCervinSettingsMigration();
-
   // TX-R003: cache the in-flight Promise, not the resolved result. Two
   // concurrent calls during the brief window before `loadCompiler` resolves
   // would otherwise both pass the `if (!compileFn)` guard and run the loader
@@ -271,7 +251,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   const openPreviewHandler = async (editor: vscode.TextEditor): Promise<void> => {
     const doc = editor.document;
-    if (!documentMatchesCervinSource(doc)) {
+    if (!documentMatchesTransitrixSource(doc)) {
       const exts = getConfiguredExtensions();
       vscode.window.showWarningMessage(
         `Open a file with one of these suffixes: ${formatExtensionHint(exts)} (configure with transitrix.fileExtensions).`,
@@ -288,26 +268,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   //     BPMN PNG export; `exportSvg`/`exportBpmn` are still placeholders.
   //   • `transitrixStudio.*` — the broader Studio surface (all the per-notation
   //     previews and their Save/Copy-as-PNG/SVG commands).
-  //   • `cervin.*` — deprecated aliases, removed in 2.0.0 (CLAUDE.md §Cervin P3/P7).
-  const aliasOf = (legacyId: string, canonicalId: string, run: () => void | Promise<void>) =>
-    vscode.commands.registerCommand(legacyId, () => {
-      noteCervinCommandDeprecation(legacyId, canonicalId);
-      return run();
-    });
-
   context.subscriptions.push(
     vscode.commands.registerTextEditorCommand('transitrix.openPreview', openPreviewHandler),
     vscode.commands.registerCommand('transitrix.exportSvg', () => notYet('SVG')),
     vscode.commands.registerCommand('transitrix.exportPng', () => preview.saveAsPng()),
     vscode.commands.registerCommand('transitrix.exportBpmn', () => notYet('.bpmn')),
     vscode.commands.registerCommand('transitrixStudio.saveBpmnAsPng', () => preview.saveAsPng()),
-    vscode.commands.registerTextEditorCommand('cervin.openPreview', (editor) => {
-      noteCervinCommandDeprecation('cervin.openPreview', 'transitrix.openPreview');
-      return openPreviewHandler(editor);
-    }),
-    aliasOf('cervin.exportSvg', 'transitrix.exportSvg', () => notYet('SVG')),
-    aliasOf('cervin.exportPng', 'transitrix.exportPng', () => preview.saveAsPng()),
-    aliasOf('cervin.exportBpmn', 'transitrix.exportBpmn', () => notYet('.bpmn')),
     vscode.commands.registerCommand('transitrixStudio.previewGoals', async () => {
       const doc = vscode.window.activeTextEditor?.document;
       const isGoals = doc && (isGoalsFile(doc) || (isDGCAFile(doc) && probeDocNotation(doc) === 'goals'));
@@ -611,7 +577,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       if (isProcessBlueprintFile(doc)) { void processBlueprintPreview.refreshSaved(doc); return; }
       if (isActivityCardFile(doc)) { void activityCardPreview.refreshSaved(doc); return; }
       if (isCoverageMetricFile(doc)) { void coverageMetricPreview.refreshSaved(doc); return; }
-      if (!documentMatchesCervinSource(doc)) return;
+      if (!documentMatchesTransitrixSource(doc)) return;
       void preview.refreshSaved(doc);
       void processPreview.refreshSaved(doc);
     }),
@@ -639,7 +605,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       if (isSingleLawFile(doc)) { await singleLawPreview.showOrReveal(doc); return; }
       if (isSingleProductFile(doc)) { await singleProductPreview.showOrReveal(doc); return; }
       if (isRequirementTraceFile(doc)) { await requirementTracePreview.showOrReveal(doc); return; }
-      if (documentMatchesCervinSource(doc)) { await openBpmnPreviewForDocument(doc); return; }
+      if (documentMatchesTransitrixSource(doc)) { await openBpmnPreviewForDocument(doc); return; }
     }),
   );
 }
