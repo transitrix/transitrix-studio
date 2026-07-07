@@ -3,7 +3,7 @@
 **Version:** 0.3.7
 **Date:** 2026-05-04
 **Scope:** Reference for the YAML DSL used to describe BPMN 2.0 processes in Transitrix Studio. Covers structure, allowed elements, sequence flows, identifiers, and the supported subset of BPMN 2.0.
-**Related:** [`validation.md`](validation.md), [`metrics.md`](metrics.md), [Transitrix methodology — BPMN sections](https://github.com/transitrix/methodology), [`../schemas/bpmn-dsl.schema.json`](../schemas/bpmn-dsl.schema.json), [`glossary.md`](glossary.md).
+**Related:** [`validation.md`](validation.md), [`internal/metrics.md`](internal/metrics.md), [Transitrix methodology — BPMN sections](https://github.com/transitrix/methodology), [`../schemas/bpmn-dsl.schema.json`](../schemas/bpmn-dsl.schema.json), [`glossary.md`](glossary.md).
 
 ---
 

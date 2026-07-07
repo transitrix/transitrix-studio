@@ -1,21 +1,17 @@
 # Project documentation
 
-| Document | Purpose |
-|----------|---------|
-| [`repo-layout.md`](repo-layout.md) | Where code, tests, and fixtures live |
-| [`cli.md`](cli.md) | `transitrix` / `@transitrix/cli` usage |
-| [`notation.md`](notation.md) | BPMN YAML DSL reference |
-| [`validation.md`](validation.md) | Validation rule catalogue |
-| [`metrics.md`](metrics.md) | Layout quality metrics |
-| [`bpmn-routing.md`](bpmn-routing.md) | Sequence-flow routing conventions |
-| [`packaging.md`](packaging.md) | VSIX build and platform targets |
-| [`release-runbook.md`](release-runbook.md) | Release procedure |
-| [`vscode-marketplace-publish-runbook.md`](vscode-marketplace-publish-runbook.md) | VS Code Marketplace publish |
-| [`openvsx-publish-runbook.md`](openvsx-publish-runbook.md) | Open VSX publish |
-| [`glossary.md`](glossary.md) | Domain terms |
-| [`extraction/`](extraction/) | Internal module contracts (draft) |
-| [`archive/`](archive/README.md) | Superseded historical docs |
+Documentation for **adopters and contributors**. Maintainer runbooks and internal specs live in [`internal/`](internal/README.md).
 
-Methodology notation specs: [github.com/transitrix/methodology](https://github.com/transitrix/methodology).
+| Document | Audience | Purpose |
+|----------|----------|---------|
+| [`cli.md`](cli.md) | CLI / CI users | Install and use `@transitrix/cli` |
+| [`notation.md`](notation.md) | BPMN authors | YAML DSL reference |
+| [`validation.md`](validation.md) | Authors + preview users | Validation rule catalogue (linked from in-editor findings) |
+| [`glossary.md`](glossary.md) | Everyone | Domain terms |
+| [`repo-layout.md`](repo-layout.md) | Contributors | Repository directory map |
 
-Extension user guide: [`extension/README.md`](../extension/README.md).
+**Extension (Marketplace):** [`extension/README.md`](../extension/README.md)
+
+**Methodology notation specs:** [github.com/transitrix/methodology](https://github.com/transitrix/methodology)
+
+**Contributing:** [`CONTRIBUTING.md`](../CONTRIBUTING.md)

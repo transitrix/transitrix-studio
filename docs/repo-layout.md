@@ -51,7 +51,7 @@ This document maps **top-level folders** to **roles** so you know where to look 
 | [`schemas/`](../schemas/) | **JSON Schemas for AJV**: `bpmn-dsl.schema.json` (DSL grammar), `transitrixrc.schema.json` (project config). Copied into `extension/schemas/` by `extension:prep`. |
 | [`tests/`](../tests/) | **Vitest root suite.** BPMN compiler tests, layout/routing, integration, metrics regression. See *Two-suite test strategy* below. |
 | [`scripts/`](../scripts/) | Build and dev tooling: `build-compiler-bundle.mjs`, `build-webview.mjs`, `build-extension-bundle.mjs`, `package-extension.mjs`, `bump-extension-version.mjs`, `measure-baseline.mjs`, `ci-metrics-diff.mjs`. |
-| [`docs/`](../docs/) | **Project documentation**: this layout map, [`cli.md`](cli.md), glossary, metrics, validation notes. Superseded docs live in [`docs/archive/`](archive/README.md). |
+| [`docs/`](../docs/) | **Adopter/contributor docs** — [`README.md`](../docs/README.md): CLI, notation, validation, glossary, repo layout. Maintainer material: [`docs/internal/`](../docs/internal/README.md). |
 | [`output/`](../output/) | **Build output** — packaged `.vsix` files produced by `npm run package-extension`. Gitignored. |
 | [`.archive/`](../.archive/) | **Local maintainer archive** (gitignored). Move retired trees here instead of deleting on developer machines. |
 | [`intellij/`](../intellij/) | **IntelliJ plugin** packaging and install docs (optional IDE surface; separate from the VS Code extension). |
@@ -85,7 +85,7 @@ Both suites are required to pass — CI runs `npm test` end-to-end and blocks PR
 | Task | Likely location |
 |------|----------------|
 | BPMN DSL parsing / schema errors | [`src/parser.ts`](../src/parser.ts), [`schemas/bpmn-dsl.schema.json`](../schemas/bpmn-dsl.schema.json) |
-| BPMN layout / routing quality | [`src/layout.ts`](../src/layout.ts), [`src/layout-options.ts`](../src/layout-options.ts), [`docs/bpmn-routing.md`](bpmn-routing.md) |
+| BPMN layout / routing quality | [`src/layout.ts`](../src/layout.ts), [`src/layout-options.ts`](../src/layout-options.ts), [`docs/internal/bpmn-routing.md`](../docs/internal/bpmn-routing.md) |
 | BPMN XML output | [`src/emitter.ts`](../src/emitter.ts) |
 | CLI behaviour | [`src/cli.ts`](../src/cli.ts), [`src/cli-parse.ts`](../src/cli-parse.ts), [`packages/cli/`](../packages/cli/) |
 | Compliance export (`export-compliance`) | [`src/export-compliance.ts`](../src/export-compliance.ts), [`packages/diagrams/src/compliance/`](../packages/diagrams/src/compliance/) |

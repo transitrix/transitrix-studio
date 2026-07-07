@@ -111,8 +111,8 @@ npm deprecate @transitrix/diagrams@1.0.0 "Broken — use 1.0.1+"
 
 ## Relates
 
-- [`docs/packaging.md`](packaging.md) — VSIX packaging details.
-- [`docs/vscode-marketplace-publish-runbook.md`](vscode-marketplace-publish-runbook.md),
-  [`docs/openvsx-publish-runbook.md`](openvsx-publish-runbook.md) — the
+- [`packaging.md`](packaging.md) — VSIX packaging details.
+- [`vscode-marketplace-publish-runbook.md`](vscode-marketplace-publish-runbook.md),
+  [`openvsx-publish-runbook.md`](openvsx-publish-runbook.md) — the
   marketplace-specific notes the workflows codify.
 - [`docs/cli.md`](cli.md) — CLI install docs.

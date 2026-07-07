@@ -40,7 +40,7 @@ if (forbidden.length > 0) {
   for (const p of forbidden) {
     console.error(`  extension/${p}`);
   }
-  console.error('Remove or relocate before packaging. See docs/packaging.md.');
+  console.error('Remove or relocate before packaging. See docs/internal/packaging.md.');
   process.exit(1);
 }
 

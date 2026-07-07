@@ -10,9 +10,7 @@ Before you open a PR:
 
 After changes that touch compilation or layout, run **`npm test`**.
 
-Skim **[`docs/repo-layout.md`](docs/repo-layout.md)** for a directory-level map of the repository (core vs editors vs polyglot backends, specs, examples).
-
-See [`roadmap.md`](roadmap.md) for planned work IDs (`roadmap: RD-XXX`).
+Skim **[`docs/repo-layout.md`](docs/repo-layout.md)** for a directory-level map of the repository. Adopter-facing docs: [`docs/README.md`](docs/README.md). Maintainer runbooks: [`docs/internal/README.md`](docs/internal/README.md).
 
 ## Web UI vs "mandatory chrome" (`roadmap`: RD-043)
 

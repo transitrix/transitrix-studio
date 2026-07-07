@@ -6,7 +6,7 @@ name: VS Code Marketplace — multi-platform publish
 # A workflow_dispatch trigger is available for manual re-runs or to re-publish
 # a specific tag without creating a new release.
 #
-# Prerequisites (one-time maintainer setup — see docs/vscode-marketplace-publish-runbook.md):
+# Prerequisites (one-time maintainer setup — see docs/internal/vscode-marketplace-publish-runbook.md):
 #   - VSCE_PAT repo Actions secret set to an Azure DevOps personal access token
 #     for the `transitrix` publisher on the Visual Studio Marketplace.
 #   - Azure DevOps PATs expire (max 1 year). Rotate before expiry — see the
@@ -64,7 +64,7 @@ jobs:
           if [ -z "$VSCE_PAT" ]; then
             echo "::error::VSCE_PAT Actions secret is not set or has expired."
             echo "::error::Obtain an Azure DevOps PAT for the 'transitrix' publisher and save it as a repo Actions secret named VSCE_PAT."
-            echo "::error::See docs/vscode-marketplace-publish-runbook.md for setup and rotation steps."
+            echo "::error::See docs/internal/vscode-marketplace-publish-runbook.md for setup and rotation steps."
             exit 1
           fi
 

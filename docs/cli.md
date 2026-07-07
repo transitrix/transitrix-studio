@@ -18,7 +18,7 @@ transitrix --help
 
 See [`packages/cli/README.md`](../packages/cli/README.md) for the full command
 surface. Publishing is automated from GitHub Releases — see
-[`docs/release-runbook.md`](release-runbook.md).
+[`docs/internal/release-runbook.md`](internal/release-runbook.md).
 
 The VS Code extension bundles renderers for in-editor previews; it does **not**
 put the CLI on your `PATH`. Use `@transitrix/cli` (or a clone build below) for

@@ -1,8 +1,8 @@
 # Archived documentation
 
 Superseded or historical docs kept for reference. **Do not treat these as current**
-product or methodology guidance — see the parent [`docs/`](../) tree and
-[`extension/CHANGELOG.md`](../../extension/CHANGELOG.md) for up-to-date behaviour.
+product or methodology guidance — see [`docs/README.md`](../../README.md) and
+[`extension/CHANGELOG.md`](../../../extension/CHANGELOG.md) for up-to-date behaviour.
 
 | File | Why archived |
 |------|----------------|

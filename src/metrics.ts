@@ -4,7 +4,7 @@
  * Computes objective, measurable indicators of BPMN diagram layout quality.
  * All functions are pure, deterministic, and inexpensive (polynomial time).
  *
- * See `docs/metrics.md` for formal definitions and rationale.
+ * See `docs/internal/metrics.md` for formal definitions and rationale.
  */
 
 import type { LayoutIr, Bounds, PositionedSequenceFlow, FlowElement } from './ir.js';

@@ -6,7 +6,7 @@ name: Open VSX — multi-platform publish
 # A workflow_dispatch trigger is available for manual re-runs or to publish a
 # specific branch/tag without creating a new release.
 #
-# Prerequisites (one-time maintainer setup — see docs/openvsx-publish-runbook.md):
+# Prerequisites (one-time maintainer setup — see docs/internal/openvsx-publish-runbook.md):
 #   - OVSX_PAT repo Actions secret set to an Open VSX personal access token
 #     issued for the `transitrix` namespace.
 #   - The `ubuntu-24.04-arm` runner requires a GitHub-hosted ARM64 runner seat
