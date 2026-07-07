@@ -1,6 +1,6 @@
 # Adopter manifest — schema defined in the methodology's notations/MANIFEST.md
 transitrix: 1
-methodology_version: "0.7.0"
+methodology_version: "1.0.0"
 notations:
   - bpmn
   - dgca

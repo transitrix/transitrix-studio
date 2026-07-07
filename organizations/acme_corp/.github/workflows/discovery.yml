@@ -1,0 +1,45 @@
+name: Discovery
+
+# Realises the scheduled-trigger contract from
+# transitrix/methodology §7 of methodology-update-propagation.md.
+#
+# For each consumer in adopters.yaml, compares its pinned acme-corp commit SHA
+# against the current HEAD of this repo and scans its decision folder for
+# status:proposed ADRs older than 14 days. Emits a digest to the workflow summary.
+#
+# Note on pin comparison: acme-corp does not yet publish semver releases.
+# Consumers (transitrix-studio, transitrix-dsm) pin to commit SHAs.
+# The job flags a consumer as `behind` when its pinned SHA differs from HEAD.
+#
+# Scope: READ-ONLY. This workflow does not open PRs on consumer repos.
+# The write side (opening bounded upgrade PRs when a consumer is behind)
+# requires cross-repo write auth (CONSUMER_WRITE_TOKEN) — see
+# transitrix/methodology §7.7. Provision a fine-grained PAT with
+# `contents:write` + `pull-requests:write` on each consumer repo and add it
+# as a repository secret named CONSUMER_WRITE_TOKEN to enable the write step.
+#
+# Runs Mondays 08:00 UTC and on workflow_dispatch.
+
+on:
+  schedule:
+    - cron: '0 8 * * 1'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    name: Scan consumers
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source repo
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run discovery (read-only digest)
+        run: node scripts/discovery.mjs

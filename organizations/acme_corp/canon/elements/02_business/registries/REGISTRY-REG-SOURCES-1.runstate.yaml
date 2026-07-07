@@ -12,12 +12,12 @@ rows:
     review_needed: false
     latest_snapshot: "snapshots/SOURCE-GDPR-1/2026-06-04.html"
 
-  SOURCE-EU-AI-ACT-1:
+  SOURCE-EU-AIACT-2024-1:
     last_scanned_at: "2026-06-04"
     next_scan_due: "2026-07-04"            # last + P30D (row override)
     change_detected: true
     review_needed: true
-    latest_snapshot: "snapshots/SOURCE-EU-AI-ACT-1/2026-06-04.html"
+    latest_snapshot: "snapshots/SOURCE-EU-AIACT-2024-1/2026-06-04.html"
 
   SOURCE-EDPB-GUIDE-1:
     last_scanned_at: "2026-06-04"

@@ -22,7 +22,7 @@ rows:
     change_signal_method: version-date    # harvesting hint pre-admission; superseded by the codex scan block once linked
     # scan_frequency omitted → registry default (P90D)
 
-  - id: SOURCE-EU-AI-ACT-1
+  - id: SOURCE-EU-AIACT-2024-1
     name: "EU AI Act — Regulation (EU) 2024/1689"
     type: regulation
     jurisdiction: EU

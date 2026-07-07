@@ -4,7 +4,7 @@ Project schedule as an **Action-on-Node** precedence network (PSND), with an opt
 
 ## File convention
 
-`*.dgca.transitrix.yaml`
+`*.action.transitrix.yaml`
 
 See [`notations/views/07-action.md`](../../../../../notations/views/07-action.md) for the full spec — including PSND semantics, the critical-path computation, and the Gantt projection contract.
 
@@ -55,8 +55,8 @@ Actions form a DAG via `predecessors:`. The renderer computes Early Start / Late
 
 ## Cross-references
 
-- `goals: [GOAL-…]` — Goal IDs from the goals tree / FGCA chain.
-- `delivers_changes: [CHANGE-…]` — Change IDs from the FGCA chain.
+- `goals: [GOAL-…]` — Goal IDs from the goals tree / DGCA or DGA chain.
+- `delivers_changes: [CHANGE-…]` — Change IDs from the DGCA chain.
 - `predecessors: [ACTION-…]` — other action IDs in the same file.
 
 All IDs follow the canonical `<TYPE>-[<middle>-]<INTEGER>` grammar from [`notations/IDS_AND_REFERENCES.md`](../../../../../notations/IDS_AND_REFERENCES.md).
@@ -64,5 +64,5 @@ All IDs follow the canonical `<TYPE>-[<middle>-]<INTEGER>` grammar from [`notati
 ## See also
 
 - [`notations/views/07-action.md`](../../../../../notations/views/07-action.md) — the notation spec
-- [`notations/examples/action/platform-launch.dgca.transitrix.yaml`](../../../../../notations/examples/action/platform-launch.dgca.transitrix.yaml) — worked example
+- [`notations/examples/action/platform-launch.action.transitrix.yaml`](../../../../../notations/examples/action/platform-launch.action.transitrix.yaml) — worked example
 - `method/methodology.md` §6 — notation kit

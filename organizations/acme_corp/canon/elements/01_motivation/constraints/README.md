@@ -2,7 +2,7 @@
 
 Constraint elements — design / operating constraints that bind the organisation. Each constraint is one file under this folder. Constraints sit on the ArchiMate 3.2 **motivation** layer.
 
-Constraints are referenced by FGCA factors via `references_constraint:` — the existence of a constraint is itself a factor for the organisation that acts on it. They may also be referenced from any other notation via `applies_to:` once a register-view notation lands; v1 ships the elements only.
+Constraints are referenced by DGCA drivers via `references_constraint:` — the existence of a constraint is itself a driver for the organisation that acts on it. They may also be referenced from any other notation via `applies_to:` once a register-view notation lands; v1 ships the elements only.
 
 TYPE registry: see [`notations/IDS_AND_REFERENCES.md`](../../../../../../notations/IDS_AND_REFERENCES.md) §3.1 (`CONSTRAINT`).
 
@@ -78,4 +78,4 @@ valid_to: null
 
 - TYPE registry: [`notations/IDS_AND_REFERENCES.md`](../../../../../../notations/IDS_AND_REFERENCES.md) §3.1 (`CONSTRAINT`), §4 (uniqueness scope).
 - Sibling rules catalogue: [`../../02_business/rules/`](../../02_business/rules/).
-- FGCA cross-reference field `references_constraint:` on DRIVER: [`notations/views/02-fgca.md`](../../../../../../notations/views/02-fgca.md) § Fields → `factors[]`.
+- DGCA cross-reference field `references_constraint:` on DRIVER: [`notations/views/02-dgca.md`](../../../../../../notations/views/02-dgca.md) § Fields → `factors[]`.

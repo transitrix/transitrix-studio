@@ -1,0 +1,31 @@
+# Programme-level Action — the project the GDPR remediation action-card binds to.
+# Schema: notations/ELEMENT_PRIMITIVES.md §7.4 + envelope §3.
+# WBS parent of the project nodes in canon/views/action/gdpr-remediation.dgca.transitrix.yaml.
+# Child projects remain in the action view until promoted to canon/elements/.
+
+notation: action
+id: ACTION-GDPR-REMEDIATION-1
+name: "GDPR Remediation 2026"
+type: Programme
+parent: ACTION-EU-COMPLIANCE-1
+goals:
+  - GOAL-EU-1
+delivers_changes:
+  - CHANGE-GDPR-COMPLIANCE-1
+description: >
+  Programme of work closing the EU data-protection gaps surfaced by the 2026
+  gap assessment: extending the erasure pipeline to the cold-storage archive,
+  standing up data-subject-request handling, and reworking onboarding consent.
+
+# Admission record (CONTRACT.md §6)
+zone: canon
+admitted_at: "2026-07-03"
+admitted_by: "v.korobeinikov"
+gate_checks:
+  uniqueness: pass
+  consistency: pass
+  completeness: pass
+
+# Primitive lifecycle (CONTRACT.md §7)
+valid_from: "2026-03-01"
+valid_to: null

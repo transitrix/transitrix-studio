@@ -1,6 +1,6 @@
 # `canon/views/action-card/`
 
-Single-project narrative cards. Each card binds to one project Action (`project: ACTION-…`) and adds narrative milestones; the motivation chain and child actions are pulled by reference from the FGCA and Action documents rather than duplicated.
+Single-project narrative cards. Each card binds to one project Action (`project: ACTION-…`) and adds narrative milestones; the motivation chain and child actions are pulled by reference from the DGCA/DGA and Action documents rather than duplicated.
 
 ## File convention
 

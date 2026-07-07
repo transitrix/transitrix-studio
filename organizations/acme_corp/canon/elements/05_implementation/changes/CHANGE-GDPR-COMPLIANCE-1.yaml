@@ -1,0 +1,26 @@
+# Programme-level change delivered by the GDPR remediation workstream.
+# Schema: notations/ELEMENT_PRIMITIVES.md §7.3 + envelope §3.
+# Referenced by canon/views/action-card/eu-gdpr-remediation.action-card.transitrix.yaml milestones.
+
+notation: change
+id: CHANGE-GDPR-COMPLIANCE-1
+name: "Close EU data-protection compliance gaps"
+goals:
+  - GOAL-EU-1
+description: >
+  The delta required to operate in EU markets under GDPR and NIS2: archive
+  erasure coverage, data-subject-request handling, and consent capture aligned
+  with supervisory expectations.
+
+# Admission record (CONTRACT.md §6)
+zone: canon
+admitted_at: "2026-07-03"
+admitted_by: "v.korobeinikov"
+gate_checks:
+  uniqueness: pass
+  consistency: pass
+  completeness: pass
+
+# Primitive lifecycle (CONTRACT.md §7)
+valid_from: "2026-03-01"
+valid_to: null

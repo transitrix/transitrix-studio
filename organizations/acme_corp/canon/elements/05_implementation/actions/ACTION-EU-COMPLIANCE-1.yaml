@@ -1,0 +1,25 @@
+# Initiative-level Action — parent of the GDPR remediation programme.
+# Schema: notations/ELEMENT_PRIMITIVES.md §7.4. WBS root in
+# canon/views/action/gdpr-remediation.dgca.transitrix.yaml.
+
+notation: action
+id: ACTION-EU-COMPLIANCE-1
+name: "EU Data Protection Compliance Initiative"
+type: Initiative
+goals:
+  - GOAL-EU-1
+owner: ROLE-DPO-1
+description: >
+  Top-level initiative covering EU GDPR and NIS2 compliance workstreams,
+  including the 2026 GDPR remediation programme.
+
+zone: canon
+admitted_at: "2026-07-06"
+admitted_by: "v.korobeinikov"
+gate_checks:
+  uniqueness: pass
+  consistency: pass
+  completeness: pass
+
+valid_from: "2026-01-01"
+valid_to: null

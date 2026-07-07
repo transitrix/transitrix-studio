@@ -5,6 +5,7 @@ notation: compliance-impact
 spec_version: "0.1"
 
 view:
+  report_type: product
   id: COMPLIANCE_IMPACT-ACME-EU-1
   name: "acme_corp — EU Compliance Impact (GDPR + NIS2)"
   description: >

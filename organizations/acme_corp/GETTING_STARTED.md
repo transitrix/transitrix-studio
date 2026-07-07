@@ -67,8 +67,8 @@ Architecture changes review as a diff, like code.
 
 Based on what you built, add the adjacent artefact ([`notations/README.md`](../../notations/README.md) family selection):
 
-- Built a **Goals tree** → add an **FGCA**/**FGA** to link goals to driving factors and delivery actions.
-- Built **FGCA** → add a **Capability map** for the same domain.
+- Built a **Goals tree** → add a **DGCA** or **DGA** chain to link goals to driving drivers and delivery actions.
+- Built **DGCA** → add a **Capability map** for the same domain.
 - Built a **Capability map** → add an **Applications catalogue**.
 
 ## Naming conventions
