@@ -2,34 +2,30 @@
 
 ## Unreleased
 
-### Removed
-
-- **Overdue Cervin deprecated shims (P5 cleanup).**  Grace period stated at 2.0.0
-  has long elapsed (current: 3.0.0). Dropped:
-  - `src/cervinrc.ts` re-export shim module.
-  - `loadCervinrc()` from `transitrixrc.ts` — use `loadTransitrixrc()`.
-  - `DEFAULT_CERVIN_FILE_EXTENSIONS` from `cli-parse.ts` — use
-    `DEFAULT_TRANSITRIX_FILE_EXTENSIONS`.
-  - `compileCervinYaml` / `compileCervinYamlWithLayout` from `compiler.ts` — use
-    `compileTransitrixYaml` / `compileTransitrixYamlWithLayout`.
-  - `CervinrcConfig` type alias from `validator-types.ts` — use `TransitrixrcConfig`.
-  - `schemas/cervinrc.schema.json` (root, extension, and `@transitrix/cli` copies).
-
-  **Semver note:** Any consumer still importing the dropped names or referencing
-  `@transitrix/cli/schemas/cervinrc.schema.json` will break. Valerii to decide
-  whether the next `@transitrix/cli` release warrants a major bump.
-
 ## [3.0.0] — 2026-07-07
 
 ### Added
 
 - **Unified text-in-block layout and block size presets** (#367) — shared wrapping/truncation for Goals, DGCA/DGA, Blocks, Activities, Process Blueprint, Capability Map; `transitrix.nodeSize.*` settings and Controls **Block size** row.
-- **`@transitrix/diagrams` 1.8.x** — `entity-text-layout.ts`, `node-size-presets.ts`.
+- **`@transitrix/diagrams` 1.8.1** — `entity-text-layout.ts`, `node-size-presets.ts`.
 
 ### Changed
 
 - **Transitrix Studio extension 3.0.0** (#368) — removes remaining Cervin VS Code shims (`*.cervin.yaml`, `cervin.*` settings/commands). Migration guide in [`extension/CHANGELOG.md`](extension/CHANGELOG.md).
-- **Documentation hygiene** (#369) — consumer docs vs `docs/internal/` maintainer tree; updated CLI, notation, validation, repo layout guides.
+- **Documentation hygiene** (#369, #372) — consumer docs vs `docs/internal/` maintainer tree; updated CLI, notation, validation, repo layout guides.
+- **`@transitrix/cli` 2.0.0** — npm package major bump; bundles current compiler sources.
+
+### Removed
+
+- **Overdue Cervin deprecated shims (P5 cleanup, #371).** Grace period stated at 2.0.0 has long elapsed. Dropped:
+  - `src/cervinrc.ts` re-export shim module.
+  - `loadCervinrc()` from `transitrixrc.ts` — use `loadTransitrixrc()`.
+  - `DEFAULT_CERVIN_FILE_EXTENSIONS` from `cli-parse.ts` — use `DEFAULT_TRANSITRIX_FILE_EXTENSIONS`.
+  - `compileCervinYaml` / `compileCervinYamlWithLayout` from `compiler.ts` — use `compileTransitrixYaml` / `compileTransitrixYamlWithLayout`.
+  - `CervinrcConfig` type alias from `validator-types.ts` — use `TransitrixrcConfig`.
+  - `schemas/cervinrc.schema.json` (root, extension, and `@transitrix/cli` copies).
+
+  **Breaking:** any consumer still importing the dropped names or referencing `@transitrix/cli/schemas/cervinrc.schema.json` must migrate before upgrading CLI.
 
 ## [2.10.0] — 2026-07-06
 
