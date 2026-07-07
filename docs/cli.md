@@ -4,8 +4,7 @@ The Transitrix CLI compiles, validates, measures and serves Transitrix notation
 files **without VS Code** — for scripts, CI pipelines, and automation (e.g. a
 compliance-report renderer).
 
-The canonical command is **`transitrix`**. The legacy **`cervin`** name was
-removed in CLI/runtime **2.0.0**.
+The canonical command is **`transitrix`**.
 
 ## Install from npm
 
@@ -109,6 +108,5 @@ See [`docs/validation.md`](validation.md).
 ## VS Code extension
 
 Extension **3.0+** recognises BPMN sources only under configured
-`transitrix.fileExtensions` (default `.bpmn.transitrix.yaml`). Legacy
-`*.cervin.yaml` and `cervin.*` settings/commands are removed — see
-[`extension/CHANGELOG.md`](../extension/CHANGELOG.md) and [`RELEASING.md`](../RELEASING.md).
+`transitrix.fileExtensions` (default `.bpmn.transitrix.yaml`). See
+[`extension/CHANGELOG.md`](../extension/CHANGELOG.md) for the 3.0 change log.
