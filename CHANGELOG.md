@@ -19,6 +19,18 @@
   `@transitrix/cli/schemas/cervinrc.schema.json` will break. Valerii to decide
   whether the next `@transitrix/cli` release warrants a major bump.
 
+## [3.0.0] — 2026-07-07
+
+### Added
+
+- **Unified text-in-block layout and block size presets** (#367) — shared wrapping/truncation for Goals, DGCA/DGA, Blocks, Activities, Process Blueprint, Capability Map; `transitrix.nodeSize.*` settings and Controls **Block size** row.
+- **`@transitrix/diagrams` 1.8.x** — `entity-text-layout.ts`, `node-size-presets.ts`.
+
+### Changed
+
+- **Transitrix Studio extension 3.0.0** (#368) — removes remaining Cervin VS Code shims (`*.cervin.yaml`, `cervin.*` settings/commands). Migration guide in [`extension/CHANGELOG.md`](extension/CHANGELOG.md).
+- **Documentation hygiene** (#369) — consumer docs vs `docs/internal/` maintainer tree; updated CLI, notation, validation, repo layout guides.
+
 ## [2.10.0] — 2026-07-06
 
 ### Added
