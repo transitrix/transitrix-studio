@@ -8,14 +8,14 @@ See [`method/methodology.md` §6](../../../method/methodology.md) for the full n
 
 | Folder | Notation | File extension | What it holds |
 | --- | --- | --- | --- |
-| [`goals/`](goals/) | Goals tree | `*.goals.transitrix.yaml` | Hierarchical goals trees |
+| [`goals/`](goals/) | Goals tree | `*.dgca.transitrix.yaml` | Hierarchical goals trees |
 | [`capabilities/`](capabilities/) | Capabilities map | `*.capability-map.transitrix.yaml` | Capability hierarchies with maturity overlay |
 | [`processmap/`](processmap/) | Process landscape map | `*.process-map.transitrix.yaml` | Top-level process catalogues |
 | [`bpmn/`](bpmn/) | Process diagram (BPMN) | `*.bpmn.transitrix.yaml` | Detailed process flows |
-| [`dgca/`](dgca/) | DGCA chain | `*.dgca.transitrix.yaml` | Driver → Goal → Change → Action |
-| [`dga/`](dga/) | DGA chain | `*.dga.transitrix.yaml` | Driver → Goal → Action (Changes layer off) |
+| [`fgca/`](fgca/) | FGCA chain | `*.fgca.transitrix.yaml` | Factor → Goal → Change → Action |
+| [`fga/`](fga/) | FGA chain | `*.fga.transitrix.yaml` | Factor → Goal → Action |
 | [`blocks/`](blocks/) | Nested block diagrams | `*.blocks.transitrix.yaml` | Recursive `block` tree rendered as nested containers |
-| [`action/`](action/) | Action network | `*.action.transitrix.yaml` | PSND (Action-on-Node) with Gantt projection and critical path |
+| [`action/`](action/) | Action network | `*.dgca.transitrix.yaml` | PSND (Action-on-Node) with Gantt projection and critical path |
 | [`products/`](products/) | Products view | `*.products.transitrix.yaml` | Filtered views over Product elements |
 | [`applications/`](applications/) | Applications view | `*.applications.transitrix.yaml` | Filtered views over Application elements |
 | [`scenarios/`](scenarios/) | Scenarios | `*.scenarios.transitrix.yaml` | Alternative strategic development paths |
