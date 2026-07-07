@@ -13,6 +13,7 @@ import {
 } from '@transitrix/diagrams/blocks';
 import { coerceDatesToIsoStrings } from '@transitrix/diagrams/yaml-normalize.js';
 import { renderBlocksLayoutSvg } from '@transitrix/diagrams/webview/render-blocks.js';
+import { readBlocksLeafSize } from './node-size-config.js';
 
 
 // Pad reserved around the diagram; mirrors `PAD` in the shared emitter
@@ -71,7 +72,8 @@ export class BlocksPreview extends StaticSvgPreview {
         const docDate = (typeof raw['generated_at'] === 'string' ? raw['generated_at'] : undefined)
           ?? (typeof nb.date === 'string' ? nb.date : undefined)
           ?? todayIso();
-        const layout = layoutNestedBlocks(file);
+        const leafSize = readBlocksLeafSize();
+        const layout = layoutNestedBlocks(file, { leafWidth: leafSize.width, leafHeight: leafSize.height });
         svgContent = layoutToSvg(layout, filename, docDate, docVersion);
 
         // BL-008 / BL-009 may still be present even when the document is

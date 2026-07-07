@@ -55,19 +55,29 @@ export interface ScopeControlModel {
   goals: ScopeGoalOption[];
 }
 
+export type NodeSizePresetValue = 'compact' | 'normal' | 'wide';
+
+export interface NodeSizeControlModel {
+  value: NodeSizePresetValue;
+  /** Default preset — used to decide whether the panel opens by default. */
+  default: NodeSizePresetValue;
+}
+
 export interface ControlsModel {
   spacing: SpacingControlModel;
   curvature: CurvatureControlModel;
   /** Omitted for notations without a scope filter (Activities). */
   scope?: ScopeControlModel;
+  /** Omitted when the notation has no block-size preset (yet). */
+  nodeSize?: NodeSizeControlModel;
 }
 
 /** Message posted from the webview to the host on every control change. */
 export interface ControlMessage {
   type: 'transitrix:control';
-  control: 'spacing' | 'curvature' | 'entryCurvature' | 'scope' | 'view';
-  /** spacing: 'horizontalGap'|'verticalGap'; scope: 'rootId'|'maxLevel'|'reset'; view: 'tree'|'table'; absent for curvature. */
-  field?: 'horizontalGap' | 'verticalGap' | 'rootId' | 'maxLevel' | 'reset' | 'tree' | 'table';
+  control: 'spacing' | 'curvature' | 'entryCurvature' | 'scope' | 'view' | 'nodeSize';
+  /** spacing: 'horizontalGap'|'verticalGap'; scope: 'rootId'|'maxLevel'|'reset'; view: 'tree'|'table'; nodeSize: 'preset'; absent for curvature. */
+  field?: 'horizontalGap' | 'verticalGap' | 'rootId' | 'maxLevel' | 'reset' | 'tree' | 'table' | 'preset';
   /** Numeric for spacing/curvature/maxLevel; string for rootId; absent for reset/view. */
   value?: number | string;
 }
@@ -235,6 +245,7 @@ function hasNonDefault(model: ControlsModel): boolean {
   const s = model.spacing;
   if (s.horizontalGap !== s.defaults.horizontalGap || s.verticalGap !== s.defaults.verticalGap) return true;
   if (model.curvature.value !== model.curvature.default) return true;
+  if (model.nodeSize && model.nodeSize.value !== model.nodeSize.default) return true;
   if (model.scope && (model.scope.rootId !== '' || model.scope.maxLevel >= 0)) return true;
   return false;
 }
@@ -286,10 +297,22 @@ function scopeRow(sc: ScopeControlModel): string {
   </div>`;
 }
 
+function nodeSizeRow(ns: NodeSizeControlModel): string {
+  const opt = (value: NodeSizePresetValue, label: string): string =>
+    `<option value="${value}"${ns.value === value ? ' selected' : ''}>${label}</option>`;
+  return `<div class="tx-ctl-row">
+    <span class="tx-ctl-label">Block size</span>
+    <label title="Preset width/height for entity blocks or cells">
+      <select data-tx-control="nodeSize" data-tx-field="preset">${opt('compact', 'Compact')}${opt('normal', 'Normal')}${opt('wide', 'Wide')}</select>
+    </label>
+  </div>`;
+}
+
 /** Builds the `<details>` control-panel markup for a notation's interactive preview. */
 export function buildControlsPanel(model: ControlsModel): string {
   const open = hasNonDefault(model) ? ' open' : '';
   const rows = [spacingRow(model.spacing), curvatureRow(model.curvature)];
+  if (model.nodeSize) rows.push(nodeSizeRow(model.nodeSize));
   if (model.scope) rows.push(scopeRow(model.scope));
   return `<details id="tx-ctl" class="tx-ctl"${open}>
   <summary>Controls</summary>
@@ -358,6 +381,8 @@ export function buildControlsScript(nonce: string): string {
           post(control, field, num(el.value));
         } else if (control === 'curvature') {
           post(control, undefined, num(el.value));
+        } else if (control === 'nodeSize') {
+          post(control, field, el.value);
         } else {
           post(control, field, num(el.value));
         }

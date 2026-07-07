@@ -10,15 +10,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { BlocksFile } from '../../blocks/types.js';
 import { renderBlocksSvg } from '../render-blocks.js';
-
-// Approximate character widths used by the renderer when sizing labels.
-// Kept in sync with `CHAR_W` / `CHAR_W_ID` in render-blocks.ts so the test
-// can compute the same overflow bounds the renderer uses.
-const CHAR_W = 7;
-const CHAR_W_ID = 6;
-
-// Same horizontal margin the renderer reserves so text never abuts the rect.
-const TEXT_MARGIN_X = 8;
+import { CHAR_W_PRIMARY as CHAR_W, CHAR_W_ID, TEXT_MARGIN_X } from '../entity-text-layout.js';
 
 function leafDoc(name: string, id: string): BlocksFile {
   return {

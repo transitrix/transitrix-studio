@@ -13,7 +13,8 @@ import { parseCanonicalGoals } from '@transitrix/diagrams/goals/parse-canonical.
 import { coerceDatesToIsoStrings } from '@transitrix/diagrams/yaml-normalize.js';
 import { DEFAULT_EDGE_CURVATURE } from '@transitrix/diagrams/edge-path.js';
 import { checkScopeRoot } from '@transitrix/diagrams/scope.js';
-import { readSpacing, readCurvature, readEntryCurvature, readScope, applyControlMessage, OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND, OPEN_SCOPE_SETTINGS_COMMAND } from './spacing-config.js';
+import { readSpacing, readCurvature, readEntryCurvature, readScope, applyControlMessage, OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND, OPEN_SCOPE_SETTINGS_COMMAND, OPEN_NODE_SIZE_SETTINGS_COMMAND } from './spacing-config.js';
+import { readGoalsNodeSize, readNodeSizePreset } from './node-size-config.js';
 import { genNonce, buildControlsPanel, buildControlsScript, type ControlsModel, type ScopeGoalOption } from './preview-controls.js';
 
 // ── SVG renderer ─────────────────────────────────────────────────────────────
@@ -24,8 +25,6 @@ import { genNonce, buildControlsPanel, buildControlsScript, type ControlsModel, 
 // produces — never re-defines the schema, since the example file and the
 // shared package were drifting apart.
 
-const NODE_W = 250;
-const NODE_H = 60;
 const RANK_SEP = 100;
 const NODE_SEP = 24;
 
@@ -138,9 +137,10 @@ export class GoalsPreview {
         maxLevelPresent = v.parsed.goals.reduce((m, g) => Math.max(m, typeof g.level === 'number' ? g.level : 0), 0);
         const scopeWarning = checkScopeRoot(scope, v.parsed.goals.map(g => g.canonical_id ?? g.id));
         if (scopeWarning) warnings.push(`${scopeWarning.code}: ${scopeWarning.message}`);
+        const nodeSize = readGoalsNodeSize();
         const layout = layoutGoalTree(v.parsed, {
-          nodeWidth: NODE_W,
-          nodeHeight: NODE_H,
+          nodeWidth: nodeSize.width,
+          nodeHeight: nodeSize.height,
           rankSep: gaps.horizontalGap,
           nodeSep: gaps.verticalGap,
           scope,
@@ -158,9 +158,11 @@ export class GoalsPreview {
       .get<ThemeId>('theme', 'transitrix');
 
     const nonce = genNonce();
+    const nodeSizePreset = readNodeSizePreset('goals');
     const model: ControlsModel = {
       spacing: { ...gaps, defaults: spacingDefaults },
       curvature: { value: curvature, default: 1 },
+      nodeSize: { value: nodeSizePreset, default: 'normal' },
       scope: {
         rootId: scope.mode === 'root' ? scope.rootGoalId : '',
         maxLevel: scope.mode === 'level' ? scope.maxLevel : -1,

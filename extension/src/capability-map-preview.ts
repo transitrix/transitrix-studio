@@ -7,6 +7,7 @@ import { coerceDatesToIsoStrings } from '@transitrix/diagrams/yaml-normalize.js'
 import { validateCapabilityMap } from '@transitrix/diagrams/capability-map/validate.js';
 import { renderCapabilityTreeSvg } from '@transitrix/diagrams/capability-map/render-capability-tree.js';
 import { genNonce } from './preview-controls.js';
+import { readNodeSizePreset } from './node-size-config.js';
 
 // ── Types (local, mirroring the shared package types) ─────────────────────────
 
@@ -231,7 +232,7 @@ export class CapabilityMapPreview {
         if (!date) date = map.assessment_date;
 
         if (viewMode === 'tree') {
-          svgContent = renderCapabilityTreeSvg(map, { collapsedIds: this.collapsedIds });
+          svgContent = renderCapabilityTreeSvg(map, { collapsedIds: this.collapsedIds, nodeSizePreset: readNodeSizePreset('capabilityMap') });
         } else {
           bodyContent = buildCapabilityMapBody(map);
         }

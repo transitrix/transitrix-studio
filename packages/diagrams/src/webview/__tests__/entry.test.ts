@@ -47,9 +47,9 @@ describe('webview/entry — Step 2 host API', () => {
 
   it('routes non-goals kinds to their validator after Step 4 (no NOTATION-NOT-WIRED)', () => {
     // Every supported kind is now wired to its validator + renderer. A
-    // malformed fgca document must surface a structured validation error from
-    // the fgca validator — never the Step-2/3 "not wired" placeholder.
-    const r = render('fgca', 'changes: []\n');
+    // malformed dgca document must surface a structured validation error from
+    // the dgca validator — never the Step-2/3 "not wired" placeholder.
+    const r = render('dgca', 'changes: []\n');
     expect(r.status).toBe('error');
     expect(r.errors.length).toBeGreaterThan(0);
     expect(r.errors.every((e) => e.code !== 'NOTATION-NOT-WIRED')).toBe(true);

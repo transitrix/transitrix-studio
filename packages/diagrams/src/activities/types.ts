@@ -100,6 +100,10 @@ export interface ActivitiesLayoutOptions {
   horizontalGap?: number;
   /** Vertical gap (px) between stacked activity nodes. Default matches the historical hardcoded value. */
   verticalGap?: number;
+  /** Activity node width (px). Default 200. */
+  nodeWidth?: number;
+  /** Activity node height (px). Default 80. */
+  nodeHeight?: number;
 }
 
 // ── Gantt view (spec §9) ─────────────────────────────────────────────────────

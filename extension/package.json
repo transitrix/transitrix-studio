@@ -123,7 +123,7 @@
             "Follow the active VS Code color theme"
           ],
           "default": "transitrix",
-          "description": "Color theme for Transitrix diagram previews (Goals, FGCA, and other static notation previews)."
+          "description": "Color theme for Transitrix diagram previews (Goals, DGCA/DGA, and other static notation previews)."
         },
         "transitrix.report.columnWidth": {
           "type": "string",
@@ -139,6 +139,48 @@
           ],
           "default": "normal",
           "description": "Column width preset for table-based reports (Compliance Impact, Compliance Matrix, Products, Process Map, etc.)."
+        },
+        "transitrix.nodeSize.goals": {
+          "type": "string",
+          "enum": ["compact", "normal", "wide"],
+          "default": "normal",
+          "description": "Block size preset for Goals tree preview nodes."
+        },
+        "transitrix.nodeSize.dgca": {
+          "type": "string",
+          "enum": ["compact", "normal", "wide"],
+          "default": "normal",
+          "description": "Block size preset for DGCA chain preview nodes."
+        },
+        "transitrix.nodeSize.dga": {
+          "type": "string",
+          "enum": ["compact", "normal", "wide"],
+          "default": "normal",
+          "description": "Block size preset for DGA chain preview nodes."
+        },
+        "transitrix.nodeSize.blocks": {
+          "type": "string",
+          "enum": ["compact", "normal", "wide"],
+          "default": "normal",
+          "description": "Block size preset for Nested Blocks leaf nodes."
+        },
+        "transitrix.nodeSize.action": {
+          "type": "string",
+          "enum": ["compact", "normal", "wide"],
+          "default": "normal",
+          "description": "Block size preset for Activities network preview nodes."
+        },
+        "transitrix.nodeSize.processBlueprint": {
+          "type": "string",
+          "enum": ["compact", "normal", "wide"],
+          "default": "normal",
+          "description": "Cell size preset for Process Blueprint preview (columns, pills, row heights)."
+        },
+        "transitrix.nodeSize.capabilityMap": {
+          "type": "string",
+          "enum": ["compact", "normal", "wide"],
+          "default": "normal",
+          "description": "Node size preset for Capability Map tree preview."
         },
         "transitrix.spacing.goals.horizontalGap": {
           "type": "number",

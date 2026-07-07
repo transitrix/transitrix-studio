@@ -24,11 +24,11 @@ import type {
   ActivitiesLayoutOptions,
 } from '../activities/types.js';
 import { horizontalCubicEdgePath, DEFAULT_EDGE_CURVATURE } from '../edge-path.js';
+import { parseNodeSizePreset, resolveActionNodeSize, type NodeSizePreset } from '../node-size-presets.js';
 import { generateSvgEmbedCss } from '../theme/index.js';
+import { emitCenteredTextSvg, layoutCenteredEntityText } from './entity-text-layout.js';
 import { escXml } from './render-util.js';
 
-const N_NODE_W = 200;
-const N_NODE_H = 80;
 const N_PAD = 24;
 
 /**
@@ -55,8 +55,31 @@ export const ACTIVITIES_NETWORK_DEFS = `<defs>
   </marker>
 </defs>`;
 
-function truncate(s: string, maxLen: number): string {
-  return s.length > maxLen ? s.slice(0, maxLen - 1) + '…' : s;
+function activityNodeSvg(
+  n: ActivitiesLayout['nodes'][number],
+  x: number,
+  y: number,
+  isCritical: boolean,
+  isMilestone: boolean,
+  durLabel: string,
+): string {
+  const cls = `diagram-node act-node ${isCritical ? 'critical-node' : ''} ${isMilestone ? 'milestone-node' : ''}`.trim();
+  const specs = layoutCenteredEntityText({
+    boxX: x,
+    boxY: y,
+    boxWidth: n.width,
+    boxHeight: n.height,
+    name: n.data.name,
+    id: n.id,
+    nameMaxLines: 2,
+    idMaxLines: 1,
+  });
+  const textSvg = emitCenteredTextSvg(specs, x + n.width / 2, escXml);
+  return [
+    `<rect class="${cls}" x="${x}" y="${y}" width="${n.width}" height="${n.height}" rx="8"/>`,
+    textSvg,
+    durLabel ? `<text class="text-secondary" x="${x + n.width - 8}" y="${y + n.height - 8}" text-anchor="end">${durLabel}</text>` : '',
+  ].filter(Boolean).join('\n');
 }
 
 /**
@@ -107,28 +130,8 @@ export function renderActivitiesNetworkBody(
       const isCritical = cpm.get(n.id)?.isCritical ?? false;
       const durVal = n.data.duration;
       const isMilestone = (durVal ?? -1) === 0;
-      const cls = `diagram-node act-node ${isCritical ? 'critical-node' : ''} ${isMilestone ? 'milestone-node' : ''}`.trim();
-      const idLabel = escXml(n.id);
-      const words = n.data.name.split(' ');
-      let line1 = '';
-      let line2 = '';
-      for (const w of words) {
-        if ((line1 + ' ' + w).trim().length <= 24) line1 = (line1 + ' ' + w).trim();
-        else if ((line2 + ' ' + w).trim().length <= 24) line2 = (line2 + ' ' + w).trim();
-        else if (!line2) { line2 = w.slice(0, 22) + '…'; break; }
-      }
-      const twoLines = line2.length > 0;
-      const nameY1 = twoLines ? y + 18 : y + 28;
-      const nameY2 = y + 34;
-      const idY = twoLines ? y + 54 : y + 50;
       const durLabel = (durVal !== undefined && durVal > 0) ? `${durVal}d` : '';
-      return [
-        `<rect class="${cls}" x="${x}" y="${y}" width="${N_NODE_W}" height="${N_NODE_H}" rx="8"/>`,
-        `<text class="text-primary" x="${x + N_NODE_W / 2}" y="${nameY1}" text-anchor="middle" dominant-baseline="central">${escXml(line1)}</text>`,
-        twoLines ? `<text class="text-primary" x="${x + N_NODE_W / 2}" y="${nameY2}" text-anchor="middle" dominant-baseline="central">${escXml(line2)}</text>` : '',
-        `<text class="text-id" x="${x + N_NODE_W / 2}" y="${idY}" text-anchor="middle" dominant-baseline="central">${idLabel}</text>`,
-        durLabel ? `<text class="text-secondary" x="${x + N_NODE_W - 8}" y="${y + N_NODE_H - 8}" text-anchor="end">${durLabel}</text>` : '',
-      ].filter(Boolean).join('\n');
+      return activityNodeSvg(n, x, y, isCritical, isMilestone, durLabel);
     })
     .join('\n');
 
@@ -138,8 +141,9 @@ export function renderActivitiesNetworkBody(
 export interface RenderActivitiesOptions {
   /** Optional heading rendered as a `text-header` above the diagram. */
   title?: string;
-  /** Network column / row gaps. Defaults match `layoutActivities`. */
+  /** Network column / row gaps and node size. Defaults match `layoutActivities`. */
   gaps?: ActivitiesLayoutOptions;
+  nodeSizePreset?: NodeSizePreset;
   /** Exit edge curvature; 1 = default, 0 = straight, higher = stronger arc. */
   curvature?: number;
   /** Entry curvature at the target node; defaults to `curvature` when omitted. */
@@ -176,10 +180,17 @@ export function renderActivitiesSvg(doc: ActivityDoc, options: RenderActivitiesO
   const {
     title = '',
     gaps = {},
+    nodeSizePreset = 'normal',
     curvature = DEFAULT_EDGE_CURVATURE,
     entryCurvature,
     suppressProjectNodes = true,
   } = options;
+  const nodeSize = resolveActionNodeSize(parseNodeSizePreset(nodeSizePreset));
+  const layoutGaps: ActivitiesLayoutOptions = {
+    ...gaps,
+    nodeWidth: gaps.nodeWidth ?? nodeSize.width,
+    nodeHeight: gaps.nodeHeight ?? nodeSize.height,
+  };
 
   // #421: Suppress project-type container nodes in the network layout by
   // default (see suppressProjectNodes JSDoc). A shallow copy avoids mutating
@@ -188,7 +199,7 @@ export function renderActivitiesSvg(doc: ActivityDoc, options: RenderActivitiesO
     ? { ...doc, activities: (doc.activities ?? []).filter((a) => a.activity_type?.toLowerCase() !== 'project') }
     : doc;
 
-  const layout: ActivitiesLayout = layoutActivities(renderDoc, gaps);
+  const layout: ActivitiesLayout = layoutActivities(renderDoc, layoutGaps);
 
   if (layout.nodes.length === 0) {
     return `<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" viewBox="0 0 0 0"></svg>`;

@@ -192,7 +192,7 @@ function dispatchValidate(kind: NotationKind, doc: unknown): RenderResult {
       r.errors.push(...v.errors);
       r.warnings.push(...v.warnings);
       if (v.valid && v.parsed) {
-        r.svg = renderFgcaSvg(v.parsed, { variant: 'fgca' });
+        r.svg = renderFgcaSvg(v.parsed, { variant: 'dgca' });
       }
       return r;
     }
@@ -202,7 +202,7 @@ function dispatchValidate(kind: NotationKind, doc: unknown): RenderResult {
       r.errors.push(...v.errors);
       r.warnings.push(...v.warnings);
       if (v.valid && v.parsed) {
-        r.svg = renderFgcaSvg(v.parsed, { variant: 'fga' });
+        r.svg = renderFgcaSvg(v.parsed, { variant: 'dga' });
       }
       return r;
     }

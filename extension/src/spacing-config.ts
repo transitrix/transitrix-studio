@@ -1,4 +1,7 @@
 import * as vscode from 'vscode';
+import {
+  parseNodeSizePreset,
+} from '@transitrix/diagrams/node-size-presets.js';
 import type { Scope } from '@transitrix/diagrams/scope.js';
 import type { ControlMessage, PreviewView } from './preview-controls.js';
 
@@ -7,7 +10,7 @@ import type { ControlMessage, PreviewView } from './preview-controls.js';
 // mirroring the existing `transitrix.theme` pattern, and re-renders previews
 // on change. In-preview live sliders are deferred to PR2.
 
-export type SpacingNotation = 'goals' | 'dgca' | 'dga' | 'action';
+export type SpacingNotation = 'goals' | 'dgca' | 'dga' | 'action' | 'blocks' | 'processBlueprint';
 
 export interface SpacingGaps {
   /** px gap between columns (horizontal). */
@@ -111,6 +114,8 @@ export function readView(notation: ViewNotation): PreviewView {
 /** Config section that, when changed, re-renders view-aware previews. */
 export const VIEW_CONFIG_SECTION = 'transitrix.view';
 
+export { NODE_SIZE_CONFIG_SECTION, OPEN_NODE_SIZE_SETTINGS_COMMAND } from './node-size-config.js';
+
 // ── In-preview control messages (PR2) ───────────────────────────────────────
 //
 // The interactive control panel (preview-controls.ts) posts a `ControlMessage`
@@ -153,7 +158,12 @@ export async function applyControlMessage(notation: SpacingNotation, msg: Contro
     await cfg.update(`view.${notation}`, msg.field === 'table' ? 'table' : 'tree', target);
     return;
   }
-  if (msg.control === 'scope' && notation !== 'action') {
+  if (msg.control === 'nodeSize') {
+    const preset = parseNodeSizePreset(String(msg.value ?? 'normal'));
+    await cfg.update(`nodeSize.${notation}`, preset, target);
+    return;
+  }
+  if (msg.control === 'scope' && notation !== 'action' && notation !== 'blocks' && notation !== 'processBlueprint') {
     if (msg.field === 'reset') {
       await cfg.update(`scope.${notation}.rootId`, '', target);
       await cfg.update(`scope.${notation}.maxLevel`, -1, target);

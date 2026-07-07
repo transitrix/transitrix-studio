@@ -22,6 +22,7 @@ import { DEFAULT_EDGE_CURVATURE } from '@transitrix/diagrams/edge-path.js';
 import { renderActivitiesNetworkBody, ACTIVITIES_NETWORK_DEFS } from '@transitrix/diagrams/webview/render-activities.js';
 import { savePngFromSvg, copyPngFromSvg } from './png-export.js';
 import { readSpacing, readCurvature, readEntryCurvature, applyControlMessage, OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND } from './spacing-config.js';
+import { readActionNodeSize, readNodeSizePreset } from './node-size-config.js';
 import { genNonce, buildControlsPanel, buildControlsScript } from './preview-controls.js';
 
 // Default network (PSND) gaps — must match the layoutActivities defaults
@@ -847,7 +848,8 @@ export class ActionPreview {
       if (!v.valid) {
         errorMsg = v.errors.map(e => `${e.code}: ${e.message}`).join('\n');
       } else {
-        const views = buildActivityViews(parsed as ActivityDoc, { horizontalGap: spacing.horizontalGap, verticalGap: spacing.verticalGap }, curvature, entryCurvature, filename, docDate, docVersion);
+        const nodeSize = readActionNodeSize();
+        const views = buildActivityViews(parsed as ActivityDoc, { horizontalGap: spacing.horizontalGap, verticalGap: spacing.verticalGap, nodeWidth: nodeSize.width, nodeHeight: nodeSize.height }, curvature, entryCurvature, filename, docDate, docVersion);
         bodyContent = buildCanvasContent(views);
         this.lastNetworkSvg = views.networkSvg;
         this.lastGanttSvg = views.ganttSvg;
@@ -870,9 +872,11 @@ export class ActionPreview {
     const nonce = genNonce();
     // Activities has spacing + curvature controls but no scope filter (#77
     // excludes it — its multi-row CPM layout isn't a uniform tree).
+    const nodeSizePreset = readNodeSizePreset('action');
     const controlsPanel = buildControlsPanel({
       spacing: { ...spacing, defaults: spacingDefaults },
       curvature: { value: curvature, default: 1 },
+      nodeSize: { value: nodeSizePreset, default: 'normal' },
     });
 
     return buildDiagramFrame({

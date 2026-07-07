@@ -18,6 +18,7 @@ import { coerceDatesToIsoStrings } from '@transitrix/diagrams/yaml-normalize.js'
 import { savePngFromSvg, copyPngFromSvg } from './png-export.js';
 import { scanComplianceCanon, type ScannedCanon } from './compliance-scan.js';
 import { genNonce } from './preview-controls.js';
+import { readProcessBlueprintSize } from './node-size-config.js';
 import { escXml } from '@transitrix/diagrams/webview/render-util.js';
 import { renderProcessBlueprintBody } from '@transitrix/diagrams/webview/render-process-blueprint.js';
 
@@ -596,7 +597,9 @@ export class ProcessBlueprintPreview {
           }
         }
 
+        const bpSize = readProcessBlueprintSize();
         const layout = layoutProcessBlueprint(file, {
+          ...bpSize,
           stageColumnWidth: this.stageColumnWidth,
           complianceLane: { ...laneCfg, enabled: complianceLaneEnabled },
           complianceInput,

@@ -1,7 +1,7 @@
 /**
  * Shared visual constants for entity-box (block-style) notation renderers.
  *
- * Goals, Nested Blocks, FGCA/DGCA, and any future notation using the same
+ * Goals, Nested Blocks, DGCA/DGA, and any future notation using the same
  * entity-box visual language import their shared style tokens from here.
  * Centralising them prevents the per-renderer drift that caused the Goals/Blocks
  * style mismatch (border radius diverged to rx=6 in Blocks vs rx=8 everywhere
