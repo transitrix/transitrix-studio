@@ -4,8 +4,8 @@ name: JetBrains Marketplace — publish
 # the release tag (v2.2.0 → 2.2.0) so the JetBrains plugin version always
 # mirrors the VS Code extension version — no manual bump needed.
 #
-# For manual dispatch, supply the `version` input explicitly (e.g. "2.2.0").
-# If omitted on dispatch, the value in intellij/gradle.properties is used as-is.
+# For manual dispatch, omit `version` to use extension/package.json (same as
+# the VS Code release). Pass an explicit version only to republish or hotfix.
 #
 # Prerequisites (one-time maintainer setup — see intellij/PUBLISHING.md):
 #   - CERTIFICATE_CHAIN      — contents of chain.crt (PEM)
@@ -23,7 +23,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Plugin version to publish (e.g. 2.2.0). Leave blank to use gradle.properties value.'
+        description: 'Plugin version to publish (e.g. 3.0.0). Leave blank to use extension/package.json version.'
         required: false
 
 permissions:
@@ -47,8 +47,8 @@ jobs:
           elif [ -n "${{ inputs.version }}" ]; then
             VERSION="${{ inputs.version }}"
           else
-            echo "Using version from gradle.properties (workflow_dispatch, no version input)"
-            exit 0
+            VERSION="$(node -p "require('./extension/package.json').version")"
+            echo "No workflow input — using extension/package.json version: $VERSION"
           fi
           if [ -z "$VERSION" ]; then
             echo "::error::Could not determine plugin version (release tag or workflow input)."
