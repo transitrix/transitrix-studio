@@ -80,7 +80,7 @@ function resolveOptions(options: ProcessBlueprintLayoutOptions | undefined): Res
 
 /**
  * Greedy word-wrap to a max characters-per-line budget. Delegates to the shared
- * text-layout module (strategy #521).
+ * shared text-layout module.
  */
 function wrapText(text: string, maxChars: number, maxLines: number): string[] {
   return wrapTextLines(text, maxChars, maxLines);

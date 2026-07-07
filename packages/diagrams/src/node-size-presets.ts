@@ -1,8 +1,8 @@
 /**
- * Block/cell size presets for diagram renderers (strategy #521).
+ * Block/cell size presets for diagram renderers.
  *
  * Presets drive both layout geometry and shared text-layout char budgets.
- * Smooth per-pixel sliders are intentionally deferred — see hub issue #521.
+ * Smooth per-pixel sliders are intentionally deferred.
  */
 
 export type NodeSizePreset = 'compact' | 'normal' | 'wide';

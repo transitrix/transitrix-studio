@@ -1,5 +1,5 @@
 /**
- * Shared text-in-block layout for Transitrix diagram renderers (strategy #521).
+ * Shared text-in-block layout for Transitrix diagram renderers.
  *
  * Consolidates wrapping, truncation, and vertical placement patterns previously
  * duplicated across Blocks, Goals, DGCA/DGA, Activities, Process Blueprint, and

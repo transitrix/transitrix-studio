@@ -57,7 +57,7 @@ export interface FGCAPreviewLayoutOptions {
 }
 
 /**
- * Trims a DGCA/DGA doc to a scope (vkgeorgia/strategy#77).
+ * Trims a DGCA/DGA doc to a scope.
  *
  * DGCA/DGA goals are flat (no parent_id), so:
  *   - 'level' → goals with `(level ?? 0) <= maxLevel`.
@@ -124,7 +124,7 @@ export interface FGCAPreviewLayout {
 }
 
 // Default node + frame geometry. Inter-node gaps are user-configurable via
-// spacing settings (vkgeorgia/strategy#75); node size uses presets (#521).
+// Inter-node gaps are user-configurable via spacing settings; node size uses presets.
 export const FGCA_NODE_W = 220;
 export const FGCA_NODE_H = 72;
 export const FGCA_HEADER_H = 32;

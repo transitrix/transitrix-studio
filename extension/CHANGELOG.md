@@ -4,7 +4,7 @@
 
 ### Added
 
-- **Unified text-in-block layout** (`entity-text-layout.ts`, strategy #521): shared wrapping, truncation, and vertical placement for Goals, DGCA/DGA, Nested Blocks, Activities, Process Blueprint, and Capability Map renderers.
+- **Unified text-in-block layout** (`entity-text-layout.ts`): shared wrapping, truncation, and vertical placement for Goals, DGCA/DGA, Nested Blocks, Activities, Process Blueprint, and Capability Map renderers.
 - **Block size presets** (`compact` / `normal` / `wide`) via `transitrix.nodeSize.*` settings and the in-preview **Controls → Block size** row (Goals, DGCA/DGA, Activities). Smooth width/height sliders remain a documented follow-up idea.
 
 ## 2.2.0 — 2026-06-24
