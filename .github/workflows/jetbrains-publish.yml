@@ -41,12 +41,18 @@ jobs:
       - name: Set plugin version
         run: |
           if [ "${{ github.event_name }}" = "release" ]; then
-            VERSION="${GITHUB_REF_NAME#v}"
+            # GITHUB_REF_NAME is not the release tag on release events — use tag_name.
+            VERSION="${{ github.event.release.tag_name }}"
+            VERSION="${VERSION#v}"
           elif [ -n "${{ inputs.version }}" ]; then
             VERSION="${{ inputs.version }}"
           else
             echo "Using version from gradle.properties (workflow_dispatch, no version input)"
             exit 0
+          fi
+          if [ -z "$VERSION" ]; then
+            echo "::error::Could not determine plugin version (release tag or workflow input)."
+            exit 1
           fi
           sed -i "s/^pluginVersion = .*/pluginVersion = $VERSION/" intellij/gradle.properties
           echo "Plugin version set to: $VERSION"
