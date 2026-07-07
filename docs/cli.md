@@ -4,45 +4,56 @@ The Transitrix CLI compiles, validates, measures and serves Transitrix notation
 files **without VS Code** — for scripts, CI pipelines, and automation (e.g. a
 compliance-report renderer).
 
-The canonical command is **`transitrix`**. The legacy **`cervin`** name is a
-deprecated alias of the same binary and will be removed in 2.0.0.
+The canonical command is **`transitrix`**. The legacy **`cervin`** name was
+removed in CLI/runtime **2.0.0**.
 
-## Getting the CLI outside VS Code
+## Install from npm
 
-> The CLI is **not yet published to npm** (`npm install -g transitrix` /
-> `@transitrix/cli` will 404). The VS Code extension bundles the rendering
-> library for previews — it does **not** put a runnable CLI on your `PATH`.
-> Until a published package lands, install from a clone (the publish
-> procedure itself is tracked in [`docs/release-runbook.md`](release-runbook.md)):
+The published package is **`@transitrix/cli`**:
+
+```bash
+npm install -g @transitrix/cli
+transitrix --help
+```
+
+See [`packages/cli/README.md`](../packages/cli/README.md) for the full command
+surface. Publishing is automated from GitHub Releases — see
+[`docs/release-runbook.md`](release-runbook.md).
+
+The VS Code extension bundles renderers for in-editor previews; it does **not**
+put the CLI on your `PATH`. Use `@transitrix/cli` (or a clone build below) for
+terminal and CI workflows.
+
+## Install from a clone (development)
 
 ```bash
 git clone https://github.com/transitrix/transitrix-studio
 cd transitrix-studio
 npm install
-npm run build          # emits dist/, including dist/cli.js (the bin entry)
-npm link               # puts `transitrix` (and legacy `cervin`) on your PATH
+npm run build          # emits dist/, including dist/cli.js
+npm link               # puts `transitrix` on your PATH (root workspace)
 ```
 
-After `npm link`, the command is available globally:
+After `npm link`:
 
 ```bash
 transitrix --help
-where.exe transitrix   # Windows: confirms it is on PATH
+where.exe transitrix   # Windows
 which transitrix       # macOS/Linux
 ```
 
-`npm link` works even though the package is marked `private` (private only blocks
-`npm publish`, not local linking). To undo it later: `npm rm -g transitrix-studio`.
+`npm link` works even though the root package is `private` (private only blocks
+`npm publish`, not local linking). To undo: `npm rm -g transitrix-studio`.
 
 ### Without a global install
 
-If you do not want a global shim, run the built CLI directly from the clone:
+Run the built CLI directly from the clone:
 
 ```bash
 node /path/to/transitrix-studio/dist/cli.js compile input.bpmn.transitrix.yaml out.bpmn
 ```
 
-…or, for development (no build step, transpiled on the fly via `tsx`):
+…or, for development (transpiled on the fly via `tsx`):
 
 ```bash
 npm run transitrix -- compile input.bpmn.transitrix.yaml out.bpmn
@@ -52,11 +63,8 @@ npm run transitrix -- compile input.bpmn.transitrix.yaml out.bpmn
 
 A launcher that must work whether or not `transitrix` is on `PATH` should:
 
-1. try `transitrix` (then legacy `cervin`) on `PATH`;
+1. try `transitrix` on `PATH`;
 2. fall back to `node <repo>/dist/cli.js` when a local clone path is known.
-
-The CLI prints a one-line deprecation notice to **stderr** when invoked under the
-legacy `cervin` name, so prefer `transitrix` in new automation.
 
 ## Commands
 
@@ -79,8 +87,8 @@ transitrix export-compliance [--format md|pdf] [--scope law:<ID>|product:<ID>|ga
 
 Flags: `--no-metrics` suppresses the metrics report on compile; `--no-validate`
 suppresses validation **warnings** (errors always run). Input files must use a
-recognised suffix (`*.bpmn.transitrix.yaml`; legacy `*.cervin.yaml` accepted) or
-pass `--ext=.suffix1,.suffix2`.
+recognised suffix (default **`*.bpmn.transitrix.yaml`**) or pass
+`--ext=.suffix1,.suffix2`.
 
 ## Examples
 
@@ -95,5 +103,12 @@ transitrix serve --port 9000
 
 ## Project config
 
-Rule overrides are read from a `.transitrixrc` file at the project root (legacy
-`.cervinrc` is read as a fallback). See [`docs/validation.md`](validation.md).
+Rule overrides are read from a **`.transitrixrc`** file at the project root.
+See [`docs/validation.md`](validation.md).
+
+## VS Code extension
+
+Extension **3.0+** recognises BPMN sources only under configured
+`transitrix.fileExtensions` (default `.bpmn.transitrix.yaml`). Legacy
+`*.cervin.yaml` and `cervin.*` settings/commands are removed — see
+[`extension/CHANGELOG.md`](../extension/CHANGELOG.md) and [`RELEASING.md`](../RELEASING.md).
