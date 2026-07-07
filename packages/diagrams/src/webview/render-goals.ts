@@ -2,8 +2,8 @@
  * Browser-safe SVG renderer for the canonical Goals notation.
  *
  * Step 3 of the IntelliJ epic (ADR 0001): the webview bundle must turn a
- * validated GoalTree into renderable SVG so JCEF can drop it into the preview
- * panel. The VS Code path lives in `extension/src/goals-preview.ts` and pulls
+ * validated GoalTree into renderable SVG so JCEF can drop it into the
+ * preview panel. The VS Code path lives in `extension/src/goals-preview.ts` and pulls
  * in VS Code-specific concerns (themes, title block, save dialogs); this
  * module is the host-neutral subset — pure layout → SVG with no VS Code APIs,
  * no `node:fs`, no `node:path`.
@@ -14,21 +14,21 @@ import { layoutGoalTree } from '../goals/layout.js';
 import type { GoalTree, GoalTreeLayout, LaidOutEdge } from '../goals/types.js';
 import { displayGoalId } from '../goals/parse-canonical.js';
 import { horizontalCubicEdgePath, DEFAULT_EDGE_CURVATURE } from '../edge-path.js';
+import { parseNodeSizePreset, resolveGoalsNodeSize, type NodeSizePreset } from '../node-size-presets.js';
 import { generateSvgEmbedCss, type ThemeId } from '../theme/index.js';
+import { emitCenteredTextSvg, layoutCenteredEntityText } from './entity-text-layout.js';
 import { escXml } from './render-util.js';
 import { ENTITY_NODE_RX } from './notation-style.js';
 
-const NODE_W = 250;
-const NODE_H = 72;
 const RANK_SEP = 100;
 const NODE_SEP = 24;
 const PAD = 24;
-const LABEL_CHARS = 30;
 
 export interface RenderGoalsOptions {
   treeName?: string;
   curvature?: number;
   entryCurvature?: number;
+  nodeSizePreset?: NodeSizePreset;
 }
 
 /**
@@ -37,11 +37,12 @@ export interface RenderGoalsOptions {
  * with the shared theme CSS embedded so the output is self-contained.
  */
 export function renderGoalsSvg(tree: GoalTree, options: RenderGoalsOptions = {}): string {
-  const { treeName = '', curvature = DEFAULT_EDGE_CURVATURE, entryCurvature } = options;
+  const { treeName = '', curvature = DEFAULT_EDGE_CURVATURE, entryCurvature, nodeSizePreset = 'normal' } = options;
+  const nodeSize = resolveGoalsNodeSize(parseNodeSizePreset(nodeSizePreset));
 
   const layout: GoalTreeLayout = layoutGoalTree(tree, {
-    nodeWidth: NODE_W,
-    nodeHeight: NODE_H,
+    nodeWidth: nodeSize.width,
+    nodeHeight: nodeSize.height,
     rankSep: RANK_SEP,
     nodeSep: NODE_SEP,
   });
@@ -54,10 +55,6 @@ export function renderGoalsSvg(tree: GoalTree, options: RenderGoalsOptions = {})
     ? `<text class="text-header" x="${PAD}" y="${PAD - 6}">${escXml(`Goal tree — ${treeName}`)}</text>`
     : '';
 
-  // Embed the shared theme CSS so the JCEF host page only needs to drop the SVG
-  // into the DOM — styling resolves without help from the host stylesheet. The
-  // VS Code preview omits this (its webview supplies the CSS) and embeds it only
-  // on export via `prepareSvgForExport`.
   return renderGoalsLayoutSvg(layout, { curvature, entryCurvature, title, embedCssTheme: 'transitrix' });
 }
 
@@ -111,32 +108,23 @@ export function renderGoalsLayoutSvg(layout: GoalTreeLayout, options: RenderGoal
       const y = n.y + oy;
       const level = n.data.level % 8;
       const labelText = n.data.name ?? String(n.id);
-      const words = labelText.split(' ');
-      let line1 = '';
-      let line2 = '';
-      for (const w of words) {
-        if ((line1 + ' ' + w).trim().length <= LABEL_CHARS) {
-          line1 = (line1 + ' ' + w).trim();
-        } else if ((line2 + ' ' + w).trim().length <= LABEL_CHARS) {
-          line2 = (line2 + ' ' + w).trim();
-        } else if (!line2) {
-          line2 = w.slice(0, LABEL_CHARS - 2) + '…';
-          break;
-        }
-      }
-      const twoLines = line2.length > 0;
-      const nameY1 = twoLines ? y + 12 : y + 16;
-      const nameY2 = y + 26;
-      const typeY = twoLines ? y + 43 : y + 35;
-      const idY = twoLines ? y + 59 : y + 55;
       const typeLabel = n.data.type ?? '';
       const idText = displayGoalId(n.data);
+      const specs = layoutCenteredEntityText({
+        boxX: x,
+        boxY: y,
+        boxWidth: n.width,
+        boxHeight: n.height,
+        name: labelText,
+        type: typeLabel || undefined,
+        id: idText,
+        nameMaxLines: 2,
+        idMaxLines: 1,
+      });
+      const textSvg = emitCenteredTextSvg(specs, x + n.width / 2, escXml);
       return `<g>
   <rect class="diagram-node level-${level}" x="${x}" y="${y}" width="${n.width}" height="${n.height}" rx="${ENTITY_NODE_RX}"/>
-  <text class="text-primary" x="${x + n.width / 2}" y="${nameY1}" text-anchor="middle" dominant-baseline="central">${escXml(line1)}</text>${twoLines ? `
-  <text class="text-primary" x="${x + n.width / 2}" y="${nameY2}" text-anchor="middle" dominant-baseline="central">${escXml(line2)}</text>` : ''}${typeLabel ? `
-  <text class="text-secondary" x="${x + n.width / 2}" y="${typeY}" text-anchor="middle" dominant-baseline="central">${escXml(typeLabel)}</text>` : ''}
-  <text class="text-id" x="${x + n.width / 2}" y="${idY}" text-anchor="middle" dominant-baseline="central">${escXml(idText)}</text>
+  ${textSvg}
 </g>`;
     })
     .join('\n');

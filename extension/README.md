@@ -20,7 +20,7 @@ Transitrix flips that:
 | Domain | Notation | Use it for |
 |---|---|---|
 | Strategy | **Goals tree** | Hierarchical goal decomposition |
-| Strategy | **FGCA / FGA** | Factors → goals → (changes →) activities chains |
+| Strategy | **DGCA / DGA** | Drivers → goals → (changes →) activities chains |
 | Capability | **Capability map** | Current vs target maturity per capability |
 | Process | **Process map** | Operating / supporting / management process landscape |
 | Process | **Process blueprint** | Stage-by-stage design with systems, actors, equipment, information |
@@ -62,6 +62,12 @@ Configure under **Settings → Transitrix Studio**. The canonical keys are `tran
 |---------|---------|-------------|
 | `transitrix.fileExtensions` | `[".bpmn.transitrix.yaml"]` | File suffixes recognised as Transitrix BPMN source files (leading dot required). |
 | `transitrix.exportEnabled` | `false` | Show the experimental BPMN/SVG/PNG export commands. |
+| `transitrix.nodeSize.goals` | `normal` | Block size preset for Goals preview (`compact` / `normal` / `wide`). Also in the in-preview **Controls** panel. |
+| `transitrix.nodeSize.dgca` / `.dga` | `normal` | Block size preset for DGCA/DGA chain previews. |
+| `transitrix.nodeSize.action` | `normal` | Block size preset for Activities network preview. |
+| `transitrix.nodeSize.blocks` | `normal` | Leaf block size preset for Nested Blocks preview (settings; Controls panel deferred). |
+| `transitrix.nodeSize.processBlueprint` | `normal` | Cell/column sizing preset for Process Blueprint (pairs with existing column-width slider). |
+| `transitrix.nodeSize.capabilityMap` | `normal` | Node size preset for Capability Map tree preview. |
 
 ## Learn more
 

@@ -40,10 +40,18 @@ export interface CapabilityTreeLayout {
   levelCounts: CapabilityTreeLevelCounts;
 }
 
+export interface CapabilityTreeLayoutOptions {
+  nodeWidth?: number;
+  nodeHeight?: number;
+}
+
 export function layoutCapabilityTree(
   map: CapabilityMapHeader,
   collapsedIds: Set<string> = new Set(),
+  options: CapabilityTreeLayoutOptions = {},
 ): CapabilityTreeLayout {
+  const nodeWidth = options.nodeWidth ?? TREE_NODE_WIDTH;
+  const nodeHeight = options.nodeHeight ?? TREE_NODE_HEIGHT;
   const nodes: CapabilityTreeNode[] = [];
   const edges: CapabilityTreeEdge[] = [];
 
@@ -60,13 +68,13 @@ export function layoutCapabilityTree(
     const hasChildren = Boolean(node.children?.length);
     const visibleChildren = !isCollapsed && node.children?.length ? node.children : [];
 
-    const x = depth * (TREE_NODE_WIDTH + TREE_RANK_SEP);
+    const x = depth * (nodeWidth + TREE_RANK_SEP);
 
     if (visibleChildren.length === 0) {
       const y = getNextY(depth);
-      advanceY(depth, TREE_NODE_HEIGHT + TREE_NODE_SEP);
-      nodes.push({ id: node.id, x, y, width: TREE_NODE_WIDTH, height: TREE_NODE_HEIGHT, data: node, depth, hasChildren, isCollapsed });
-      return { top: y, bottom: y + TREE_NODE_HEIGHT };
+      advanceY(depth, nodeHeight + TREE_NODE_SEP);
+      nodes.push({ id: node.id, x, y, width: nodeWidth, height: nodeHeight, data: node, depth, hasChildren, isCollapsed });
+      return { top: y, bottom: y + nodeHeight };
     }
 
     const childSpans: Array<{ top: number; bottom: number }> = [];
@@ -77,14 +85,14 @@ export function layoutCapabilityTree(
 
     const spanTop = Math.min(...childSpans.map(s => s.top));
     const spanBottom = Math.max(...childSpans.map(s => s.bottom));
-    const parentY = spanTop + (spanBottom - spanTop) / 2 - TREE_NODE_HEIGHT / 2;
+    const parentY = spanTop + (spanBottom - spanTop) / 2 - nodeHeight / 2;
 
     const curColY = getNextY(depth);
     const finalY = Math.max(parentY, curColY);
-    advanceY(depth, finalY - curColY + TREE_NODE_HEIGHT + TREE_NODE_SEP);
+    advanceY(depth, finalY - curColY + nodeHeight + TREE_NODE_SEP);
 
-    nodes.push({ id: node.id, x, y: finalY, width: TREE_NODE_WIDTH, height: TREE_NODE_HEIGHT, data: node, depth, hasChildren, isCollapsed });
-    return { top: Math.min(finalY, spanTop), bottom: Math.max(finalY + TREE_NODE_HEIGHT, spanBottom) };
+    nodes.push({ id: node.id, x, y: finalY, width: nodeWidth, height: nodeHeight, data: node, depth, hasChildren, isCollapsed });
+    return { top: Math.min(finalY, spanTop), bottom: Math.max(finalY + nodeHeight, spanBottom) };
   }
 
   for (const root of map.capabilities) {

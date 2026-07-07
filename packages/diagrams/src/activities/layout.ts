@@ -1,13 +1,18 @@
 import type { ActivityDoc, Activity, ActivitiesLayout, ActivitiesLayoutOptions, LayoutNode, LayoutEdge } from './types.js';
 import { computeCpm } from './cpm.js';
 
-const NODE_W = 200;
-const NODE_H = 80;
+const DEFAULT_NODE_W = 200;
+const DEFAULT_NODE_H = 80;
 const H_GAP = 80;
 const V_GAP = 24;
 
 export function layoutActivities(doc: ActivityDoc, options: ActivitiesLayoutOptions = {}): ActivitiesLayout {
-  const { horizontalGap = H_GAP, verticalGap = V_GAP } = options;
+  const {
+    horizontalGap = H_GAP,
+    verticalGap = V_GAP,
+    nodeWidth = DEFAULT_NODE_W,
+    nodeHeight = DEFAULT_NODE_H,
+  } = options;
   const activities = doc.activities;
   if (activities.length === 0) {
     return { nodes: [], edges: [], bounds: { x: 0, y: 0, width: 0, height: 0 } };
@@ -70,21 +75,21 @@ export function layoutActivities(doc: ActivityDoc, options: ActivitiesLayoutOpti
 
   for (let c = 0; c < colCount; c++) {
     const list = cols.get(c) ?? [];
-    const x = c * (NODE_W + horizontalGap);
+    const x = c * (nodeWidth + horizontalGap);
     let y = 0;
     for (const a of list) {
       const node: LayoutNode = {
         id: a.id,
         x,
         y,
-        width: NODE_W,
-        height: NODE_H,
+        width: nodeWidth,
+        height: nodeHeight,
         data: a,
         cpm: cpm.get(a.id),
       };
       nodes.push(node);
       nodeMap.set(a.id, node);
-      y += NODE_H + verticalGap;
+      y += nodeHeight + verticalGap;
     }
   }
 

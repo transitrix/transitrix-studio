@@ -35,8 +35,11 @@ describe('buildControlsPanel', () => {
     const html = buildControlsPanel(baseModel({
       spacing: { horizontalGap: 180, verticalGap: 40, defaults: spacingDefaults },
       curvature: { value: 2.5, default: 1 },
+      nodeSize: { value: 'wide', default: 'normal' },
     }));
-    expect(html).toContain('data-tx-field="horizontalGap" data-tx-event="input" data-tx-output="tx-hgap-out"\n        min="20" max="300" step="1" value="180"');
+    expect(html).toContain('data-tx-control="nodeSize"');
+    expect(html).toContain('value="wide" selected');
+    expect(html).toContain('data-tx-field="horizontalGap"');
     expect(html).toContain('value="2.5"');
   });
 

@@ -18,6 +18,7 @@ import type {
   StageHeaderCell,
   StageTextCell,
 } from './types.js';
+import { wrapTextLines } from '../webview/entity-text-layout.js';
 
 const ASPECT_CATEGORIES: AspectCategory[] = ['systems', 'actors', 'equipment', 'information_entities'];
 
@@ -78,56 +79,11 @@ function resolveOptions(options: ProcessBlueprintLayoutOptions | undefined): Res
 }
 
 /**
- * Greedy word-wrap to a max characters-per-line budget. Words longer than the
- * budget are hard-split; if the result exceeds `maxLines`, the last kept line
- * is truncated with an ellipsis so a single pathological cell can't grow the
- * whole row unbounded.
+ * Greedy word-wrap to a max characters-per-line budget. Delegates to the shared
+ * shared text-layout module.
  */
 function wrapText(text: string, maxChars: number, maxLines: number): string[] {
-  const trimmed = (text ?? '').trim();
-  if (trimmed.length === 0) return [];
-  const budget = Math.max(1, maxChars);
-
-  const words = trimmed.split(/\s+/);
-  const lines: string[] = [];
-  let cur = '';
-  const flush = (): void => {
-    if (cur.length > 0) {
-      lines.push(cur);
-      cur = '';
-    }
-  };
-
-  for (const word of words) {
-    if (word.length > budget) {
-      // Token wider than the cell: hard-break it across lines.
-      flush();
-      let rest = word;
-      while (rest.length > budget) {
-        lines.push(rest.slice(0, budget));
-        rest = rest.slice(budget);
-      }
-      cur = rest;
-      continue;
-    }
-    const candidate = cur.length > 0 ? `${cur} ${word}` : word;
-    if (candidate.length > budget) {
-      flush();
-      cur = word;
-    } else {
-      cur = candidate;
-    }
-  }
-  flush();
-
-  if (lines.length > maxLines) {
-    const capped = lines.slice(0, maxLines);
-    const last = capped[maxLines - 1];
-    const clipped = last.length > budget - 1 ? last.slice(0, budget - 1) : last;
-    capped[maxLines - 1] = `${clipped.replace(/…$/, '')}…`;
-    return capped;
-  }
-  return lines;
+  return wrapTextLines(text, maxChars, maxLines);
 }
 
 function buildStageIndex(stages: Stage[]): Map<string, number> {

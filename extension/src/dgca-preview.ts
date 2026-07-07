@@ -20,6 +20,7 @@ import { coerceDatesToIsoStrings } from '@transitrix/diagrams/yaml-normalize.js'
 import { checkScopeRoot, type Scope } from '@transitrix/diagrams/scope.js';
 import { savePngFromSvg, copyPngFromSvg } from './png-export.js';
 import { readSpacing, readCurvature, readEntryCurvature, readScope, readView, applyControlMessage, OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND, OPEN_SCOPE_SETTINGS_COMMAND } from './spacing-config.js';
+import { readDgcaNodeSize, readNodeSizePreset } from './node-size-config.js';
 import { genNonce, buildControlsPanel, buildControlsScript, buildViewToggle, buildCaptureButton, buildTimelineStrip, type ControlsModel, type ScopeGoalOption, type SnapshotMarker, type SnapshotMessage } from './preview-controls.js';
 import { snapshotFilename, buildSnapshotContent, extractViewMeta, listSnapshotFiles, parseSnapshotForDisplay } from './snapshot-writer.js';
 
@@ -108,10 +109,13 @@ function chainControlsModel(
   scope: Scope,
   goals: ScopeGoalOption[],
   maxLevelPresent: number,
+  viewNotation: 'dgca' | 'dga',
 ): ControlsModel {
+  const nodeSizePreset = readNodeSizePreset(viewNotation);
   return {
     spacing: { ...gaps, defaults },
     curvature: { value: curvature, default: 1 },
+    nodeSize: { value: nodeSizePreset, default: 'normal' },
     scope: {
       rootId: scope.mode === 'root' ? scope.rootGoalId : '',
       maxLevel: scope.mode === 'level' ? scope.maxLevel : -1,
@@ -196,9 +200,9 @@ function renderChainPreview(
     ({ goals: goalOptions, maxLevelPresent } = scopeInputsFromDoc(parsedDoc));
     const scopeWarning = checkScopeRoot(scope, parsedDoc.goals.map(g => g.id));
     if (scopeWarning) warnings.push(`${scopeWarning.code}: ${scopeWarning.message}`);
-    svg = buildSvg(parsedDoc, p.hideChanges, { colGap: gaps.horizontalGap, rowGap: gaps.verticalGap, curvature, entryCurvature, scope }, p.heading, filename, docDate, docVersion);
+    svg = buildSvg(parsedDoc, p.hideChanges, { colGap: gaps.horizontalGap, rowGap: gaps.verticalGap, curvature, entryCurvature, scope, nodeSize: readDgcaNodeSize(p.viewNotation) }, p.heading, filename, docDate, docVersion);
   }
-  const model = chainControlsModel(gaps, spacingDefaults, curvature, scope, goalOptions, maxLevelPresent);
+  const model = chainControlsModel(gaps, spacingDefaults, curvature, scope, goalOptions, maxLevelPresent, p.viewNotation);
   const html = buildDiagramFrame({
     filename, notation: p.notation, svgContent: svg, errorMsg, warnings, themeId,
     saveSvgCommand: p.saveSvgCommand,
@@ -217,7 +221,7 @@ function renderChainPreview(
 function buildSvg(
   doc: FGCADoc,
   hideChanges = false,
-  opts: { colGap?: number; rowGap?: number; curvature?: number; entryCurvature?: number; scope?: Scope } = {},
+  opts: { colGap?: number; rowGap?: number; curvature?: number; entryCurvature?: number; scope?: Scope; nodeSize?: { width: number; height: number } } = {},
   heading?: string,
   filename?: string,
   date?: string,
@@ -225,16 +229,22 @@ function buildSvg(
 ): string {
   const curvature = opts.curvature ?? DEFAULT_EDGE_CURVATURE;
   const entryCurvature = opts.entryCurvature;
+  const nodeSize = opts.nodeSize ?? readDgcaNodeSize('dgca');
   const { nodes, edges, columns, width, height } = layoutFGCAPreview(doc, {
     hideChanges,
     colGap: opts.colGap,
     rowGap: opts.rowGap,
     scope: opts.scope,
+    nodeWidth: nodeSize.width,
+    nodeHeight: nodeSize.height,
   });
   const showTitle = heading != null && filename != null && date != null;
   const titleH = showTitle ? TITLE_BLOCK_H : 0;
 
-  const body = renderFgcaBody(columns, nodes, edges, curvature, entryCurvature);
+  const body = renderFgcaBody(columns, nodes, edges, curvature, entryCurvature, {
+    nodeWidth: nodeSize.width,
+    nodeHeight: nodeSize.height,
+  });
 
   const totalH = height + titleH;
   const titleSvg = showTitle ? titleBlockSvg(heading!, filename!, date!, PAD, PAD, version) : '';

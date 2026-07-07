@@ -1,13 +1,13 @@
 import type { CapabilityMapHeader } from './types.js';
-import { layoutCapabilityTree, TREE_NODE_WIDTH, TREE_NODE_HEIGHT, TREE_NODE_SEP } from './layout-tree.js';
+import { layoutCapabilityTree, TREE_NODE_SEP } from './layout-tree.js';
 import { horizontalCubicEdgePath, DEFAULT_EDGE_CURVATURE } from '../edge-path.js';
+import { parseNodeSizePreset, resolveCapabilityMapNodeSize, type NodeSizePreset } from '../node-size-presets.js';
+import { maxCharsForInnerWidth, truncateLine } from '../webview/entity-text-layout.js';
 import { escXml } from '../webview/render-util.js';
 
 const PAD = 24;
 const BTN_R = 8;
 const LEGEND_H = 40;
-const LABEL_MAX_CHARS = 28;
-const LABEL_TRIM_CHARS = 26;
 
 const BAND_LABELS = ['Levels 0–2', 'Levels 3–4', 'Levels 5+'] as const;
 
@@ -17,30 +17,19 @@ function depthBand(depth: number): 0 | 1 | 2 {
   return 2;
 }
 
-function truncate(s: string, max: number, trim: number): string {
-  return s.length > max ? s.slice(0, trim) + '…' : s;
-}
-
 export interface RenderCapabilityTreeOptions {
   collapsedIds?: Set<string>;
   curvature?: number;
+  nodeSizePreset?: NodeSizePreset;
 }
 
-/**
- * Renders a capability-map as a left-to-right SVG node tree with DSM-matching
- * visual design: depth-banded fills, maturity badges, and +/− collapse buttons.
- *
- * The SVG uses CSS classes (`tree-level-N`, `tree-maturity-N`, `tree-collapse-btn`)
- * that must be resolved by the host's stylesheet (injected via `diagramClassCss()`
- * in themes.ts). Collapse buttons carry `data-node-id` / `data-collapsed` attributes
- * for the webview click handler.
- */
 export function renderCapabilityTreeSvg(
   map: CapabilityMapHeader,
   opts: RenderCapabilityTreeOptions = {},
 ): string {
-  const { collapsedIds = new Set(), curvature = DEFAULT_EDGE_CURVATURE } = opts;
-  const layout = layoutCapabilityTree(map, collapsedIds);
+  const { collapsedIds = new Set(), curvature = DEFAULT_EDGE_CURVATURE, nodeSizePreset = 'normal' } = opts;
+  const nodeSize = resolveCapabilityMapNodeSize(parseNodeSizePreset(nodeSizePreset));
+  const layout = layoutCapabilityTree(map, collapsedIds, nodeSize);
 
   if (layout.nodes.length === 0) {
     return `<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" viewBox="0 0 0 0"></svg>`;
@@ -70,23 +59,22 @@ export function renderCapabilityTreeSvg(
     const band = depthBand(n.depth);
     const mat = Math.max(1, Math.min(5, n.data.current_maturity | 0));
 
-    const nameText = truncate(n.data.name, LABEL_MAX_CHARS, LABEL_TRIM_CHARS);
-    const nameTitle = n.data.name.length > LABEL_MAX_CHARS ? escXml(n.data.name) : '';
-
-    // Maturity badge: left side of node
     const badgeW = 28;
     const badgeH = 18;
+    const textAreaW = Math.max(0, n.width - badgeW - 26);
+    const maxChars = maxCharsForInnerWidth(textAreaW, 7);
+    const nameText = truncateLine(n.data.name, maxChars);
+    const nameTitle = n.data.name.length > maxChars ? escXml(n.data.name) : '';
+
     const badgeX = x + 10;
-    const badgeY = y + (TREE_NODE_HEIGHT - badgeH) / 2;
+    const badgeY = y + (n.height - badgeH) / 2;
 
-    // Text area: right of badge
     const textX = badgeX + badgeW + 8;
-    const nameY = y + TREE_NODE_HEIGHT / 2 - 8;
-    const idY = y + TREE_NODE_HEIGHT / 2 + 9;
+    const nameY = y + n.height / 2 - 8;
+    const idY = y + n.height / 2 + 9;
 
-    // Collapse button: centered on right edge of node
-    const btnCx = x + TREE_NODE_WIDTH;
-    const btnCy = y + TREE_NODE_HEIGHT / 2;
+    const btnCx = x + n.width;
+    const btnCy = y + n.height / 2;
 
     const collapseBtn = n.hasChildren
       ? `<circle class="tree-collapse-btn" cx="${btnCx}" cy="${btnCy}" r="${BTN_R}" data-node-id="${escXml(n.id)}" data-collapsed="${n.isCollapsed}"/>
@@ -94,7 +82,7 @@ export function renderCapabilityTreeSvg(
       : '';
 
     return `<g${nameTitle ? ` title="${nameTitle}"` : ''}>
-  <rect class="tree-level-${band}" x="${x}" y="${y}" width="${TREE_NODE_WIDTH}" height="${TREE_NODE_HEIGHT}" rx="11" stroke="var(--ts-node-stroke,#94a3b8)" stroke-width="3"/>
+  <rect class="tree-level-${band}" x="${x}" y="${y}" width="${n.width}" height="${n.height}" rx="11" stroke="var(--ts-node-stroke,#94a3b8)" stroke-width="3"/>
   <rect class="tree-maturity-${mat}" x="${badgeX}" y="${badgeY}" width="${badgeW}" height="${badgeH}" rx="4"/>
   <text class="text-pill" x="${badgeX + badgeW / 2}" y="${badgeY + badgeH / 2}" text-anchor="middle" fill="white">L${mat}</text>
   <text class="text-primary" x="${textX}" y="${nameY}" dominant-baseline="central">${escXml(nameText)}</text>

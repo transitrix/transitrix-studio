@@ -1,6 +1,6 @@
-// Pure column-layout geometry for the static FGCA / FGA previews.
+// Pure column-layout geometry for the static DGCA / DGA previews.
 //
-// This is the layout the Studio extension's `fgca-preview.ts` renders to SVG
+// This is the layout the Studio extension's `dgca-preview.ts` renders to SVG
 // (NOT the ReactFlow `buildFGCALayout` in `./layout.ts`, which targets the
 // interactive web UI). It lives here — rather than inline in the extension —
 // so the gap geometry is unit-testable: the extension has no test harness.
@@ -33,7 +33,7 @@ export interface FGCAPreviewActivity {
   goal_id?: number | string | null;
 }
 
-/** Structural input the preview layout needs — a subset of the parsed FGCA/FGA doc. */
+/** Structural input the preview layout needs — a subset of the parsed DGCA/DGA doc. */
 export interface FGCAPreviewDoc {
   factors: FGCAPreviewFactor[];
   goals: FGCAPreviewGoal[];
@@ -42,7 +42,7 @@ export interface FGCAPreviewDoc {
 }
 
 export interface FGCAPreviewLayoutOptions {
-  /** FGA hides the Changes column and links Goal → Activity directly. */
+  /** DGA hides the Changes column and links Goal → Activity directly. */
   hideChanges?: boolean;
   /** Horizontal gap (px) between columns. Default matches the historical hardcoded value. */
   colGap?: number;
@@ -50,12 +50,16 @@ export interface FGCAPreviewLayoutOptions {
   rowGap?: number;
   /** Trim to a level cap or a single root goal (vkgeorgia/strategy#77). Defaults to 'all'. */
   scope?: Scope;
+  /** Entity node width (px). Default {@link FGCA_NODE_W}. */
+  nodeWidth?: number;
+  /** Entity node height (px). Default {@link FGCA_NODE_H}. */
+  nodeHeight?: number;
 }
 
 /**
- * Trims an FGCA/FGA doc to a scope (vkgeorgia/strategy#77).
+ * Trims a DGCA/DGA doc to a scope.
  *
- * FGCA/FGA goals are flat (no parent_id), so:
+ * DGCA/DGA goals are flat (no parent_id), so:
  *   - 'level' → goals with `(level ?? 0) <= maxLevel`.
  *   - 'root'  → the single goal whose id matches `rootGoalId` (empty when absent).
  *
@@ -119,8 +123,8 @@ export interface FGCAPreviewLayout {
   height: number;
 }
 
-// Fixed node + frame geometry. Only the inter-node gaps are user-configurable
-// (vkgeorgia/strategy#75); node size and padding stay constant.
+// Default node + frame geometry. Inter-node gaps are user-configurable via
+// Inter-node gaps are user-configurable via spacing settings; node size uses presets.
 export const FGCA_NODE_W = 220;
 export const FGCA_NODE_H = 72;
 export const FGCA_HEADER_H = 32;
@@ -137,12 +141,14 @@ export function layoutFGCAPreview(
     colGap = FGCA_DEFAULT_COL_GAP,
     rowGap = FGCA_DEFAULT_ROW_GAP,
     scope = { mode: 'all' },
+    nodeWidth = FGCA_NODE_W,
+    nodeHeight = FGCA_NODE_H,
   } = options;
 
   // Trim to scope first; everything below lays out the visible subset only.
   const doc = selectScopedFGCA(inputDoc, scope);
 
-  const colStride = FGCA_NODE_W + colGap;
+  const colStride = nodeWidth + colGap;
   const cols: FGCAPreviewColumn[] = hideChanges
     ? ['driver', 'goal', 'activity']
     : ['driver', 'goal', 'change', 'activity'];
@@ -206,7 +212,7 @@ export function layoutFGCAPreview(
   const nodeMap = new Map<string, FGCAPreviewNode>();
   const nodes: FGCAPreviewNode[] = [];
   const columns: FGCAPreviewColumnPos[] = [];
-  const yCenters = new Map<string, number>(); // nodeId → y + FGCA_NODE_H / 2
+  const yCenters = new Map<string, number>(); // nodeId → y + nodeHeight / 2
 
   for (let ci = 0; ci < cols.length; ci++) {
     const col = cols[ci];
@@ -218,8 +224,8 @@ export function layoutFGCAPreview(
       const node: FGCAPreviewNode = { id: item.id, x, y, label: item.label, col };
       nodes.push(node);
       nodeMap.set(item.id, node);
-      yCenters.set(item.id, y + FGCA_NODE_H / 2);
-      y += FGCA_NODE_H + rowGap;
+      yCenters.set(item.id, y + nodeHeight / 2);
+      y += nodeHeight + rowGap;
     }
   }
 
@@ -228,7 +234,7 @@ export function layoutFGCAPreview(
     const s = nodeMap.get(sourceId);
     const t = nodeMap.get(targetId);
     if (!s || !t) return;
-    edges.push({ sx: s.x + FGCA_NODE_W, sy: s.y + FGCA_NODE_H / 2, tx: t.x, ty: t.y + FGCA_NODE_H / 2 });
+    edges.push({ sx: s.x + nodeWidth, sy: s.y + nodeHeight / 2, tx: t.x, ty: t.y + nodeHeight / 2 });
   }
 
   for (const g of doc.goals) {
@@ -259,8 +265,8 @@ export function layoutFGCAPreview(
   }
 
   const maxNodeBottom = nodes.reduce(
-    (m, n) => Math.max(m, n.y + FGCA_NODE_H),
-    FGCA_PAD + FGCA_HEADER_H + rowGap + FGCA_NODE_H,
+    (m, n) => Math.max(m, n.y + nodeHeight),
+    FGCA_PAD + FGCA_HEADER_H + rowGap + nodeHeight,
   );
   const width = FGCA_PAD * 2 + cols.length * colStride - colGap;
   const height = maxNodeBottom + FGCA_PAD;

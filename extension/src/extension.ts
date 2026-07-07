@@ -35,6 +35,7 @@ import {
 import {
   OPEN_SPACING_SETTINGS_COMMAND,
   SPACING_CONFIG_SECTION,
+  NODE_SIZE_CONFIG_SECTION,
   OPEN_CURVATURE_SETTINGS_COMMAND,
   CURVATURE_CONFIG_SECTION,
   ENTRY_CURVATURE_CONFIG_SECTION,
@@ -548,7 +549,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         !e.affectsConfiguration(CURVATURE_CONFIG_SECTION) &&
         !e.affectsConfiguration(ENTRY_CURVATURE_CONFIG_SECTION) &&
         !e.affectsConfiguration(SCOPE_CONFIG_SECTION) &&
-        !e.affectsConfiguration(VIEW_CONFIG_SECTION)
+        !e.affectsConfiguration(VIEW_CONFIG_SECTION) &&
+        !e.affectsConfiguration(NODE_SIZE_CONFIG_SECTION)
       ) return;
       void goalsPreview.refreshConfig();
       void dgcaPreview.refreshConfig();

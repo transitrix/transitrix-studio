@@ -13,67 +13,23 @@
  * title `<text>`.
  */
 import { layoutNestedBlocks } from '../blocks/layout.js';
-import type { BlocksFile, BlocksLayout, LaidOutBlock } from '../blocks/types.js';
+import type { BlocksFile, BlocksLayout, BlocksLayoutOptions, LaidOutBlock } from '../blocks/types.js';
+import { parseNodeSizePreset, resolveBlocksLeafSize, type NodeSizePreset } from '../node-size-presets.js';
 import { generateSvgEmbedCss, type ThemeId } from '../theme/index.js';
+import {
+  emitCenteredTextSvg,
+  layoutHeaderBlockText,
+  layoutLeafBlockText,
+} from './entity-text-layout.js';
 import { escXml } from './render-util.js';
 import { ENTITY_NODE_RX } from './notation-style.js';
 
 const PAD = 24;
 
-// Approximate character width (px) at text-primary size (12px/600).
-const CHAR_W = 7;
-// Approximate character width (px) at text-id size (10px/600).
-const CHAR_W_ID = 6;
-
-// Vertical spacing between line centres.
-const LINE_H = 14;     // name lines (text-primary, 12 px font)
-const LINE_H_ID = 12;  // id lines (text-id, 10 px font)
-// Minimum gap to avoid overlap: half of name text height (6 px) + half of id
-// text height (5 px) = 11 px. Use 14 px to match the name-line separation and
-// leave a 3 px visual buffer — same as the gap between consecutive name lines.
-const NAME_ID_GAP = 14;
-
-/** Word-wrap `text` to at most `maxLines` lines of `maxChars` each. */
-function wrapWords(text: string, maxChars: number, maxLines: number): string[] {
-  const safeMax = Math.max(2, maxChars);
-  const words = text.split(' ');
-  const lines: string[] = [];
-  let cur = '';
-  for (let i = 0; i < words.length; i++) {
-    const w = words[i];
-    const next = cur ? `${cur} ${w}` : w;
-    if (next.length <= safeMax) {
-      cur = next;
-    } else {
-      if (cur) lines.push(cur);
-      cur = '';
-      if (lines.length >= maxLines) break;
-      if (lines.length === maxLines - 1) {
-        const rest = words.slice(i).join(' ');
-        lines.push(rest.length <= safeMax ? rest : rest.slice(0, safeMax - 1) + '…');
-        return lines;
-      }
-      cur = w.length <= safeMax ? w : w.slice(0, safeMax - 1) + '…';
-    }
-  }
-  if (cur && lines.length < maxLines) lines.push(cur);
-  return lines.length ? lines : [text.slice(0, safeMax - 1) + '…'];
-}
-
-/** Split an ID (no spaces) across at most 2 lines, breaking at `_` or `-`. */
-function wrapId(id: string, maxChars: number): string[] {
-  if (id.length <= maxChars) return [id];
-  const seg = id.slice(0, maxChars);
-  const sepIdx = Math.max(seg.lastIndexOf('_'), seg.lastIndexOf('-'));
-  const cut = sepIdx > Math.floor(maxChars / 3) ? sepIdx : maxChars - 1;
-  const isSep = id[cut] === '_' || id[cut] === '-';
-  const line1 = id.slice(0, cut);
-  const rest = id.slice(cut + (isSep ? 1 : 0));
-  return [line1, rest.length <= maxChars ? rest : rest.slice(0, maxChars - 1) + '…'];
-}
-
 export interface RenderBlocksOptions {
   title?: string;
+  nodeSizePreset?: NodeSizePreset;
+  layoutOptions?: BlocksLayoutOptions;
 }
 
 /**
@@ -89,27 +45,6 @@ function levelClassForDepth(depth: number): string {
   return `level-${idx}`;
 }
 
-// Reserve a small horizontal margin so text never abuts the rounded corners.
-const TEXT_MARGIN_X = 8;
-
-/** Truncate `text` to at most `maxChars` characters, at a word boundary when possible. */
-function truncateLine(text: string, maxChars: number): string {
-  const safeMax = Math.max(2, maxChars);
-  if (text.length <= safeMax) return text;
-  const cut = text.slice(0, safeMax - 1);
-  const lastSpace = cut.lastIndexOf(' ');
-  return (lastSpace > safeMax / 2 ? cut.slice(0, lastSpace) : cut) + '…';
-}
-
-/** Single-line ID truncation that prefers `_`/`-` separators before falling back to a hard cut. */
-function truncateId(id: string, maxChars: number): string {
-  const safeMax = Math.max(2, maxChars);
-  if (id.length <= safeMax) return id;
-  const cut = id.slice(0, safeMax - 1);
-  const sepIdx = Math.max(cut.lastIndexOf('_'), cut.lastIndexOf('-'));
-  return (sepIdx > safeMax / 3 ? cut.slice(0, sepIdx) : cut) + '…';
-}
-
 function emitBlockSvg(b: LaidOutBlock, ox: number, oy: number, parts: string[]): void {
   const cls = levelClassForDepth(b.depth);
   const cx = b.x + ox + b.width / 2;
@@ -117,50 +52,27 @@ function emitBlockSvg(b: LaidOutBlock, ox: number, oy: number, parts: string[]):
     `<rect class="diagram-node ${cls}" x="${b.x + ox}" y="${b.y + oy}" width="${b.width}" height="${b.height}" rx="${ENTITY_NODE_RX}"/>`,
   );
 
-  const innerW = Math.max(0, b.width - TEXT_MARGIN_X * 2);
   const isLeaf = b.children.length === 0;
   if (isLeaf) {
-    // Leaf block: name (up to 3 lines) then ID (up to 2 lines), centred vertically.
-    const maxCharsName = Math.max(4, Math.floor(innerW / CHAR_W));
-    const maxCharsId = Math.max(4, Math.floor(innerW / CHAR_W_ID));
-    const nameLines = wrapWords(b.name, maxCharsName, 3);
-    const idLines = wrapId(b.id, maxCharsId);
-    const nameTotalSpan = (nameLines.length - 1) * LINE_H;
-    const idTotalSpan = (idLines.length - 1) * LINE_H_ID;
-    const totalSpan = nameTotalSpan + NAME_ID_GAP + idTotalSpan;
-    const firstY = Math.round(b.y + oy + (b.height - totalSpan) / 2);
-    for (let i = 0; i < nameLines.length; i++) {
-      parts.push(
-        `<text class="text-primary" x="${cx}" y="${firstY + i * LINE_H}" text-anchor="middle" dominant-baseline="central">${escXml(nameLines[i])}</text>`,
-      );
-    }
-    const idFirstY = firstY + nameTotalSpan + NAME_ID_GAP;
-    for (let i = 0; i < idLines.length; i++) {
-      parts.push(
-        `<text class="text-id" x="${cx}" y="${idFirstY + i * LINE_H_ID}" text-anchor="middle" dominant-baseline="central">${escXml(idLines[i])}</text>`,
-      );
-    }
+    const specs = layoutLeafBlockText({
+      boxX: b.x + ox,
+      boxY: b.y + oy,
+      boxWidth: b.width,
+      boxHeight: b.height,
+      name: b.name,
+      id: b.id,
+    });
+    parts.push(emitCenteredTextSvg(specs, cx, escXml));
   } else {
-    // Container block: name (text-primary) above, ID (text-id, grey) below — both
-    // single-line, truncated with `…` to fit within `b.width`. The header strip is
-    // only `headerHeight` tall (default 28px), which is enough for one line each at
-    // the configured text sizes. Stacking the ID as its own text-id element keeps
-    // the wrapping/truncation rule consistent with leaves and guarantees no overflow
-    // for any combination of name/ID length.
-    const maxCharsName = Math.max(4, Math.floor(innerW / CHAR_W));
-    const maxCharsId = Math.max(4, Math.floor(innerW / CHAR_W_ID));
-    const nameText = truncateLine(b.name, maxCharsName);
-    const idText = truncateId(b.id, maxCharsId);
-    const headerMid = b.y + oy + b.headerHeight / 2;
-    const halfSpan = (LINE_H + LINE_H_ID) / 4;
-    const nameY = Math.round(headerMid - halfSpan);
-    const idY = Math.round(headerMid + halfSpan);
-    parts.push(
-      `<text class="text-primary" x="${cx}" y="${nameY}" text-anchor="middle" dominant-baseline="central">${escXml(nameText)}</text>`,
-    );
-    parts.push(
-      `<text class="text-id" x="${cx}" y="${idY}" text-anchor="middle" dominant-baseline="central">${escXml(idText)}</text>`,
-    );
+    const specs = layoutHeaderBlockText({
+      boxX: b.x + ox,
+      boxY: b.y + oy,
+      boxWidth: b.width,
+      headerHeight: b.headerHeight,
+      name: b.name,
+      id: b.id,
+    });
+    parts.push(emitCenteredTextSvg(specs, cx, escXml));
     for (const c of b.children) emitBlockSvg(c, ox, oy, parts);
   }
 }
@@ -210,9 +122,14 @@ ${parts.join('\n')}
  * with the shared theme CSS embedded so the output is self-contained.
  */
 export function renderBlocksSvg(doc: BlocksFile, options: RenderBlocksOptions = {}): string {
-  const { title = '' } = options;
+  const { title = '', nodeSizePreset = 'normal', layoutOptions } = options;
+  const leaf = resolveBlocksLeafSize(parseNodeSizePreset(nodeSizePreset));
 
-  const layout: BlocksLayout = layoutNestedBlocks(doc);
+  const layout: BlocksLayout = layoutNestedBlocks(doc, {
+    leafWidth: leaf.width,
+    leafHeight: leaf.height,
+    ...layoutOptions,
+  });
 
   if (layout.blocks.length === 0) {
     return `<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" viewBox="0 0 0 0"></svg>`;

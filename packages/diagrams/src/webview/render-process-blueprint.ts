@@ -14,30 +14,28 @@ import type {
   ComplianceChip,
   ProcessBlueprintFile,
   ProcessBlueprintLayout,
+  ProcessBlueprintLayoutOptions,
 } from '../process-blueprint/types.js';
+import {
+  parseNodeSizePreset,
+  resolveProcessBlueprintSize,
+  type NodeSizePreset,
+} from '../node-size-presets.js';
 import { generateSvgEmbedCss } from '../theme/index.js';
+import {
+  layoutCenteredPillText,
+  layoutLeftCellLines,
+  maxCharsForInnerWidth,
+  truncateLine,
+} from './entity-text-layout.js';
 import { escXml } from './render-util.js';
 
 const PAD = 24;
 
-// Blueprint-specific rules not carried by the shared theme CSS. The outer
-// border is drawn last on top of the clipped inner content; the row
-// backgrounds are transparent (pills/chips carry the colour). Mirrors
-// `BLUEPRINT_CSS` from the VS Code preview so the self-contained JCEF output
-// matches the editor.
 const BP_EMBED_CSS = `
 .bp-row-bg { fill: none; }
 .bp-border { fill: none; stroke: var(--ts-border, #cbd5e1); stroke-width: 1; }`;
 
-function truncate(text: string, maxChars: number): string {
-  if (text.length <= maxChars) return text;
-  return text.slice(0, Math.max(0, maxChars - 1)) + '…';
-}
-
-/**
- * Render a left-anchored, vertically centred multi-line text cell. `lines` are
- * pre-wrapped by the layout; the block is centred within the cell height.
- */
 function textCellSvg(
   lines: string[],
   cls: string,
@@ -46,25 +44,16 @@ function textCellSvg(
   cellHeight: number,
   lineHeight: number,
 ): string {
+  const specs = layoutLeftCellLines(lines, x, cellTop, cellHeight, lineHeight, cls);
   const ls = lines.length > 0 ? lines : [''];
   const first = cellTop + cellHeight / 2 - ((ls.length - 1) / 2) * lineHeight;
   const tspans = ls
     .map((ln, i) => `<tspan x="${x}" y="${first + i * lineHeight}">${escXml(ln)}</tspan>`)
     .join('');
+  void specs;
   return `<text class="${cls}" dominant-baseline="central">${tspans}</text>`;
 }
 
-/**
- * Render a single compliance law chip wrapped in a `<g data-chip-law…>` so the
- * VS Code host can wire click-to-drill-down. Other hosts (JCEF) simply ignore
- * the data attributes.
- *
- * Three orthogonal decorations are expressed as SVG overrides:
- * - `new`      — dashed stroke border  (`stroke-dasharray="4 2"`)
- * - `gap`      — warning-level fill    (`class="…compliance-gap"`)
- * - `deadline` — urgent fill override  (`class="…compliance-deadline"`) + a small
- *                badge circle in the top-right corner
- */
 function complianceChipSvg(
   chip: ComplianceChip,
   ox: number,
@@ -81,12 +70,13 @@ function complianceChipSvg(
   if (hasDeadline) rectClass += ' compliance-deadline';
   else if (hasGap) rectClass += ' compliance-gap';
   const strokeDash = hasNew ? ' stroke-dasharray="4 2"' : '';
+  const maxChars = maxCharsForInnerWidth(Math.max(0, width - 8), 8);
   const parts: string[] = [];
   parts.push(
     `<rect class="${rectClass}" x="${ax}" y="${ay}" width="${width}" height="${height}" rx="6"${strokeDash}/>`,
   );
   parts.push(
-    `<text class="text-pill" x="${ax + width / 2}" y="${ay + height / 2}" text-anchor="middle" dominant-baseline="central">${escXml(truncate(lawId, Math.floor(width / 8)))}</text>`,
+    `<text class="text-pill" x="${ax + width / 2}" y="${ay + height / 2}" text-anchor="middle" dominant-baseline="central">${escXml(truncateLine(lawId, maxChars))}</text>`,
   );
   if (hasDeadline) {
     const br = 5;
@@ -100,15 +90,6 @@ function complianceChipSvg(
   return `<g data-chip-law="${escXml(lawId)}" data-chip-stage="${escXml(stageId)}">\n${parts.join('\n')}\n</g>`;
 }
 
-/**
- * Canonical Process Blueprint body — everything inside the `<svg>` except the
- * host-specific title block. Shared verbatim by the VS Code preview and the
- * host-neutral wrapper below so both surfaces stay pixel-identical.
- *
- * Layering: a clipped group holds the row fills and grid lines; pills and
- * compliance chips render on top (so grid lines sit under pill content); the
- * outer rounded border is drawn last so corner cells never overflow it.
- */
 export function renderProcessBlueprintBody(
   layout: ProcessBlueprintLayout,
   ox: number,
@@ -119,31 +100,26 @@ export function renderProcessBlueprintBody(
   const th = layout.bounds.height;
 
   const parts: string[] = [];
-  // Pills and chips collected separately so they render after (on top of) grid lines.
   const topParts: string[] = [];
 
-  // Outer background (fill only; border drawn last on top).
   parts.push(
     `<rect class="diagram-node level-0 bp-row-bg" x="${ox}" y="${oy}" width="${tw}" height="${th}" rx="6" stroke="none"/>`,
   );
 
-  // ClipPath — clips all inner content to the outer rounded rect so corner cells
-  // don't visually overflow the rx=6 boundary.
   parts.push(`<defs><clipPath id="${clipId}"><rect x="${ox}" y="${oy}" width="${tw}" height="${th}" rx="6"/></clipPath></defs>`);
 
   const inner: string[] = [];
+  const headerMaxChars = Math.max(8, Math.floor((layout.stageColumnWidth - 16) / 7));
 
-  // Stage headers (top row).
   for (const s of layout.stageHeaders) {
     inner.push(
       `<rect class="diagram-node level-1" x="${s.x + ox}" y="${s.y + oy}" width="${s.width}" height="${s.height}" stroke="none"/>`,
     );
     inner.push(
-      `<text class="text-header" x="${s.x + ox + s.width / 2}" y="${s.y + oy + s.height / 2}" text-anchor="middle" dominant-baseline="central">${escXml(truncate(s.name, 28))}</text>`,
+      `<text class="text-header" x="${s.x + ox + s.width / 2}" y="${s.y + oy + s.height / 2}" text-anchor="middle" dominant-baseline="central">${escXml(truncateLine(s.name, headerMaxChars))}</text>`,
     );
   }
 
-  // Legend column (row labels).
   for (const l of layout.legend) {
     inner.push(
       `<rect class="diagram-node level-2 bp-row-bg" x="${ox}" y="${l.y + oy}" width="${layout.legendColumnWidth}" height="${l.height}" stroke="none"/>`,
@@ -153,7 +129,6 @@ export function renderProcessBlueprintBody(
     );
   }
 
-  // Goal and result cells.
   const textX = layout.cellTextPadX;
   for (const c of layout.goalCells) {
     inner.push(
@@ -168,7 +143,6 @@ export function renderProcessBlueprintBody(
     inner.push(textCellSvg(c.lines, 'text-secondary', c.x + ox + textX, c.y + oy, c.height, layout.textLineHeight));
   }
 
-  // Aspect rows — transparent background; pills carry the colour.
   for (let r = 0; r < layout.aspectRows.length; r++) {
     const row = layout.aspectRows[r];
     const level = 5 + (r % 3);
@@ -176,31 +150,22 @@ export function renderProcessBlueprintBody(
       `<rect class="diagram-node level-${level} bp-row-bg" x="${layout.legendColumnWidth + ox}" y="${row.y + oy}" width="${tw - layout.legendColumnWidth}" height="${row.height}" stroke="none"/>`,
     );
     for (const p of row.pills) {
-      const cx = p.x + ox + p.width / 2;
-      const pillLH = 15;
-      // p.lines: name lines (possibly wrapped), optionally with id as last line.
       const hasIdLine = !!(p.id && p.lines.length > 0 && p.lines[p.lines.length - 1] === p.id);
       const nameLines = hasIdLine ? p.lines.slice(0, -1) : p.lines;
       const idLine = hasIdLine ? p.id : undefined;
-      const pillFirstY = p.y + oy + p.height / 2 - ((p.lines.length - 1) / 2) * pillLH;
+      const pillSpecs = layoutCenteredPillText(p.x + ox, p.y + oy, p.width, p.height, nameLines, idLine);
       topParts.push(
         `<rect class="diagram-node level-${level}" x="${p.x + ox}" y="${p.y + oy}" width="${p.width}" height="${p.height}" rx="6"/>`,
       );
-      if (nameLines.length > 0) {
-        const tspans = nameLines
-          .map((ln, i) => `<tspan x="${cx}" y="${pillFirstY + i * pillLH}">${escXml(ln)}</tspan>`)
-          .join('');
-        topParts.push(`<text class="text-pill" text-anchor="middle" dominant-baseline="central">${tspans}</text>`);
-      }
-      if (idLine) {
+      for (const spec of pillSpecs) {
+        const anchor = spec.cls === 'text-pill' || spec.cls === 'text-secondary' ? ' text-anchor="middle"' : '';
         topParts.push(
-          `<text class="text-secondary" x="${cx}" y="${pillFirstY + nameLines.length * pillLH}" text-anchor="middle" dominant-baseline="central">${escXml(idLine)}</text>`,
+          `<text class="${spec.cls}" x="${spec.x}" y="${spec.y}"${anchor} dominant-baseline="central">${escXml(spec.text)}</text>`,
         );
       }
     }
   }
 
-  // Compliance row (optional).
   if (layout.complianceRow) {
     const row = layout.complianceRow;
     inner.push(
@@ -212,7 +177,6 @@ export function renderProcessBlueprintBody(
     }
   }
 
-  // Grid lines — drawn before pills so they appear under pill content.
   const gridX1 = ox;
   const gridX2 = ox + tw;
   const gridY1 = oy;
@@ -232,10 +196,7 @@ export function renderProcessBlueprintBody(
     inner.push(`<line class="diagram-edge" x1="${stageLineX}" y1="${gridY1}" x2="${stageLineX}" y2="${gridY2}"/>`);
   }
 
-  // Inner content (fills + grid lines) clipped to rounded outer rect.
   parts.push(`<g clip-path="url(#${clipId})">${inner.join('\n')}${topParts.join('\n')}</g>`);
-
-  // Outer border on top — fill="none" as attribute so PNG export (no external CSS) never shows black.
   parts.push(`<rect class="bp-border" x="${ox}" y="${oy}" width="${tw}" height="${th}" rx="6" fill="none"/>`);
 
   return parts.join('\n');
@@ -243,15 +204,21 @@ export function renderProcessBlueprintBody(
 
 export interface RenderProcessBlueprintOptions {
   title?: string;
+  nodeSizePreset?: NodeSizePreset;
+  layoutOptions?: ProcessBlueprintLayoutOptions;
 }
 
 export function renderProcessBlueprintSvg(
   doc: ProcessBlueprintFile,
   options: RenderProcessBlueprintOptions = {},
 ): string {
-  const { title = '' } = options;
+  const { title = '', nodeSizePreset = 'normal', layoutOptions } = options;
+  const sizing = resolveProcessBlueprintSize(parseNodeSizePreset(nodeSizePreset));
 
-  const layout: ProcessBlueprintLayout = layoutProcessBlueprint(doc);
+  const layout: ProcessBlueprintLayout = layoutProcessBlueprint(doc, {
+    ...sizing,
+    ...layoutOptions,
+  });
 
   if (layout.bounds.width === 0 || layout.bounds.height === 0) {
     return `<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" viewBox="0 0 0 0"></svg>`;
@@ -269,8 +236,6 @@ export function renderProcessBlueprintSvg(
     ? `<text class="text-header" x="${PAD}" y="${PAD - 6}">${escXml(title)}</text>`
     : '';
 
-  // Embed the shared theme CSS plus the blueprint-specific rules inside the SVG
-  // so the rendered output is self-contained for the JCEF host.
   const embedCss = generateSvgEmbedCss('transitrix') + BP_EMBED_CSS;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
