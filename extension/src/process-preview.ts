@@ -131,7 +131,7 @@ export class ProcessPreview {
     }
     const sourceUri = this.trackedUri ? vscode.Uri.parse(this.trackedUri) : undefined;
     const stem = sourceUri
-      ? path.basename(sourceUri.fsPath).replace(/\.(bpmn|cervin)\.(transitrix|cervin)\.yaml$/, '')
+      ? path.basename(sourceUri.fsPath).replace(/\.bpmn\.transitrix\.yaml$/, '')
       : 'diagram';
     const defaultUri = sourceUri
       ? vscode.Uri.file(path.join(path.dirname(sourceUri.fsPath), `${stem}.svg`))

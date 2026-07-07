@@ -46,12 +46,7 @@ New examples, fixtures, and corpus files **must** use the canonical Transitrix
 suffixes — BPMN sources are `*.bpmn.transitrix.yaml`, other notations follow the
 `*.<notation>.transitrix.yaml` pattern.
 
-The legacy **`.cervin.yaml`** suffix is still *accepted* by the compiler and editor
-for backward compatibility (see CLAUDE.md §Cervin naming), but is **deprecated** —
-do not add new `.cervin.yaml` files. A CI guard (`npm run check:no-cervin-yaml`,
-also run by the test workflow) fails the build if a new `*.cervin.yaml` file is
-committed. Existing `.cervin.yaml` fixtures, where any remain, are kept only for
-regression coverage and are not mass-renamed.
+The legacy **`.cervin.yaml`** suffix is **not accepted** by the VS Code extension (3.0+) or the CLI default suffix list (2.0+). Do not add new `.cervin.yaml` files. A CI guard (`npm run check:no-cervin-yaml`, also run by the test workflow) fails the build if a new `*.cervin.yaml` file is committed.
 
 ## Project config — use the canonical `.transitrixrc`
 
@@ -65,12 +60,7 @@ conformance gates) and `"warn"` (enable a rule, e.g. an off-by-default one). An
 override **only toggles whether a rule runs** — it does not change the rule's
 built-in severity, so `"<RULE>": "warn"` does not demote an error to a warning.
 
-The legacy **`.cervinrc`** filename is still read as a *fallback* when `.transitrixrc`
-is absent (see CLAUDE.md §Cervin naming, P4), but is **deprecated** — `loadTransitrixrc()`
-prints a one-time deprecation notice when it falls back, and `.cervinrc` support is slated
-for removal in 2.0.0. Use `.transitrixrc` in new repos and **rename** any existing
-`.cervinrc`; do not add new `.cervinrc` files. The legacy `schemas/cervinrc.schema.json`
-is kept only for backward compatibility.
+The legacy **`.cervinrc`** filename is **not read** (removed in CLI/runtime 2.0.0). Use `.transitrixrc` only. The legacy `schemas/cervinrc.schema.json` is kept only as a historical reference.
 
 ## Per-user display preferences
 

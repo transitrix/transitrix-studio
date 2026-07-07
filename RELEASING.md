@@ -4,6 +4,29 @@ Migration notes for adopters upgrading across major changes.
 
 ---
 
+## Extension 3.0 — legacy identifier sunset (2026-07)
+
+Transitrix Studio extension **3.0.0** removes the last user-facing Cervin compatibility
+shims that lingered after CLI/runtime 2.0.0.
+
+### What changed
+
+- The extension no longer activates for, syntax-highlights, or previews `*.cervin.yaml` files.
+- `cervin-yaml` language alias and `.cervin.yaml` language registration removed.
+- `cervin.*` VS Code settings fallbacks removed — only `transitrix.*` keys are read.
+- `cervin.openPreview` / `cervin.export*` command aliases removed.
+
+### Migration steps
+
+1. Rename BPMN files: `*.cervin.yaml` → `*.bpmn.transitrix.yaml`.
+2. Update `settings.json`: `cervin.fileExtensions` / `cervin.exportEnabled` → `transitrix.*`.
+3. Update keybindings/macros: `cervin.openPreview` → `transitrix.openPreview` (and export commands).
+4. If you had `"[cervin-yaml]"` formatter rules, change to `"[transitrix-yaml]"`.
+
+See [extension/CHANGELOG.md](extension/CHANGELOG.md) — 3.0.0 section — for the full list.
+
+---
+
 ## 2.x — deprecated notation aliases removed (2.7.x, 2026-06)
 
 The deprecated notation shims that had been carried for backwards compatibility
