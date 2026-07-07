@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { writeFileSync, mkdirSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import {
-  loadCervinrc,
   loadTransitrixrc,
   clearTransitrixrcCache,
   assertNoCriticalRuleDowngrade,
@@ -31,19 +30,19 @@ describe('transitrixrc config loader', () => {
     }
     writeFileSync(join(testDir, '.transitrixrc'), JSON.stringify(config))
 
-    const loaded = loadCervinrc(testDir)
+    const loaded = loadTransitrixrc(testDir)
     expect(loaded.rules).toEqual(config.rules)
   })
 
   it('returns empty config when .transitrixrc does not exist', () => {
-    const loaded = loadCervinrc(testDir)
+    const loaded = loadTransitrixrc(testDir)
     expect(loaded).toEqual({})
   })
 
   it('throws ConfigError on invalid JSON', () => {
     writeFileSync(join(testDir, '.transitrixrc'), '{ invalid json }')
 
-    expect(() => loadCervinrc(testDir)).toThrow(
+    expect(() => loadTransitrixrc(testDir)).toThrow(
       expect.objectContaining({
         message: expect.stringContaining('Invalid JSON'),
       })
@@ -54,7 +53,7 @@ describe('transitrixrc config loader', () => {
     const config = { rules: { 'INVALID': 'off' } }
     writeFileSync(join(testDir, '.transitrixrc'), JSON.stringify(config))
 
-    expect(() => loadCervinrc(testDir)).toThrow(
+    expect(() => loadTransitrixrc(testDir)).toThrow(
       expect.objectContaining({
         message: expect.stringContaining('Config validation failed'),
       })
@@ -65,7 +64,7 @@ describe('transitrixrc config loader', () => {
     const config = { rules: { 'AP-001': 'invalid' } }
     writeFileSync(join(testDir, '.transitrixrc'), JSON.stringify(config))
 
-    expect(() => loadCervinrc(testDir)).toThrow(
+    expect(() => loadTransitrixrc(testDir)).toThrow(
       expect.objectContaining({
         message: expect.stringContaining('Config validation failed'),
       })
@@ -165,7 +164,7 @@ describe('transitrixrc config loader', () => {
     const config = { rules: {}, unknownField: true }
     writeFileSync(join(testDir, '.transitrixrc'), JSON.stringify(config))
 
-    expect(() => loadCervinrc(testDir)).toThrow(
+    expect(() => loadTransitrixrc(testDir)).toThrow(
       expect.objectContaining({
         message: expect.stringContaining('Config validation failed'),
       })
@@ -245,11 +244,6 @@ describe('loadTransitrixrc (Cervin deprecation P7)', () => {
     expect(() => loadTransitrixrc(testDir)).toThrow(
       expect.objectContaining({ message: expect.stringContaining('Invalid JSON in .transitrixrc') }),
     )
-  })
-
-  it('loadCervinrc is an alias that still resolves .transitrixrc', () => {
-    writeFileSync(join(testDir, '.transitrixrc'), JSON.stringify({ rules: { 'AP-001': 'off' } }))
-    expect(loadCervinrc(testDir).rules).toEqual({ 'AP-001': 'off' })
   })
 
   it('caches an unchanged file (same instance on repeat reads)', () => {

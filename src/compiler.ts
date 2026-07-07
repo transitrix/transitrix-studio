@@ -77,12 +77,3 @@ export async function compileTransitrixYamlWithLayout(
   return { ir, layout, xml, validation }
 }
 
-// Cervin → Transitrix internal API rename (CLAUDE.md §Cervin naming, P5).
-// Deprecated aliases kept for one minor so out-of-repo importers (and the
-// bundled extension compiler consumer) keep working; removed in 2.0.0.
-
-/** @deprecated Use {@link compileTransitrixYaml}. */
-export const compileCervinYaml = compileTransitrixYaml
-
-/** @deprecated Use {@link compileTransitrixYamlWithLayout}. */
-export const compileCervinYamlWithLayout = compileTransitrixYamlWithLayout

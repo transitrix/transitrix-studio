@@ -65,7 +65,7 @@ export interface ValidationRule {
   description: string
   /** Execute this rule and return findings (empty array if none). */
   validate(ir: ProcessIr): ValidationFinding[]
-  /** If true, rule is disabled by default and must be explicitly enabled via .cervinrc. */
+  /** If true, rule is disabled by default and must be explicitly enabled via .transitrixrc. */
   offByDefault?: boolean
 }
 
@@ -90,21 +90,17 @@ export enum RuleCategory {
 }
 
 /**
- * RD-097: Configuration for rule overrides via the .transitrixrc file
- * (legacy .cervinrc read as a fallback through 1.x).
+ * RD-097: Configuration for rule overrides via the .transitrixrc file.
  */
 
 /** Override value for a validation rule: 'off' to disable, 'warn' to demote to warning (only for warnings). */
 export type RuleOverride = 'off' | 'warn'
 
-/** Configuration file format for .transitrixrc / .cervinrc. */
+/** Configuration file format for .transitrixrc. */
 export interface TransitrixrcConfig {
   /** Rule overrides: { ruleId: 'off' | 'warn' }. Errors cannot be downgraded. */
   rules?: Record<string, RuleOverride>
 }
-
-/** @deprecated Use {@link TransitrixrcConfig}. */
-export type CervinrcConfig = TransitrixrcConfig
 
 /** Error thrown when config validation fails. */
 export interface ConfigError extends Error {
