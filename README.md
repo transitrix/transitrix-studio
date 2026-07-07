@@ -98,7 +98,7 @@ transitrix-studio/
   tests/            — Vitest suite + notation corpus (tests/fixtures/)
   schemas/          — JSON Schema sources
   organizations/    — worked example organization
-  docs/             — Project documentation
+  docs/             — Project documentation (see docs/README.md)
 ```
 
 See [`docs/repo-layout.md`](docs/repo-layout.md) for a detailed directory map.

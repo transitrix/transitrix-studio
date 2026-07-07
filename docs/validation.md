@@ -354,10 +354,10 @@ Validation findings are included in HTTP API responses:
 
 ## CLI Output
 
-The `cervin compile` command includes validation in its output:
+The `transitrix compile` command includes validation in its output:
 
 ```
-$ npm run cervin -- compile example.cervin.yaml out.bpmn
+$ npm run transitrix -- compile example.bpmn.transitrix.yaml out.bpmn
 ✓ Compiled: out.bpmn
 ✓ Validation: 0 errors, 0 warnings
 ```
@@ -702,8 +702,7 @@ Anti-pattern rules detect suspicious modeling practices that may indicate errors
 
 ### Configuring rules via `.transitrixrc`
 
-> The canonical config file is **`.transitrixrc`**. The legacy **`.cervinrc`** is still
-> read as a fallback when `.transitrixrc` is absent (deprecated; removed in 2.0.0).
+> The canonical config file is **`.transitrixrc`** (JSON). Legacy `.cervinrc` is not read (removed in 2.0.0).
 
 `.transitrixrc` is a **JSON** file. The `rules` map enables or disables individual
 rules by ID:

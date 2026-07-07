@@ -8,7 +8,7 @@
  *   2. `routeFlows` (layout-routing.ts) — channel-based orthogonal A*
  *      router with port conventions, congestion penalties and nudging.
  *
- * See docs/bpmn-routing.md for the routing conventions.
+ * See docs/internal/bpmn-routing.md for the routing conventions.
  */
 
 import type { LayoutIr, ProcessIr, PositionedAssociation } from './ir.js';

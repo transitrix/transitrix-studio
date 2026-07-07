@@ -14,7 +14,7 @@
  *   compatibility but carrying only the build machine's resvg binary.
  *   PNG export will fail on any other OS/arch. Use ONLY for local install
  *   testing — NEVER publish to the Marketplace without --target.
- *   See docs/packaging.md.
+ *   See docs/internal/packaging.md.
  */
 import { spawn } from 'node:child_process';
 import fs from 'node:fs/promises';
@@ -43,7 +43,7 @@ Options:
 
 WARNING: building without --target produces a universal VSIX carrying only the
 build machine's @resvg/resvg-js binary. Install locally only — do not publish
-to the Marketplace. See docs/packaging.md.`;
+to the Marketplace. See docs/internal/packaging.md.`;
 
 const argv = process.argv.slice(2);
 if (argv.includes('-h') || argv.includes('--help')) {
@@ -123,7 +123,7 @@ if (target) {
 } else {
   console.log('\n=== [3/3] vsce package -> output/');
   console.log('package-extension: WARNING - no --target given; VSIX is local-install only.');
-  console.log('package-extension: see docs/packaging.md before publishing to the Marketplace.');
+  console.log('package-extension: see docs/internal/packaging.md before publishing to the Marketplace.');
 }
 
 const vsceArgs = ['--no-install', 'vsce', 'package'];

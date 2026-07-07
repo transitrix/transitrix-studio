@@ -18,7 +18,7 @@ export { layoutCapabilityTree, TREE_NODE_WIDTH, TREE_NODE_HEIGHT, TREE_RANK_SEP,
 export type { RenderCapabilityTreeOptions } from './render-capability-tree.js';
 export { renderCapabilityTreeSvg } from './render-capability-tree.js';
 
-// ── DSM-migration capability map (docs/extraction/capability-map.md) ───────
+// ── DSM-migration capability map (docs/internal/extraction/capability-map.md) ───────
 // A separate, flat, address-triple data model from CapabilityNode above —
 // see dsm-schema.ts for why the two coexist in this folder. Named
 // `validateCapabilityMapData` rather than `validateCapabilityMap` because

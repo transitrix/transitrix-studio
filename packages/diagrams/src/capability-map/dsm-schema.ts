@@ -1,5 +1,5 @@
 /**
- * Types for the DSM-migration capability map (docs/extraction/capability-map.md).
+// Types for the DSM-migration capability map (docs/internal/extraction/capability-map.md).
  *
  * Distinct from `./types.ts` (`CapabilityNode`/`CapabilityMapFile`), which is
  * Transitrix's own native `*.capability-map.transitrix.yaml` notation — a

@@ -3,7 +3,7 @@
 **Version:** 0.3.7
 **Date:** 2026-05-04
 **Scope:** Reference for the YAML DSL used to describe BPMN 2.0 processes in Transitrix Studio. Covers structure, allowed elements, sequence flows, identifiers, and the supported subset of BPMN 2.0.
-**Related:** [`validation.md`](validation.md), [`metrics.md`](metrics.md), [`../method/methodology.md`](../method/methodology.md) Sections 6–7, [`../schemas/bpmn-dsl.schema.json`](../schemas/bpmn-dsl.schema.json), [`../glossary.md`](../glossary.md).
+**Related:** [`validation.md`](validation.md), [`internal/metrics.md`](internal/metrics.md), [Transitrix methodology — BPMN sections](https://github.com/transitrix/methodology), [`../schemas/bpmn-dsl.schema.json`](../schemas/bpmn-dsl.schema.json), [`glossary.md`](glossary.md).
 
 ---
 
@@ -19,11 +19,11 @@ The compiled output is consumable by any BPMN 2.0–conformant tool (Camunda Mod
 
 ## 2. File extension and recognition
 
-The file extension is **`.bpmn.transitrix.yaml`**. (The legacy extension `.cervin.yaml` was used during early development and is kept accepted for backward compatibility; new files should use the canonical long form.)
+The file extension is **`.bpmn.transitrix.yaml`**. Legacy `*.cervin.yaml` is not accepted by the VS Code extension (3.0+) or the CLI default suffix list.
 
 Recognition is configurable:
 
-- **VS Code extension:** `cervin.fileExtensions` setting in `.vscode/settings.json` (array of strings, each starting with a dot).
+- **VS Code extension:** `transitrix.fileExtensions` setting (array of strings, each starting with a dot; default `.bpmn.transitrix.yaml`).
 - **CLI:** `--ext=.bpmn.transitrix.yaml` flag overrides the default list.
 
 A file outside the recognised extensions is rejected by the CLI with an explicit error.
@@ -78,7 +78,7 @@ The `id` is emitted as the `id` attribute of the root `<process>` element in the
 
 ## 5. Pools
 
-A pool represents a single participant in the process. The notation supports **exactly one pool per document** (constraint POOL-05; see Section 7 in [`../method/methodology.md`](../method/methodology.md)). This is a deliberate narrowing of the BPMN 2.0 spec, which permits multiple pools per collaboration. Multi-pool support is out of scope (see Section 12).
+A pool represents a single participant in the process. The notation supports **exactly one pool per document** (constraint POOL-05). This is a deliberate narrowing of the BPMN 2.0 spec, which permits multiple pools per collaboration. Multi-pool support is out of scope (see Section 12).
 
 ```yaml
 pools:
@@ -267,7 +267,7 @@ Violations are caught by the parser before compilation and reported with the col
 
 ## 10. Validation layers
 
-The compiler runs four layers of validation on each input. Each layer can block compilation independently. Full rule catalogue is in [`validation.md`](validation.md); the principles and methodology are in [`../method/methodology.md`](../method/methodology.md).
+The compiler runs four layers of validation on each input. Each layer can block compilation independently. Full rule catalogue is in [`validation.md`](validation.md); methodology principles live in the [Transitrix methodology repo](https://github.com/transitrix/methodology).
 
 | Layer | Where | What |
 |---|---|---|
@@ -276,7 +276,7 @@ The compiler runs four layers of validation on each input. Each layer can block 
 | 3. Semantic | `src/validator.ts` | BPMN 2.0 rules: SE/EE/ACT/SF/GW/CONN — errors block emit |
 | 4. XML conformance | `src/compiler.ts` (BpmnModdle round-trip) | Output XML must round-trip through `bpmn-moddle` without warnings |
 
-In addition, anti-pattern checks (warnings, not errors) flag suspicious-but-valid structures: floating elements, missing default flow, implicit join, gateway used as task. Warnings are configurable via the optional `.transitrixrc` file at the repository root (legacy `.cervinrc` is still read as a fallback); errors are not configurable — they enforce BPMN-conformance and cannot be downgraded.
+In addition, anti-pattern checks (warnings, not errors) flag suspicious-but-valid structures: floating elements, missing default flow, implicit join, gateway used as task. Warnings are configurable via the optional `.transitrixrc` file at the repository root; errors are not configurable — they enforce BPMN-conformance and cannot be downgraded.
 
 ---
 
@@ -309,7 +309,7 @@ The following BPMN 2.0 features are **not** supported by the current notation. D
 - **Annotations**, **groups**, **text annotations**, **associations**.
 - **`extensionElements`** for custom metadata.
 
-Adding any of these requires expanding the schema, parser, validator, layout engine, and emitter in coordinated changes. Such extensions are tracked as future phases in [`../roadmap.md`](../roadmap.md) when business need arises.
+Adding any of these requires expanding the schema, parser, validator, layout engine, and emitter in coordinated changes.
 
 ---
 
@@ -482,15 +482,15 @@ This example illustrates: cross-lane sequence flows (Development → QA → DevO
 A `.bpmn.transitrix.yaml` file is compiled to BPMN 2.0 XML by:
 
 ```bash
-cervin <input.bpmn.transitrix.yaml> <output.bpmn>
+transitrix compile <input.bpmn.transitrix.yaml> <output.bpmn>      # default: validate + emit + metrics
+transitrix validate <input.bpmn.transitrix.yaml>                   # validation only, no emit
+transitrix metrics <input.bpmn.transitrix.yaml>                    # metrics only, no emit
 ```
 
-Or, for the full pipeline with metrics and validation reports:
+Shorthand (positional compile):
 
 ```bash
-cervin compile <input.bpmn.transitrix.yaml> <output.bpmn>      # default: validate + emit + metrics
-cervin validate <input.bpmn.transitrix.yaml>                   # validation only, no emit
-cervin metrics <input.bpmn.transitrix.yaml>                    # metrics only, no emit
+transitrix <input.bpmn.transitrix.yaml> <output.bpmn>
 ```
 
 The compiler runs in this order: **parse → validate → layout → emit → BPMN-moddle round-trip**. Errors at any stage block the emit. Warnings (anti-patterns) are reported but do not block.
@@ -505,4 +505,4 @@ The notation is versioned together with the project (semver in `package.json`). 
 
 Current version: see the project root `package.json`.
 
-For the changelog of notation changes, see [`../roadmap.md`](../roadmap.md) (in particular Phase 12 RD-105 added the `default` flag on flows in 2026-05-04).
+For Studio release history, see [`extension/CHANGELOG.md`](../extension/CHANGELOG.md).

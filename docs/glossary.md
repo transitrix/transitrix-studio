@@ -1,6 +1,6 @@
 # Glossary
 
-Domain terms used across the Transitrix Studio codebase and documentation. Roadmap: RD-027, RD-040.
+Domain terms used across the Transitrix Studio codebase and documentation.
 
 | Term | Definition |
 | ------------ | ---------- |
@@ -9,7 +9,7 @@ Domain terms used across the Transitrix Studio codebase and documentation. Roadm
 | BPMN DI | BPMN Diagram Interchange — the `bpmndi:` XML blocks that store element geometry (bounds, waypoints). |
 | BPMN YAML DSL | Text-based DSL for authoring BPMN processes as YAML files (`.bpmn.transitrix.yaml`). |
 | Compilation (compile) | The pipeline step that transforms YAML source → BPMN 2.0 XML with computed layout. |
-| CLI (command-line interface) | The `cervin` binary (`dist/cli.js`) that runs compile and serve commands. |
+| CLI (command-line interface) | The **`transitrix`** command (`@transitrix/cli` on npm, or `dist/cli.js` from a clone) — compile, validate, metrics, serve, export-compliance. |
 | ELK | Eclipse Layout Kernel — the graph layout engine used for X/Y position computation. |
 | Intermediate representation (IR) | The `ProcessIr` data structure produced by the parser and consumed by layout and emit. |
 | Lane (swimlane) | A horizontal band inside a pool representing an actor or system boundary. |

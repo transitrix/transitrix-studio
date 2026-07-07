@@ -3,7 +3,7 @@
 **Version:** 0.1  
 **Date:** 2026-05-03  
 **Scope:** Objective, measurable indicators of BPMN diagram layout quality.  
-**Related:** [`roadmap.md`](../roadmap.md) Phase 11, [`method/methodology.md`](../method/methodology.md) Section 5
+**Related:** [`bpmn-routing.md`](bpmn-routing.md), [Transitrix methodology](https://github.com/transitrix/methodology), historical baseline in [`archive/baseline-2026-05-03.md`](archive/baseline-2026-05-03.md)
 
 ---
 
@@ -128,7 +128,7 @@ Layout quality cannot be optimized without measurement. This document defines ni
 
 **Target:** ≤ 0.30 (max 30% empty).
 
-**Note (post-RD-051, 2026-05-04):** After stakeholder decision on RD-051 (variant C), `emptyArea` is monitored as a **diagnostic metric**, not a hard acceptance gate. For multi-lane vertical pipeline processes, values of 60–80% are accepted as structural, not a defect. This reflects the layout algorithm's priority: correct routing and swimlane alignment over horizontal compactness. See `docs/baseline-2026-05-03.md` and `roadmap.md` RD-055 for context.
+**Note (post-RD-051, 2026-05-04):** After stakeholder decision on RD-051 (variant C), `emptyArea` is monitored as a **diagnostic metric**, not a hard acceptance gate. For multi-lane vertical pipeline processes, values of 60–80% are accepted as structural, not a defect. This reflects the layout algorithm's priority: correct routing and swimlane alignment over horizontal compactness. See [`archive/baseline-2026-05-03.md`](archive/baseline-2026-05-03.md) for the May 2026 measurement snapshot.
 
 ---
 
@@ -303,6 +303,6 @@ function computeSpineDeviation(layout: LayoutIr): number {
 
 ## 6. Related Documents
 
-- [`method/methodology.md`](../method/methodology.md) Section 6 — routing rules R1–R6 underlying the port violations metric.
-- [`method/methodology.md`](../method/methodology.md) Section 5 — step-by-step methodology and metric rationale.
-- [`roadmap.md`](../roadmap.md) Phase 11 — implementation plan (RD-079…095).
+- [`bpmn-routing.md`](bpmn-routing.md) — routing conventions underlying port and bend metrics.
+- [Transitrix methodology](https://github.com/transitrix/methodology) — notation and validation canon.
+- [`archive/baseline-2026-05-03.md`](archive/baseline-2026-05-03.md) — historical metrics snapshot (May 2026).
