@@ -74,7 +74,7 @@ flows:
 **Updated:** 2026-05-12  
 **Count:** 5 diagrams
 
-This table lists all diagrams in `examples/bpmn/corpus/` with their structural properties and coverage matrix cell.
+This table lists all diagrams in `tests/fixtures/notation-corpus/bpmn/` with their structural properties and coverage matrix cell.
 
 | Filename | Elements | Flows | Cross-lane % | Cycles | Gateways | Lanes | Cell | Purpose |
 |----------|----------|-------|--------------|--------|----------|-------|------|---------|
