@@ -14,6 +14,8 @@ import {
   BRAND_EMPHASIS,
   LAYER_COLORS,
   LEVEL_COLORS,
+  MATURITY_COLORS,
+  TREE_MATURITY_COLORS,
   STRUCTURAL,
   TREE_LEVEL_COLORS,
 } from '../tokens.js';
@@ -145,5 +147,39 @@ describe('brand default theme (#548) — amber/orange emphasis stays distinct fr
   it('critical-path emphasis tint pairs with the orange stroke, both themes', () => {
     expect(contrast(BRAND_EMPHASIS.orange.light, BRAND_EMPHASIS.orangeTint.light)).toBeGreaterThan(1.5);
     expect(contrast(BRAND_EMPHASIS.orange.dark, BRAND_EMPHASIS.orangeTint.dark)).toBeGreaterThan(1.5);
+  });
+});
+
+describe('maturity Likert ramp — one harmonious scale, white-label contrast', () => {
+  // .maturity-pill / tree-maturity badges hardcode white label text
+  // (capability-map-preview.ts, render-capability-tree.ts) regardless of
+  // theme, so every step needs AA (light/dark) or AAA (hc, since VS Code
+  // high-contrast mode exists specifically to demand stronger contrast)
+  // against white — not against the page's own text-primary/secondary.
+  const MIN_WHITE_CONTRAST_AA = 4.5;
+  const MIN_WHITE_CONTRAST_AAA = 7;
+
+  it('MATURITY_COLORS — every step reads white text at AA, light + dark', () => {
+    for (const hex of MATURITY_COLORS.light) {
+      expect(contrast(hex, '#ffffff'), `MATURITY light ${hex} vs white`).toBeGreaterThanOrEqual(MIN_WHITE_CONTRAST_AA);
+    }
+    for (const hex of MATURITY_COLORS.dark) {
+      expect(contrast(hex, '#ffffff'), `MATURITY dark ${hex} vs white`).toBeGreaterThanOrEqual(MIN_WHITE_CONTRAST_AA);
+    }
+  });
+
+  it('MATURITY_COLORS hc — every step reads white text at AAA', () => {
+    for (const hex of MATURITY_COLORS.hc) {
+      expect(contrast(hex, '#ffffff'), `MATURITY hc ${hex} vs white`).toBeGreaterThanOrEqual(MIN_WHITE_CONTRAST_AAA);
+    }
+  });
+
+  it('TREE_MATURITY_COLORS is the same harmonious ramp as MATURITY_COLORS', () => {
+    // Previously a divergent DSM-matching pink/yellow/blue set (plus a grey
+    // L1, an odd "no signal" hue for the worst rating) — "maturity" now
+    // means the same colors everywhere it's shown.
+    expect(TREE_MATURITY_COLORS.light).toEqual(MATURITY_COLORS.light);
+    expect(TREE_MATURITY_COLORS.dark).toEqual(MATURITY_COLORS.dark);
+    expect(TREE_MATURITY_COLORS.hc).toEqual(MATURITY_COLORS.hc);
   });
 });

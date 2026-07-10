@@ -72,13 +72,21 @@ export const STRUCTURAL = {
 } as const;
 
 /**
- * Maturity scale fill colors — Likert 1..5, danger→success.
+ * Maturity scale fill colors — Likert 1..5, danger→success. A single
+ * harmonious ramp: consistent saturation curve, hue stepping smoothly
+ * red→orange→gold→yellow-green→green (never jumping registers the way the
+ * previous per-theme picks did), tuned so the badge's hardcoded white label
+ * text (`.maturity-pill`, capability-map-preview.ts) stays ≥4.5:1 AA at
+ * every step. Same ramp for light/dark — these are small solid badges, not
+ * background tints, so theme brightness doesn't change the contrast need.
+ * `hc` pushes the same hues darker/more saturated for AAA (≥7:1), since VS
+ * Code high-contrast mode exists specifically to demand stronger contrast.
  * Used by Capability Map and any future maturity-based notation.
  */
 export const MATURITY_COLORS = {
-  light: ['#b91c1c', '#d97706', '#ca8a04', '#65a30d', '#15803d'],
-  dark:  ['#7f1d1d', '#92400e', '#854d0e', '#3f6212', '#14532d'],
-  hc:    ['#f87171', '#fb923c', '#facc15', '#a3e635', '#4ade80'],
+  light: ['#bf2518', '#b05911', '#8d7011', '#407d21', '#237b48'],
+  dark:  ['#bf2518', '#b05911', '#8d7011', '#407d21', '#237b48'],
+  hc:    ['#a0190d', '#864109', '#5a4607', '#316317', '#155630'],
 } as const;
 
 /**
@@ -98,13 +106,16 @@ export const TREE_LEVEL_COLORS = {
 } as const;
 
 /**
- * DSM-matching maturity badge fills for the capability tree (L1–L5).
- * Distinct from MATURITY_COLORS which drives the cards / compliance views.
+ * Maturity badge fills for the capability tree (L1–L5). Same ramp as
+ * MATURITY_COLORS — previously a separate DSM-matching pink/yellow/blue set
+ * that didn't even share L1's meaning (grey = lowest maturity, an odd
+ * "no signal" hue for the worst rating) and had white-label contrast as low
+ * as 1.07:1 in `hc`. One harmonious Likert ramp for "maturity" everywhere.
  */
 export const TREE_MATURITY_COLORS = {
-  light: ['#c1c1c1', '#ff3d67', '#ff9a59', '#fdef59', '#83cca3'],
-  dark:  ['#555555', '#cc1040', '#d06020', '#c8c000', '#4d9970'],
-  hc:    ['#cccccc', '#ff6699', '#ffbb77', '#ffff44', '#88ddaa'],
+  light: MATURITY_COLORS.light,
+  dark:  MATURITY_COLORS.dark,
+  hc:    MATURITY_COLORS.hc,
 } as const;
 
 /**
