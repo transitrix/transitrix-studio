@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+## 3.0.1 — 2026-07-10
+
+Diagram node layout polish — fixes Goals tree label overlap and unifies **Size** presets across previews.
+
+### Fixed
+
+- **Goals tree — name and type labels no longer overlap** (#377). `layoutCenteredEntityText` now accounts for each text line's full height when centring name → type → id inside the node box.
+- **Unified entity node sizes** across Goals, DGCA/DGA, Nested Blocks, Activities, and Capability Map (#377). All box-based previews now share the same **Size** ladder: Compact **200×72**, Normal **250×80**, Wide **320×96** px (was inconsistent per notation).
+
+### Changed
+
+- **Controls → Size** — the in-preview block-size dropdown is labelled **Size** (was "Block size") for consistency across notation previews (#377).
+
 ## 3.0.0 — 2026-07-07
 
 Legacy identifier sunset — completes the Cervin → Transitrix migration for the VS Code extension.

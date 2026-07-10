@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+## [3.0.1] — 2026-07-10
+
+### Fixed
+
+- **Goals tree node layout** (#377) — name and type labels no longer overlap; shared `layoutCenteredEntityText` vertical span fix.
+- **Unified entity node Size presets** (#377) — Compact **200×72**, Normal **250×80**, Wide **320×96** across Goals, DGCA/DGA, Blocks, Activities, Capability Map; Process Blueprint scales from the same tier ratios.
+
+### Changed
+
+- **Extension 3.0.1** — in-preview control label **Size** (was "Block size").
+- **`@transitrix/diagrams` 1.8.2** — `ENTITY_NODE_SIZE` ladder, layout default alignment.
+
 ## [3.0.0] — 2026-07-07
 
 ### Added
