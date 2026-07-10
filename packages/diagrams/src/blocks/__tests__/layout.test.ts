@@ -118,8 +118,8 @@ describe('layoutNestedBlocks', () => {
       },
     });
     const a = layout.blocks[0];
-    expect(a.width).toBe(160);
-    expect(a.height).toBe(72);
+    expect(a.width).toBe(250);
+    expect(a.height).toBe(80);
   });
 
   it('honours custom layout options', () => {

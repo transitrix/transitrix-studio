@@ -5,10 +5,11 @@ import type {
   BlocksLayoutOptions,
   LaidOutBlock,
 } from './types.js';
+import { ENTITY_NODE_SIZE } from '../node-size-presets.js';
 
 const DEFAULTS: Required<BlocksLayoutOptions> = {
-  leafWidth: 160,
-  leafHeight: 72,
+  leafWidth: ENTITY_NODE_SIZE.normal.width,
+  leafHeight: ENTITY_NODE_SIZE.normal.height,
   padding: 12,
   headerHeight: 28,
   childGap: 12,

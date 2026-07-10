@@ -11,6 +11,10 @@ import { describe, expect, it } from 'vitest';
 import type { BlocksFile } from '../../blocks/types.js';
 import { renderBlocksSvg } from '../render-blocks.js';
 import { CHAR_W_PRIMARY as CHAR_W, CHAR_W_ID, TEXT_MARGIN_X } from '../entity-text-layout.js';
+import { ENTITY_NODE_SIZE } from '../../node-size-presets.js';
+
+const LEAF_W = ENTITY_NODE_SIZE.normal.width;
+const LEAF_H = ENTITY_NODE_SIZE.normal.height;
 
 function leafDoc(name: string, id: string): BlocksFile {
   return {
@@ -76,7 +80,8 @@ describe('renderBlocksSvg — leaf labels', () => {
   });
 
   it('wraps a long ID to at most 2 lines and truncates with …', () => {
-    const longId = 'VERY_LONG_BLOCK_IDENTIFIER_WITH_MANY_SEGMENTS_AND_MORE_AND_MORE';
+    const longId =
+      'VERY_LONG_BLOCK_IDENTIFIER_WITH_MANY_SEGMENTS_AND_MORE_AND_MORE_EXTRA_TAIL_TO_FORCE_TRUNCATION';
     const svg = renderBlocksSvg(leafDoc('Short name', longId));
     const idLines = extractLabels(svg).filter((l) => l.cls === 'text-id');
     expect(idLines.length).toBeGreaterThan(0);
@@ -86,7 +91,7 @@ describe('renderBlocksSvg — leaf labels', () => {
     }
   });
 
-  it('keeps every label inside the 160px leaf width (approximated by CHAR_W * length)', () => {
+  it(`keeps every label inside the ${LEAF_W}px leaf width (approximated by CHAR_W * length)`, () => {
     const svg = renderBlocksSvg(
       leafDoc(
         'Personal data records that linger after consent withdrawal across many systems',
@@ -94,7 +99,7 @@ describe('renderBlocksSvg — leaf labels', () => {
       ),
     );
     const labels = extractLabels(svg);
-    const inner = 160 - TEXT_MARGIN_X * 2;
+    const inner = LEAF_W - TEXT_MARGIN_X * 2;
     for (const l of labels) {
       const cw = l.cls === 'text-primary' ? CHAR_W : CHAR_W_ID;
       expect(l.text.length * cw).toBeLessThanOrEqual(inner);
@@ -126,8 +131,8 @@ describe('renderBlocksSvg — container headers', () => {
       ),
     );
     const labels = extractLabels(svg);
-    // The container width derives from its single 160px child: 160 + 2*12 (padding) = 184.
-    const containerW = 160 + 24;
+    // Container width derives from its single leaf child: leafW + 2×padding.
+    const containerW = LEAF_W + 24;
     const inner = containerW - TEXT_MARGIN_X * 2;
     for (const l of labels) {
       const cw = l.cls === 'text-primary' ? CHAR_W : CHAR_W_ID;
@@ -144,7 +149,7 @@ describe('renderBlocksSvg — container headers', () => {
       'Active systems that are erasure-reachable within the standard 30-day operational window';
     const svg = renderBlocksSvg(containerDoc(longName, 'ACTIVE'));
     const labels = extractLabels(svg);
-    const containerW = 160 + 24;
+    const containerW = LEAF_W + 24;
     const inner = containerW - TEXT_MARGIN_X * 2;
     const primaries = labels.filter((l) => l.cls === 'text-primary');
     for (const l of primaries) {
