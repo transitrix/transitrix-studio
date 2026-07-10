@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+## 3.0.3 — 2026-07-10
+
+Diagram text-layout fix and a BPMN preview panel consistency pass.
+
+### Fixed
+
+- **Entity box text could render above the box's top border.** Goals, FGCA/DGCA, Activities, and Nested Blocks nodes with a 2-line name plus a type row (e.g. a Strategic or Project Goal) left almost no vertical padding in the default (250×80) and compact (200×72) **Size** presets — with dominant-baseline centring, the name's first line could render a few pixels above the box outline. The shared text layout now reserves real padding on every edge and, when a preset genuinely can't fit two name lines with that padding, degrades gracefully to one line with an ellipsis instead of overflowing.
+
+### Changed
+
+- **BPMN preview settings panel renamed "Display" → "Controls"**, matching every other notation's panel (Goals, DGCA/DGA, Action). The swimlane spacing setting (`transitrix.bpmn.laneGap`) is now also adjustable directly in the panel via a slider, not only through the top-menu "…" → Settings link.
+
 ## 3.0.2 — 2026-07-10
 
 Preview UX pass — unified toolbar icon, background-open false positives fixed, and a node-size refresh bug closed.

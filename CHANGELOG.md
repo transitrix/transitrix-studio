@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## [3.0.3] — 2026-07-10
+
+### Fixed
+
+- **Entity box text could render above the box's top border** (#380) — a 2-line name + type + id (e.g. a Strategic/Project Goal node) left almost no vertical padding in the default and compact **Size** presets; the shared text layout now enforces real edge padding and degrades to fewer name lines instead of overflowing. Applies to Goals, FGCA/DGCA, Activities, and Nested Blocks.
+- **`@transitrix/diagrams` 1.8.3** — same fix; `entity-text-layout.ts` edge-padding rework.
+
+### Changed
+
+- **BPMN preview settings panel renamed "Display" → "Controls"** (#381), matching every other notation's panel. The swimlane spacing setting (`transitrix.bpmn.laneGap`) is now also adjustable directly in the panel, not just via the top-menu Settings link.
+
 ## [3.0.2] — 2026-07-10
 
 ### Fixed
