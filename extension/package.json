@@ -2,7 +2,7 @@
   "name": "transitrix-studio",
   "displayName": "Transitrix Studio",
   "publisher": "transitrix",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "Architecture-as-code for the modern enterprise. Author 17 notations — goals, processes, capabilities, BPMN, applications, more — as plain YAML, get live diagrams in VS Code. Diffable in git. AI-friendly. Open source. Built on ArchiMate 3.2 and BPMN 2.0.",
   "license": "MIT",
   "icon": "icon.png",
@@ -141,43 +141,71 @@
         },
         "transitrix.nodeSize.goals": {
           "type": "string",
-          "enum": ["compact", "normal", "wide"],
+          "enum": [
+            "compact",
+            "normal",
+            "wide"
+          ],
           "default": "normal",
           "description": "Block size preset for Goals tree preview nodes."
         },
         "transitrix.nodeSize.dgca": {
           "type": "string",
-          "enum": ["compact", "normal", "wide"],
+          "enum": [
+            "compact",
+            "normal",
+            "wide"
+          ],
           "default": "normal",
           "description": "Block size preset for DGCA chain preview nodes."
         },
         "transitrix.nodeSize.dga": {
           "type": "string",
-          "enum": ["compact", "normal", "wide"],
+          "enum": [
+            "compact",
+            "normal",
+            "wide"
+          ],
           "default": "normal",
           "description": "Block size preset for DGA chain preview nodes."
         },
         "transitrix.nodeSize.blocks": {
           "type": "string",
-          "enum": ["compact", "normal", "wide"],
+          "enum": [
+            "compact",
+            "normal",
+            "wide"
+          ],
           "default": "normal",
           "description": "Block size preset for Nested Blocks leaf nodes."
         },
         "transitrix.nodeSize.action": {
           "type": "string",
-          "enum": ["compact", "normal", "wide"],
+          "enum": [
+            "compact",
+            "normal",
+            "wide"
+          ],
           "default": "normal",
           "description": "Block size preset for Activities network preview nodes."
         },
         "transitrix.nodeSize.processBlueprint": {
           "type": "string",
-          "enum": ["compact", "normal", "wide"],
+          "enum": [
+            "compact",
+            "normal",
+            "wide"
+          ],
           "default": "normal",
           "description": "Cell size preset for Process Blueprint preview (columns, pills, row heights)."
         },
         "transitrix.nodeSize.capabilityMap": {
           "type": "string",
-          "enum": ["compact", "normal", "wide"],
+          "enum": [
+            "compact",
+            "normal",
+            "wide"
+          ],
           "default": "normal",
           "description": "Node size preset for Capability Map tree preview."
         },
