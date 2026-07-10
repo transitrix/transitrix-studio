@@ -169,7 +169,7 @@ function totalVerticalSpan(groups: TextRowGroup[]): number {
   let span = 0;
   for (let i = 0; i < groups.length; i++) {
     const g = groups[i];
-    if (g.lines.length > 1) span += (g.lines.length - 1) * g.lineHeight;
+    span += g.lines.length * g.lineHeight;
     if (i < groups.length - 1) span += g.gapAfter;
   }
   return span;
@@ -223,7 +223,7 @@ export function layoutCenteredEntityText(opts: LayoutCenteredEntityOptions): Tex
     const g = groups[gi];
     for (let li = 0; li < g.lines.length; li++) {
       out.push({ cls: g.cls, text: g.lines[li], y });
-      if (li < g.lines.length - 1) y += g.lineHeight;
+      y += g.lineHeight;
     }
     if (gi < groups.length - 1) y += g.gapAfter;
   }

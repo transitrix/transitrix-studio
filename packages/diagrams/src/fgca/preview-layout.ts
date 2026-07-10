@@ -8,6 +8,7 @@
 // No React, no DOM, no vscode. Safe to call in Node.js or a test environment.
 
 import type { Scope } from '../scope.js';
+import { ENTITY_NODE_SIZE } from '../node-size-presets.js';
 
 export type FGCAPreviewColumn = 'driver' | 'goal' | 'change' | 'activity';
 
@@ -125,8 +126,8 @@ export interface FGCAPreviewLayout {
 
 // Default node + frame geometry. Inter-node gaps are user-configurable via
 // Inter-node gaps are user-configurable via spacing settings; node size uses presets.
-export const FGCA_NODE_W = 220;
-export const FGCA_NODE_H = 72;
+export const FGCA_NODE_W = ENTITY_NODE_SIZE.normal.width;
+export const FGCA_NODE_H = ENTITY_NODE_SIZE.normal.height;
 export const FGCA_HEADER_H = 32;
 export const FGCA_PAD = 20;
 export const FGCA_DEFAULT_COL_GAP = 160;

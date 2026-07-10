@@ -2,7 +2,7 @@ import type { CapabilityMap, LayoutOptions, CapabilityMapLayout, LaidOutNode, La
 import { getLevel, getParentAddress } from './address.js';
 
 const DEFAULT_NODE_WIDTH = 250;
-const DEFAULT_NODE_HEIGHT = 64;
+const DEFAULT_NODE_HEIGHT = 80;
 const DEFAULT_RANK_SEP = 80;
 const DEFAULT_NODE_SEP = 24;
 /** Width of the virtual organisation-root node — narrower than a capability

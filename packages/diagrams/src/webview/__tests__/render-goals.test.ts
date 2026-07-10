@@ -65,6 +65,48 @@ describe('renderGoalsSvg', () => {
     expect(svg).toContain('height="0"');
   });
 
+  it('renders name, type, and id on separate lines without overlap', () => {
+    const tree: GoalTree = {
+      goal_types: [
+        { name: 'Strategic', level: 0 },
+        { name: 'Objective', level: 1 },
+      ],
+      goals: [
+        {
+          id: 1,
+          canonical_id: 'GOAL-VALUE-1',
+          name: 'Grow enterprise value',
+          type: 'Strategic',
+          level: 0,
+          parent_id: 0,
+        },
+        {
+          id: 2,
+          canonical_id: 'GOAL-COST-1',
+          name: 'Reduce run cost 20%',
+          type: 'Objective',
+          level: 1,
+          parent_id: 1,
+        },
+      ],
+    };
+    const svg = renderGoalsSvg(tree);
+    expect(svg).toContain('Grow enterprise value');
+    expect(svg).toContain('Strategic');
+    expect(svg).toContain('GOAL-VALUE-1');
+    const typeMatches = [...svg.matchAll(/class="text-secondary"[^>]*y="(\d+)"/g)];
+    const nameMatches = [...svg.matchAll(/class="text-primary"[^>]*y="(\d+)"/g)];
+    expect(typeMatches.length).toBeGreaterThan(0);
+    for (const type of typeMatches) {
+      const typeY = Number(type[1]);
+      const nearestName = nameMatches
+        .map((m) => Number(m[1]))
+        .filter((y) => y < typeY)
+        .sort((a, b) => b - a)[0];
+      expect(typeY - nearestName).toBeGreaterThanOrEqual(18);
+    }
+  });
+
   it('shows canonical goal ids in node labels when present', () => {
     const tree: GoalTree = {
       goal_types: [{ name: 'Strategy', level: 0 }],

@@ -301,8 +301,8 @@ function nodeSizeRow(ns: NodeSizeControlModel): string {
   const opt = (value: NodeSizePresetValue, label: string): string =>
     `<option value="${value}"${ns.value === value ? ' selected' : ''}>${label}</option>`;
   return `<div class="tx-ctl-row">
-    <span class="tx-ctl-label">Block size</span>
-    <label title="Preset width/height for entity blocks or cells">
+    <span class="tx-ctl-label">Size</span>
+    <label title="Node size preset — scales width and height together">
       <select data-tx-control="nodeSize" data-tx-field="preset">${opt('compact', 'Compact')}${opt('normal', 'Normal')}${opt('wide', 'Wide')}</select>
     </label>
   </div>`;

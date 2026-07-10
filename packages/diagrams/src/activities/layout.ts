@@ -1,7 +1,7 @@
 import type { ActivityDoc, Activity, ActivitiesLayout, ActivitiesLayoutOptions, LayoutNode, LayoutEdge } from './types.js';
 import { computeCpm } from './cpm.js';
 
-const DEFAULT_NODE_W = 200;
+const DEFAULT_NODE_W = 250;
 const DEFAULT_NODE_H = 80;
 const H_GAP = 80;
 const V_GAP = 24;

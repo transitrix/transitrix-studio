@@ -1,7 +1,7 @@
 import type { CapabilityNode, CapabilityMapHeader } from './types.js';
 
 export const TREE_NODE_WIDTH = 250;
-export const TREE_NODE_HEIGHT = 64;
+export const TREE_NODE_HEIGHT = 80;
 /** Gap between sibling columns (node width + rank sep = 330px, matching DSM). */
 export const TREE_RANK_SEP = 80;
 /** Vertical gap between sibling nodes. */
