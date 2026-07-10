@@ -38,11 +38,25 @@ export type ProcessLayoutFn = (yaml: string, opts?: BpmnDisplayOpts) => Promise<
   validation: ValidationReport;
 }>;
 
-function buildBpmnControls(nonce: string, uniformLaneHeight: boolean): { panel: string; script: string } {
+// Lane-gap bounds mirror the `transitrix.bpmn.laneGap` package.json schema (0–200).
+const BPMN_LANE_GAP_MIN = 0;
+const BPMN_LANE_GAP_MAX = 200;
+
+function buildBpmnControls(
+  nonce: string,
+  uniformLaneHeight: boolean,
+  laneGap: number,
+): { panel: string; script: string } {
   const checked = uniformLaneHeight ? ' checked' : '';
   const panel = `<details class="tx-ctl" id="tx-bpmn-ctl">
-  <summary>Display</summary>
+  <summary>Controls</summary>
   <div class="tx-ctl-body">
+    <div class="tx-ctl-row">
+      <span class="tx-ctl-label">Spacing</span>
+      <label title="Vertical gap between swimlanes (px)">Lane gap
+        <input type="range" id="tx-bpmn-lane-gap" min="${BPMN_LANE_GAP_MIN}" max="${BPMN_LANE_GAP_MAX}" step="5" value="${laneGap}">
+        <output id="tx-bpmn-lane-gap-out">${laneGap}</output></label>
+    </div>
     <div class="tx-ctl-row"><label><input type="checkbox" id="tx-bpmn-uniform-lanes"${checked}> Equalize lane heights</label></div>
   </div>
 </details>`;
@@ -51,6 +65,12 @@ function buildBpmnControls(nonce: string, uniformLaneHeight: boolean): { panel: 
 var vscode=acquireVsCodeApi();
 var cb=document.getElementById('tx-bpmn-uniform-lanes');
 if(cb){cb.addEventListener('change',function(){vscode.postMessage({type:'transitrix:bpmn-toggle',kind:'uniform-lane-height',value:cb.checked});});}
+var gap=document.getElementById('tx-bpmn-lane-gap');
+var gapOut=document.getElementById('tx-bpmn-lane-gap-out');
+if(gap){gap.addEventListener('input',function(){
+  if(gapOut)gapOut.value=gap.value;
+  vscode.postMessage({type:'transitrix:bpmn-toggle',kind:'lane-gap',value:Number(gap.value)});
+});}
 var det=document.getElementById('tx-bpmn-ctl');
 if(det){var st=vscode.getState()||{};if(st.txBpCtlOpen)det.open=true;
   det.addEventListener('toggle',function(){var s=vscode.getState()||{};s.txBpCtlOpen=det.open;vscode.setState(s);});}
@@ -100,6 +120,15 @@ export class ProcessPreview {
         if (!msg || typeof msg !== 'object') return;
         const m = msg as Record<string, unknown>;
         if (m['type'] !== 'transitrix:bpmn-toggle') return;
+        if (m['kind'] === 'lane-gap') {
+          // Config is the single source of truth (same convention as the
+          // spacing/curvature/scope sliders on other notations): write the
+          // setting and let the `transitrix.bpmn` onDidChangeConfiguration
+          // listener re-render, instead of also pushing a document update here.
+          const value = Math.min(200, Math.max(0, Number(m['value']) || 0));
+          await vscode.workspace.getConfiguration('transitrix').update('bpmn.laneGap', value, vscode.ConfigurationTarget.Global);
+          return;
+        }
         if (m['kind'] === 'uniform-lane-height') {
           this.uniformLaneHeight = Boolean(m['value']);
         }
@@ -160,7 +189,8 @@ export class ProcessPreview {
         : '';
       const warningMsgs = warnings.map((w) => w.message);
       const nonce = genNonce();
-      const { panel: controlsPanel, script: controlsScript } = buildBpmnControls(nonce, this.uniformLaneHeight);
+      const laneGap = vscode.workspace.getConfiguration('transitrix').get<number>('bpmn.laneGap', 0);
+      const { panel: controlsPanel, script: controlsScript } = buildBpmnControls(nonce, this.uniformLaneHeight, laneGap);
 
       // Title sourced from the process name — the same top-level name field
       // that all other diagram types expose in their title header.
