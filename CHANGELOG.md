@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## [3.0.2] — 2026-07-10
+
+### Fixed
+
+- **Blocks / Process Blueprint / Capability Map previews didn't live-update on a node-size change** — an already-open panel kept the previous **Size** preset's dimensions/spacing until an unrelated theme toggle or save forced a rebuild.
+
+### Changed
+
+- **Extension 3.0.2** — unified `$(graph)` preview icon across every notation; auto-preview now follows the active editor instead of every background `openTextDocument` call, with a new `transitrix.preview.autoOpenOnFileOpen` setting to disable it.
+
 ## [3.0.1] — 2026-07-10
 
 ### Fixed

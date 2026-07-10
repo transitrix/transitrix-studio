@@ -522,15 +522,21 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       void dgcaPreview.refreshConfig();
       void dgaPreview.refreshConfig();
       void actionPreview.refreshConfig();
+      // Blocks, Process Blueprint, and Capability Map also carry a
+      // `transitrix.nodeSize.*` setting (see NodeSizeNotation), so — like the
+      // four previews above — they must refresh on a node-size change, not
+      // just a theme change. Previously gated behind `isThemeChange` only, so
+      // an already-open panel kept showing the old box size/spacing until an
+      // unrelated theme toggle or file save forced a rebuild.
+      void blocksPreview.refreshConfig();
+      void processBlueprintPreview.refreshConfig();
+      void capabilityMapPreview.refreshConfig();
       if (isThemeChange) {
-        void blocksPreview.refreshConfig();
-        void processBlueprintPreview.refreshConfig();
         void activityCardPreview.refreshConfig();
         void applicationsPreview.refreshConfig();
         void productsPreview.refreshConfig();
         void processMapPreview.refreshConfig();
         void scenariosPreview.refreshConfig();
-        void capabilityMapPreview.refreshConfig();
         void complianceMatrixPreview.refresh();
         void complianceImpactPreview.refresh();
         void singleLawPreview.refresh();
@@ -581,33 +587,51 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       void preview.refreshSaved(doc);
       void processPreview.refreshSaved(doc);
     }),
-    vscode.workspace.onDidOpenTextDocument(async (doc) => {
-      if (isGoalsFile(doc)) { await goalsPreview.showOrReveal(doc); return; }
-      if (isDGCAFile(doc)) {
-        const notation = probeDocNotation(doc);
-        if (notation === 'goals') { await goalsPreview.showOrReveal(doc); return; }
-        if (notation === 'action') { await actionPreview.showOrReveal(doc); return; }
-        await dgcaPreview.showOrReveal(doc); return;
-      }
-      if (isDGAFile(doc)) { await dgaPreview.showOrReveal(doc); return; }
-      if (isActivitiesFile(doc)) { await actionPreview.showOrReveal(doc); return; }
-      if (isActionsTreeFileName(doc.fileName)) { await actionsTreePreview.showOrReveal(doc); return; }
-      if (isBlocksFile(doc)) { await blocksPreview.showOrReveal(doc); return; }
-      if (isApplicationsFile(doc)) { await applicationsPreview.showOrReveal(doc); return; }
-      if (isProductsFile(doc)) { await productsPreview.showOrReveal(doc); return; }
-      if (isProcessMapFile(doc)) { await processMapPreview.showOrReveal(doc); return; }
-      if (isScenariosFile(doc)) { await scenariosPreview.showOrReveal(doc); return; }
-      if (isCapabilityMapFile(doc)) { await capabilityMapPreview.showOrReveal(doc); return; }
-      if (isProcessBlueprintFile(doc)) { await processBlueprintPreview.showOrReveal(doc); return; }
-      if (isActivityCardFile(doc)) { await activityCardPreview.showOrReveal(doc); return; }
-      if (isCoverageMetricFile(doc)) { await coverageMetricPreview.showOrReveal(doc); return; }
-      if (isComplianceImpactFile(doc)) { await complianceImpactPreview.showOrReveal(); return; }
-      if (isSingleLawFile(doc)) { await singleLawPreview.showOrReveal(doc); return; }
-      if (isSingleProductFile(doc)) { await singleProductPreview.showOrReveal(doc); return; }
-      if (isRequirementTraceFile(doc)) { await requirementTracePreview.showOrReveal(doc); return; }
-      if (documentMatchesTransitrixSource(doc)) { await openBpmnPreviewForDocument(doc); return; }
+    // Auto-preview follows the active editor rather than every `openTextDocument`
+    // call — the latter also fires for documents opened silently in the
+    // background (e.g. SCM diff/decoration providers reading changed files),
+    // which used to pop a preview panel per notation type touched by anything
+    // that reads file content, not just the user actually looking at a file.
+    vscode.window.onDidChangeActiveTextEditor((editor) => {
+      if (editor) void autoOpenPreviewForDocument(editor.document);
     }),
   );
+
+  // The document that triggered activation is typically already the active
+  // editor by the time `activate()` runs, and it won't fire another
+  // `onDidChangeActiveTextEditor` event on its own — so check it once here.
+  if (vscode.window.activeTextEditor) {
+    void autoOpenPreviewForDocument(vscode.window.activeTextEditor.document);
+  }
+
+  async function autoOpenPreviewForDocument(doc: vscode.TextDocument): Promise<void> {
+    if (doc.uri.scheme !== 'file') return;
+    if (!vscode.workspace.getConfiguration('transitrix').get<boolean>('preview.autoOpenOnFileOpen', true)) return;
+    if (isGoalsFile(doc)) { await goalsPreview.showOrReveal(doc); return; }
+    if (isDGCAFile(doc)) {
+      const notation = probeDocNotation(doc);
+      if (notation === 'goals') { await goalsPreview.showOrReveal(doc); return; }
+      if (notation === 'action') { await actionPreview.showOrReveal(doc); return; }
+      await dgcaPreview.showOrReveal(doc); return;
+    }
+    if (isDGAFile(doc)) { await dgaPreview.showOrReveal(doc); return; }
+    if (isActivitiesFile(doc)) { await actionPreview.showOrReveal(doc); return; }
+    if (isActionsTreeFileName(doc.fileName)) { await actionsTreePreview.showOrReveal(doc); return; }
+    if (isBlocksFile(doc)) { await blocksPreview.showOrReveal(doc); return; }
+    if (isApplicationsFile(doc)) { await applicationsPreview.showOrReveal(doc); return; }
+    if (isProductsFile(doc)) { await productsPreview.showOrReveal(doc); return; }
+    if (isProcessMapFile(doc)) { await processMapPreview.showOrReveal(doc); return; }
+    if (isScenariosFile(doc)) { await scenariosPreview.showOrReveal(doc); return; }
+    if (isCapabilityMapFile(doc)) { await capabilityMapPreview.showOrReveal(doc); return; }
+    if (isProcessBlueprintFile(doc)) { await processBlueprintPreview.showOrReveal(doc); return; }
+    if (isActivityCardFile(doc)) { await activityCardPreview.showOrReveal(doc); return; }
+    if (isCoverageMetricFile(doc)) { await coverageMetricPreview.showOrReveal(doc); return; }
+    if (isComplianceImpactFile(doc)) { await complianceImpactPreview.showOrReveal(); return; }
+    if (isSingleLawFile(doc)) { await singleLawPreview.showOrReveal(doc); return; }
+    if (isSingleProductFile(doc)) { await singleProductPreview.showOrReveal(doc); return; }
+    if (isRequirementTraceFile(doc)) { await requirementTracePreview.showOrReveal(doc); return; }
+    if (documentMatchesTransitrixSource(doc)) { await openBpmnPreviewForDocument(doc); return; }
+  }
 }
 
 export function deactivate(): void {}

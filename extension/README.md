@@ -38,7 +38,7 @@ Transitrix flips that:
 
 Every preview ships with a toolbar: title toggle, discrete zoom (50–200%), save as SVG, save as PNG (2× for crisp output), and copy PNG to clipboard (Windows today; macOS / Linux planned).
 
-The preview opens automatically when you open a recognised file and refreshes on every save.
+The preview opens automatically when a recognised file becomes the active editor, and refreshes on every save. Turn this off with `transitrix.preview.autoOpenOnFileOpen` if you'd rather open previews on demand — the toolbar preview icon (same `$(graph)` icon across every notation) always works regardless of the setting.
 
 ## Pairs well with Mermaid
 
@@ -62,6 +62,7 @@ Configure under **Settings → Transitrix Studio**. The canonical keys are `tran
 |---------|---------|-------------|
 | `transitrix.fileExtensions` | `[".bpmn.transitrix.yaml"]` | File suffixes recognised as Transitrix BPMN source files (leading dot required). |
 | `transitrix.exportEnabled` | `false` | Show the experimental BPMN/SVG/PNG export commands. |
+| `transitrix.preview.autoOpenOnFileOpen` | `true` | Auto-open the matching preview when a recognised file becomes the active editor. Set to `false` to only open previews via the toolbar button. |
 | `transitrix.nodeSize.goals` | `normal` | Block size preset for Goals preview (`compact` / `normal` / `wide`). Also in the in-preview **Controls** panel. |
 | `transitrix.nodeSize.dgca` / `.dga` | `normal` | Block size preset for DGCA/DGA chain previews. |
 | `transitrix.nodeSize.action` | `normal` | Block size preset for Activities network preview. |

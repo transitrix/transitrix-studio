@@ -2,7 +2,7 @@
   "name": "transitrix-studio",
   "displayName": "Transitrix Studio",
   "publisher": "transitrix",
-  "version": "3.0.1",
+  "version": "3.0.2",
   "description": "Architecture-as-code for the modern enterprise. Author 17 notations — goals, processes, capabilities, BPMN, applications, more — as plain YAML, get live diagrams in VS Code. Diffable in git. AI-friendly. Open source. Built on ArchiMate 3.2 and BPMN 2.0.",
   "license": "MIT",
   "icon": "icon.png",
@@ -88,6 +88,11 @@
           "type": "boolean",
           "default": false,
           "description": "Show experimental BPMN/SVG/PNG export commands (not finished yet)."
+        },
+        "transitrix.preview.autoOpenOnFileOpen": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically open the matching preview panel beside a recognized notation file when it becomes the active editor. Turn off if you drive many file opens through tooling/automation and don't want a preview panel per notation type. The preview icon in the editor title bar always opens it on demand regardless of this setting."
         },
         "transitrix.bpmn.laneGap": {
           "type": "number",
@@ -564,37 +569,37 @@
         "command": "transitrixStudio.previewGoals",
         "title": "Transitrix: Preview goal tree",
         "category": "Transitrix",
-        "icon": "$(type-hierarchy)"
+        "icon": "$(graph)"
       },
       {
         "command": "transitrixStudio.previewDGCA",
         "title": "Transitrix: Preview DGCA diagram",
         "category": "Transitrix",
-        "icon": "$(type-hierarchy)"
+        "icon": "$(graph)"
       },
       {
         "command": "transitrixStudio.previewDGA",
         "title": "Transitrix: Preview DGA diagram",
         "category": "Transitrix",
-        "icon": "$(type-hierarchy)"
+        "icon": "$(graph)"
       },
       {
         "command": "transitrixStudio.previewActivities",
         "title": "Transitrix: Preview action network diagram (PSND + Gantt + Tree)",
         "category": "Transitrix",
-        "icon": "$(type-hierarchy)"
+        "icon": "$(graph)"
       },
       {
         "command": "transitrixStudio.previewActionsTree",
         "title": "Transitrix: Preview action catalogue tree",
         "category": "Transitrix",
-        "icon": "$(type-hierarchy)"
+        "icon": "$(graph)"
       },
       {
         "command": "transitrixStudio.previewBlocks",
         "title": "Transitrix: Preview nested block diagram",
         "category": "Transitrix",
-        "icon": "$(type-hierarchy)"
+        "icon": "$(graph)"
       },
       {
         "command": "transitrixStudio.saveBlocksAsSvg",
@@ -636,37 +641,37 @@
         "command": "transitrixStudio.previewProducts",
         "title": "Transitrix: Preview product catalogue",
         "category": "Transitrix",
-        "icon": "$(list-unordered)"
+        "icon": "$(graph)"
       },
       {
         "command": "transitrixStudio.previewApplications",
         "title": "Transitrix: Preview application catalogue",
         "category": "Transitrix",
-        "icon": "$(list-unordered)"
+        "icon": "$(graph)"
       },
       {
         "command": "transitrixStudio.previewProcessMap",
         "title": "Transitrix: Preview process landscape map",
         "category": "Transitrix",
-        "icon": "$(list-tree)"
+        "icon": "$(graph)"
       },
       {
         "command": "transitrixStudio.previewScenarios",
         "title": "Transitrix: Preview scenario",
         "category": "Transitrix",
-        "icon": "$(milestone)"
+        "icon": "$(graph)"
       },
       {
         "command": "transitrixStudio.previewCapabilityMap",
         "title": "Transitrix: Preview capability map",
         "category": "Transitrix",
-        "icon": "$(type-hierarchy)"
+        "icon": "$(graph)"
       },
       {
         "command": "transitrixStudio.previewProcessBlueprint",
         "title": "Transitrix: Preview process blueprint",
         "category": "Transitrix",
-        "icon": "$(layout)"
+        "icon": "$(graph)"
       },
       {
         "command": "transitrixStudio.saveProcessBlueprintAsSvg",
@@ -678,7 +683,7 @@
         "command": "transitrixStudio.previewActivityCard",
         "title": "Transitrix: Preview activity card",
         "category": "Transitrix",
-        "icon": "$(type-hierarchy)"
+        "icon": "$(graph)"
       },
       {
         "command": "transitrixStudio.saveActivityCardAsSvg",
@@ -765,7 +770,7 @@
         "command": "transitrixStudio.previewComplianceMatrix",
         "title": "Transitrix: Preview compliance matrix",
         "category": "Transitrix",
-        "icon": "$(table)"
+        "icon": "$(graph)"
       },
       {
         "command": "transitrixStudio.refreshComplianceMatrix",
@@ -789,7 +794,7 @@
         "command": "transitrixStudio.previewSingleLaw",
         "title": "Transitrix: Preview compliance — single law",
         "category": "Transitrix",
-        "icon": "$(law)"
+        "icon": "$(graph)"
       },
       {
         "command": "transitrixStudio.refreshSingleLaw",
@@ -801,7 +806,7 @@
         "command": "transitrixStudio.previewSingleProduct",
         "title": "Transitrix: Preview compliance — single product",
         "category": "Transitrix",
-        "icon": "$(package)"
+        "icon": "$(graph)"
       },
       {
         "command": "transitrixStudio.refreshSingleProduct",
@@ -813,7 +818,7 @@
         "command": "transitrixStudio.previewRequirementTrace",
         "title": "Transitrix: Preview requirement trace + hierarchy",
         "category": "Transitrix",
-        "icon": "$(references)"
+        "icon": "$(graph)"
       },
       {
         "command": "transitrixStudio.refreshRequirementTrace",
@@ -825,7 +830,7 @@
         "command": "transitrixStudio.previewGapDashboard",
         "title": "Transitrix: Preview compliance gap dashboard",
         "category": "Transitrix",
-        "icon": "$(checklist)"
+        "icon": "$(graph)"
       },
       {
         "command": "transitrixStudio.refreshGapDashboard",
