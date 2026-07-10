@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+## 3.0.2 — 2026-07-10
+
+Preview UX pass — unified toolbar icon, background-open false positives fixed, and a node-size refresh bug closed.
+
+### Fixed
+
+- **Blocks / Process Blueprint / Capability Map previews didn't live-update on a node-size change.** An already-open panel kept showing the previous **Size** preset's box dimensions and text spacing until an unrelated theme toggle or file save forced a rebuild — most noticeable when reverting from a larger preset back to a smaller one. `transitrix.nodeSize.blocks` / `.processBlueprint` / `.capabilityMap` now refresh the open preview immediately, matching Goals/DGCA/DGA/Activities.
+
+### Changed
+
+- **Unified preview toolbar icon.** Every notation's "Preview" editor-title button now shares the same `$(graph)` icon (previously varied per notation — `$(type-hierarchy)`, `$(list-unordered)`, `$(law)`, etc.).
+- **Auto-preview now follows the active editor**, not every `openTextDocument` call. Previously, anything that silently read a file's content in the background (e.g. SCM diff/decoration providers) could pop a preview panel per notation type — most noticeable when a lot of files change at once (bulk edits, tooling). The preview now opens only when a recognised file actually becomes the visible/active editor.
+- **New setting `transitrix.preview.autoOpenOnFileOpen`** (default `true`) — turn off to disable auto-open entirely and only open previews via the toolbar button.
+
 ## 3.0.1 — 2026-07-10
 
 Diagram node layout polish — fixes Goals tree label overlap and unifies **Size** presets across previews.
