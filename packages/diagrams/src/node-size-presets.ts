@@ -39,28 +39,37 @@ export interface CapabilityMapDimensions {
 
 type PresetTable<T> = Record<NodeSizePreset, T>;
 
+/** Scale `height` proportionally when only `width` changes — keeps node aspect locked. */
+function aspectLocked(base: BoxDimensions, width: number): BoxDimensions {
+  return { width, height: Math.round((base.height * width) / base.width) };
+}
+
+const GOALS_NODE_SIZE_NORMAL: BoxDimensions = { width: 250, height: 72 };
 export const GOALS_NODE_SIZE: PresetTable<BoxDimensions> = {
-  compact: { width: 200, height: 72 },
-  normal: { width: 250, height: 72 },
-  wide: { width: 320, height: 72 },
+  compact: aspectLocked(GOALS_NODE_SIZE_NORMAL, 200),
+  normal: GOALS_NODE_SIZE_NORMAL,
+  wide: aspectLocked(GOALS_NODE_SIZE_NORMAL, 320),
 };
 
+const DGCA_NODE_SIZE_NORMAL: BoxDimensions = { width: 220, height: 72 };
 export const DGCA_NODE_SIZE: PresetTable<BoxDimensions> = {
-  compact: { width: 200, height: 72 },
-  normal: { width: 220, height: 72 },
-  wide: { width: 280, height: 72 },
+  compact: aspectLocked(DGCA_NODE_SIZE_NORMAL, 200),
+  normal: DGCA_NODE_SIZE_NORMAL,
+  wide: aspectLocked(DGCA_NODE_SIZE_NORMAL, 280),
 };
 
+const BLOCKS_LEAF_SIZE_NORMAL: BlocksLeafDimensions = { width: 160, height: 72 };
 export const BLOCKS_LEAF_SIZE: PresetTable<BlocksLeafDimensions> = {
-  compact: { width: 140, height: 72 },
-  normal: { width: 160, height: 72 },
-  wide: { width: 200, height: 72 },
+  compact: aspectLocked(BLOCKS_LEAF_SIZE_NORMAL, 140),
+  normal: BLOCKS_LEAF_SIZE_NORMAL,
+  wide: aspectLocked(BLOCKS_LEAF_SIZE_NORMAL, 200),
 };
 
+const ACTION_NODE_SIZE_NORMAL: BoxDimensions = { width: 200, height: 80 };
 export const ACTION_NODE_SIZE: PresetTable<BoxDimensions> = {
-  compact: { width: 180, height: 72 },
-  normal: { width: 200, height: 80 },
-  wide: { width: 260, height: 80 },
+  compact: aspectLocked(ACTION_NODE_SIZE_NORMAL, 180),
+  normal: ACTION_NODE_SIZE_NORMAL,
+  wide: aspectLocked(ACTION_NODE_SIZE_NORMAL, 260),
 };
 
 export const PROCESS_BLUEPRINT_SIZE: PresetTable<ProcessBlueprintDimensions> = {
@@ -111,10 +120,17 @@ export const PROCESS_BLUEPRINT_SIZE: PresetTable<ProcessBlueprintDimensions> = {
   },
 };
 
+const CAPABILITY_MAP_NODE_SIZE_NORMAL: CapabilityMapDimensions = { nodeWidth: 240, nodeHeight: 60 };
 export const CAPABILITY_MAP_NODE_SIZE: PresetTable<CapabilityMapDimensions> = {
-  compact: { nodeWidth: 200, nodeHeight: 56 },
-  normal: { nodeWidth: 240, nodeHeight: 60 },
-  wide: { nodeWidth: 300, nodeHeight: 64 },
+  compact: {
+    nodeWidth: 200,
+    nodeHeight: Math.round((CAPABILITY_MAP_NODE_SIZE_NORMAL.nodeHeight * 200) / CAPABILITY_MAP_NODE_SIZE_NORMAL.nodeWidth),
+  },
+  normal: CAPABILITY_MAP_NODE_SIZE_NORMAL,
+  wide: {
+    nodeWidth: 300,
+    nodeHeight: Math.round((CAPABILITY_MAP_NODE_SIZE_NORMAL.nodeHeight * 300) / CAPABILITY_MAP_NODE_SIZE_NORMAL.nodeWidth),
+  },
 };
 
 export type NodeSizeNotation =
