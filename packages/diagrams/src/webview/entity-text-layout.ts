@@ -7,6 +7,14 @@
  */
 
 export const TEXT_MARGIN_X = 8;
+/**
+ * Minimum reserved vertical padding (px) between the box's top/bottom edge and
+ * the nearest line's outer extent. Always enforced — see
+ * {@link layoutCenteredEntityText}'s adaptive line-count reduction, which
+ * trades name-line count for this padding rather than letting text touch or
+ * cross the box border.
+ */
+export const TEXT_MARGIN_Y = 4;
 /** Approximate character width (px) at text-primary size (12px/600). */
 export const CHAR_W_PRIMARY = 7;
 /** Approximate character width (px) at text-id size (10px/600). */
@@ -19,10 +27,15 @@ export const LINE_H_PRIMARY = 14;
 export const LINE_H_SECONDARY = 14;
 /** Vertical advance between id line centres (text-id). */
 export const LINE_H_ID = 12;
-/** Gap between the name block and the id block in leaf-style layouts. */
+/**
+ * Gap between the name block and the id block in leaf-style layouts — used as
+ * a direct centre-to-centre distance there, so keep it >= ~11px (half of
+ * text-primary's 12px font + half of text-id's 10px font) to avoid the
+ * overlap regressed in #419. Do not tighten without re-checking that test.
+ */
 export const NAME_ID_GAP = 14;
 /** Gap between stacked row groups (name → type → id). */
-export const ROW_GROUP_GAP = 9;
+export const ROW_GROUP_GAP = 4;
 
 export function maxCharsForInnerWidth(innerWidth: number, charWidth: number): number {
   return Math.max(4, Math.floor(Math.max(0, innerWidth) / charWidth));
@@ -156,6 +169,7 @@ export interface LayoutCenteredEntityOptions {
   nameMaxLines?: number;
   idMaxLines?: number;
   marginX?: number;
+  marginY?: number;
 }
 
 interface TextRowGroup {
@@ -165,60 +179,22 @@ interface TextRowGroup {
   gapAfter: number;
 }
 
-function totalVerticalSpan(groups: TextRowGroup[]): number {
-  let span = 0;
-  for (let i = 0; i < groups.length; i++) {
-    const g = groups[i];
-    span += g.lines.length * g.lineHeight;
-    if (i < groups.length - 1) span += g.gapAfter;
-  }
-  return span;
-}
-
 /**
- * Layout centred entity text (name → optional type → id) inside a fixed box.
- * Returns absolute SVG y-positions (line centres) for each rendered row.
+ * Half-extent (px) of rendered glyphs around their centre y — approximately
+ * font-size / 2, the same heuristic the #419 non-overlap regression test
+ * uses. Used only to keep the *outermost* line's visual extent (not just its
+ * centre) inside the box when computing edge padding; inter-line spacing
+ * between adjacent rows is governed separately by the LINE_H_ constants,
+ * NAME_ID_GAP and ROW_GROUP_GAP, which already keep centres far enough apart
+ * to avoid overlap.
  */
-export function layoutCenteredEntityText(opts: LayoutCenteredEntityOptions): TextLineSpec[] {
-  const marginX = opts.marginX ?? TEXT_MARGIN_X;
-  const innerW = Math.max(0, opts.boxWidth - marginX * 2);
-  const cx = opts.boxX + opts.boxWidth / 2;
-  const maxCharsName = maxCharsForInnerWidth(innerW, CHAR_W_PRIMARY);
-  const maxCharsType = maxCharsForInnerWidth(innerW, CHAR_W_SECONDARY);
-  const maxCharsId = maxCharsForInnerWidth(innerW, CHAR_W_ID);
+const HALF_EXTENT_PRIMARY = 6; // text-primary, 12px font
+const HALF_EXTENT_ID = 5; // text-id, 10px font
 
-  const nameLines = wrapWords(opts.name, maxCharsName, opts.nameMaxLines ?? 2);
-  const typeLine = opts.type?.trim() ? truncateLine(opts.type, maxCharsType) : undefined;
-  const idMaxLines = opts.idMaxLines ?? 1;
-  const idLines = idMaxLines <= 1 ? [truncateId(opts.id, maxCharsId)] : wrapId(opts.id, maxCharsId, idMaxLines);
-
-  const groups: TextRowGroup[] = [
-    {
-      cls: 'text-primary',
-      lines: nameLines,
-      lineHeight: LINE_H_PRIMARY,
-      gapAfter: typeLine ? ROW_GROUP_GAP : NAME_ID_GAP,
-    },
-  ];
-  if (typeLine) {
-    groups.push({
-      cls: 'text-secondary',
-      lines: [typeLine],
-      lineHeight: LINE_H_SECONDARY,
-      gapAfter: NAME_ID_GAP,
-    });
-  }
-  groups.push({
-    cls: 'text-id',
-    lines: idLines,
-    lineHeight: LINE_H_ID,
-    gapAfter: 0,
-  });
-
-  const span = totalVerticalSpan(groups);
-  const firstY = Math.round(opts.boxY + (opts.boxHeight - span) / 2);
+/** Place `groups`' lines starting at `startY`, advancing by each line's own height and gap. */
+function placeLines(groups: TextRowGroup[], startY: number): TextLineSpec[] {
   const out: TextLineSpec[] = [];
-  let y = firstY;
+  let y = startY;
   for (let gi = 0; gi < groups.length; gi++) {
     const g = groups[gi];
     for (let li = 0; li < g.lines.length; li++) {
@@ -228,6 +204,86 @@ export function layoutCenteredEntityText(opts: LayoutCenteredEntityOptions): Tex
     if (gi < groups.length - 1) y += g.gapAfter;
   }
   return out;
+}
+
+/** Centre-to-centre distance from the first to the last placed line. */
+function centerSpan(groups: TextRowGroup[]): number {
+  const ys = placeLines(groups, 0).map((s) => s.y);
+  return ys[ys.length - 1] - ys[0];
+}
+
+/**
+ * Layout centred entity text (name → optional type → id) inside a fixed box.
+ * Returns absolute SVG y-positions (line centres) for each rendered row.
+ *
+ * Guarantees, in order of priority:
+ *   1. Content never crosses the box's top/bottom edge.
+ *   2. At least `marginY` (default {@link TEXT_MARGIN_Y}) of padding is kept
+ *      above the first line's glyphs and below the last line's glyphs.
+ *   3. The name gets as many lines as `nameMaxLines` allows (2 by default)
+ *      when the box is tall enough; on short/compact boxes (e.g. with a type
+ *      row present) it degrades to fewer name lines — trading line count,
+ *      not padding — rather than letting text overflow.
+ */
+export function layoutCenteredEntityText(opts: LayoutCenteredEntityOptions): TextLineSpec[] {
+  const marginX = opts.marginX ?? TEXT_MARGIN_X;
+  const marginY = opts.marginY ?? TEXT_MARGIN_Y;
+  const innerW = Math.max(0, opts.boxWidth - marginX * 2);
+  const maxCharsName = maxCharsForInnerWidth(innerW, CHAR_W_PRIMARY);
+  const maxCharsType = maxCharsForInnerWidth(innerW, CHAR_W_SECONDARY);
+  const maxCharsId = maxCharsForInnerWidth(innerW, CHAR_W_ID);
+
+  const typeLine = opts.type?.trim() ? truncateLine(opts.type, maxCharsType) : undefined;
+  const idMaxLines = opts.idMaxLines ?? 1;
+  const idLines = idMaxLines <= 1 ? [truncateId(opts.id, maxCharsId)] : wrapId(opts.id, maxCharsId, idMaxLines);
+
+  function buildGroups(nameLines: string[]): TextRowGroup[] {
+    const groups: TextRowGroup[] = [
+      {
+        cls: 'text-primary',
+        lines: nameLines,
+        lineHeight: LINE_H_PRIMARY,
+        gapAfter: typeLine ? ROW_GROUP_GAP : NAME_ID_GAP,
+      },
+    ];
+    if (typeLine) {
+      groups.push({
+        cls: 'text-secondary',
+        lines: [typeLine],
+        lineHeight: LINE_H_SECONDARY,
+        gapAfter: NAME_ID_GAP,
+      });
+    }
+    groups.push({
+      cls: 'text-id',
+      lines: idLines,
+      lineHeight: LINE_H_ID,
+      gapAfter: 0,
+    });
+    return groups;
+  }
+
+  // groups[0] is always the name (text-primary) and the last group is always
+  // the id (text-id), so the edge-padding half-extents below are fixed.
+  const requestedNameMaxLines = Math.max(1, opts.nameMaxLines ?? 2);
+  const availableHeight = Math.max(0, opts.boxHeight - marginY * 2);
+
+  let nameLines = wrapWords(opts.name, maxCharsName, requestedNameMaxLines);
+  let groups = buildGroups(nameLines);
+  let contentSpan = centerSpan(groups) + HALF_EXTENT_PRIMARY + HALF_EXTENT_ID;
+  for (
+    let cap = requestedNameMaxLines - 1;
+    cap >= 1 && contentSpan > availableHeight;
+    cap--
+  ) {
+    nameLines = wrapWords(opts.name, maxCharsName, cap);
+    groups = buildGroups(nameLines);
+    contentSpan = centerSpan(groups) + HALF_EXTENT_PRIMARY + HALF_EXTENT_ID;
+  }
+
+  const margin = Math.max(0, (opts.boxHeight - contentSpan) / 2);
+  const firstY = Math.round(opts.boxY + margin + HALF_EXTENT_PRIMARY);
+  return placeLines(groups, firstY);
 }
 
 /** Emit centred `<text>` elements from {@link layoutCenteredEntityText} specs. */
@@ -256,25 +312,44 @@ export interface LayoutLeafBlockTextOptions {
   marginX?: number;
 }
 
-/** Leaf nested-block layout: name (up to 3 lines) + id (up to 2 lines), centred. */
+/**
+ * Leaf nested-block layout: name (up to 3 lines) + id (up to 2 lines), centred.
+ * Degrades name line count (never below 1) when the box is too short to hold
+ * the requested max plus {@link TEXT_MARGIN_Y} padding on both edges, so text
+ * never crosses the box border.
+ */
 export function layoutLeafBlockText(opts: LayoutLeafBlockTextOptions): TextLineSpec[] {
   const marginX = opts.marginX ?? TEXT_MARGIN_X;
   const innerW = Math.max(0, opts.boxWidth - marginX * 2);
   const maxCharsName = maxCharsForInnerWidth(innerW, CHAR_W_PRIMARY);
   const maxCharsId = maxCharsForInnerWidth(innerW, CHAR_W_ID);
-  const nameLines = wrapWords(opts.name, maxCharsName, opts.nameMaxLines ?? 3);
   const idLines = wrapId(opts.id, maxCharsId, 2);
+  const idCenterSpan = (idLines.length - 1) * LINE_H_ID;
 
-  const nameSpan = (nameLines.length - 1) * LINE_H_PRIMARY;
-  const idSpan = (idLines.length - 1) * LINE_H_ID;
-  const totalSpan = nameSpan + NAME_ID_GAP + idSpan;
-  const firstY = Math.round(opts.boxY + (opts.boxHeight - totalSpan) / 2);
+  const requestedNameMaxLines = Math.max(1, opts.nameMaxLines ?? 3);
+  const availableHeight = Math.max(0, opts.boxHeight - TEXT_MARGIN_Y * 2);
+
+  let nameLines = wrapWords(opts.name, maxCharsName, requestedNameMaxLines);
+  let nameCenterSpan = (nameLines.length - 1) * LINE_H_PRIMARY;
+  let contentSpan = nameCenterSpan + NAME_ID_GAP + idCenterSpan + HALF_EXTENT_PRIMARY + HALF_EXTENT_ID;
+  for (
+    let cap = requestedNameMaxLines - 1;
+    cap >= 1 && contentSpan > availableHeight;
+    cap--
+  ) {
+    nameLines = wrapWords(opts.name, maxCharsName, cap);
+    nameCenterSpan = (nameLines.length - 1) * LINE_H_PRIMARY;
+    contentSpan = nameCenterSpan + NAME_ID_GAP + idCenterSpan + HALF_EXTENT_PRIMARY + HALF_EXTENT_ID;
+  }
+
+  const margin = Math.max(0, (opts.boxHeight - contentSpan) / 2);
+  const firstY = Math.round(opts.boxY + margin + HALF_EXTENT_PRIMARY);
 
   const out: TextLineSpec[] = [];
   for (let i = 0; i < nameLines.length; i++) {
     out.push({ cls: 'text-primary', text: nameLines[i], y: firstY + i * LINE_H_PRIMARY });
   }
-  const idFirstY = firstY + nameSpan + NAME_ID_GAP;
+  const idFirstY = firstY + nameCenterSpan + NAME_ID_GAP;
   for (let i = 0; i < idLines.length; i++) {
     out.push({ cls: 'text-id', text: idLines[i], y: idFirstY + i * LINE_H_ID });
   }
@@ -291,6 +366,14 @@ export interface LayoutHeaderBlockTextOptions {
   marginX?: number;
 }
 
+/**
+ * Direct centre-to-centre gap between the header's name and id lines.
+ * Safely above the ~11px non-overlap floor (half of text-primary's 12px font
+ * + half of text-id's 10px font, per the #419 regression) but tighter than
+ * {@link NAME_ID_GAP} to fit the compact header strip.
+ */
+const HEADER_NAME_ID_GAP = 12;
+
 /** Container header: single-line name + id stacked in the header strip. */
 export function layoutHeaderBlockText(opts: LayoutHeaderBlockTextOptions): TextLineSpec[] {
   const marginX = opts.marginX ?? TEXT_MARGIN_X;
@@ -299,11 +382,14 @@ export function layoutHeaderBlockText(opts: LayoutHeaderBlockTextOptions): TextL
   const maxCharsId = maxCharsForInnerWidth(innerW, CHAR_W_ID);
   const nameText = truncateLine(opts.name, maxCharsName);
   const idText = truncateId(opts.id, maxCharsId);
-  const headerMid = opts.boxY + opts.headerHeight / 2;
-  const halfSpan = (LINE_H_PRIMARY + LINE_H_ID) / 4;
+
+  const contentSpan = HEADER_NAME_ID_GAP + HALF_EXTENT_PRIMARY + HALF_EXTENT_ID;
+  const margin = Math.max(0, (opts.headerHeight - contentSpan) / 2);
+  const nameY = Math.round(opts.boxY + margin + HALF_EXTENT_PRIMARY);
+  const idY = nameY + HEADER_NAME_ID_GAP;
   return [
-    { cls: 'text-primary', text: nameText, y: Math.round(headerMid - halfSpan) },
-    { cls: 'text-id', text: idText, y: Math.round(headerMid + halfSpan) },
+    { cls: 'text-primary', text: nameText, y: nameY },
+    { cls: 'text-id', text: idText, y: idY },
   ];
 }
 
