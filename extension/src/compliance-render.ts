@@ -1,10 +1,10 @@
-import { generateWebviewCss, type ThemeId } from '@transitrix/diagrams/theme';
+import { type ThemeId } from '@transitrix/diagrams/theme';
 import { escXml } from '@transitrix/diagrams/webview/render-util.js';
 export { escXml };
 import type { AssertionStatus } from '@transitrix/diagrams/assertion/types.js';
 import type { ViewScore } from '@transitrix/diagrams/confidence';
 import { computeDeadlineStatus } from '@transitrix/diagrams/compliance/impact.js';
-import { ERROR_BLOCK_CSS, buildErrorHtml, WARN_BLOCK_CSS, buildWarnHtml } from './diagram-frame.js';
+import { buildDiagramFrame, OPEN_THEME_COMMAND } from './diagram-frame.js';
 
 // Shared HTML rendering for the script-less compliance views — the single-law
 // tree and single-product view (vkgeorgia/strategy#84 Phase 3). These previews
@@ -47,21 +47,14 @@ export function openLink(command: string, fsPath: string | undefined, inner: str
 }
 
 const COMPLIANCE_CSS = `
-body { padding: 0; }
-#cmp-toolbar { display: flex; align-items: baseline; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--ts-border, #cbd5e1); flex-wrap: wrap; }
-.cmp-title { font-size: 13px; font-weight: 700; color: var(--ts-header-text, #0f172a); }
-.cmp-subtitle { font-size: 11px; color: var(--ts-text-secondary, #475569); }
-.cmp-meta { width: 100%; font-size: 11px; color: var(--ts-text-secondary, #475569); letter-spacing: 0.04em; }
-.cmp-confidence { width: 100%; font-size: 11px; color: var(--ts-text-secondary, #475569); }
+#canvas { padding: 0; }
+.cmp-body { padding: 12px 16px 28px; }
+.cmp-confidence { font-size: 11px; color: var(--ts-text-secondary, #475569); }
 .cmp-confidence-band { display: inline-block; padding: 0 6px; margin-right: 4px; border-radius: 3px; font-weight: 700; background: var(--ts-bg-subtle, #f1f5f9); color: var(--ts-text, #0f172a); }
 .cmp-confidence-band[data-band="A"] { background: var(--ts-status-success-bg, #d1fae5); color: var(--ts-status-success-fg, #065f46); }
 .cmp-confidence-band[data-band="B"] { background: var(--ts-status-info-bg, #e0f2fe); color: var(--ts-status-info-fg, #0c4a6e); }
 .cmp-confidence-band[data-band="C"] { background: var(--ts-status-warning-bg, #fef9c3); color: var(--ts-status-warning-fg, #854d0e); }
 .cmp-confidence-band[data-band="D"] { background: var(--ts-status-error-bg, #fee2e2); color: var(--ts-status-error-fg, #991b1b); }
-.cmp-toolbar-actions { margin-left: auto; display: inline-flex; gap: 6px; }
-.cmp-btn { font-size: 11px; padding: 2px 10px; border-radius: 4px; color: var(--ts-text-muted, #64748b); text-decoration: none; border: 1px solid var(--ts-border, #cbd5e1); }
-.cmp-btn:hover { color: var(--ts-text, #0f172a); background: var(--ts-bg-elevated, #f1f5f9); }
-#cmp-body { padding: 12px 16px 28px; }
 .cmp-link { color: var(--ts-brand-primary, #004d67); text-decoration: none; }
 .cmp-link:hover { text-decoration: underline; }
 .cmp-badge { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
@@ -108,9 +101,11 @@ body { padding: 0; }
 `;
 
 export interface ComplianceShellOptions {
+  /** Short notation-type label for the toolbar (e.g. "Law", "Gap dashboard"). */
+  notation?: string;
   title: string;
   subtitle?: string;
-  /** Source filename shown as the second line of the header (e.g. "gdpr.law.transitrix.yaml"). Omit for workspace-wide views. */
+  /** Source filename shown in the toolbar label (e.g. "gdpr.law.transitrix.yaml"). Omit for workspace-wide views. */
   filename?: string;
   /** Generation date shown as "Generated: YYYY-MM-DD". Pass today's ISO date from the caller. */
   date?: string;
@@ -125,9 +120,9 @@ export interface ComplianceShellOptions {
   bodyHtml: string;
   /**
    * View-level composite confidence for the rendered element set
-   * (CONTRACT §11.6). Rendered next to the formation date as a small subline
-   * under the title (DQ-2, vkgeorgia/strategy#162). Omit or pass an empty
-   * composite to suppress the line entirely.
+   * (CONTRACT §11.6). Rendered in the frame-header below the title
+   * (DQ-2, vkgeorgia/strategy#162). Omit or pass an empty composite to
+   * suppress the line entirely.
    */
   confidence?: ViewScore;
   /** Non-fatal advisory messages. Rendered as a collapsible warnings block below the toolbar. */
@@ -140,47 +135,35 @@ export interface ComplianceShellOptions {
  * Renders the §11.6 confidence header as a coloured-band pill plus the
  * formation date + mean + sourced %. Suppresses itself for an empty
  * element set (no view to score). Static / script-less — pure HTML.
+ * Returns a block-level div so it renders correctly inside frame-header.
  */
 export function confidenceLineHtml(view: ViewScore): string {
   const c = view.composite;
   if (c.element_count === 0) return '';
   const mean = c.mean.toFixed(2);
   const coverage = Math.round(c.coverage * 100);
-  return `<span class="cmp-confidence" title="Data confidence per CONTRACT §11.6 — weakest-link headline.">`
+  return `<div class="cmp-confidence" title="Data confidence per CONTRACT §11.6 — weakest-link headline.">`
     + `<span class="cmp-confidence-band" data-band="${escXml(c.band)}">${escXml(c.band)}</span>`
     + `Data confidence (as of ${escXml(view.today)}) · ${escXml(mean)} mean · ${coverage}% sourced`
-    + `</span>`;
+    + `</div>`;
 }
 
 /** Full webview document for a script-less compliance view (static CSP). */
 export function complianceShell(opts: ComplianceShellOptions): string {
-  const { input: errInput, block: errBlock } = buildErrorHtml(opts.errorMsg ?? '');
-  const { input: warnInput, block: warnBlock } = buildWarnHtml(opts.warnings ?? []);
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8"/>
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline';">
-  <style>
-${generateWebviewCss(opts.themeId)}
-${COMPLIANCE_CSS}
-${ERROR_BLOCK_CSS}
-${WARN_BLOCK_CSS}
-  </style>
-</head>
-<body data-theme="${escXml(opts.themeId)}">
-  ${errInput}${warnInput}
-  <div id="cmp-toolbar">
-    <span class="cmp-title">${escXml(opts.title)}</span>
-    ${opts.subtitle ? `<span class="cmp-subtitle">${escXml(opts.subtitle)}</span>` : ''}
-    ${(opts.filename || opts.date) ? `<span class="cmp-meta">${[opts.filename ? escXml(opts.filename) : '', opts.date ? `Generated: ${escXml(opts.date)}` : ''].filter(Boolean).join(' · ')}</span>` : ''}
-    <span class="cmp-toolbar-actions">${(opts.extraButtons ?? []).map(b => `<a href="command:${b.command}" class="cmp-btn" title="${escXml(b.title)}">${escXml(b.label)}</a>`).join('')}${opts.themeCommand ? `<a href="command:${opts.themeCommand}" class="cmp-btn" title="Change the color scheme for all diagram previews">Theme…</a>` : ''}<a href="command:${opts.refreshCommand}" class="cmp-btn" title="Re-scan the workspace">Refresh</a></span>
-    ${opts.confidence ? confidenceLineHtml(opts.confidence) : ''}
-  </div>
-  ${errBlock}${warnBlock}
-  <div id="cmp-body">
-    ${opts.bodyHtml}
-  </div>
-</body>
-</html>`;
+  return buildDiagramFrame({
+    notation: opts.notation ?? 'Compliance',
+    filename: opts.filename ?? '',
+    title: opts.title,
+    subtitle: opts.subtitle,
+    date: opts.date,
+    themeId: opts.themeId,
+    bodyContent: `<div class="cmp-body">${opts.bodyHtml}</div>`,
+    errorMsg: opts.errorMsg,
+    warnings: opts.warnings,
+    themeCommand: opts.themeCommand ?? OPEN_THEME_COMMAND,
+    refreshCommand: opts.refreshCommand,
+    extraButtons: opts.extraButtons,
+    confidenceLine: opts.confidence ? confidenceLineHtml(opts.confidence) : undefined,
+    extraStyles: COMPLIANCE_CSS,
+  });
 }

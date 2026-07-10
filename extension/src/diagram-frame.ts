@@ -115,6 +115,18 @@ export interface DiagramFrameOpts {
    */
   extraButtons?: Array<{ command: string; label: string; title: string }>;
   /**
+   * Command ID for the "Refresh" toolbar button. Shown on report/compliance
+   * views that don't export diagrams (no `saveSvgCommand`). Rendered after
+   * `extraButtons` and before the spacing/theme settings links.
+   */
+  refreshCommand?: string;
+  /**
+   * Pre-built HTML for a confidence-score line (compliance views, CONTRACT
+   * §11.6). Rendered inside the `frame-header` block, below the meta strip.
+   * Produced by `confidenceLineHtml()` in `compliance-render.ts`.
+   */
+  confidenceLine?: string;
+  /**
    * When true, adds a "Legend" toggle button to the toolbar (CSS-only, no scripts).
    * The SVG must wrap its legend elements in `<g class="diagram-legend-col">`.
    * Follows the same pattern as the title toggle (TX-R009).
@@ -422,6 +434,7 @@ export function buildDiagramFrame(opts: DiagramFrameOpts): string {
     title, subtitle, version, date,
     saveSvgCommand, savePngCommand, copyPngCommand, spacingCommand, curvatureCommand, scopeCommand, themeCommand,
     extraButtons = [],
+    refreshCommand, confidenceLine,
     interactive, legendToggle, snapshotUi,
   } = opts;
 
@@ -460,6 +473,7 @@ export function buildDiagramFrame(opts: DiagramFrameOpts): string {
   <div class="frame-title">${escXml(title)}</div>
   ${subtitle ? `<div class="frame-subtitle">${escXml(subtitle)}</div>` : ''}
   ${metaParts.length > 0 ? `<div class="frame-meta">${metaParts.join(' · ')}</div>` : ''}
+  ${confidenceLine ?? ''}
 </div>`
     : '';
 
@@ -478,6 +492,7 @@ export function buildDiagramFrame(opts: DiagramFrameOpts): string {
   const showCopyPng = Boolean(canvasContent) && Boolean(copyPngCommand);
   // Spacing/curvature/scope links show whenever the preview opts in — including
   // error renders, so the user can adjust the settings and trigger a re-render.
+  const showRefresh = Boolean(refreshCommand);
   const showSpacing = Boolean(spacingCommand);
   const showCurvature = Boolean(curvatureCommand);
   const showScope = Boolean(scopeCommand);
@@ -531,6 +546,9 @@ export function buildDiagramFrame(opts: DiagramFrameOpts): string {
       actionParts.push(`<a href="command:${escXml(b.command)}" class="toolbar-btn" title="${escXml(b.title)}">${escXml(b.label)}</a>`);
     }
   }
+  if (showRefresh) {
+    actionParts.push(`<a href="command:${escXml(refreshCommand!)}" class="toolbar-btn" title="Re-scan the workspace">Refresh</a>`);
+  }
   if (showSpacing) {
     actionParts.push(`<a href="command:${escXml(spacingCommand!)}" class="toolbar-btn" title="Adjust the horizontal/vertical spacing for this notation in Settings">Spacing…</a>`);
   }
@@ -564,6 +582,10 @@ export function buildDiagramFrame(opts: DiagramFrameOpts): string {
     ? `<div id="tx-snap-info" class="tx-snap-info" style="display:none"></div>`
     : '';
 
+  const toolbarLabel = filename
+    ? `${escXml(notation)}: ${escXml(filename)}`
+    : escXml(notation);
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -588,7 +610,7 @@ ${extraStyles}
   ${zoomInputs}
   ${errToggleInput}
   ${warnToggleInput}
-  <div id="toolbar"><span class="toolbar-label">${escXml(notation)}: ${escXml(filename)}</span>${toolbarRight}</div>
+  <div id="toolbar"><span class="toolbar-label">${toolbarLabel}</span>${toolbarRight}</div>
   ${controlsPanel}
   ${timelineStrip}
   ${snapInfoBox}

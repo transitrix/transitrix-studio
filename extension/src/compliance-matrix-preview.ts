@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { escXml } from '@transitrix/diagrams/webview/render-util.js';
-import { generateWebviewCss, type ThemeId } from '@transitrix/diagrams/theme';
+import { type ThemeId } from '@transitrix/diagrams/theme';
 import {
   buildComplianceMatrix,
   filterComplianceMatrix,
@@ -11,7 +11,7 @@ import type { AssertionStatus } from '@transitrix/diagrams/assertion/types.js';
 import { genNonce, colWidthPxFromSetting, colWidthRootCss } from './preview-controls.js';
 import { scanComplianceCanon } from './compliance-scan.js';
 import type { ScannedCanon } from './compliance-scan.js';
-import { ERROR_BLOCK_CSS, buildErrorHtml, WARN_BLOCK_CSS, buildWarnHtml } from './diagram-frame.js';
+import { buildDiagramFrame, OPEN_THEME_COMMAND } from './diagram-frame.js';
 
 // Compliance matrix preview (vkgeorgia/strategy#84 Phase 2).
 //
@@ -156,8 +156,6 @@ export class ComplianceMatrixPreview {
 
   private buildHtml(matrix: ComplianceMatrix | undefined, themeId: ThemeId): string {
     const nonce = genNonce();
-    const { input: errInput, block: errBlock } = buildErrorHtml(this.errorMsg);
-    const { input: warnInput, block: warnBlock } = buildWarnHtml(this.skippedWarnings);
 
     const summary = matrix?.summary ?? { products: 0, requirements: 0, gaps: 0, assertions: 0 };
     const empty = !matrix || matrix.requirements.length === 0 || matrix.products.length === 0;
@@ -183,9 +181,7 @@ export class ComplianceMatrixPreview {
     ).join('');
 
     // Jurisdiction chips come from the union of jurisdictions resolved on the
-    // full matrix's columns. Hidden entirely when no requirement resolved one
-    // (e.g. no codex files in the workspace) so the toolbar doesn't claim a
-    // dimension that has no values.
+    // full matrix's columns. Hidden entirely when no requirement resolved one.
     const jurisdictionUniverse = this.fullMatrix ? collectJurisdictions(this.fullMatrix) : [];
     const jurisdictionBoxes = jurisdictionUniverse.map(j =>
       `<label class="cm-chip"><input type="checkbox" data-cm-jurisdiction="${escXml(j)}"${filterJurisdictions.has(j) ? ' checked' : ''}> ${escXml(j)}</label>`,
@@ -203,36 +199,14 @@ export class ComplianceMatrixPreview {
       ).join('') +
       `</select>`;
 
-    return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8"/>
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}';">
-  <style>
-${colWCss}
-${generateWebviewCss(themeId)}
-${MATRIX_CSS}
-${ERROR_BLOCK_CSS}
-${WARN_BLOCK_CSS}
-  </style>
-</head>
-<body data-theme="${escXml(themeId)}">
-  ${errInput}${warnInput}
-  <div id="cm-toolbar">
-    <div class="cm-title">Compliance Matrix</div>
-    <div class="cm-summary">${summary.products} products × ${summary.requirements} requirements · <strong>${summary.gaps}</strong> gaps · ${summary.assertions} claims shown</div>
-    <a href="command:transitrixStudio.changeTheme" class="cm-btn" title="Change the color scheme for all diagram previews">Theme…</a>
-    <a href="command:${REFRESH_COMMAND}" class="cm-btn" title="Re-scan the workspace">Refresh</a>
-  </div>
-  ${errBlock}${warnBlock}
-  <div id="cm-filters">
+    const filtersPanel = `<div id="cm-filters">
     <span class="cm-filter-label">Status</span>${statusBoxes}
     <span class="cm-filter-label">Severity</span>${severityBoxes}
     ${jurisdictionRow}
     ${colWidthSelect}
-  </div>
-  ${body}
-  <script nonce="${nonce}">
+  </div>`;
+
+    const filterScript = `<script nonce="${nonce}">
 (function () {
   var vscode = acquireVsCodeApi();
   function collect(attr) {
@@ -259,9 +233,27 @@ ${WARN_BLOCK_CSS}
     });
   }
 }());
-  </script>
-</body>
-</html>`;
+</script>`;
+
+    const summaryTitle = `${summary.products} products × ${summary.requirements} requirements · ${summary.gaps} gaps · ${summary.assertions} claims shown`;
+
+    return buildDiagramFrame({
+      notation: 'Compliance matrix',
+      filename: '',
+      title: summaryTitle,
+      themeId,
+      errorMsg: this.errorMsg,
+      warnings: this.skippedWarnings,
+      bodyContent: body,
+      themeCommand: OPEN_THEME_COMMAND,
+      refreshCommand: REFRESH_COMMAND,
+      extraStyles: `${colWCss}\n${MATRIX_CSS}`,
+      interactive: {
+        nonce,
+        controlsPanel: filtersPanel,
+        controlsScript: filterScript,
+      },
+    });
   }
 
   private gridHtml(matrix: ComplianceMatrix): string {
@@ -315,13 +307,7 @@ ${WARN_BLOCK_CSS}
 }
 
 const MATRIX_CSS = `
-body { padding: 0; }
-#cm-toolbar { display: flex; align-items: center; gap: 14px; padding: 10px 16px; border-bottom: 1px solid var(--ts-border, #cbd5e1); flex-wrap: wrap; }
-.cm-title { font-size: 13px; font-weight: 700; color: var(--ts-header-text, #0f172a); }
-.cm-summary { font-size: 12px; color: var(--ts-text-muted, #64748b); }
-.cm-summary strong { color: var(--ts-text, #0f172a); }
-.cm-btn { font-size: 11px; padding: 2px 10px; border-radius: 4px; color: var(--ts-text-muted, #64748b); text-decoration: none; border: 1px solid var(--ts-border, #cbd5e1); }
-.cm-btn:hover { color: var(--ts-text, #0f172a); background: var(--ts-bg-elevated, #f1f5f9); }
+#canvas { padding: 0; }
 #cm-filters { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 16px; border-bottom: 1px solid var(--ts-border, #cbd5e1); font-size: 11px; }
 .cm-filter-label { font-weight: 600; color: var(--ts-text, #0f172a); margin-left: 8px; }
 .cm-filter-label:first-child { margin-left: 0; }

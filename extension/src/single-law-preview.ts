@@ -80,6 +80,7 @@ export class SingleLawPreview {
 
     if (!lawId) {
       this.panel.webview.html = complianceShell({
+        notation: 'Law',
         title: 'Single-law tree',
         themeId, refreshCommand: REFRESH_COMMAND, themeCommand: 'transitrixStudio.changeTheme',
         bodyHtml: `<div class="cmp-empty">This file has no <code>id</code> — open a codex artefact (LAW / REGULATION / POLICY / INTERNAL_STANDARD).</div>`,
@@ -98,6 +99,7 @@ export class SingleLawPreview {
     const confidence = scoreComplianceView(treeRequirements, treeAssertions, todayIso());
 
     this.panel.webview.html = complianceShell({
+      notation: 'Law',
       title: lawName,
       subtitle: `${lawId} · ${tree.requirements.length} requirement(s)`,
       filename: path.basename(doc.fileName),
