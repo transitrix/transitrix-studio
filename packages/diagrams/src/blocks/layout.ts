@@ -11,7 +11,7 @@ const DEFAULTS: Required<BlocksLayoutOptions> = {
   leafWidth: ENTITY_NODE_SIZE.normal.width,
   leafHeight: ENTITY_NODE_SIZE.normal.height,
   padding: 12,
-  headerHeight: 28,
+  headerHeight: 32,
   childGap: 12,
   topLevelGap: 24,
 };
