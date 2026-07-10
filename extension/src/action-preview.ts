@@ -639,8 +639,8 @@ function buildCanvasContent(views: ActivityViews): string {
 
 /** Diagram-class CSS used both in the webview and in saved .svg exports. */
 const ACTIVITIES_DIAGRAM_CSS = `
-  .act-node { fill: var(--ts-layer-activity, #d4edda); stroke: var(--ts-node-stroke, #94a3b8); stroke-width: 1; }
-  .critical-node { fill: #fff7ed; stroke: var(--ts-brand-orange, #ff4d00); stroke-width: 2.5; }
+  .act-node { fill: var(--ts-layer-activity, #d4edda); stroke: var(--ts-node-stroke, #004d67); stroke-width: 1; }
+  .critical-node { fill: var(--ts-brand-orange-tint, #ffeee5); stroke: var(--ts-brand-orange, #ff4d00); stroke-width: 2.5; }
   .milestone-node { fill: #ecfeff; stroke: var(--ts-text-muted, #64748b); stroke-dasharray: 4 2; }
   .critical-edge { stroke: var(--ts-brand-orange, #ff4d00); stroke-width: 2; }
   .arrow-fill-critical { fill: var(--ts-brand-orange, #ff4d00); }
@@ -649,7 +649,7 @@ const ACTIVITIES_DIAGRAM_CSS = `
   .gantt-grid { stroke: var(--ts-border, #cbd5e1); stroke-width: 1; opacity: 0.5; }
   .gantt-row-alt { fill: var(--ts-bg-subtle, #f8fafc); opacity: 0.5; }
   .gantt-bar { fill: var(--ts-bg-surface, #dbeafe); stroke: var(--ts-border, #60a5fa); stroke-width: 1; }
-  .gantt-bar.critical-bar { fill: #fff7ed; stroke: var(--ts-brand-orange, #ff4d00); stroke-width: 1.5; }
+  .gantt-bar.critical-bar { fill: var(--ts-brand-orange-tint, #ffeee5); stroke: var(--ts-brand-orange, #ff4d00); stroke-width: 1.5; }
   .gantt-phase { fill: var(--ts-text-muted, #475569); opacity: 0.85; }
   .gantt-milestone { fill: var(--ts-text, #0f172a); }
   .gantt-milestone.critical-bar { fill: var(--ts-brand-orange, #ff4d00); }
@@ -746,7 +746,7 @@ const ACTIVITIES_WEBVIEW_CSS = `
   .tree-node-meta { font-size: 11px; color: var(--ts-text-muted, #64748b); white-space: nowrap; }
   .tree-badge { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 10px; white-space: nowrap; flex-shrink: 0; }
   .tree-badge-initiative,
-  .tree-badge-strategic-initiative { background: #fff7ed; color: var(--ts-brand-orange, #ff4d00); border: 1px solid var(--ts-brand-orange, #ff4d00); }
+  .tree-badge-strategic-initiative { background: var(--ts-brand-orange-tint, #ffeee5); color: var(--ts-brand-orange, #ff4d00); border: 1px solid var(--ts-brand-orange, #ff4d00); }
   .tree-badge-programme { background: #eff6ff; color: #2563eb; border: 1px solid #93c5fd; }
   .tree-badge-project { background: var(--ts-layer-activity, #d4edda); color: #166534; border: 1px solid #86efac; }
   .tree-badge-task { background: var(--ts-bg-subtle, #f1f5f9); color: var(--ts-text-muted, #64748b); border: 1px solid var(--ts-border, #cbd5e1); }

@@ -1,4 +1,4 @@
-/** Transitrix brand palette. */
+/** Transitrix brand palette (`brand/transitrix_brand.md` — canonical). */
 export const BRAND = {
   petrol: '#004d67',
   amber:  '#ffaf00',
@@ -13,29 +13,62 @@ export const FUNCTIONAL = {
   info:    '#1d6fa8',
 } as const;
 
-/** Fill colors for FGCA/DGCA notation columns. */
-export const LAYER_COLORS = {
-  driver:   { light: '#fef3c7', dark: '#292108', hc: '#f59e0b' },
-  factor:   { light: '#fef3c7', dark: '#292108', hc: '#f59e0b' },
-  goal:     { light: '#e0e7ff', dark: '#1e1b4b', hc: '#818cf8' },
-  change:   { light: '#dbeafe', dark: '#0c2042', hc: '#60a5fa' },
-  activity: { light: '#d4edda', dark: '#0a2414', hc: '#4ade80' },
+/**
+ * Amber/orange "author emphasis" accents, theme-adjusted for contrast against
+ * each theme's background (dark theme gets the brand hues lightened per
+ * `brand/transitrix_brand.md` §Themes: "brand colours slightly desaturated
+ * for contrast on dark surfaces"). `orangeTint` is the light emphasis-fill
+ * paired with an `orange` stroke (e.g. Activities critical-path nodes).
+ * `hc` intentionally falls back to the plain BRAND hex — VS Code
+ * high-contrast mode prioritises accessibility overrides over brand fidelity.
+ */
+export const BRAND_EMPHASIS = {
+  amber:      { light: BRAND.amber, dark: '#ffc83d', hc: BRAND.amber },
+  orange:     { light: BRAND.orange, dark: '#ff7542', hc: BRAND.orange },
+  orangeTint: { light: '#ffeee5', dark: '#432114', hc: '#ffeee5' },
 } as const;
 
-/** Level fill colors for Goals tree nodes — 8 slots, cycled by level index. */
+/**
+ * Fill colors for FGCA/DGCA notation columns — a petrol tint per stage
+ * (Driver → Goal → Change → Activity), deepening left to right like the
+ * Goals-tree level ladder below. Petrol tint = structural position, never a
+ * hue switch, per the brand's "structure via petrol" role mapping.
+ */
+export const LAYER_COLORS = {
+  driver:   { light: '#eaf3f6', dark: '#17262c', hc: '#f59e0b' },
+  factor:   { light: '#eaf3f6', dark: '#17262c', hc: '#f59e0b' },
+  goal:     { light: '#d9ecf2', dark: '#192f37', hc: '#818cf8' },
+  change:   { light: '#c7e5ef', dark: '#1a3842', hc: '#60a5fa' },
+  activity: { light: '#b4e0ee', dark: '#1a414e', hc: '#4ade80' },
+} as const;
+
+/**
+ * Level fill colors for Goals tree nodes — 8 slots, cycled by level index.
+ * A single-hue petrol tint ramp (level-0 lightest/root → level-7 deepest);
+ * hue never switches with depth. Saturation/lightness tuned so text-primary
+ * and text-secondary keep at least their pre-brand contrast ratio against
+ * every slot — see `theme/__tests__/tokens.test.ts`.
+ */
 export const LEVEL_COLORS = {
-  light: ['#dbeafe', '#e0e7ff', '#d4edda', '#fef3c7', '#fce7f3', '#e0f2fe', '#f3e8ff', '#fef9c3'],
-  dark:  ['#0c2042', '#1e1b4b', '#0a2414', '#292108', '#2a0c1f', '#071e2e', '#1a0c33', '#2a2107'],
+  light: ['#eef4f7', '#e6f1f4', '#dfedf1', '#d7e9ef', '#cee6ed', '#c6e2ec', '#bfe0eb', '#b7deeb'],
+  dark:  ['#152328', '#16292f', '#172e36', '#18333d', '#183944', '#183f4c', '#184554', '#174b5c'],
   hc:    ['#60a5fa', '#818cf8', '#4ade80', '#f59e0b', '#f472b6', '#38bdf8', '#a78bfa', '#facc15'],
 } as const;
 
-/** Structural diagram colors (nodes, edges, text). */
+/**
+ * Structural diagram colors (nodes, edges, text). nodeStroke/edgeStroke are
+ * brand petrol — "structure via petrol" per the brand's role mapping.
+ * textPrimary is a dark petrol ink (light theme) / near-white petrol-tinted
+ * (dark theme); textSecondary stays a muted grey with a faint petrol lean.
+ * `hc` is untouched — VS Code high-contrast accessibility overrides win over
+ * brand fidelity there.
+ */
 export const STRUCTURAL = {
-  nodeStroke:    { light: '#94a3b8', dark: '#475569', hc: '#e2e8f0' },
-  edgeStroke:    { light: '#94a3b8', dark: '#475569', hc: '#e2e8f0' },
-  textPrimary:   { light: '#1e293b', dark: '#f1f5f9', hc: '#ffffff' },
-  textSecondary: { light: '#64748b', dark: '#94a3b8', hc: '#cbd5e1' },
-  headerText:    { light: '#374151', dark: '#e5e7eb', hc: '#ffffff' },
+  nodeStroke:    { light: BRAND.petrol, dark: '#53a9c6', hc: '#e2e8f0' },
+  edgeStroke:    { light: BRAND.petrol, dark: '#53a9c6', hc: '#e2e8f0' },
+  textPrimary:   { light: '#0d2b35', dark: '#edf5f8', hc: '#ffffff' },
+  textSecondary: { light: '#516970', dark: '#adc8d1', hc: '#cbd5e1' },
+  headerText:    { light: '#0d2b35', dark: '#edf5f8', hc: '#ffffff' },
 } as const;
 
 /**
@@ -49,15 +82,19 @@ export const MATURITY_COLORS = {
 } as const;
 
 /**
- * DSM-matching capability tree node fill colors, grouped by depth band.
- *   band0: depth 0–2 (pink)
- *   band1: depth 3–4 (yellow)
- *   band2: depth 5+  (blue)
+ * Capability tree node fill colors, grouped by depth band — a 3-step petrol
+ * tint (shallow → deep), same "petrol tint = structural depth" rule as
+ * LEVEL_COLORS above. Previously a DSM-matching pink/yellow/blue scheme;
+ * brand/transitrix_brand.md ("Components") anticipates DSM adopting the same
+ * shared color tokens, so Studio moving first is convergence, not drift.
+ *   band0: depth 0–2 (shallowest)
+ *   band1: depth 3–4
+ *   band2: depth 5+  (deepest)
  */
 export const TREE_LEVEL_COLORS = {
-  band0: { light: '#fee0e0', dark: '#3d0f0f', hc: '#ff9999' },
-  band1: { light: '#ffffcb', dark: '#3a3500', hc: '#ffff88' },
-  band2: { light: '#c2f0ff', dark: '#003d4d', hc: '#66ccff' },
+  band0: { light: '#e6f1f4', dark: '#152b32', hc: '#ff9999' },
+  band1: { light: '#d0e9f1', dark: '#153b47', hc: '#ffff88' },
+  band2: { light: '#b5e3f2', dark: '#114c5f', hc: '#66ccff' },
 } as const;
 
 /**
@@ -158,6 +195,9 @@ export const CSS_VAR = {
   treeMaturity3:    '--ts-tree-maturity-3',
   treeMaturity4:    '--ts-tree-maturity-4',
   treeMaturity5:    '--ts-tree-maturity-5',
+  brandAmber:       '--ts-brand-amber',
+  brandOrange:      '--ts-brand-orange',
+  brandOrangeTint:  '--ts-brand-orange-tint',
 } as const;
 
 export function getBaseResetCss(): string {

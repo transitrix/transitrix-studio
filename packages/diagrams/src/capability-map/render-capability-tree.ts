@@ -82,7 +82,7 @@ export function renderCapabilityTreeSvg(
       : '';
 
     return `<g${nameTitle ? ` title="${nameTitle}"` : ''}>
-  <rect class="tree-level-${band}" x="${x}" y="${y}" width="${n.width}" height="${n.height}" rx="11" stroke="var(--ts-node-stroke,#94a3b8)" stroke-width="3"/>
+  <rect class="tree-level-${band}" x="${x}" y="${y}" width="${n.width}" height="${n.height}" rx="11" stroke="var(--ts-node-stroke,#004d67)" stroke-width="3"/>
   <rect class="tree-maturity-${mat}" x="${badgeX}" y="${badgeY}" width="${badgeW}" height="${badgeH}" rx="4"/>
   <text class="text-pill" x="${badgeX + badgeW / 2}" y="${badgeY + badgeH / 2}" text-anchor="middle" fill="white">L${mat}</text>
   <text class="text-primary" x="${textX}" y="${nameY}" dominant-baseline="central">${escXml(nameText)}</text>
@@ -102,7 +102,7 @@ export function renderCapabilityTreeSvg(
     const bx = legendX;
     legendX += bw;
     if (count === 0) return '';
-    return `<rect class="tree-level-${i}" x="${bx}" y="${legendY}" width="${bw}" height="24" rx="4" stroke="var(--ts-node-stroke,#94a3b8)" stroke-width="1"/>
+    return `<rect class="tree-level-${i}" x="${bx}" y="${legendY}" width="${bw}" height="24" rx="4" stroke="var(--ts-node-stroke,#004d67)" stroke-width="1"/>
   <text class="text-id" x="${bx + bw / 2}" y="${legendY + 12}" text-anchor="middle" dominant-baseline="central">${escXml(BAND_LABELS[i])}</text>`;
   }).filter(Boolean).join('\n');
 

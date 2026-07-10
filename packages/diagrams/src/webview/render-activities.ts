@@ -38,8 +38,8 @@ const N_PAD = 24;
  * self-contained for the JCEF host.
  */
 export const ACTIVITIES_NETWORK_CSS = `
-  .act-node { fill: var(--ts-layer-activity, #d4edda); stroke: var(--ts-node-stroke, #94a3b8); stroke-width: 1; }
-  .critical-node { fill: #fff7ed; stroke: var(--ts-brand-orange, #ff4d00); stroke-width: 2.5; }
+  .act-node { fill: var(--ts-layer-activity, #d4edda); stroke: var(--ts-node-stroke, #004d67); stroke-width: 1; }
+  .critical-node { fill: var(--ts-brand-orange-tint, #ffeee5); stroke: var(--ts-brand-orange, #ff4d00); stroke-width: 2.5; }
   .milestone-node { fill: #ecfeff; stroke: var(--ts-text-muted, #64748b); stroke-dasharray: 4 2; }
   .critical-edge { stroke: var(--ts-brand-orange, #ff4d00); stroke-width: 2; }
   .arrow-fill-critical { fill: var(--ts-brand-orange, #ff4d00); }
