@@ -345,11 +345,11 @@ const CAPABILITY_MAP_STYLES = `
     letter-spacing: 0.04em;
     color: #fff;
   }
-  .maturity-pill.maturity-1 { background: var(--ts-maturity-1, #b91c1c); }
-  .maturity-pill.maturity-2 { background: var(--ts-maturity-2, #d97706); }
-  .maturity-pill.maturity-3 { background: var(--ts-maturity-3, #ca8a04); }
-  .maturity-pill.maturity-4 { background: var(--ts-maturity-4, #65a30d); }
-  .maturity-pill.maturity-5 { background: var(--ts-maturity-5, #15803d); }
+  .maturity-pill.maturity-1 { background: var(--ts-maturity-1, #bf2518); }
+  .maturity-pill.maturity-2 { background: var(--ts-maturity-2, #b05911); }
+  .maturity-pill.maturity-3 { background: var(--ts-maturity-3, #8d7011); }
+  .maturity-pill.maturity-4 { background: var(--ts-maturity-4, #407d21); }
+  .maturity-pill.maturity-5 { background: var(--ts-maturity-5, #237b48); }
   .maturity-arrow {
     color: var(--ts-text-muted, #64748b);
     font-size: 13px;

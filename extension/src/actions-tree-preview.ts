@@ -195,7 +195,7 @@ const ACTIONS_TREE_CSS = `
   .tree-node-meta { font-size: 11px; color: var(--ts-text-muted, #64748b); white-space: nowrap; }
   .tree-badge { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 10px; white-space: nowrap; flex-shrink: 0; }
   .tree-badge-initiative,
-  .tree-badge-strategic-initiative { background: #fff7ed; color: var(--ts-brand-orange, #ff4d00); border: 1px solid var(--ts-brand-orange, #ff4d00); }
+  .tree-badge-strategic-initiative { background: var(--ts-brand-orange-tint, #ffeee5); color: var(--ts-brand-orange, #ff4d00); border: 1px solid var(--ts-brand-orange, #ff4d00); }
   .tree-badge-programme { background: #eff6ff; color: #2563eb; border: 1px solid #93c5fd; }
   .tree-badge-project { background: var(--ts-layer-activity, #d4edda); color: #166534; border: 1px solid #86efac; }
   .tree-badge-task { background: var(--ts-bg-subtle, #f1f5f9); color: var(--ts-text-muted, #64748b); border: 1px solid var(--ts-border, #cbd5e1); }

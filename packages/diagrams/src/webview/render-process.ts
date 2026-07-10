@@ -112,28 +112,28 @@ const LABEL_LINE_H = 13;
 // ---------------------------------------------------------------------------
 
 export const BPMN_PROCESS_CSS = `
-.bpmn-pool { fill: var(--ts-bg-surface,#f8fafc); stroke: var(--ts-node-stroke,#94a3b8); stroke-width: 1.5; }
-.bpmn-pool-name { fill: var(--ts-bg-elevated,#f1f5f9); stroke: var(--ts-node-stroke,#94a3b8); stroke-width: 0.75; }
-.bpmn-lane { fill: var(--ts-bg,#ffffff); stroke: var(--ts-node-stroke,#94a3b8); stroke-width: 0.75; }
-.bpmn-lane-header { fill: var(--ts-bg-elevated,#f1f5f9); stroke: var(--ts-node-stroke,#94a3b8); stroke-width: 0.75; }
-.bpmn-pool-label { fill: var(--ts-text-primary,#1e293b); font-size: 11px; font-weight: 700; }
-.bpmn-lane-label { fill: var(--ts-text-primary,#1e293b); font-size: 11px; font-weight: 600; }
-.bpmn-task { fill: var(--ts-bg,#ffffff); stroke: var(--ts-node-stroke,#94a3b8); stroke-width: 1.5; }
-.bpmn-task-name { fill: var(--ts-text-primary,#1e293b); font-size: 11px; text-anchor: middle; }
-.bpmn-event { fill: var(--ts-bg,#ffffff); stroke: var(--ts-node-stroke,#94a3b8); }
+.bpmn-pool { fill: var(--ts-bg-surface,#f8fafc); stroke: var(--ts-node-stroke,#004d67); stroke-width: 1.5; }
+.bpmn-pool-name { fill: var(--ts-bg-elevated,#f1f5f9); stroke: var(--ts-node-stroke,#004d67); stroke-width: 0.75; }
+.bpmn-lane { fill: var(--ts-bg,#ffffff); stroke: var(--ts-node-stroke,#004d67); stroke-width: 0.75; }
+.bpmn-lane-header { fill: var(--ts-bg-elevated,#f1f5f9); stroke: var(--ts-node-stroke,#004d67); stroke-width: 0.75; }
+.bpmn-pool-label { fill: var(--ts-text-primary,#0d2b35); font-size: 11px; font-weight: 700; }
+.bpmn-lane-label { fill: var(--ts-text-primary,#0d2b35); font-size: 11px; font-weight: 600; }
+.bpmn-task { fill: var(--ts-bg,#ffffff); stroke: var(--ts-node-stroke,#004d67); stroke-width: 1.5; }
+.bpmn-task-name { fill: var(--ts-text-primary,#0d2b35); font-size: 11px; text-anchor: middle; }
+.bpmn-event { fill: var(--ts-bg,#ffffff); stroke: var(--ts-node-stroke,#004d67); }
 .bpmn-event-start { stroke-width: 1.5; }
 .bpmn-event-end { stroke-width: 4; }
-.bpmn-event-label { fill: var(--ts-text-secondary,#64748b); font-size: 10px; text-anchor: middle; }
-.bpmn-gateway { fill: var(--ts-bg,#ffffff); stroke: var(--ts-node-stroke,#94a3b8); stroke-width: 1.5; }
-.bpmn-gateway-marker { stroke: var(--ts-node-stroke,#94a3b8); stroke-width: 2.5; stroke-linecap: round; fill: none; }
-.bpmn-gateway-label { fill: var(--ts-text-secondary,#64748b); font-size: 10px; text-anchor: middle; }
-.bpmn-seq-flow { fill: none; stroke: var(--ts-edge-stroke,#64748b); stroke-width: 1.5; }
-.bpmn-default-mark { stroke: var(--ts-edge-stroke,#64748b); stroke-width: 1.5; stroke-linecap: round; }
-.bpmn-assoc { fill: none; stroke: var(--ts-edge-stroke,#64748b); stroke-width: 1; stroke-dasharray: 4 2; }
-.bpmn-data-obj { fill: var(--ts-bg,#ffffff); stroke: var(--ts-node-stroke,#94a3b8); stroke-width: 1; }
-.bpmn-data-obj-label { fill: var(--ts-text-secondary,#64748b); font-size: 10px; text-anchor: middle; }
-.bpmn-event-intermediate { fill: none; stroke: var(--ts-node-stroke,#94a3b8); stroke-width: 1; }
-.bpmn-event-icon { fill: none; stroke: var(--ts-node-stroke,#94a3b8); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.bpmn-event-label { fill: var(--ts-text-secondary,#516970); font-size: 10px; text-anchor: middle; }
+.bpmn-gateway { fill: var(--ts-bg,#ffffff); stroke: var(--ts-node-stroke,#004d67); stroke-width: 1.5; }
+.bpmn-gateway-marker { stroke: var(--ts-node-stroke,#004d67); stroke-width: 2.5; stroke-linecap: round; fill: none; }
+.bpmn-gateway-label { fill: var(--ts-text-secondary,#516970); font-size: 10px; text-anchor: middle; }
+.bpmn-seq-flow { fill: none; stroke: var(--ts-edge-stroke,#004d67); stroke-width: 1.5; }
+.bpmn-default-mark { stroke: var(--ts-edge-stroke,#004d67); stroke-width: 1.5; stroke-linecap: round; }
+.bpmn-assoc { fill: none; stroke: var(--ts-edge-stroke,#004d67); stroke-width: 1; stroke-dasharray: 4 2; }
+.bpmn-data-obj { fill: var(--ts-bg,#ffffff); stroke: var(--ts-node-stroke,#004d67); stroke-width: 1; }
+.bpmn-data-obj-label { fill: var(--ts-text-secondary,#516970); font-size: 10px; text-anchor: middle; }
+.bpmn-event-intermediate { fill: none; stroke: var(--ts-node-stroke,#004d67); stroke-width: 1; }
+.bpmn-event-icon { fill: none; stroke: var(--ts-node-stroke,#004d67); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 `;
 
 // ---------------------------------------------------------------------------

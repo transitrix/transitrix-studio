@@ -5,6 +5,7 @@ import {
   TREE_LEVEL_COLORS,
   TREE_MATURITY_COLORS,
   STRUCTURAL,
+  BRAND_EMPHASIS,
   TYPOGRAPHY,
   CSS_VAR,
   getBaseResetCss,
@@ -106,6 +107,9 @@ function diagramVars(variant: 'light' | 'dark' | 'hc'): string {
     `${CSS_VAR.maturity3}:${mat[2]}`,
     `${CSS_VAR.maturity4}:${mat[3]}`,
     `${CSS_VAR.maturity5}:${mat[4]}`,
+    `${CSS_VAR.brandAmber}:${BRAND_EMPHASIS.amber[variant]}`,
+    `${CSS_VAR.brandOrange}:${BRAND_EMPHASIS.orange[variant]}`,
+    `${CSS_VAR.brandOrangeTint}:${BRAND_EMPHASIS.orangeTint[variant]}`,
   ].join(';') + ';' + levelVars + treeVars;
 }
 
