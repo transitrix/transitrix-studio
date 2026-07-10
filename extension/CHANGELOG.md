@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+## 3.0.4 — 2026-07-10
+
+Transitrix brand is now the default diagram theme, plus a harmonized maturity color scale.
+
+### Added
+
+- **Transitrix brand theme is now the default for diagram rendering.** Petrol (`#004d67`) drives node/edge structure and hierarchy-depth fill tints — deeper tint for deeper levels, never a hue switch — across Goals, DGCA/DGA, Nested Blocks, Activities, Process Blueprint, Capability Map, and BPMN. Amber/orange are reserved for author emphasis (currently the Activities critical path and the Action "Strategic Initiative" badge). Neutral (**VS Code Adaptive**) and **Transitrix Dark** remain selectable via the existing **Theme** setting for teams that need vendor-neutral or their own branded output.
+
+### Fixed
+
+- **Maturity Likert (L1–L5) badge colors harmonized into one WCAG-verified ramp.** The capability-tree maturity badge previously used a grey fill for L1 — the *worst* rating — with white-label-text contrast as low as 1.07:1 in VS Code high-contrast mode; the cards/compliance-view badge used a different palette that dipped to 2.94:1. Both now share a single red→orange→gold→yellow-green→green ramp, verified ≥4.5:1 (AA) against the badge's white label text in light/dark and ≥7:1 (AAA) in high-contrast.
+
 ## 3.0.3 — 2026-07-10
 
 Diagram text-layout fix and a BPMN preview panel consistency pass.
