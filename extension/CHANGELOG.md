@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+## 3.0.5 — 2026-07-11
+
+Network-diagram edge and critical-path polish, DGCA header cleanup, and a unified preview shell under the hood.
+
+### Fixed
+
+- **DGCA/DGA column headers no longer render as boxes.** Drivers/Goals/Changes/Actions headers now render as plain text instead of a filled box styled like an entity node, so they read as labels rather than data.
+- **Doubled the gap between a diagram's title block and its body** (14px → 28px) — applies to every vector preview (Goals, DGCA/DGA, Nested Blocks, Activity Card, Action, Process Blueprint).
+- **Long edges in the Action Network view no longer bow excessively.** Tall, narrow-column edges could balloon into an exaggerated S-curve; capped the curve's control-handle growth so only the extreme cases are affected — short and medium edges are unchanged.
+- **Critical path now differs from the regular path by color only**, in both the Action Network and Gantt views — critical nodes/edges previously rendered with a heavier stroke than everything else.
+
+### Changed
+
+- Marketplace listing banner now uses the Transitrix petrol brand color.
+- Every notation preview and compliance/report dashboard now shares one HTML shell internally — no visual change, but removes several duplicated toolbar/CSS implementations.
+
 ## 3.0.4 — 2026-07-10
 
 Transitrix brand is now the default diagram theme, plus a harmonized maturity color scale.

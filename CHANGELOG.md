@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+## [3.0.5] — 2026-07-11
+
+### Fixed
+
+- **DGCA/DGA column headers no longer render as boxes** (#387). Drivers/Goals/Changes/Actions headers were styled identically to entity nodes (filled rect, node stroke), which read as meaningful boxes rather than plain labels; now bare text, same font.
+- **Doubled the gap between the SVG title block and the diagram body** (14px → 28px), across every vector preview (#387).
+- **Long edges in the Action Network view no longer bow excessively.** A tall, narrow-column edge's curve-handle length grew unbounded with the vertical span, so its control points could overshoot each other in x and produce an exaggerated S-curve; capped the growth so only extreme spans are affected — short and medium edges are unchanged (#388).
+- **Critical path (Action Network + Gantt) now differs from the regular path by color only**, not stroke width — critical nodes/edges previously rendered with a heavier stroke than everything else (#388).
+
+### Changed
+
+- **Unified webview chrome across every notation and report/compliance preview** (#385). All previews now share a single `buildDiagramFrame` HTML shell — toolbar, buttons, error/warning blocks, title area — instead of five separate `complianceShell` duplicates and two fully custom shells (`compliance-matrix`, `coverage-metric`). No visual change intended.
+- **Marketplace gallery banner set to Transitrix petrol** (#386).
+- **`@transitrix/diagrams` 1.8.4 → 1.8.6** — unboxed DGCA/DGA headers, capped edge-curve handle length, unified critical-path stroke widths.
+
 ## [3.0.4] — 2026-07-10
 
 ### Added
