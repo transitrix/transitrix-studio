@@ -24,6 +24,7 @@ import { SingleProductPreview } from './single-product-preview.js';
 import { RequirementTracePreview } from './requirement-trace-preview.js';
 import { GapDashboardPreview } from './gap-dashboard-preview.js';
 import { CoverageMetricPreview } from './coverage-metric-preview.js';
+import { PlantUMLPreview, PREVIEW_PUML_COMMAND, isPumlFile } from './plantuml-preview.js';
 import { openComplianceFile } from './compliance-scan.js';
 import type { LayoutMetrics, ValidationReport } from './types.js';
 import {
@@ -239,6 +240,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const requirementTracePreview = new RequirementTracePreview(context.extensionUri);
   const gapDashboardPreview = new GapDashboardPreview(context.extensionUri);
   const coverageMetricPreview = new CoverageMetricPreview(context.extensionUri);
+  const plantumlPreview = new PlantUMLPreview(context.extensionUri);
 
   async function openBpmnPreviewForDocument(doc: vscode.TextDocument): Promise<void> {
     const renderer = vscode.workspace.getConfiguration('transitrix').get<string>('bpmnRenderer', 'custom');
@@ -274,6 +276,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand('transitrix.exportPng', () => preview.saveAsPng()),
     vscode.commands.registerCommand('transitrix.exportBpmn', () => notYet('.bpmn')),
     vscode.commands.registerCommand('transitrixStudio.saveBpmnAsPng', () => preview.saveAsPng()),
+    vscode.commands.registerCommand(PREVIEW_PUML_COMMAND, async () => {
+      const doc = vscode.window.activeTextEditor?.document;
+      if (!doc || !isPumlFile(doc)) {
+        vscode.window.showWarningMessage('Open a .puml or .plantuml file first.');
+        return;
+      }
+      await plantumlPreview.showOrReveal(doc);
+    }),
     vscode.commands.registerCommand('transitrixStudio.previewGoals', async () => {
       const doc = vscode.window.activeTextEditor?.document;
       const isGoals = doc && (isGoalsFile(doc) || (isDGCAFile(doc) && probeDocNotation(doc) === 'goals'));
@@ -564,6 +574,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         void requirementTracePreview.refresh();
         void gapDashboardPreview.refresh();
       }
+      if (isPumlFile(doc)) { void plantumlPreview.refreshSaved(doc); return; }
       if (isGoalsFile(doc)) { void goalsPreview.refreshSaved(doc); return; }
       if (isDGCAFile(doc)) {
         const notation = probeDocNotation(doc);
@@ -607,6 +618,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   async function autoOpenPreviewForDocument(doc: vscode.TextDocument): Promise<void> {
     if (doc.uri.scheme !== 'file') return;
     if (!vscode.workspace.getConfiguration('transitrix').get<boolean>('preview.autoOpenOnFileOpen', true)) return;
+    if (isPumlFile(doc)) { await plantumlPreview.showOrReveal(doc); return; }
     if (isGoalsFile(doc)) { await goalsPreview.showOrReveal(doc); return; }
     if (isDGCAFile(doc)) {
       const notation = probeDocNotation(doc);

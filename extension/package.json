@@ -69,7 +69,9 @@
     "workspaceContains:**/*.compliance-impact.transitrix.yaml",
     "workspaceContains:**/ASSERTION-*.yaml",
     "workspaceContains:**/REQUIREMENT-*.yaml",
-    "workspaceContains:**/CONSTRAINT-*.yaml"
+    "workspaceContains:**/CONSTRAINT-*.yaml",
+    "workspaceContains:**/*.puml",
+    "workspaceContains:**/*.plantuml"
   ],
   "contributes": {
     "configuration": {
@@ -534,6 +536,16 @@
           ".blocks.transitrix.yaml"
         ],
         "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "plantuml",
+        "aliases": [
+          "PlantUML"
+        ],
+        "extensions": [
+          ".puml",
+          ".plantuml"
+        ]
       }
     ],
     "commands": [
@@ -565,6 +577,12 @@
         "command": "transitrixStudio.changeTheme",
         "title": "Transitrix: Change diagram color scheme",
         "category": "Transitrix"
+      },
+      {
+        "command": "transitrixStudio.previewPuml",
+        "title": "Transitrix: Preview PlantUML diagram",
+        "category": "Transitrix",
+        "icon": "$(graph)"
       },
       {
         "command": "transitrixStudio.previewGoals",
@@ -1047,6 +1065,11 @@
           "when": "activeWebviewPanelId == coverageMetricPreview",
           "command": "transitrixStudio.refreshCoverageMetric",
           "group": "navigation@-9"
+        },
+        {
+          "when": "resourceFilename =~ /\\.(puml|plantuml)$/",
+          "command": "transitrixStudio.previewPuml",
+          "group": "navigation@-10"
         }
       ]
     }
