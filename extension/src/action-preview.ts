@@ -640,16 +640,16 @@ function buildCanvasContent(views: ActivityViews): string {
 /** Diagram-class CSS used both in the webview and in saved .svg exports. */
 const ACTIVITIES_DIAGRAM_CSS = `
   .act-node { fill: var(--ts-layer-activity, #d4edda); stroke: var(--ts-node-stroke, #004d67); stroke-width: 1; }
-  .critical-node { fill: var(--ts-brand-orange-tint, #ffeee5); stroke: var(--ts-brand-orange, #ff4d00); stroke-width: 2.5; }
+  .critical-node { fill: var(--ts-brand-orange-tint, #ffeee5); stroke: var(--ts-brand-orange, #ff4d00); stroke-width: 1; }
   .milestone-node { fill: #ecfeff; stroke: var(--ts-text-muted, #64748b); stroke-dasharray: 4 2; }
-  .critical-edge { stroke: var(--ts-brand-orange, #ff4d00); stroke-width: 2; }
+  .critical-edge { stroke: var(--ts-brand-orange, #ff4d00); stroke-width: 1.5; }
   .arrow-fill-critical { fill: var(--ts-brand-orange, #ff4d00); }
 
   .gantt-header { fill: var(--ts-bg-subtle, #f1f5f9); stroke: var(--ts-border, #cbd5e1); stroke-width: 1; }
   .gantt-grid { stroke: var(--ts-border, #cbd5e1); stroke-width: 1; opacity: 0.5; }
   .gantt-row-alt { fill: var(--ts-bg-subtle, #f8fafc); opacity: 0.5; }
   .gantt-bar { fill: var(--ts-bg-surface, #dbeafe); stroke: var(--ts-border, #60a5fa); stroke-width: 1; }
-  .gantt-bar.critical-bar { fill: var(--ts-brand-orange-tint, #ffeee5); stroke: var(--ts-brand-orange, #ff4d00); stroke-width: 1.5; }
+  .gantt-bar.critical-bar { fill: var(--ts-brand-orange-tint, #ffeee5); stroke: var(--ts-brand-orange, #ff4d00); stroke-width: 1; }
   .gantt-phase { fill: var(--ts-text-muted, #475569); opacity: 0.85; }
   .gantt-milestone { fill: var(--ts-text, #0f172a); }
   .gantt-milestone.critical-bar { fill: var(--ts-brand-orange, #ff4d00); }
