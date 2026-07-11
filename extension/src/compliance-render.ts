@@ -120,9 +120,8 @@ export interface ComplianceShellOptions {
   bodyHtml: string;
   /**
    * View-level composite confidence for the rendered element set
-   * (CONTRACT §11.6). Rendered in the frame-header below the title
-   * (DQ-2, vkgeorgia/strategy#162). Omit or pass an empty composite to
-   * suppress the line entirely.
+   * (CONTRACT §11.6). Rendered in the frame-header below the title (DQ-2).
+   * Omit or pass an empty composite to suppress the line entirely.
    */
   confidence?: ViewScore;
   /** Non-fatal advisory messages. Rendered as a collapsible warnings block below the toolbar. */
