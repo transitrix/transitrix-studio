@@ -64,10 +64,7 @@ export function renderFgcaBody(
 
   const headerSvg = columns
     .map(({ col, x }) =>
-      [
-        `<rect class="diagram-node layer-${col}" x="${x}" y="${PAD}" width="${nodeWidth}" height="${HEADER_H}" rx="6"/>`,
-        `<text class="text-header" x="${x + nodeWidth / 2}" y="${PAD + HEADER_H / 2}" text-anchor="middle" dominant-baseline="central">${escXml(truncateLine(COL_LABELS[col], headerTruncate))}</text>`,
-      ].join('\n'),
+      `<text class="text-header" x="${x + nodeWidth / 2}" y="${PAD + HEADER_H / 2}" text-anchor="middle" dominant-baseline="central">${escXml(truncateLine(COL_LABELS[col], headerTruncate))}</text>`,
     )
     .join('\n');
 

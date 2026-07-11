@@ -16,7 +16,7 @@
 
 import { escXml } from '@transitrix/diagrams/webview/render-util.js';
 
-export const TITLE_BLOCK_H = 60;
+export const TITLE_BLOCK_H = 74;
 
 /**
  * Build the title <g> for embedding at (x, top) inside an SVG.
