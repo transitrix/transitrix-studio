@@ -55,4 +55,13 @@ describe('horizontalCubicEdgePath', () => {
       horizontalCubicEdgePath(0, 0, 40, 0, 0.5, 0.5),
     );
   });
+
+  it('caps the handle for a tall edge with a narrow column gap, instead of overshooting the target', () => {
+    // A network-view edge spanning several rows (|dy|=500) with a typical
+    // adjacent-column gap (dx=80): uncapped, |dy|*0.8=400 would push the exit
+    // control point 320px past the target's x, producing an exaggerated
+    // S-bow. Capped at 160, the control points stay close to the endpoints.
+    const d = horizontalCubicEdgePath(0, 0, 80, 500, 1);
+    expect(d).toBe('M0,0 C160,0 -80,500 80,500');
+  });
 });

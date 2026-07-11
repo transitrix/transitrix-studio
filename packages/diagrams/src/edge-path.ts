@@ -17,6 +17,16 @@ export const EDGE_MIN_HANDLE = 64;
 const DX_FACTOR = 0.5;
 const DY_FACTOR = 0.8;
 
+/**
+ * Ceiling on each span factor's contribution. Uncapped, a tall edge with a
+ * narrow column gap (large dy, small dx — the common case in a many-row
+ * network view) grows a handle far past the endpoints' actual x-distance;
+ * the two control points then overshoot each other, producing an
+ * exaggerated S-bow instead of a gentle curve. Capping keeps typical spans
+ * (within the existing historical range) untouched while reining in outliers.
+ */
+const MAX_HANDLE = 160;
+
 /** Multiplier applied to the base handle length. 1 = historical appearance. */
 export const DEFAULT_EDGE_CURVATURE = 1;
 
@@ -43,7 +53,11 @@ export function horizontalCubicEdgePath(
 ): string {
   const dx = tx - sx;
   const dy = ty - sy;
-  const baseHandle = Math.max(EDGE_MIN_HANDLE, Math.abs(dx) * DX_FACTOR, Math.abs(dy) * DY_FACTOR);
+  const baseHandle = Math.max(
+    EDGE_MIN_HANDLE,
+    Math.min(Math.abs(dx) * DX_FACTOR, MAX_HANDLE),
+    Math.min(Math.abs(dy) * DY_FACTOR, MAX_HANDLE),
+  );
   const exitHandle = baseHandle * curvature;
   const entryHandle = baseHandle * (entryCurvature ?? curvature);
   return `M${sx},${sy} C${sx + exitHandle},${sy} ${tx - entryHandle},${ty} ${tx},${ty}`;
