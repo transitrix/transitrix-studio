@@ -190,8 +190,8 @@ export class CervinPreview {
     /* flex chain so layout height reaches #canvas — otherwise diagram-js measures ~0px */
     body{display:flex;flex-direction:column;min-height:0;}
     #toolbar{flex-shrink:0;border-bottom:1px solid var(--vscode-panel-border);padding:6px 8px;font-family:var(--vscode-font-family);font-size:12px;display:flex;flex-direction:column;gap:6px;}
-    .toolbar-btn{cursor:pointer;user-select:none;font-size:11px;padding:1px 8px;border-radius:4px;color:var(--vscode-button-foreground,#fff);background:var(--vscode-button-background,#007acc);border:none;white-space:nowrap;align-self:flex-end;}
-    .toolbar-btn:hover:not(:disabled){opacity:0.85;}
+    .toolbar-btn{cursor:pointer;user-select:none;font-size:11px;padding:1px 8px;border-radius:4px;color:var(--ts-text-muted,#64748b);background:transparent;border:none;white-space:nowrap;align-self:flex-end;text-decoration:none;}
+    .toolbar-btn:hover:not(:disabled){color:var(--ts-text,#0f172a);background:var(--ts-bg-elevated,#f1f5f9);}
     .toolbar-btn:disabled{opacity:0.4;cursor:default;}
     #toolbar-message{flex-shrink:0;}
     #metrics-display{display:flex;gap:16px;flex-wrap:wrap;align-items:center;font-size:11px;color:var(--vscode-descriptionForeground);}

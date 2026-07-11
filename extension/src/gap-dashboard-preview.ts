@@ -129,6 +129,7 @@ export class GapDashboardPreview {
       ${section('Past-deadline requirements (CV-5)', report.pastDeadlineRequirements.length, pastDlRows, 'No requirement has a past deadline without full compliance.')}`;
 
     return complianceShell({
+      notation: 'Gap dashboard',
       title: 'Compliance Gap Dashboard',
       subtitle: total === 0 ? 'No gaps found' : `${total} gap(s) across 4 checks`,
       date: todayIso(),

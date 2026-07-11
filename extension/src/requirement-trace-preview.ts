@@ -87,6 +87,7 @@ export class RequirementTracePreview {
 
     if (!elementId) {
       this.panel.webview.html = complianceShell({
+        notation: 'Requirement trace',
         title: 'Requirement trace',
         themeId, refreshCommand: REFRESH_COMMAND, themeCommand: 'transitrixStudio.changeTheme',
         bodyHtml: `<div class="cmp-empty">This file has no <code>id</code> — open a REQUIREMENT or CONSTRAINT file.</div>`,
@@ -115,6 +116,7 @@ export class RequirementTracePreview {
     ].filter(Boolean).join(' · ');
 
     this.panel.webview.html = complianceShell({
+      notation: 'Requirement trace',
       title: trace.requirement.name,
       subtitle: subtitleBits,
       filename: path.basename(doc.fileName),

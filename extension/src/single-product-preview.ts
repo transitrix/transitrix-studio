@@ -78,6 +78,7 @@ export class SingleProductPreview {
 
     if (!productId) {
       this.panel.webview.html = complianceShell({
+        notation: 'Product compliance',
         title: 'Single-product view',
         themeId, refreshCommand: REFRESH_COMMAND, themeCommand: 'transitrixStudio.changeTheme',
         bodyHtml: `<div class="cmp-empty">This file has no <code>id</code> — open a <code>notation: product</code> file.</div>`,
@@ -95,6 +96,7 @@ export class SingleProductPreview {
     const confidence = scoreComplianceView(viewRequirements, viewAssertions, todayIso());
 
     this.panel.webview.html = complianceShell({
+      notation: 'Product compliance',
       title: productName,
       subtitle: `${productId} · ${view.requirements.length} requirement(s) asserted`,
       filename: path.basename(doc.fileName),

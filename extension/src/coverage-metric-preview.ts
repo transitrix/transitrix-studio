@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { escXml } from '@transitrix/diagrams/webview/render-util.js';
 import yaml from 'js-yaml';
-import { generateWebviewCss, type ThemeId } from '@transitrix/diagrams/theme';
+import { type ThemeId } from '@transitrix/diagrams/theme';
 import {
   parseCoverageMetricConfig,
   buildCoverageMatrix,
@@ -11,7 +11,7 @@ import {
 } from '@transitrix/diagrams/compliance/coverage-metric.js';
 import { scanComplianceCanon, openComplianceFile } from './compliance-scan.js';
 import type { ScannedCanon } from './compliance-scan.js';
-import { WARN_BLOCK_CSS, buildWarnHtml, ERROR_BLOCK_CSS, buildErrorHtml } from './diagram-frame.js';
+import { buildDiagramFrame, OPEN_THEME_COMMAND } from './diagram-frame.js';
 
 // Coverage-metric view preview — strategy#185.
 //
@@ -94,13 +94,7 @@ function buildTableHtml(matrix: CoverageMatrix): string {
 }
 
 const COVERAGE_CSS = `
-body { padding: 0; margin: 0; font-family: var(--vscode-font-family, sans-serif); font-size: 13px; color: var(--ts-text, #0f172a); }
-#cm-toolbar { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--ts-border, #cbd5e1); flex-wrap: wrap; }
-.cm-title { font-size: 13px; font-weight: 700; color: var(--ts-header-text, #0f172a); }
-.cm-subtitle { font-size: 11px; color: var(--ts-text-secondary, #475569); }
-.cm-meta { font-size: 11px; color: var(--ts-text-secondary, #475569); letter-spacing: 0.04em; flex-basis: 100%; }
-.cm-btn { font-size: 11px; padding: 2px 10px; border-radius: 4px; color: var(--ts-text-muted, #64748b); text-decoration: none; border: 1px solid var(--ts-border, #cbd5e1); margin-left: auto; }
-.cm-btn:hover { color: var(--ts-text, #0f172a); background: var(--ts-bg-elevated, #f1f5f9); }
+#canvas { padding: 0; }
 .cm-wrap { padding: 16px 20px 24px; overflow-x: auto; }
 .cm-table { border-collapse: collapse; font-size: 12px; width: 100%; }
 .cm-table th, .cm-table td { border: 1px solid var(--ts-border, #cbd5e1); padding: 6px 10px; text-align: left; }
@@ -223,40 +217,19 @@ export class CoverageMetricPreview {
       titleLine = 'Coverage Metric — error';
     }
 
-    const { input: errInput, block: errBlock } = buildErrorHtml(errorMsg);
-    const { input: warnInput, block: warnBlock } = buildWarnHtml(warnings);
-
-    return (
-      '<!DOCTYPE html>\n' +
-      '<html lang="en">\n' +
-      '<head>\n' +
-      '  <meta charset="UTF-8"/>\n' +
-      '  <meta http-equiv="Content-Security-Policy" content="default-src \'none\'; style-src \'unsafe-inline\';">\n' +
-      '  <style>\n' +
-      `:root { --ts-col-w: ${colWPx}px; }\n` +
-      generateWebviewCss(themeId) +
-      '\n' +
-      COVERAGE_CSS +
-      '\n' +
-      ERROR_BLOCK_CSS +
-      '\n' +
-      WARN_BLOCK_CSS +
-      '\n  </style>\n' +
-      '</head>\n' +
-      '<body>\n' +
-      errInput +
-      warnInput +
-      '  <div id="cm-toolbar">\n' +
-      `    <div class="cm-title">${titleLine}</div>\n` +
-      (subtitleLine ? `    <div class="cm-subtitle">${subtitleLine}</div>\n` : '') +
-      (filename ? `    <div class="cm-meta">${escXml(filename)} · Generated: ${new Date().toISOString().slice(0, 10)}</div>\n` : '') +
-      `    <a href="command:transitrixStudio.changeTheme" class="cm-btn" title="Change the color scheme for all diagram previews">Theme…</a>\n` +
-      `    <a href="command:${REFRESH_COMMAND}" class="cm-btn" title="Re-scan the workspace and reload">Refresh</a>\n` +
-      '  </div>\n' +
-      errBlock +
-      warnBlock +
-      bodyHtml +
-      '</body>\n</html>'
-    );
+    return buildDiagramFrame({
+      notation: 'Coverage metric',
+      filename,
+      title: titleLine || undefined,
+      subtitle: subtitleLine || undefined,
+      date: metaDate || new Date().toISOString().slice(0, 10),
+      themeId,
+      errorMsg,
+      warnings,
+      bodyContent: bodyHtml,
+      themeCommand: OPEN_THEME_COMMAND,
+      refreshCommand: REFRESH_COMMAND,
+      extraStyles: `:root { --ts-col-w: ${colWPx}px; }\n${COVERAGE_CSS}`,
+    });
   }
 }
