@@ -36,7 +36,7 @@
     "build:webview": "node scripts/build-webview.mjs",
     "build:webview-bundle": "node scripts/build-webview-bundle.mjs",
     "extension:bundle": "node scripts/build-extension-bundle.mjs",
-    "extension:prep": "npm run build:webview && npm run build:diagrams && node scripts/build-compiler-bundle.mjs && npm run extension:bundle",
+    "extension:prep": "npm run build:webview && npm run build:plantuml-assets && npm run build:diagrams && node scripts/build-compiler-bundle.mjs && npm run extension:bundle",
     "pretest": "npm run build",
     "test": "npm run test:core && npm run test:diagrams",
     "test:core": "vitest run",
@@ -52,7 +52,8 @@
     "check:no-cervin-yaml": "node scripts/check-no-cervin-yaml.mjs",
     "package-extension": "node scripts/package-extension.mjs",
     "build:cli-package": "node scripts/build-cli-package.mjs",
-    "sync-examples": "node scripts/sync-examples-from-methodology.mjs"
+    "sync-examples": "node scripts/sync-examples-from-methodology.mjs",
+    "build:plantuml-assets": "node scripts/build-plantuml-assets.mjs"
   },
   "bin": {
     "transitrix": "./dist/cli.js"
@@ -65,6 +66,7 @@
     "xmlbuilder2": "^3.1.1"
   },
   "devDependencies": {
+    "@plantuml/core": "^1.2026.6",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^22.15.29",
     "@types/vscode": "^1.85.0",
