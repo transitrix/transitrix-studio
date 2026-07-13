@@ -1,6 +1,6 @@
 {
   "name": "@transitrix/diagrams",
-  "version": "1.8.6",
+  "version": "1.8.7",
   "type": "module",
   "description": "Shared rendering, validation, and pure mutations for Transitrix custom diagram formats.",
   "license": "MIT",
@@ -31,7 +31,12 @@
   },
   "files": [
     "dist",
-    "src"
+    "src",
+    "!src/**/__tests__",
+    "!src/**/*.test.ts",
+    "!src/**/*.test.tsx",
+    "!src/**/*.js.map",
+    "!src/**/*.d.ts.map"
   ],
   "scripts": {
     "build": "tsc -p .",
