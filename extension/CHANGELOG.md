@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 3.0.6 — 2026-07-13
+
+PlantUML live preview, bundled and themed.
+
+### Added
+
+- **`.puml` / `.plantuml` files now get a live preview**, same as every other Transitrix notation. Powered by the official PlantUML engine compiled to JavaScript (no Java, no Graphviz install — works in `vscode.dev` and browser-based Codespaces too). Layout is pinned to Smetana so diagrams render identically across machines. If your workspace has `diagrams/transitrix-theme.puml`, it's applied automatically. Syntax errors show as a friendly, titled card instead of raw engine output.
+
 ## 3.0.5 — 2026-07-11
 
 Network-diagram edge and critical-path polish, DGCA header cleanup, and a unified preview shell under the hood.

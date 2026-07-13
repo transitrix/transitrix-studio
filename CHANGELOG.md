@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## [3.0.6] — 2026-07-13
+
+### Added
+
+- **Live preview for `.puml` / `.plantuml` files**, powered by `@plantuml/core` — the official PlantUML engine (Arnaud Roques), compiled to JavaScript via TeaVM, MIT-licensed (#390). Runs entirely in the webview: no Java, no Graphviz binary, works in `vscode.dev` and browser-based Codespaces. Forces `!pragma layout smetana` on every render to eliminate Graphviz layout variance across machines, auto-injects the Transitrix theme when `diagrams/transitrix-theme.puml` exists in the workspace, and replaces raw PlantUML error text with a titled, hinted friendly error card. Same editor UX as every other Transitrix notation preview (editor title icon, auto-open on file focus, refresh on save).
+
 ## [3.0.5] — 2026-07-11
 
 ### Fixed
