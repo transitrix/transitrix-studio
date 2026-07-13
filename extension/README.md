@@ -1,19 +1,19 @@
 # Transitrix Studio
 
-**Architecture-as-code for the modern enterprise.** Describe your organisation — goals, processes, capabilities, applications, BPMN flows — in plain YAML, and Transitrix Studio renders live diagrams inside VS Code. Review architectural changes like pull requests. Diff them. Version them. Hand them to an AI that actually reads YAML.
+**Diagrams as text, in your editor.** Write a diagram in a plain YAML file, and Transitrix Studio renders it live, right beside your code. No drag-and-drop canvas, no proprietary file format — just text you can diff, review in a pull request, and hand to an AI that reads it natively.
 
 ![Process landscape preview — YAML on the left, rendered diagram on the right](https://raw.githubusercontent.com/transitrix/transitrix-studio/main/extension/docs/preview.png)
 
-## Why text-native architecture?
+## Why text-native diagrams?
 
 Diagrams hidden in proprietary binary files don't survive contact with version control. They are hard to diff, hard to review, hard to merge. They drift from the truth they once described.
 
 Transitrix flips that:
 
-- **Your architecture lives in YAML files** — readable in any editor, diffable in git, reviewable in pull requests.
-- **Diagrams are derived, not authored** — never out of sync with the source of truth.
-- **AI works with it natively** — your assistant can read, edit, and reason about the entire enterprise model without leaving the repo.
-- **Built on open standards** — ArchiMate 3.2, BPMN 2.0, CMM. Your investment survives any single tool.
+- **The diagram lives in a YAML file** — readable in any editor, diffable in git, reviewable in pull requests.
+- **The picture is derived, not authored** — edit the text, save, and the diagram updates itself. Never out of sync.
+- **AI works with it natively** — your assistant can read, edit, and reason about the diagram's source without a plugin or export step.
+- **Built on open standards** — ArchiMate 3.2, BPMN 2.0, CMM. Your files aren't locked to this extension.
 
 ## 17 notations, one extension
 
@@ -44,13 +44,24 @@ The preview opens automatically when a recognised file becomes the active editor
 
 Transitrix and Mermaid are **complementary, not competing**. Use **Mermaid** for general-purpose diagrams — flowcharts, sequence diagrams, ER, Gantt. Use **Transitrix** for the structured enterprise notations Mermaid doesn't cover. Together: nearly 30 notations at your fingertips, both free and open source.
 
-## Get started in 60 seconds
+## Get started in 3 steps
 
 1. **Install this extension** — search for **Transitrix Studio** in the Extensions panel of VS Code, Cursor, VSCodium, or Windsurf.
-2. **Clone the starter repo:** `git clone https://github.com/transitrix/methodology`
-3. **Open any `.transitrix.yaml` file** under `notations/examples/` — preview opens automatically.
+2. **Create a file** ending in one of the recognised suffixes, e.g. `app.blocks.transitrix.yaml`:
 
-Recognised BPMN file suffixes are configurable in **Settings → Transitrix Studio**.
+   ```yaml
+   notation: blocks
+   nested_blocks:
+     id: BLOCKS-DEMO-1
+     name: "My app"
+     blocks:
+       - { id: FRONTEND, name: "Frontend" }
+       - { id: BACKEND, name: "Backend" }
+   ```
+
+3. **Save it.** The preview panel opens automatically beside the file and shows two connected boxes, "Frontend" and "Backend", inside a "My app" container — and re-renders on every save from then on.
+
+Every notation in the table above follows the same pattern: `*.<notation>.transitrix.yaml` in, live diagram out. Recognised suffixes are configurable in **Settings → Transitrix Studio**.
 
 > **Editors:** the extension ships to the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=transitrix.transitrix-studio) (VS Code) and to the [Open VSX Registry](https://open-vsx.org/extension/transitrix/transitrix-studio) (Cursor, VSCodium, Windsurf). The artefact is identical; pick whichever Extensions panel ships with your editor. **JetBrains IDEs** (IntelliJ IDEA and the rest) have a companion **Transitrix Studio** plugin — install it from **Settings → Plugins → Marketplace** and search for *Transitrix Studio*.
 
@@ -70,11 +81,14 @@ Configure under **Settings → Transitrix Studio**. The canonical keys are `tran
 | `transitrix.nodeSize.processBlueprint` | `normal` | Cell/column sizing preset for Process Blueprint (pairs with existing column-width slider). |
 | `transitrix.nodeSize.capabilityMap` | `normal` | Node size preset for Capability Map tree preview. |
 
+## Doing this for a whole system, not one diagram?
+
+Studio renders one file at a time — no repository, no setup beyond installing it. If you want to model an entire organization's goals, processes, and capabilities as one connected, version-controlled model instead of separate diagrams, that's a different job with its own quick start: **[set up an architecture repository →](https://github.com/transitrix/methodology)**
+
 ## Learn more
 
 - 🌐 **Site** — [transitrix.com](https://transitrix.com)
-- 📖 **Methodology canon** — [github.com/transitrix/methodology](https://github.com/transitrix/methodology)
 - 🧰 **Source & issues** — [github.com/transitrix/transitrix-studio](https://github.com/transitrix/transitrix-studio)
-- 📚 **Glossary** — see [`glossary.md`](https://github.com/transitrix/transitrix-studio/blob/main/glossary.md) in the repo root for domain terminology
+- 📚 **Glossary** — see [`glossary.md`](https://github.com/transitrix/transitrix-studio/blob/main/glossary.md) in the repo root for the notation terms used above
 
 Open source. MIT licensed. Built by [Valerii Korobeinikov](https://github.com/transitrix).
