@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Changed
+
+- **`@transitrix/diagrams` 1.8.6 → 1.8.7** — the published npm package no longer includes test fixtures (`__tests__/`, `*.test.ts(x)`) or stray source maps in `dist/` or `src/`; package size roughly halved. No runtime behavior change.
+
 ## [3.0.6] — 2026-07-13
 
 ### Added
