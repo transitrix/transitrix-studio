@@ -164,7 +164,7 @@ function buildHtml(webview: vscode.Webview, mediaDir: vscode.Uri): string {
 <head>
   <meta charset="UTF-8"/>
   <meta http-equiv="Content-Security-Policy"
-    content="default-src 'none'; style-src 'unsafe-inline'; script-src ${escHtml(cspSource)}; img-src data: blob:;">
+    content="default-src 'none'; style-src 'unsafe-inline'; script-src ${escHtml(cspSource)} 'wasm-unsafe-eval'; img-src data: blob:;">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { width: 100%; height: 100%; overflow: hidden; }
