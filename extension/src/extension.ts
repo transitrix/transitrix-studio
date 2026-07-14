@@ -107,15 +107,15 @@ function isComplianceImpactFile(doc: vscode.TextDocument): boolean {
 }
 
 function isSingleLawFile(doc: vscode.TextDocument): boolean {
-  return /^(LAW|REGULATION|POLICY|INTERNAL_STANDARD)-.*\.ya?ml$/i.test(path.basename(doc.fileName));
+  return /^(LAW|REGULATION|POLICY|INTERNAL_STANDARD)-[^.]*\.ya?ml$/.test(path.basename(doc.fileName));
 }
 
 function isSingleProductFile(doc: vscode.TextDocument): boolean {
-  return /^PRODUCT-.*\.ya?ml$/i.test(path.basename(doc.fileName));
+  return /^PRODUCT-[^.]*\.ya?ml$/.test(path.basename(doc.fileName));
 }
 
 function isRequirementTraceFile(doc: vscode.TextDocument): boolean {
-  return /^(REQUIREMENT|CONSTRAINT)-.*\.ya?ml$/i.test(path.basename(doc.fileName));
+  return /^(REQUIREMENT|CONSTRAINT)-[^.]*\.ya?ml$/.test(path.basename(doc.fileName));
 }
 
 function probeDocNotation(doc: vscode.TextDocument): string | undefined {
