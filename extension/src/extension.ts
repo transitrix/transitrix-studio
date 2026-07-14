@@ -24,14 +24,10 @@ import { SingleProductPreview } from './single-product-preview.js';
 import { RequirementTracePreview } from './requirement-trace-preview.js';
 import { GapDashboardPreview } from './gap-dashboard-preview.js';
 import { CoverageMetricPreview } from './coverage-metric-preview.js';
-import { PlantUMLPreview, PREVIEW_PUML_COMMAND, isPumlFile } from './plantuml-preview.js';
+import { PlantUMLPreview, isPumlFile } from './plantuml-preview.js';
 import { openComplianceFile } from './compliance-scan.js';
 import type { LayoutMetrics, ValidationReport } from './types.js';
-import {
-  documentMatchesTransitrixSource,
-  formatExtensionHint,
-  getConfiguredExtensions,
-} from './source-files.js';
+import { documentMatchesTransitrixSource } from './source-files.js';
 import {
   OPEN_SPACING_SETTINGS_COMMAND,
   SPACING_CONFIG_SECTION,
@@ -251,90 +247,118 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     }
   }
 
+  interface ResolvedPreview {
+    id: string;
+    open(): Promise<void>;
+    refresh(): Promise<void>;
+  }
+
+  // Single source of truth for "given this document, which preview handles
+  // it" — shared by the unified `transitrix.openPreview` command, the
+  // auto-open-on-focus behaviour, and the refresh-on-save cascade. Repo-wide
+  // dashboards (Compliance Matrix, Gap Dashboard) are intentionally absent:
+  // they aren't bound to a specific open file, so they keep their own
+  // palette-only commands outside this dispatch.
+  function resolveNotationPreview(doc: vscode.TextDocument): ResolvedPreview | undefined {
+    if (isPumlFile(doc)) {
+      return { id: 'puml', open: () => plantumlPreview.showOrReveal(doc), refresh: () => plantumlPreview.refreshSaved(doc) };
+    }
+    if (isGoalsFile(doc)) {
+      return { id: 'goals', open: () => goalsPreview.showOrReveal(doc), refresh: () => goalsPreview.refreshSaved(doc) };
+    }
+    if (isDGCAFile(doc)) {
+      const notation = probeDocNotation(doc);
+      if (notation === 'goals') {
+        return { id: 'goals', open: () => goalsPreview.showOrReveal(doc), refresh: () => goalsPreview.refreshSaved(doc) };
+      }
+      if (notation === 'action') {
+        return { id: 'action', open: () => actionPreview.showOrReveal(doc), refresh: () => actionPreview.refreshSaved(doc) };
+      }
+      return { id: 'dgca', open: () => dgcaPreview.showOrReveal(doc), refresh: () => dgcaPreview.refreshSaved(doc) };
+    }
+    if (isDGAFile(doc)) {
+      return { id: 'dga', open: () => dgaPreview.showOrReveal(doc), refresh: () => dgaPreview.refreshSaved(doc) };
+    }
+    if (isActivitiesFile(doc)) {
+      return { id: 'action', open: () => actionPreview.showOrReveal(doc), refresh: () => actionPreview.refreshSaved(doc) };
+    }
+    if (isActionsTreeFileName(doc.fileName)) {
+      return { id: 'actions-tree', open: () => actionsTreePreview.showOrReveal(doc), refresh: () => actionsTreePreview.refreshSaved(doc) };
+    }
+    if (isBlocksFile(doc)) {
+      return { id: 'blocks', open: () => blocksPreview.showOrReveal(doc), refresh: () => blocksPreview.refreshSaved(doc) };
+    }
+    if (isApplicationsFile(doc)) {
+      return { id: 'applications', open: () => applicationsPreview.showOrReveal(doc), refresh: () => applicationsPreview.refreshSaved(doc) };
+    }
+    if (isProductsFile(doc)) {
+      return { id: 'products', open: () => productsPreview.showOrReveal(doc), refresh: () => productsPreview.refreshSaved(doc) };
+    }
+    if (isProcessMapFile(doc)) {
+      return { id: 'process-map', open: () => processMapPreview.showOrReveal(doc), refresh: () => processMapPreview.refreshSaved(doc) };
+    }
+    if (isScenariosFile(doc)) {
+      return { id: 'scenarios', open: () => scenariosPreview.showOrReveal(doc), refresh: () => scenariosPreview.refreshSaved(doc) };
+    }
+    if (isCapabilityMapFile(doc)) {
+      return { id: 'capability-map', open: () => capabilityMapPreview.showOrReveal(doc), refresh: () => capabilityMapPreview.refreshSaved(doc) };
+    }
+    if (isProcessBlueprintFile(doc)) {
+      return { id: 'process-blueprint', open: () => processBlueprintPreview.showOrReveal(doc), refresh: () => processBlueprintPreview.refreshSaved(doc) };
+    }
+    if (isActivityCardFile(doc)) {
+      return { id: 'activity-card', open: () => activityCardPreview.showOrReveal(doc), refresh: () => activityCardPreview.refreshSaved(doc) };
+    }
+    if (isCoverageMetricFile(doc)) {
+      return { id: 'coverage-metric', open: () => coverageMetricPreview.showOrReveal(doc), refresh: () => coverageMetricPreview.refreshSaved(doc) };
+    }
+    if (isComplianceImpactFile(doc)) {
+      return { id: 'compliance-impact', open: () => complianceImpactPreview.showOrReveal(), refresh: () => complianceImpactPreview.refresh() };
+    }
+    if (isSingleLawFile(doc)) {
+      return { id: 'single-law', open: () => singleLawPreview.showOrReveal(doc), refresh: () => singleLawPreview.refresh() };
+    }
+    if (isSingleProductFile(doc)) {
+      return { id: 'single-product', open: () => singleProductPreview.showOrReveal(doc), refresh: () => singleProductPreview.refresh() };
+    }
+    if (isRequirementTraceFile(doc)) {
+      return { id: 'requirement-trace', open: () => requirementTracePreview.showOrReveal(doc), refresh: () => requirementTracePreview.refresh() };
+    }
+    if (documentMatchesTransitrixSource(doc)) {
+      return {
+        id: 'bpmn',
+        open: () => openBpmnPreviewForDocument(doc),
+        refresh: async () => { await preview.refreshSaved(doc); await processPreview.refreshSaved(doc); },
+      };
+    }
+    return undefined;
+  }
+
   const openPreviewHandler = async (editor: vscode.TextEditor): Promise<void> => {
-    const doc = editor.document;
-    if (!documentMatchesTransitrixSource(doc)) {
-      const exts = getConfiguredExtensions();
-      vscode.window.showWarningMessage(
-        `Open a file with one of these suffixes: ${formatExtensionHint(exts)} (configure with transitrix.fileExtensions).`,
-      );
+    const resolved = resolveNotationPreview(editor.document);
+    if (!resolved) {
+      vscode.window.showWarningMessage('This file type doesn’t have a Transitrix preview.');
       return;
     }
-    await openBpmnPreviewForDocument(doc);
+    await resolved.open();
   };
 
   // Command namespaces (intentional split, kept for compatibility):
-  //   • `transitrix.*` — the small, stable public surface inherited from the
-  //     original BPMN MVP: `openPreview` plus the export entry points gated by
+  //   • `transitrix.*` — `openPreview` is now the single unified Preview command
+  //     for every notation (BPMN included), routed through
+  //     `resolveNotationPreview`; plus the export entry points gated by
   //     `config.transitrix.exportEnabled`. `exportPng` is wired to the working
   //     BPMN PNG export; `exportSvg`/`exportBpmn` are still placeholders.
-  //   • `transitrixStudio.*` — the broader Studio surface (all the per-notation
-  //     previews and their Save/Copy-as-PNG/SVG commands).
+  //   • `transitrixStudio.*` — the broader Studio surface (per-notation
+  //     Save/Copy-as-PNG/SVG/refresh commands, plus the repo-wide Compliance
+  //     Matrix and Gap Dashboard, which stay outside the unified Preview
+  //     command since they aren't bound to a specific open file).
   context.subscriptions.push(
     vscode.commands.registerTextEditorCommand('transitrix.openPreview', openPreviewHandler),
     vscode.commands.registerCommand('transitrix.exportSvg', () => notYet('SVG')),
     vscode.commands.registerCommand('transitrix.exportPng', () => preview.saveAsPng()),
     vscode.commands.registerCommand('transitrix.exportBpmn', () => notYet('.bpmn')),
     vscode.commands.registerCommand('transitrixStudio.saveBpmnAsPng', () => preview.saveAsPng()),
-    vscode.commands.registerCommand(PREVIEW_PUML_COMMAND, async () => {
-      const doc = vscode.window.activeTextEditor?.document;
-      if (!doc || !isPumlFile(doc)) {
-        vscode.window.showWarningMessage('Open a .puml or .plantuml file first.');
-        return;
-      }
-      await plantumlPreview.showOrReveal(doc);
-    }),
-    vscode.commands.registerCommand('transitrixStudio.previewGoals', async () => {
-      const doc = vscode.window.activeTextEditor?.document;
-      const isGoals = doc && (isGoalsFile(doc) || (isDGCAFile(doc) && probeDocNotation(doc) === 'goals'));
-      if (!isGoals) {
-        vscode.window.showWarningMessage('Open a *.goals.transitrix.yaml or *.dgca.transitrix.yaml (with notation: goals) file first.');
-        return;
-      }
-      await goalsPreview.showOrReveal(doc);
-    }),
-    vscode.commands.registerCommand('transitrixStudio.previewDGCA', async () => {
-      const doc = vscode.window.activeTextEditor?.document;
-      if (!doc || !isDGCAFile(doc)) {
-        vscode.window.showWarningMessage('Open a *.dgca.transitrix.yaml file first.');
-        return;
-      }
-      await dgcaPreview.showOrReveal(doc);
-    }),
-    vscode.commands.registerCommand('transitrixStudio.previewDGA', async () => {
-      const doc = vscode.window.activeTextEditor?.document;
-      if (!doc || !isDGAFile(doc)) {
-        vscode.window.showWarningMessage('Open a *.dga.transitrix.yaml file first.');
-        return;
-      }
-      await dgaPreview.showOrReveal(doc);
-    }),
-    vscode.commands.registerCommand('transitrixStudio.previewActivities', async () => {
-      const doc = vscode.window.activeTextEditor?.document;
-      const notation = doc && isDGCAFile(doc) ? probeDocNotation(doc) : undefined;
-      const isActivities = doc && (isActivitiesFile(doc) || notation === 'action');
-      if (!isActivities) {
-        vscode.window.showWarningMessage('Open a *.action.transitrix.yaml file first.');
-        return;
-      }
-      await actionPreview.showOrReveal(doc);
-    }),
-    vscode.commands.registerCommand('transitrixStudio.previewActionsTree', async () => {
-      const doc = vscode.window.activeTextEditor?.document;
-      if (!doc || !isActionsTreeFileName(doc.fileName)) {
-        vscode.window.showWarningMessage('Open a *.actions-tree.transitrix.yaml file first.');
-        return;
-      }
-      await actionsTreePreview.showOrReveal(doc);
-    }),
-    vscode.commands.registerCommand('transitrixStudio.previewBlocks', async () => {
-      const doc = vscode.window.activeTextEditor?.document;
-      if (!doc || !isBlocksFile(doc)) {
-        vscode.window.showWarningMessage('Open a *.blocks.transitrix.yaml file first.');
-        return;
-      }
-      await blocksPreview.showOrReveal(doc);
-    }),
     vscode.commands.registerCommand(SAVE_BPMN_PROCESS_SVG_COMMAND, () =>
       processPreview.saveAsSvg(),
     ),
@@ -366,67 +390,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand('transitrixStudio.saveActivitiesAsPng', () => actionPreview.saveAsPng()),
     vscode.commands.registerCommand('transitrixStudio.copyActivitiesAsPng', () => actionPreview.copyAsPng()),
     vscode.commands.registerCommand('transitrixStudio.exportActionTreeAsMarkdown', () => actionPreview.exportTreeAsMarkdown()),
-    vscode.commands.registerCommand('transitrixStudio.previewApplications', async () => {
-      const doc = vscode.window.activeTextEditor?.document;
-      if (!doc || !isApplicationsFile(doc)) {
-        vscode.window.showWarningMessage('Open a *.applications.transitrix.yaml file first.');
-        return;
-      }
-      await applicationsPreview.showOrReveal(doc);
-    }),
-    vscode.commands.registerCommand('transitrixStudio.previewProducts', async () => {
-      const doc = vscode.window.activeTextEditor?.document;
-      if (!doc || !isProductsFile(doc)) {
-        vscode.window.showWarningMessage('Open a *.products.transitrix.yaml file first.');
-        return;
-      }
-      await productsPreview.showOrReveal(doc);
-    }),
-    vscode.commands.registerCommand('transitrixStudio.previewProcessMap', async () => {
-      const doc = vscode.window.activeTextEditor?.document;
-      if (!doc || !isProcessMapFile(doc)) {
-        vscode.window.showWarningMessage('Open a *.process-map.transitrix.yaml file first.');
-        return;
-      }
-      await processMapPreview.showOrReveal(doc);
-    }),
-    vscode.commands.registerCommand('transitrixStudio.previewScenarios', async () => {
-      const doc = vscode.window.activeTextEditor?.document;
-      if (!doc || !isScenariosFile(doc)) {
-        vscode.window.showWarningMessage('Open a *.scenarios.transitrix.yaml file first.');
-        return;
-      }
-      await scenariosPreview.showOrReveal(doc);
-    }),
-    vscode.commands.registerCommand('transitrixStudio.previewCapabilityMap', async () => {
-      const doc = vscode.window.activeTextEditor?.document;
-      if (!doc || !isCapabilityMapFile(doc)) {
-        vscode.window.showWarningMessage('Open a *.capability-map.transitrix.yaml file first.');
-        return;
-      }
-      await capabilityMapPreview.showOrReveal(doc);
-    }),
-    vscode.commands.registerCommand('transitrixStudio.previewProcessBlueprint', async () => {
-      const doc = vscode.window.activeTextEditor?.document;
-      if (!doc || !isProcessBlueprintFile(doc)) {
-        vscode.window.showWarningMessage('Open a *.process-blueprint.transitrix.yaml file first.');
-        return;
-      }
-      await processBlueprintPreview.showOrReveal(doc);
-    }),
     vscode.commands.registerCommand('transitrixStudio.saveProcessBlueprintAsSvg', async () => {
       await processBlueprintPreview.saveAsSvg();
     }),
     vscode.commands.registerCommand('transitrixStudio.saveProcessBlueprintAsPng', () => processBlueprintPreview.saveAsPng()),
     vscode.commands.registerCommand('transitrixStudio.copyProcessBlueprintAsPng', () => processBlueprintPreview.copyAsPng()),
-    vscode.commands.registerCommand('transitrixStudio.previewActivityCard', async () => {
-      const doc = vscode.window.activeTextEditor?.document;
-      if (!doc || !isActivityCardFile(doc)) {
-        vscode.window.showWarningMessage('Open a *.action-card.transitrix.yaml file first.');
-        return;
-      }
-      await activityCardPreview.showOrReveal(doc);
-    }),
     vscode.commands.registerCommand('transitrixStudio.saveActivityCardAsSvg', async () => {
       await activityCardPreview.saveAsSvg();
     }),
@@ -439,46 +407,22 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand('transitrixStudio.openComplianceFile', (fsPath: string) => openComplianceFile(fsPath)),
     // Compliance-impact matrix (vkgeorgia/strategy#84 CV-2) — obligation × subject
     // view per §5 of 21-compliance-impact.md; uses ImpactViewConfig (CV-1).
-    vscode.commands.registerCommand('transitrixStudio.previewComplianceImpact', () => complianceImpactPreview.showOrReveal()),
     vscode.commands.registerCommand('transitrixStudio.refreshComplianceImpact', () => complianceImpactPreview.refresh()),
     // Single-law tree + single-product view (vkgeorgia/strategy#84 Phase 3) —
     // triggered from a codex / product file's editor-title bar; repo-wide scan.
-    vscode.commands.registerCommand('transitrixStudio.previewSingleLaw', async () => {
-      const doc = vscode.window.activeTextEditor?.document;
-      if (!doc) { vscode.window.showWarningMessage('Open a codex file (LAW / REGULATION / POLICY / INTERNAL_STANDARD) first.'); return; }
-      await singleLawPreview.showOrReveal(doc);
-    }),
     vscode.commands.registerCommand('transitrixStudio.refreshSingleLaw', () => singleLawPreview.refresh()),
-    vscode.commands.registerCommand('transitrixStudio.previewSingleProduct', async () => {
-      const doc = vscode.window.activeTextEditor?.document;
-      if (!doc) { vscode.window.showWarningMessage('Open a product file (notation: product) first.'); return; }
-      await singleProductPreview.showOrReveal(doc);
-    }),
     vscode.commands.registerCommand('transitrixStudio.refreshSingleProduct', () => singleProductPreview.refresh()),
     // Requirement traceability + hierarchy view —
     // triggered from a REQUIREMENT-*.yaml or CONSTRAINT-*.yaml file's
     // editor-title bar. Shows the trace chain (derived_from → element →
     // ASSERTION → subject + realised_via) and the hierarchy (parent chain +
     // direct children); origin-agnostic per 15-requirement.md §2.1.
-    vscode.commands.registerCommand('transitrixStudio.previewRequirementTrace', async () => {
-      const doc = vscode.window.activeTextEditor?.document;
-      if (!doc) { vscode.window.showWarningMessage('Open a REQUIREMENT or CONSTRAINT file first.'); return; }
-      await requirementTracePreview.showOrReveal(doc);
-    }),
     vscode.commands.registerCommand('transitrixStudio.refreshRequirementTrace', () => requirementTracePreview.refresh()),
     // Gap dashboard (vkgeorgia/strategy#84 Phase 4) — repo-wide, palette-invoked.
     vscode.commands.registerCommand('transitrixStudio.previewGapDashboard', () => gapDashboardPreview.showOrReveal()),
     vscode.commands.registerCommand('transitrixStudio.refreshGapDashboard', () => gapDashboardPreview.refresh()),
     vscode.commands.registerCommand('transitrixStudio.exportGapDashboardCsv', () => gapDashboardPreview.exportCsv()),
     // Coverage-metric view (strategy#185) — file-driven, opens beside the YAML.
-    vscode.commands.registerCommand('transitrixStudio.previewCoverageMetric', async () => {
-      const doc = vscode.window.activeTextEditor?.document;
-      if (!doc || !isCoverageMetricFile(doc)) {
-        vscode.window.showWarningMessage('Open a *.coverage-metric.transitrix.yaml file first.');
-        return;
-      }
-      await coverageMetricPreview.showOrReveal(doc);
-    }),
     vscode.commands.registerCommand('transitrixStudio.refreshCoverageMetric', async () => {
       const doc = vscode.window.activeTextEditor?.document;
       if (doc && isCoverageMetricFile(doc)) await coverageMetricPreview.showOrReveal(doc);
@@ -574,29 +518,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         void requirementTracePreview.refresh();
         void gapDashboardPreview.refresh();
       }
-      if (isPumlFile(doc)) { void plantumlPreview.refreshSaved(doc); return; }
-      if (isGoalsFile(doc)) { void goalsPreview.refreshSaved(doc); return; }
-      if (isDGCAFile(doc)) {
-        const notation = probeDocNotation(doc);
-        if (notation === 'goals') { void goalsPreview.refreshSaved(doc); return; }
-        if (notation === 'action') { void actionPreview.refreshSaved(doc); return; }
-        void dgcaPreview.refreshSaved(doc); return;
-      }
-      if (isDGAFile(doc)) { void dgaPreview.refreshSaved(doc); return; }
-      if (isActivitiesFile(doc)) { void actionPreview.refreshSaved(doc); return; }
-      if (isActionsTreeFileName(doc.fileName)) { void actionsTreePreview.refreshSaved(doc); return; }
-      if (isBlocksFile(doc)) { void blocksPreview.refreshSaved(doc); return; }
-      if (isApplicationsFile(doc)) { void applicationsPreview.refreshSaved(doc); return; }
-      if (isProductsFile(doc)) { void productsPreview.refreshSaved(doc); return; }
-      if (isProcessMapFile(doc)) { void processMapPreview.refreshSaved(doc); return; }
-      if (isScenariosFile(doc)) { void scenariosPreview.refreshSaved(doc); return; }
-      if (isCapabilityMapFile(doc)) { void capabilityMapPreview.refreshSaved(doc); return; }
-      if (isProcessBlueprintFile(doc)) { void processBlueprintPreview.refreshSaved(doc); return; }
-      if (isActivityCardFile(doc)) { void activityCardPreview.refreshSaved(doc); return; }
-      if (isCoverageMetricFile(doc)) { void coverageMetricPreview.refreshSaved(doc); return; }
-      if (!documentMatchesTransitrixSource(doc)) return;
-      void preview.refreshSaved(doc);
-      void processPreview.refreshSaved(doc);
+      void resolveNotationPreview(doc)?.refresh();
     }),
     // Auto-preview follows the active editor rather than every `openTextDocument`
     // call — the latter also fires for documents opened silently in the
@@ -618,31 +540,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   async function autoOpenPreviewForDocument(doc: vscode.TextDocument): Promise<void> {
     if (doc.uri.scheme !== 'file') return;
     if (!vscode.workspace.getConfiguration('transitrix').get<boolean>('preview.autoOpenOnFileOpen', true)) return;
-    if (isPumlFile(doc)) { await plantumlPreview.showOrReveal(doc); return; }
-    if (isGoalsFile(doc)) { await goalsPreview.showOrReveal(doc); return; }
-    if (isDGCAFile(doc)) {
-      const notation = probeDocNotation(doc);
-      if (notation === 'goals') { await goalsPreview.showOrReveal(doc); return; }
-      if (notation === 'action') { await actionPreview.showOrReveal(doc); return; }
-      await dgcaPreview.showOrReveal(doc); return;
-    }
-    if (isDGAFile(doc)) { await dgaPreview.showOrReveal(doc); return; }
-    if (isActivitiesFile(doc)) { await actionPreview.showOrReveal(doc); return; }
-    if (isActionsTreeFileName(doc.fileName)) { await actionsTreePreview.showOrReveal(doc); return; }
-    if (isBlocksFile(doc)) { await blocksPreview.showOrReveal(doc); return; }
-    if (isApplicationsFile(doc)) { await applicationsPreview.showOrReveal(doc); return; }
-    if (isProductsFile(doc)) { await productsPreview.showOrReveal(doc); return; }
-    if (isProcessMapFile(doc)) { await processMapPreview.showOrReveal(doc); return; }
-    if (isScenariosFile(doc)) { await scenariosPreview.showOrReveal(doc); return; }
-    if (isCapabilityMapFile(doc)) { await capabilityMapPreview.showOrReveal(doc); return; }
-    if (isProcessBlueprintFile(doc)) { await processBlueprintPreview.showOrReveal(doc); return; }
-    if (isActivityCardFile(doc)) { await activityCardPreview.showOrReveal(doc); return; }
-    if (isCoverageMetricFile(doc)) { await coverageMetricPreview.showOrReveal(doc); return; }
-    if (isComplianceImpactFile(doc)) { await complianceImpactPreview.showOrReveal(); return; }
-    if (isSingleLawFile(doc)) { await singleLawPreview.showOrReveal(doc); return; }
-    if (isSingleProductFile(doc)) { await singleProductPreview.showOrReveal(doc); return; }
-    if (isRequirementTraceFile(doc)) { await requirementTracePreview.showOrReveal(doc); return; }
-    if (documentMatchesTransitrixSource(doc)) { await openBpmnPreviewForDocument(doc); return; }
+    await resolveNotationPreview(doc)?.open();
   }
 }
 

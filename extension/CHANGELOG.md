@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Changed
+
+- **One unified Preview button, everywhere.** Every notation (BPMN, Goals, DGCA/DGA, Blocks, Capability Map, Process Blueprint, PlantUML, and the rest) now shares a single "Transitrix: Open Preview" command and editor-title button carrying the monochrome Transitrix mark, instead of 20+ near-identical per-notation preview commands. Opening a supported file always shows the same, recognisable "see this rendered" affordance in the same place. Compliance Matrix and Gap Dashboard keep their own commands since they're repo-wide dashboards, not tied to one open file.
+
 ## 3.0.6 — 2026-07-13
 
 PlantUML live preview, bundled and themed.

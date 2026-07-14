@@ -1,9 +1,6 @@
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 
-/** VS Code command IDs for the PlantUML preview. */
-export const PREVIEW_PUML_COMMAND = 'transitrixStudio.previewPuml';
-
 /** Detects `.puml` files (also accepts `.plantuml`). */
 export function isPumlFile(doc: vscode.TextDocument): boolean {
   const n = doc.fileName;
