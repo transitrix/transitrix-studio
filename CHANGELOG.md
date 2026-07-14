@@ -2,9 +2,16 @@
 
 ## Unreleased
 
+## [3.0.7] — 2026-07-14
+
 ### Changed
 
+- **One unified Preview button, everywhere** (#395). Every notation (BPMN, Goals, DGCA/DGA, Blocks, Capability Map, Process Blueprint, PlantUML, and the rest) now shares a single "Transitrix: Open Preview" command and editor-title button carrying the monochrome Transitrix mark, instead of 20+ near-identical per-notation preview commands. Compliance Matrix and Gap Dashboard keep their own commands since they're repo-wide dashboards, not tied to one open file.
 - **`@transitrix/diagrams` 1.8.6 → 1.8.7** — the published npm package no longer includes test fixtures (`__tests__/`, `*.test.ts(x)`) or stray source maps in `dist/` or `src/`; package size roughly halved. No runtime behavior change.
+
+### Fixed
+
+- **PlantUML preview no longer fails with a CSP/WebAssembly compile error** (#396). The webview's Content-Security-Policy had no eval-class permission, so `WebAssembly.instantiate()` inside the bundled PlantUML engine couldn't compile. Added the narrow `'wasm-unsafe-eval'` token to `script-src` — permits WebAssembly compilation only, not general JS eval.
 
 ## [3.0.6] — 2026-07-13
 
