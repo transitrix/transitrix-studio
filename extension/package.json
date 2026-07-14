@@ -553,7 +553,10 @@
         "command": "transitrix.openPreview",
         "title": "Transitrix: Open Preview",
         "category": "Transitrix",
-        "icon": "$(graph)"
+        "icon": {
+          "light": "media/transitrix-icon-mono.svg",
+          "dark": "media/transitrix-icon-mono.svg"
+        }
       },
       {
         "command": "transitrix.exportSvg",
@@ -577,48 +580,6 @@
         "command": "transitrixStudio.changeTheme",
         "title": "Transitrix: Change diagram color scheme",
         "category": "Transitrix"
-      },
-      {
-        "command": "transitrixStudio.previewPuml",
-        "title": "Transitrix: Preview PlantUML diagram",
-        "category": "Transitrix",
-        "icon": "$(graph)"
-      },
-      {
-        "command": "transitrixStudio.previewGoals",
-        "title": "Transitrix: Preview goal tree",
-        "category": "Transitrix",
-        "icon": "$(graph)"
-      },
-      {
-        "command": "transitrixStudio.previewDGCA",
-        "title": "Transitrix: Preview DGCA diagram",
-        "category": "Transitrix",
-        "icon": "$(graph)"
-      },
-      {
-        "command": "transitrixStudio.previewDGA",
-        "title": "Transitrix: Preview DGA diagram",
-        "category": "Transitrix",
-        "icon": "$(graph)"
-      },
-      {
-        "command": "transitrixStudio.previewActivities",
-        "title": "Transitrix: Preview action network diagram (PSND + Gantt + Tree)",
-        "category": "Transitrix",
-        "icon": "$(graph)"
-      },
-      {
-        "command": "transitrixStudio.previewActionsTree",
-        "title": "Transitrix: Preview action catalogue tree",
-        "category": "Transitrix",
-        "icon": "$(graph)"
-      },
-      {
-        "command": "transitrixStudio.previewBlocks",
-        "title": "Transitrix: Preview nested block diagram",
-        "category": "Transitrix",
-        "icon": "$(graph)"
       },
       {
         "command": "transitrixStudio.saveBlocksAsSvg",
@@ -657,52 +618,10 @@
         "icon": "$(export)"
       },
       {
-        "command": "transitrixStudio.previewProducts",
-        "title": "Transitrix: Preview product catalogue",
-        "category": "Transitrix",
-        "icon": "$(graph)"
-      },
-      {
-        "command": "transitrixStudio.previewApplications",
-        "title": "Transitrix: Preview application catalogue",
-        "category": "Transitrix",
-        "icon": "$(graph)"
-      },
-      {
-        "command": "transitrixStudio.previewProcessMap",
-        "title": "Transitrix: Preview process landscape map",
-        "category": "Transitrix",
-        "icon": "$(graph)"
-      },
-      {
-        "command": "transitrixStudio.previewScenarios",
-        "title": "Transitrix: Preview scenario",
-        "category": "Transitrix",
-        "icon": "$(graph)"
-      },
-      {
-        "command": "transitrixStudio.previewCapabilityMap",
-        "title": "Transitrix: Preview capability map",
-        "category": "Transitrix",
-        "icon": "$(graph)"
-      },
-      {
-        "command": "transitrixStudio.previewProcessBlueprint",
-        "title": "Transitrix: Preview process blueprint",
-        "category": "Transitrix",
-        "icon": "$(graph)"
-      },
-      {
         "command": "transitrixStudio.saveProcessBlueprintAsSvg",
         "title": "Transitrix: Save process blueprint as SVG",
         "category": "Transitrix",
         "icon": "$(save)"
-      },
-      {
-        "command": "transitrixStudio.previewActivityCard",
-        "title": "Transitrix: Preview activity card",
-        "category": "Transitrix",
-        "icon": "$(graph)"
       },
       {
         "command": "transitrixStudio.saveActivityCardAsSvg",
@@ -798,22 +717,10 @@
         "icon": "$(refresh)"
       },
       {
-        "command": "transitrixStudio.previewComplianceImpact",
-        "title": "Transitrix: Preview compliance-impact matrix",
-        "category": "Transitrix",
-        "icon": "$(graph)"
-      },
-      {
         "command": "transitrixStudio.refreshComplianceImpact",
         "title": "Transitrix: Refresh compliance-impact matrix",
         "category": "Transitrix",
         "icon": "$(refresh)"
-      },
-      {
-        "command": "transitrixStudio.previewSingleLaw",
-        "title": "Transitrix: Preview compliance — single law",
-        "category": "Transitrix",
-        "icon": "$(graph)"
       },
       {
         "command": "transitrixStudio.refreshSingleLaw",
@@ -822,22 +729,10 @@
         "icon": "$(refresh)"
       },
       {
-        "command": "transitrixStudio.previewSingleProduct",
-        "title": "Transitrix: Preview compliance — single product",
-        "category": "Transitrix",
-        "icon": "$(graph)"
-      },
-      {
         "command": "transitrixStudio.refreshSingleProduct",
         "title": "Transitrix: Refresh single-product compliance view",
         "category": "Transitrix",
         "icon": "$(refresh)"
-      },
-      {
-        "command": "transitrixStudio.previewRequirementTrace",
-        "title": "Transitrix: Preview requirement trace + hierarchy",
-        "category": "Transitrix",
-        "icon": "$(graph)"
       },
       {
         "command": "transitrixStudio.refreshRequirementTrace",
@@ -882,12 +777,6 @@
         "icon": "$(filter)"
       },
       {
-        "command": "transitrixStudio.previewCoverageMetric",
-        "title": "Transitrix: Preview coverage-metric view",
-        "category": "Transitrix",
-        "icon": "$(graph)"
-      },
-      {
         "command": "transitrixStudio.refreshCoverageMetric",
         "title": "Transitrix: Refresh coverage-metric view",
         "category": "Transitrix",
@@ -897,43 +786,8 @@
     "menus": {
       "editor/title": [
         {
-          "when": "resourceFilename =~ /\\.bpmn\\.transitrix\\.yaml$/",
+          "when": "resourceFilename =~ /\\.(bpmn|goals|dgca|dga|action|action-card|actions-tree|blocks|products|applications|process-map|scenarios|capability-map|process-blueprint|compliance-impact|coverage-metric)\\.transitrix\\.yaml$/ || resourceFilename =~ /\\.compliance-impact\\.view\\.yaml$/ || resourceFilename =~ /^(LAW|REGULATION|POLICY|INTERNAL_STANDARD)-.*\\.yaml$/ || resourceFilename =~ /^PRODUCT-.*\\.yaml$/ || resourceFilename =~ /^(REQUIREMENT|CONSTRAINT)-.*\\.yaml$/ || resourceFilename =~ /\\.(puml|plantuml)$/",
           "command": "transitrix.openPreview",
-          "group": "navigation@-10"
-        },
-        {
-          "when": "resourceFilename =~ /\\.goals\\.transitrix\\.yaml$/",
-          "command": "transitrixStudio.previewGoals",
-          "group": "navigation@-10"
-        },
-        {
-          "when": "resourceFilename =~ /\\.dgca\\.transitrix\\.yaml$/",
-          "command": "transitrixStudio.previewDGCA",
-          "group": "navigation@-10"
-        },
-        {
-          "when": "resourceFilename =~ /\\.dga\\.transitrix\\.yaml$/",
-          "command": "transitrixStudio.previewDGA",
-          "group": "navigation@-10"
-        },
-        {
-          "when": "resourceFilename =~ /\\.action\\.transitrix\\.yaml$/",
-          "command": "transitrixStudio.previewActivities",
-          "group": "navigation@-10"
-        },
-        {
-          "when": "resourceFilename =~ /\\.action-card\\.transitrix\\.yaml$/",
-          "command": "transitrixStudio.previewActivityCard",
-          "group": "navigation@-10"
-        },
-        {
-          "when": "resourceFilename =~ /\\.actions-tree\\.transitrix\\.yaml$/",
-          "command": "transitrixStudio.previewActionsTree",
-          "group": "navigation@-10"
-        },
-        {
-          "when": "resourceFilename =~ /\\.blocks\\.transitrix\\.yaml$/",
-          "command": "transitrixStudio.previewBlocks",
           "group": "navigation@-10"
         },
         {
@@ -992,41 +846,6 @@
           "group": "navigation@-9"
         },
         {
-          "when": "resourceFilename =~ /\\.products\\.transitrix\\.yaml$/",
-          "command": "transitrixStudio.previewProducts",
-          "group": "navigation@-10"
-        },
-        {
-          "when": "resourceFilename =~ /\\.applications\\.transitrix\\.yaml$/",
-          "command": "transitrixStudio.previewApplications",
-          "group": "navigation@-10"
-        },
-        {
-          "when": "resourceFilename =~ /\\.process-map\\.transitrix\\.yaml$/",
-          "command": "transitrixStudio.previewProcessMap",
-          "group": "navigation@-10"
-        },
-        {
-          "when": "resourceFilename =~ /\\.scenarios\\.transitrix\\.yaml$/",
-          "command": "transitrixStudio.previewScenarios",
-          "group": "navigation@-10"
-        },
-        {
-          "when": "resourceFilename =~ /\\.capability-map\\.transitrix\\.yaml$/",
-          "command": "transitrixStudio.previewCapabilityMap",
-          "group": "navigation@-10"
-        },
-        {
-          "when": "resourceFilename =~ /\\.process-blueprint\\.transitrix\\.yaml$/",
-          "command": "transitrixStudio.previewProcessBlueprint",
-          "group": "navigation@-10"
-        },
-        {
-          "when": "resourceFilename =~ /\\.compliance-impact\\.transitrix\\.yaml$/",
-          "command": "transitrixStudio.previewComplianceImpact",
-          "group": "navigation@-10"
-        },
-        {
           "when": "resourceFilename =~ /\\.process-blueprint\\.transitrix\\.yaml$/",
           "command": "transitrixStudio.saveProcessBlueprintAsSvg",
           "group": "navigation@-9"
@@ -1042,34 +861,9 @@
           "group": "navigation@-9"
         },
         {
-          "when": "resourceFilename =~ /^(LAW|REGULATION|POLICY|INTERNAL_STANDARD)-.*\\.yaml$/",
-          "command": "transitrixStudio.previewSingleLaw",
-          "group": "navigation@-10"
-        },
-        {
-          "when": "resourceFilename =~ /^PRODUCT-.*\\.yaml$/",
-          "command": "transitrixStudio.previewSingleProduct",
-          "group": "navigation@-10"
-        },
-        {
-          "when": "resourceFilename =~ /^(REQUIREMENT|CONSTRAINT)-.*\\.yaml$/",
-          "command": "transitrixStudio.previewRequirementTrace",
-          "group": "navigation@-10"
-        },
-        {
-          "when": "resourceFilename =~ /\\.coverage-metric\\.transitrix\\.yaml$/",
-          "command": "transitrixStudio.previewCoverageMetric",
-          "group": "navigation@-10"
-        },
-        {
           "when": "activeWebviewPanelId == coverageMetricPreview",
           "command": "transitrixStudio.refreshCoverageMetric",
           "group": "navigation@-9"
-        },
-        {
-          "when": "resourceFilename =~ /\\.(puml|plantuml)$/",
-          "command": "transitrixStudio.previewPuml",
-          "group": "navigation@-10"
         }
       ]
     }
