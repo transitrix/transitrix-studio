@@ -2,9 +2,17 @@
 
 ## Unreleased
 
+## 3.0.7 — 2026-07-14
+
+One Preview button for every notation, and a PlantUML rendering fix.
+
 ### Changed
 
 - **One unified Preview button, everywhere.** Every notation (BPMN, Goals, DGCA/DGA, Blocks, Capability Map, Process Blueprint, PlantUML, and the rest) now shares a single "Transitrix: Open Preview" command and editor-title button carrying the monochrome Transitrix mark, instead of 20+ near-identical per-notation preview commands. Opening a supported file always shows the same, recognisable "see this rendered" affordance in the same place. Compliance Matrix and Gap Dashboard keep their own commands since they're repo-wide dashboards, not tied to one open file.
+
+### Fixed
+
+- **PlantUML preview no longer fails with a CSP/WebAssembly compile error.** The webview's Content-Security-Policy had no eval-class permission for WebAssembly, so the bundled PlantUML engine (compiled to wasm) never finished compiling and the preview stayed blank. Added the narrow `'wasm-unsafe-eval'` token to `script-src` — permits WebAssembly compilation only, not general JS eval.
 
 ## 3.0.6 — 2026-07-13
 
