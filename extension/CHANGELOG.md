@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 3.0.8 — 2026-07-15
+
+PlantUML preview gets the same save/export/theme controls as every other notation.
+
+### Fixed
+
+- **PlantUML preview now has Save/Copy as SVG and PNG, zoom, a theme switcher, and a title toggle** — the same toolbar every other notation preview has. Previously there was no way to get a rendered `.puml`/`.plantuml` diagram out of Studio at all. Exported PNGs now always have a solid background instead of picking up whatever VS Code color theme happens to be active.
+
 ## 3.0.7 — 2026-07-14
 
 One Preview button for every notation, and a PlantUML rendering fix.
