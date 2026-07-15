@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## [3.0.8] — 2026-07-15
+
+### Fixed
+
+- **PlantUML preview now uses the shared preview shell** (#399). Save/Copy as SVG and PNG, the zoom control, the Theme… selector, and the title toggle — previously missing entirely, so there was no way to get a rendered PlantUML diagram out of Studio — now work the same way they do for every other notation. Exported PNGs get a real background instead of inheriting whatever VS Code color theme happens to be active.
+- **`@transitrix/diagrams` 1.8.7 → 1.8.8** — the published npm package's compiled `dist/` output now uses fully-specified ESM import/export specifiers (e.g. `./index.js` instead of `./index`), fixing `Module not found` errors for consumers under strict Node/webpack ESM resolution. No runtime behavior change for existing bundler-based consumers.
+
 ## [3.0.7] — 2026-07-14
 
 ### Changed
