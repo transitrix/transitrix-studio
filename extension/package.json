@@ -615,6 +615,12 @@
         "icon": "$(save)"
       },
       {
+        "command": "transitrixStudio.savePumlAsSvg",
+        "title": "Transitrix: Save PlantUML diagram as SVG",
+        "category": "Transitrix",
+        "icon": "$(save)"
+      },
+      {
         "command": "transitrixStudio.exportActionTreeAsMarkdown",
         "title": "Transitrix: Export action tree as Markdown",
         "category": "Transitrix",
@@ -680,6 +686,16 @@
       {
         "command": "transitrixStudio.copyDGAAsPng",
         "title": "Transitrix: Copy DGA diagram as PNG",
+        "category": "Transitrix"
+      },
+      {
+        "command": "transitrixStudio.savePumlAsPng",
+        "title": "Transitrix: Save PlantUML diagram as PNG",
+        "category": "Transitrix"
+      },
+      {
+        "command": "transitrixStudio.copyPumlAsPng",
+        "title": "Transitrix: Copy PlantUML diagram as PNG",
         "category": "Transitrix"
       },
       {
@@ -831,6 +847,16 @@
         {
           "when": "activeWebviewPanelId == dgaPreview",
           "command": "transitrixStudio.saveDGAAsSvg",
+          "group": "navigation@-9"
+        },
+        {
+          "when": "resourceFilename =~ /\\.(puml|plantuml)$/",
+          "command": "transitrixStudio.savePumlAsSvg",
+          "group": "navigation@-9"
+        },
+        {
+          "when": "activeWebviewPanelId == transitrixPumlPreview",
+          "command": "transitrixStudio.savePumlAsSvg",
           "group": "navigation@-9"
         },
         {

@@ -117,3 +117,48 @@ describe('buildDiagramFrame warnings strip', () => {
     expect(html).toContain('&lt;script&gt;x&lt;/script&gt;');
   });
 });
+
+// vkgeorgia/strategy#597 — the PlantUML preview needs to load its wasm
+// rendering engine as external <script> files inside the frame's strict
+// nonce CSP, rather than re-implementing a bespoke toolbar/CSP.
+describe('buildDiagramFrame interactive.extraScripts / allowWasmRendering', () => {
+  const interactiveBase = { nonce: 'test-nonce', controlsPanel: '', controlsScript: '' };
+
+  it('renders extra script tags nonce\'d, in order, module flag respected', () => {
+    const html = buildDiagramFrame({
+      ...base,
+      bodyContent: '<div id="puml-output"></div>',
+      interactive: {
+        ...interactiveBase,
+        extraScripts: [
+          { src: 'https://example.invalid/viz-global.js' },
+          { src: 'https://example.invalid/plantuml-client.js', module: true },
+        ],
+      },
+    });
+    expect(html).toContain('<script nonce="test-nonce" src="https://example.invalid/viz-global.js"></script>');
+    expect(html).toContain('<script nonce="test-nonce" type="module" src="https://example.invalid/plantuml-client.js"></script>');
+    const vizIdx = html.indexOf('viz-global.js');
+    const clientIdx = html.indexOf('plantuml-client.js');
+    expect(vizIdx).toBeGreaterThan(-1);
+    expect(clientIdx).toBeGreaterThan(vizIdx);
+  });
+
+  it('emits no extra script tags when extraScripts is omitted', () => {
+    const html = buildDiagramFrame({ ...base, interactive: { ...interactiveBase } });
+    expect(html).not.toContain('<script nonce="test-nonce" src=');
+  });
+
+  it('widens the CSP for wasm-unsafe-eval and img-src when allowWasmRendering is true', () => {
+    const html = buildDiagramFrame({ ...base, interactive: { ...interactiveBase, allowWasmRendering: true } });
+    expect(html).toContain(`script-src 'nonce-test-nonce' 'wasm-unsafe-eval';`);
+    expect(html).toContain('img-src data: blob:;');
+  });
+
+  it('keeps the strict CSP unchanged when allowWasmRendering is omitted', () => {
+    const html = buildDiagramFrame({ ...base, interactive: { ...interactiveBase } });
+    expect(html).toContain(`script-src 'nonce-test-nonce';`);
+    expect(html).not.toContain('wasm-unsafe-eval');
+    expect(html).not.toContain('img-src data: blob:');
+  });
+});
