@@ -25,12 +25,12 @@ const COPY_PNG_COMMAND = 'transitrixStudio.copyPumlAsPng';
  * any pending source.
  *
  * The chrome (toolbar, save/copy/zoom/theme, title toggle) is the shared
- * `buildDiagramFrame` shell (vkgeorgia/strategy#597) — only the canvas
- * scaffold (loading/error/output divs) and the wasm engine's own script tags
- * are PlantUML-specific. Since rendering happens webview-side and
- * asynchronously, the rendered SVG is pushed back to the host via a
- * `rendered` postMessage so Save/Copy can read it synchronously, the same
- * way every other preview reads its host-held `lastSvg`.
+ * `buildDiagramFrame` shell — only the canvas scaffold (loading/error/output
+ * divs) and the wasm engine's own script tags are PlantUML-specific. Since
+ * rendering happens webview-side and asynchronously, the rendered SVG is
+ * pushed back to the host via a `rendered` postMessage so Save/Copy can read
+ * it synchronously, the same way every other preview reads its host-held
+ * `lastSvg`.
  */
 export class PlantUMLPreview {
   readonly panelTitle = 'PlantUML Preview';

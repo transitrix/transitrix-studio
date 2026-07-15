@@ -165,9 +165,9 @@ export interface DiagramFrameOpts {
     extraScripts?: Array<{ src: string; module?: boolean }>;
     /**
      * Widens the CSP for a wasm-based rendering engine running in the
-     * webview (vkgeorgia/strategy#597 — PlantUML preview): appends
-     * `'wasm-unsafe-eval'` to `script-src` and adds `img-src data: blob:;`.
-     * Omit for previews that don't run wasm.
+     * webview (the PlantUML preview): appends `'wasm-unsafe-eval'` to
+     * `script-src` and adds `img-src data: blob:;`. Omit for previews that
+     * don't run wasm.
      */
     allowWasmRendering?: boolean;
   };

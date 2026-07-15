@@ -387,8 +387,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand('transitrixStudio.copyDGCAAsPng', () => dgcaPreview.copyAsPng()),
     vscode.commands.registerCommand('transitrixStudio.saveDGAAsPng', () => dgaPreview.saveAsPng()),
     vscode.commands.registerCommand('transitrixStudio.copyDGAAsPng', () => dgaPreview.copyAsPng()),
-    // PlantUML export — same shared-shell contract as the notations above
-    // (vkgeorgia/strategy#597), even though rendering happens webview-side.
+    // PlantUML export — same shared-shell contract as the notations above,
+    // even though rendering happens webview-side.
     vscode.commands.registerCommand('transitrixStudio.savePumlAsSvg', () => plantumlPreview.saveAsSvg()),
     vscode.commands.registerCommand('transitrixStudio.savePumlAsPng', () => plantumlPreview.saveAsPng()),
     vscode.commands.registerCommand('transitrixStudio.copyPumlAsPng', () => plantumlPreview.copyAsPng()),

@@ -118,9 +118,9 @@ describe('buildDiagramFrame warnings strip', () => {
   });
 });
 
-// vkgeorgia/strategy#597 — the PlantUML preview needs to load its wasm
-// rendering engine as external <script> files inside the frame's strict
-// nonce CSP, rather than re-implementing a bespoke toolbar/CSP.
+// The PlantUML preview needs to load its wasm rendering engine as external
+// <script> files inside the frame's strict nonce CSP, rather than
+// re-implementing a bespoke toolbar/CSP.
 describe('buildDiagramFrame interactive.extraScripts / allowWasmRendering', () => {
   const interactiveBase = { nonce: 'test-nonce', controlsPanel: '', controlsScript: '' };
 
