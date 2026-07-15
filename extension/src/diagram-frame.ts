@@ -154,6 +154,22 @@ export interface DiagramFrameOpts {
      * actions. Pass '' / omit when the preview has no toolbar control.
      */
     viewToggleHtml?: string;
+    /**
+     * Extra `<script>` tags appended after the controls script — for previews
+     * whose rendering engine loads external files (e.g. the PlantUML wasm
+     * client). Each renders as `<script nonce="…" [type="module"] src="…">`;
+     * a CSP nonce covers external-`src` script elements the same as inline
+     * ones, so no `script-src` host-listing is needed. Omit for previews with
+     * no extra scripts (the four spacing/curvature/scope previews).
+     */
+    extraScripts?: Array<{ src: string; module?: boolean }>;
+    /**
+     * Widens the CSP for a wasm-based rendering engine running in the
+     * webview (the PlantUML preview): appends `'wasm-unsafe-eval'` to
+     * `script-src` and adds `img-src data: blob:;`. Omit for previews that
+     * don't run wasm.
+     */
+    allowWasmRendering?: boolean;
   };
   /**
    * When present, injects snapshot capture + timeline UI into the frame.
@@ -568,13 +584,20 @@ export function buildDiagramFrame(opts: DiagramFrameOpts): string {
   // Interactive previews (vkgeorgia/strategy#75/#76/#77 PR2) opt into a strict
   // nonce-based CSP and the in-preview control panel. Static previews keep the
   // script-less CSP unchanged — the only diff in their output is none.
+  const wasmScriptSrc = interactive?.allowWasmRendering ? " 'wasm-unsafe-eval'" : '';
+  const wasmImgSrc = interactive?.allowWasmRendering ? ' img-src data: blob:;' : '';
   const csp = interactive
-    ? `default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${interactive.nonce}';`
+    ? `default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${interactive.nonce}'${wasmScriptSrc};${wasmImgSrc}`
     : `default-src 'none'; style-src 'unsafe-inline';`;
   const controlsCss = interactive ? CONTROLS_PANEL_CSS : '';
   const snapshotCss = snapshotUi ? SNAPSHOT_TOOLBAR_CSS : '';
   const controlsPanel = interactive ? interactive.controlsPanel : '';
   const controlsScript = interactive ? interactive.controlsScript : '';
+  const extraScriptTags = interactive?.extraScripts
+    ? interactive.extraScripts
+        .map(s => `<script nonce="${interactive.nonce}"${s.module ? ' type="module"' : ''} src="${escXml(s.src)}"></script>`)
+        .join('\n  ')
+    : '';
 
   // Timeline strip and info box — rendered below the controls panel when snapshotUi present.
   const timelineStrip = snapshotUi?.timelineStrip ?? '';
@@ -620,6 +643,7 @@ ${extraStyles}
     ${canvasContent}
   </div>
   ${controlsScript}
+  ${extraScriptTags}
 </body>
 </html>`;
 }

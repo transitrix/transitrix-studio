@@ -387,6 +387,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand('transitrixStudio.copyDGCAAsPng', () => dgcaPreview.copyAsPng()),
     vscode.commands.registerCommand('transitrixStudio.saveDGAAsPng', () => dgaPreview.saveAsPng()),
     vscode.commands.registerCommand('transitrixStudio.copyDGAAsPng', () => dgaPreview.copyAsPng()),
+    // PlantUML export — same shared-shell contract as the notations above,
+    // even though rendering happens webview-side.
+    vscode.commands.registerCommand('transitrixStudio.savePumlAsSvg', () => plantumlPreview.saveAsSvg()),
+    vscode.commands.registerCommand('transitrixStudio.savePumlAsPng', () => plantumlPreview.saveAsPng()),
+    vscode.commands.registerCommand('transitrixStudio.copyPumlAsPng', () => plantumlPreview.copyAsPng()),
     vscode.commands.registerCommand('transitrixStudio.saveActivitiesAsPng', () => actionPreview.saveAsPng()),
     vscode.commands.registerCommand('transitrixStudio.copyActivitiesAsPng', () => actionPreview.copyAsPng()),
     vscode.commands.registerCommand('transitrixStudio.exportActionTreeAsMarkdown', () => actionPreview.exportTreeAsMarkdown()),
@@ -486,6 +491,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       void processBlueprintPreview.refreshConfig();
       void capabilityMapPreview.refreshConfig();
       if (isThemeChange) {
+        void plantumlPreview.refreshConfig();
         void activityCardPreview.refreshConfig();
         void applicationsPreview.refreshConfig();
         void productsPreview.refreshConfig();

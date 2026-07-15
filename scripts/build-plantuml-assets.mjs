@@ -61,7 +61,15 @@ function humanizeError(raw) {
   return { title: 'Diagram error', hint: '' };
 }
 
-function renderDiagram(source) {
+// Tracks the most recently requested render. renderToString is async and the
+// host can send a newer 'render' before an older one resolves (e.g. the user
+// switches the tracked file mid-render) — a stale callback firing after a
+// newer one would overwrite the canvas and the host's exported SVG with the
+// wrong diagram, so late callbacks for a superseded seq are dropped.
+let latestSeq = 0;
+
+function renderDiagram(source, seq) {
+  latestSeq = seq;
   const loadingEl = document.getElementById('puml-loading');
   const errorCard = document.getElementById('puml-error');
   const errorTitle = document.getElementById('puml-error-title');
@@ -76,16 +84,25 @@ function renderDiagram(source) {
   renderToString(
     source.split('\\n'),
     (svg) => {
+      if (seq !== latestSeq) return;
       outputEl.innerHTML = svg;
       loadingEl.style.display = 'none';
+      // Push the rendered SVG back to the host so Save/Copy can read it
+      // synchronously — rendering happens here in the webview (wasm engine),
+      // never host-side, so this is the only way the host ever sees it.
+      vscode.postMessage({ type: 'rendered', svg: svg, seq: seq });
     },
     (err) => {
+      if (seq !== latestSeq) return;
       const { title, hint } = humanizeError(err);
       errorTitle.textContent = title;
       errorBody.textContent = typeof err === 'string' ? err : String(err ?? '');
       errorHint.textContent = hint;
       errorCard.style.display = 'block';
       loadingEl.style.display = 'none';
+      // Clear the host's held SVG — the last successful render no longer
+      // matches what's on screen (the error card replaced it).
+      vscode.postMessage({ type: 'rendered', svg: '', seq: seq });
     },
   );
 }
@@ -93,7 +110,7 @@ function renderDiagram(source) {
 window.addEventListener('message', (event) => {
   const msg = event.data;
   if (msg?.type === 'render') {
-    renderDiagram(msg.source);
+    renderDiagram(msg.source, msg.seq);
   }
 });
 
