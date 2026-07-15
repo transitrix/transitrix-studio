@@ -1,6 +1,6 @@
 {
   "name": "@transitrix/diagrams",
-  "version": "1.8.7",
+  "version": "1.8.8",
   "type": "module",
   "description": "Shared rendering, validation, and pure mutations for Transitrix custom diagram formats.",
   "license": "MIT",
@@ -40,6 +40,7 @@
   ],
   "scripts": {
     "build": "tsc -p .",
+    "postbuild": "node scripts/fix-esm-extensions.mjs",
     "test": "vitest run",
     "test:watch": "vitest"
   },
