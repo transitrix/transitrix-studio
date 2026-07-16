@@ -140,10 +140,10 @@ describe('repo-scope views sweep — clean tree passes (#258)', () => {
   });
 });
 
-// vkgeorgia/strategy#619: a canon-projection Action Schedule (view_config,
-// no inline actions[]) used to fail every repo-scope validate run with
-// `SCHEMA_INVALID: actions must be an array` — the validator only understood
-// the inline form. `runViewValidate` now resolves the projection against
+// A canon-projection Action Schedule (view_config, no inline actions[]) used
+// to fail every repo-scope validate run with `SCHEMA_INVALID: actions must
+// be an array` — the validator only understood the inline form.
+// `runViewValidate` now resolves the projection against
 // canon/elements/05_implementation/actions/** first (mirroring how the DGCA
 // preview resolves its own view_config projections).
 describe('repo-scope views sweep — action canon-projection form (#619)', () => {
