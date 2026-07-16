@@ -245,3 +245,55 @@ describe('repo-scope views sweep — dgca canon-projection form', () => {
     expect(dgcaFindings.some((f) => f.ruleId === 'FGCA-004')).toBe(false);
   });
 });
+
+// A canon-projection Goals Tree (view_config, no inline goals[]) had no
+// resolution path anywhere in Studio — `runViewValidate` never resolved
+// goals projections, and calling parseCanonicalGoals on the raw view_config
+// doc fails GOALS-004 ("goals must be a non-empty array"). `runViewValidate`
+// now resolves the projection against canon/elements/01_motivation/goals/**
+// first, mirroring the action/dgca fixes.
+describe('repo-scope views sweep — goals canon-projection form', () => {
+  let root: string;
+
+  beforeAll(() => {
+    root = mkdtempSync(join(tmpdir(), 'tx-views-goals-projection-'));
+    write(
+      root,
+      'canon/elements/01_motivation/goals/GOAL-REVENUE-1.yaml',
+      'notation: goal\nid: GOAL-REVENUE-1\nname: Triple revenue\ntype: Strategy\nlevel: 0\n',
+    );
+    write(
+      root,
+      'canon/elements/01_motivation/goals/GOAL-EU-1.yaml',
+      'notation: goal\nid: GOAL-EU-1\nname: Launch in EU\ntype: Strategic Goal\nlevel: 1\nparent: GOAL-REVENUE-1\n',
+    );
+    write(
+      root,
+      'canon/views/goals/strategy.goals.transitrix.yaml',
+      [
+        'notation: goals',
+        'spec_version: "0.1"',
+        'id: GOALS-STRAT-1',
+        'name: Strategy Goals Tree',
+        'view_config:',
+        '  scope:',
+        '    root_goal: GOAL-REVENUE-1',
+        '  goal_types:',
+        '    - { name: Strategy, level: 0 }',
+        '    - { name: Strategic Goal, level: 1 }',
+      ].join('\n'),
+    );
+  });
+
+  afterAll(() => {
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it('resolves the projection and validates clean, instead of GOALS-004', () => {
+    const { findings, skipped } = runViewValidate(root);
+    expect(skipped.some((s) => s.notation === 'goals')).toBe(false);
+    const goalsFindings = findings.filter((f) => f.notation === 'goals');
+    expect(goalsFindings.filter((f) => f.severity === 'error')).toEqual([]);
+    expect(goalsFindings.some((f) => f.ruleId === 'GOALS-004')).toBe(false);
+  });
+});

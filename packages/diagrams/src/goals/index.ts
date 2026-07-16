@@ -16,6 +16,8 @@ export type {
 export { validateGoalTree } from './validate.js';
 export { parseCanonicalGoals } from './parse-canonical.js';
 export type { CanonicalGoalsResult } from './parse-canonical.js';
+export { resolveGoals, isGoalsViewDoc } from './resolver.js';
+export type { GoalsViewConfig, GoalsCanonSources } from './resolver.js';
 export { layoutGoalTree, selectScopedGoals } from './layout.js';
 export { reparent, addChild, deleteWithDescendants, moveToBacklog, restoreFromBacklog } from './mutations.js';
 

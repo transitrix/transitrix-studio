@@ -6,11 +6,14 @@ import { savePngFromSvg, copyPngFromSvg } from './png-export.js';
 import { TITLE_BLOCK_H, titleBlockSvg, todayIso } from './svg-title-block.js';
 import {
   layoutGoalTree,
+  resolveGoals,
+  isGoalsViewDoc,
   type GoalTreeLayout,
 } from '@transitrix/diagrams/goals';
 import { renderGoalsLayoutSvg } from '@transitrix/diagrams/webview/render-goals.js';
 import { parseCanonicalGoals } from '@transitrix/diagrams/goals/parse-canonical.js';
 import { coerceDatesToIsoStrings } from '@transitrix/diagrams/yaml-normalize.js';
+import { loadCanon, findCanonRoot, isUnderCanon, type CanonDocs } from './canon-loader.js';
 import { DEFAULT_EDGE_CURVATURE } from '@transitrix/diagrams/edge-path.js';
 import { checkScopeRoot } from '@transitrix/diagrams/scope.js';
 import { readSpacing, readCurvature, readEntryCurvature, readScope, applyControlMessage, OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND, OPEN_SCOPE_SETTINGS_COMMAND, OPEN_NODE_SIZE_SETTINGS_COMMAND } from './spacing-config.js';
@@ -100,12 +103,40 @@ export class GoalsPreview {
     await this.pushDocument(doc);
   }
 
-  private async pushDocument(doc: vscode.TextDocument): Promise<void> {
-    if (!this.panel) return;
-    this.panel.webview.html = this.buildHtml(doc.getText(), path.basename(doc.fileName));
+  /** Re-render the tracked document when a sibling canon element/relation saves.
+   *  Only relevant for projection-form documents (view_config-only) — inline
+   *  documents are self-contained and never read canon/. */
+  async refreshIfSiblingSaved(doc: vscode.TextDocument): Promise<void> {
+    if (!this.panel || !this.trackedUri) return;
+    if (!doc.fileName.endsWith('.yaml')) return;
+    const viewUri = vscode.Uri.parse(this.trackedUri);
+    const canonRoot = findCanonRoot(viewUri);
+    if (!canonRoot) return;
+    if (!isUnderCanon(canonRoot, doc.uri)) return;
+    const viewDoc = await vscode.workspace.openTextDocument(viewUri);
+    await this.pushDocument(viewDoc);
   }
 
-  private buildHtml(yamlText: string, filename: string): string {
+  private async pushDocument(doc: vscode.TextDocument): Promise<void> {
+    if (!this.panel) return;
+    const yamlText = doc.getText();
+    // Canon-projection form (04-goals.md §4): view_config present, no inline
+    // goals[]. Load canon/elements/** lazily — only projection-form documents
+    // need it; inline documents (the default, self-contained form) skip the
+    // filesystem walk and never see a "no canon root" warning.
+    let sources: CanonDocs = { elements: [], relations: [], warnings: [] };
+    try {
+      const parsed = coerceDatesToIsoStrings(yaml.load(yamlText) as unknown);
+      if (isGoalsViewDoc(parsed)) {
+        sources = await loadCanon(doc.uri);
+      }
+    } catch {
+      // Parse errors are handled (and reported) again inside buildHtml.
+    }
+    this.panel.webview.html = this.buildHtml(yamlText, path.basename(doc.fileName), sources);
+  }
+
+  private buildHtml(yamlText: string, filename: string, sources: CanonDocs): string {
     let svgContent = '';
     let errorMsg = '';
     let warnings: string[] = [];
@@ -122,8 +153,11 @@ export class GoalsPreview {
 
     try {
       const parsedYaml = coerceDatesToIsoStrings(yaml.load(yamlText) as unknown);
-      const v = parseCanonicalGoals(parsedYaml);
-      warnings = v.warnings.map(w => `${w.code}: ${w.message}`);
+      const isView = isGoalsViewDoc(parsedYaml);
+      const input = isView ? resolveGoals(parsedYaml, sources) : parsedYaml;
+      if (isView) warnings.push(...sources.warnings);
+      const v = parseCanonicalGoals(input);
+      warnings.push(...v.warnings.map(w => `${w.code}: ${w.message}`));
       if (!v.valid || !v.parsed) {
         errorMsg = v.errors.map(e => `${e.code}: ${e.message}`).join('\n');
       } else {

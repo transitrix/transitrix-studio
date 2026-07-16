@@ -29,6 +29,7 @@ import {
 import { handleExportComplianceCommand } from './export-compliance.js';
 import { isActionViewDoc } from '@transitrix/diagrams/activities';
 import { isFGCAViewDoc } from '@transitrix/diagrams/fgca';
+import { isGoalsViewDoc } from '@transitrix/diagrams/goals/resolver.js';
 
 /** Notations whose canon-projection form (view_config, no inline element
  *  data) single-file `transitrix validate <file>` cannot resolve — it has no
@@ -37,6 +38,7 @@ import { isFGCAViewDoc } from '@transitrix/diagrams/fgca';
 const PROJECTION_ONLY_NOTATIONS: Record<string, { check: (d: unknown) => boolean; label: string; inlineField: string }> = {
   action: { check: isActionViewDoc, label: 'Action Schedule', inlineField: 'actions[]' },
   dgca: { check: isFGCAViewDoc, label: 'DGCA', inlineField: 'factors/goals/changes/actions' },
+  goals: { check: isGoalsViewDoc, label: 'Goals Tree', inlineField: 'goals[]' },
 };
 
 function printUsage(): void {
