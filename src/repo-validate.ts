@@ -33,6 +33,7 @@ import {
   type ScannedYamlDoc,
 } from '@transitrix/diagrams/compliance';
 import { resolveAction, isActionViewDoc } from '@transitrix/diagrams/activities';
+import { resolveFGCA, isFGCAViewDoc } from '@transitrix/diagrams/fgca';
 import {
   validateNotationDoc,
   isFileValidatableNotation,
@@ -209,10 +210,21 @@ export function runViewValidate(
 } {
   const findings: ViewFinding[] = [];
   const skipped: Array<{ file: string; notation: string }> = [];
-  // Lazily loaded canon ACTION elements for projection-form resolution
-  // (07-action.md §4) — computed at most once per run, only when a
-  // projection-form action document is actually encountered.
-  let actionElements: unknown[] | undefined;
+  // Lazily loaded canon elements/relations for projection-form resolution
+  // (dgca: view_config.goals/factors/changes/activities; action: §4 of
+  // 07-action.md) — computed at most once per run, only when a
+  // projection-form document is actually encountered.
+  let canonModel: { elements: unknown[]; relations: unknown[] } | undefined;
+  function ensureCanonModel(): { elements: unknown[]; relations: unknown[] } {
+    if (!canonModel) {
+      const model = loadRepoModel(root);
+      canonModel = {
+        elements: model.elements.map((d) => d.data).filter((d): d is Record<string, unknown> => d != null),
+        relations: model.relations.map((d) => d.data).filter((d): d is Record<string, unknown> => d != null),
+      };
+    }
+    return canonModel;
+  }
   for (const doc of loadViewDocs(root)) {
     let data: unknown;
     try {
@@ -266,12 +278,18 @@ export function runViewValidate(
     // actions[] — resolve against canon/elements/** before validating, the
     // same way the VS Code preview does (action-preview.ts).
     if (notation === 'action' && isActionViewDoc(data)) {
-      if (!actionElements) {
-        actionElements = loadRepoModel(root).elements
-          .map((d) => d.data)
-          .filter((d): d is Record<string, unknown> => d != null);
-      }
-      data = resolveAction(data, { elements: actionElements });
+      data = resolveAction(data, { elements: ensureCanonModel().elements });
+    }
+
+    // Canon-projection form (02-dgca.md): view_config present, no inline
+    // factors/goals/changes/actions — resolve against canon/elements/**
+    // before validating, the same way the VS Code DGCA preview does
+    // (dgca-preview.ts). Unlike the preview, repo-scope validate never ran
+    // this resolution at all — every projection-form DGCA document failed
+    // FGCA-004 unconditionally until now.
+    if (notation === 'dgca' && isFGCAViewDoc(data)) {
+      const model = ensureCanonModel();
+      data = resolveFGCA(data, { elements: model.elements, relations: model.relations });
     }
 
     const validateOpts = { catalog: ctx?.catalog };

@@ -188,3 +188,60 @@ describe('repo-scope views sweep — action canon-projection form (#619)', () =>
     expect(actionFindings.some((f) => f.message.includes('actions must be an array'))).toBe(false);
   });
 });
+
+// A canon-projection DGCA document (view_config, no inline
+// factors/goals/changes/actions) failed every repo-scope validate run with
+// FGCA-004 "must be an array" — `runViewValidate` never resolved DGCA
+// projections at all (only the VS Code preview did). Confirmed against
+// methodology's own official example (notations/examples/dgca/
+// strategy-2026.dgca.transitrix.yaml) before this fix.
+describe('repo-scope views sweep — dgca canon-projection form', () => {
+  let root: string;
+
+  beforeAll(() => {
+    root = mkdtempSync(join(tmpdir(), 'tx-views-dgca-projection-'));
+    write(root, 'canon/elements/01_motivation/drivers/DRIVER-1.yaml', 'notation: driver\nid: DRIVER-1\nname: Market pressure\n');
+    write(
+      root,
+      'canon/elements/01_motivation/goals/GOAL-1.yaml',
+      'notation: goal\nid: GOAL-1\nname: Grow revenue\nfactors: [DRIVER-1]\n',
+    );
+    write(
+      root,
+      'canon/elements/05_implementation/changes/CHANGE-1.yaml',
+      'notation: change\nid: CHANGE-1\nname: Launch product\ngoals: [GOAL-1]\n',
+    );
+    write(
+      root,
+      'canon/elements/05_implementation/actions/ACTION-1.yaml',
+      'notation: action\nid: ACTION-1\nname: Market research\nchanges: [CHANGE-1]\n',
+    );
+    write(
+      root,
+      'canon/views/dgca/strategy.dgca.transitrix.yaml',
+      [
+        'notation: dgca',
+        'spec_version: "0.1"',
+        'id: DGCA-STRAT-1',
+        'name: Strategy chain',
+        'view_config:',
+        '  goals: { filter: all }',
+        '  factors: { surface: derived }',
+        '  changes: { surface: derived }',
+        '  activities: { surface: derived }',
+      ].join('\n'),
+    );
+  });
+
+  afterAll(() => {
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it('resolves the projection and validates clean, instead of FGCA-004', () => {
+    const { findings, skipped } = runViewValidate(root);
+    expect(skipped.some((s) => s.notation === 'dgca')).toBe(false);
+    const dgcaFindings = findings.filter((f) => f.notation === 'dgca');
+    expect(dgcaFindings.filter((f) => f.severity === 'error')).toEqual([]);
+    expect(dgcaFindings.some((f) => f.ruleId === 'FGCA-004')).toBe(false);
+  });
+});
