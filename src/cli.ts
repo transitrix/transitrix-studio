@@ -28,6 +28,16 @@ import {
 } from './validate-notation.js';
 import { handleExportComplianceCommand } from './export-compliance.js';
 import { isActionViewDoc } from '@transitrix/diagrams/activities';
+import { isFGCAViewDoc } from '@transitrix/diagrams/fgca';
+
+/** Notations whose canon-projection form (view_config, no inline element
+ *  data) single-file `transitrix validate <file>` cannot resolve — it has no
+ *  canon/elements/** context, unlike --scope=repo. Used to swap the raw
+ *  schema error for a clear notice instead. */
+const PROJECTION_ONLY_NOTATIONS: Record<string, { check: (d: unknown) => boolean; label: string; inlineField: string }> = {
+  action: { check: isActionViewDoc, label: 'Action Schedule', inlineField: 'actions[]' },
+  dgca: { check: isFGCAViewDoc, label: 'DGCA', inlineField: 'factors/goals/changes/actions' },
+};
 
 function printUsage(): void {
   console.error(`Transitrix Studio CLI — usage:
@@ -361,11 +371,12 @@ async function handleValidateCommand(argv: string[]): Promise<void> {
 
   const validatorKey = resolveValidatorKey(data) ?? inferNotationFromFilename(src);
   if (validatorKey && validatorKey !== 'bpmn') {
-    // Canon-projection form (07-action.md §4): view_config present, no inline
-    // actions[]. Single-file scope has no canon/elements/** to resolve
-    // against (unlike --scope=repo, which does) — surface a clear notice
-    // instead of a confusing SCHEMA_INVALID from validating the unresolved doc.
-    const isUnresolvableProjection = validatorKey === 'action' && isActionViewDoc(data);
+    // Canon-projection form: view_config present, no inline element data.
+    // Single-file scope has no canon/elements/** to resolve against (unlike
+    // --scope=repo, which does) — surface a clear notice instead of a
+    // confusing raw schema error from validating the unresolved doc.
+    const projectionInfo = PROJECTION_ONLY_NOTATIONS[validatorKey];
+    const isUnresolvableProjection = projectionInfo ? projectionInfo.check(data) : false;
     if (isFileValidatableNotation(validatorKey) && !isUnresolvableProjection) {
       const report = validateNotationDoc(validatorKey, data, { filePath: src });
       emitFileReport(src, report, useJson, validatorKey);
@@ -374,11 +385,11 @@ async function handleValidateCommand(argv: string[]): Promise<void> {
       }
       return;
     }
-    // Recognised notation, but no file-scope CLI validator yet — or (for
-    // `action`) a projection-form document this single-file scope has no
-    // canon context to resolve.
+    // Recognised notation, but no file-scope CLI validator yet — or a
+    // projection-form document this single-file scope has no canon context
+    // to resolve.
     const notice = isUnresolvableProjection
-      ? `"${src}" is a canon-projection Action Schedule (view_config, no inline actions[]) — ` +
+      ? `"${src}" is a canon-projection ${projectionInfo.label} document (view_config, no inline ${projectionInfo.inlineField}) — ` +
         `single-file validation has no canon/elements/** context to resolve it against. ` +
         `Run whole-canon checks with --scope=repo, or check it in the Transitrix Studio preview.`
       : `notation "${validatorKey}" is not yet validated by the CLI — check it in ` +
