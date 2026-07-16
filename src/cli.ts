@@ -27,6 +27,7 @@ import {
   resolveValidatorKey,
 } from './validate-notation.js';
 import { handleExportComplianceCommand } from './export-compliance.js';
+import { isActionViewDoc } from '@transitrix/diagrams/activities';
 
 function printUsage(): void {
   console.error(`Transitrix Studio CLI — usage:
@@ -360,7 +361,12 @@ async function handleValidateCommand(argv: string[]): Promise<void> {
 
   const validatorKey = resolveValidatorKey(data) ?? inferNotationFromFilename(src);
   if (validatorKey && validatorKey !== 'bpmn') {
-    if (isFileValidatableNotation(validatorKey)) {
+    // Canon-projection form (07-action.md §4): view_config present, no inline
+    // actions[]. Single-file scope has no canon/elements/** to resolve
+    // against (unlike --scope=repo, which does) — surface a clear notice
+    // instead of a confusing SCHEMA_INVALID from validating the unresolved doc.
+    const isUnresolvableProjection = validatorKey === 'action' && isActionViewDoc(data);
+    if (isFileValidatableNotation(validatorKey) && !isUnresolvableProjection) {
       const report = validateNotationDoc(validatorKey, data, { filePath: src });
       emitFileReport(src, report, useJson, validatorKey);
       if (!report.isValid) {
@@ -368,10 +374,15 @@ async function handleValidateCommand(argv: string[]): Promise<void> {
       }
       return;
     }
-    // Recognised notation, but no file-scope CLI validator yet.
-    const notice =
-      `notation "${validatorKey}" is not yet validated by the CLI — check it in ` +
-      `the Transitrix Studio preview, or run whole-canon checks with --scope=repo.`;
+    // Recognised notation, but no file-scope CLI validator yet — or (for
+    // `action`) a projection-form document this single-file scope has no
+    // canon context to resolve.
+    const notice = isUnresolvableProjection
+      ? `"${src}" is a canon-projection Action Schedule (view_config, no inline actions[]) — ` +
+        `single-file validation has no canon/elements/** context to resolve it against. ` +
+        `Run whole-canon checks with --scope=repo, or check it in the Transitrix Studio preview.`
+      : `notation "${validatorKey}" is not yet validated by the CLI — check it in ` +
+        `the Transitrix Studio preview, or run whole-canon checks with --scope=repo.`;
     if (useJson) {
       console.log(
         JSON.stringify({ valid: null, notation: validatorKey, covered: false, message: notice }, null, 2),

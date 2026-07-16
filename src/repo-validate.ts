@@ -32,6 +32,7 @@ import {
   type ComplianceScanResult,
   type ScannedYamlDoc,
 } from '@transitrix/diagrams/compliance';
+import { resolveAction, isActionViewDoc } from '@transitrix/diagrams/activities';
 import {
   validateNotationDoc,
   isFileValidatableNotation,
@@ -208,6 +209,10 @@ export function runViewValidate(
 } {
   const findings: ViewFinding[] = [];
   const skipped: Array<{ file: string; notation: string }> = [];
+  // Lazily loaded canon ACTION elements for projection-form resolution
+  // (07-action.md §4) — computed at most once per run, only when a
+  // projection-form action document is actually encountered.
+  let actionElements: unknown[] | undefined;
   for (const doc of loadViewDocs(root)) {
     let data: unknown;
     try {
@@ -255,6 +260,18 @@ export function runViewValidate(
     if (!isFileValidatableNotation(notation)) {
       skipped.push({ file: doc.path, notation });
       continue;
+    }
+
+    // Canon-projection form (07-action.md §4): view_config present, no inline
+    // actions[] — resolve against canon/elements/** before validating, the
+    // same way the VS Code preview does (action-preview.ts).
+    if (notation === 'action' && isActionViewDoc(data)) {
+      if (!actionElements) {
+        actionElements = loadRepoModel(root).elements
+          .map((d) => d.data)
+          .filter((d): d is Record<string, unknown> => d != null);
+      }
+      data = resolveAction(data, { elements: actionElements });
     }
 
     const validateOpts = { catalog: ctx?.catalog };
