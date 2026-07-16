@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+## [3.0.9] — 2026-07-17
+
+### Added
+
+- **Canon-projection support for Action Schedule, DGCA, and Goals Tree** (#401, #402, #403). A `view_config`-only document (no inline element data — the methodology's Full-tier projection form) now resolves correctly against `canon/elements/**` in the VS Code preview and `transitrix validate --scope=repo`; single-file `transitrix validate <file>` (which has no canon context to resolve against) now gives a clear "run --scope=repo instead" notice rather than a raw schema error. DGCA's own single-file/repo-scope CLI paths never ran this resolution at all before #402 — confirmed broken against methodology's own official example (`notations/examples/dgca/strategy-2026.dgca.transitrix.yaml`), not just adopter files.
+
+### Fixed
+
+- **DGCA canon-projection documents authored with the canonical `notation: action`** silently resolved to zero actions — the resolver only recognized the deprecated `notation: activity` alias (#404).
+- **`transitrix validate --scope=repo` silently ignored `view_config.scope.valid_at`** for any canon element with an unquoted date field — js-yaml parses those as native `Date` objects, which the date-window filter's string check treated as absent, so a lapsed element stayed included with no error (#404).
+- **Goals Tree's synthesized level table could disagree between the CLI and the VS Code preview** for identical canon content, since it depended on unsorted directory-enumeration order; level is now computed deterministically from the parent-chain structure instead (#404).
+- **Action Schedule's `scope.goals` filter never consulted `action_goal` relations**, only the transitional inline `goals[]` field, unlike the sibling DGCA resolver (#404).
+- **`transitrix validate --scope=repo` walked the canon tree twice** on any repo with at least one canon-projection document (#404).
+
+### Packages
+
+- **Transitrix Studio extension** 3.0.8 → 3.0.9
+- **`@transitrix/diagrams`** 1.8.8 → 1.8.11 — new `activities/resolver.ts` + `goals/resolver.ts`, `notation: action` alias fix in `fgca/resolver.ts`, new shared `canon-resolver-utils.ts`
+- **`@transitrix/cli`** 2.0.0 → 2.0.1 — the `transitrix validate` fixes above ship here
+
 ## [3.0.8] — 2026-07-15
 
 ### Fixed
