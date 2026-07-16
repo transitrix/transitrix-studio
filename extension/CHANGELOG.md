@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+## 3.0.9 — 2026-07-17
+
+Action Schedule, DGCA, and Goals Tree can now be shared across documents (canon-projection form), plus several correctness fixes for `transitrix validate`.
+
+### Added
+
+- **Action Schedule, DGCA, and Goals Tree now support the "shared across documents" authoring form.** Once an action, driver/goal/change, or goal is promoted to a standalone file under `canon/elements/`, a view document can reference it via `view_config` instead of repeating its data inline — the preview and `transitrix validate --scope=repo` resolve it correctly. Previously this only worked for DGCA's preview; the CLI never resolved it for DGCA at all, and Action Schedule / Goals Tree had no support for it anywhere.
+
+### Fixed
+
+- **DGCA views could silently show zero actions** when the underlying action elements used the current file format instead of an older, deprecated one.
+- **`transitrix validate --scope=repo` could silently miss a "not valid on this date" filter** for canon elements whose dates weren't quoted in the YAML — a very easy mistake to make and not obvious from the file.
+- **Goals Tree level numbers could come out differently** between the editor preview and the command line for the exact same files.
+- **Action Schedule's goal-based filtering** now also honors goal links recorded as a first-class relation, not just the older inline field.
+
 ## 3.0.8 — 2026-07-15
 
 PlantUML preview gets the same save/export/theme controls as every other notation.
