@@ -139,3 +139,52 @@ describe('repo-scope views sweep — clean tree passes (#258)', () => {
     expect(result.skipped.some((s) => s.notation === 'compliance-impact')).toBe(false);
   });
 });
+
+// A canon-projection Action Schedule (view_config, no inline actions[]) used
+// to fail every repo-scope validate run with `SCHEMA_INVALID: actions must
+// be an array` — the validator only understood the inline form.
+// `runViewValidate` now resolves the projection against
+// canon/elements/05_implementation/actions/** first (mirroring how the DGCA
+// preview resolves its own view_config projections).
+describe('repo-scope views sweep — action canon-projection form (#619)', () => {
+  let root: string;
+
+  beforeAll(() => {
+    root = mkdtempSync(join(tmpdir(), 'tx-views-action-projection-'));
+    write(
+      root,
+      'canon/elements/05_implementation/actions/ACTION-GDPR-COMPLIANCE-1.yaml',
+      'notation: action\nid: ACTION-GDPR-COMPLIANCE-1\nname: GDPR Compliance\ntype: Programme\n',
+    );
+    write(
+      root,
+      'canon/elements/05_implementation/actions/ACTION-GDPR-AUDIT-1.yaml',
+      'notation: action\nid: ACTION-GDPR-AUDIT-1\nname: Data audit\ntype: Task\nparent: ACTION-GDPR-COMPLIANCE-1\nduration: 10\n',
+    );
+    write(
+      root,
+      'canon/views/action/gdpr-remediation.action.transitrix.yaml',
+      [
+        'notation: action',
+        'spec_version: "0.1"',
+        'id: ACTION_SCHED-GDPR-1',
+        'name: GDPR Remediation',
+        'view_config:',
+        '  scope:',
+        '    root_action: ACTION-GDPR-COMPLIANCE-1',
+      ].join('\n'),
+    );
+  });
+
+  afterAll(() => {
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it('resolves the projection and validates clean, instead of SCHEMA_INVALID', () => {
+    const { findings, skipped } = runViewValidate(root);
+    expect(skipped.some((s) => s.notation === 'action')).toBe(false);
+    const actionFindings = findings.filter((f) => f.notation === 'action');
+    expect(actionFindings.filter((f) => f.severity === 'error')).toEqual([]);
+    expect(actionFindings.some((f) => f.message.includes('actions must be an array'))).toBe(false);
+  });
+});

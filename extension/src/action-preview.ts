@@ -10,6 +10,8 @@ import {
   computeCpm,
   computeGanttLayout,
   isGanttUnavailable,
+  resolveAction,
+  isActionViewDoc,
   type Activity,
   type ActivityDoc,
   type ActivitiesLayout,
@@ -18,6 +20,7 @@ import {
   type GanttResult,
 } from '@transitrix/diagrams/activities';
 import { coerceDatesToIsoStrings } from '@transitrix/diagrams/yaml-normalize.js';
+import { loadCanon, findCanonRoot, isUnderCanon, type CanonDocs } from './canon-loader.js';
 import { DEFAULT_EDGE_CURVATURE } from '@transitrix/diagrams/edge-path.js';
 import { renderActivitiesNetworkBody, ACTIVITIES_NETWORK_DEFS } from '@transitrix/diagrams/webview/render-activities.js';
 import { savePngFromSvg, copyPngFromSvg } from './png-export.js';
@@ -817,12 +820,40 @@ export class ActionPreview {
     await this.pushDocument(doc);
   }
 
-  private async pushDocument(doc: vscode.TextDocument): Promise<void> {
-    if (!this.panel) return;
-    this.panel.webview.html = this.buildHtml(doc.getText(), path.basename(doc.fileName));
+  /** Re-render the tracked document when a sibling canon element/relation saves.
+   *  Only relevant for projection-form documents (view_config-only) — inline
+   *  documents are self-contained and never read canon/. */
+  async refreshIfSiblingSaved(doc: vscode.TextDocument): Promise<void> {
+    if (!this.panel || !this.trackedUri) return;
+    if (!doc.fileName.endsWith('.yaml')) return;
+    const viewUri = vscode.Uri.parse(this.trackedUri);
+    const canonRoot = findCanonRoot(viewUri);
+    if (!canonRoot) return;
+    if (!isUnderCanon(canonRoot, doc.uri)) return;
+    const viewDoc = await vscode.workspace.openTextDocument(viewUri);
+    await this.pushDocument(viewDoc);
   }
 
-  private buildHtml(yamlText: string, filename: string): string {
+  private async pushDocument(doc: vscode.TextDocument): Promise<void> {
+    if (!this.panel) return;
+    const yamlText = doc.getText();
+    // Canon-projection form (07-action.md §4): view_config present, no inline
+    // actions[]. Load canon/elements/** lazily — only projection-form documents
+    // need it; inline documents (the default, self-contained form) skip the
+    // filesystem walk and never see a "no canon root" warning.
+    let sources: CanonDocs = { elements: [], relations: [], warnings: [] };
+    try {
+      const parsed = coerceDatesToIsoStrings(yaml.load(yamlText) as unknown);
+      if (isActionViewDoc(parsed)) {
+        sources = await loadCanon(doc.uri);
+      }
+    } catch {
+      // Parse errors are handled (and reported) again inside buildHtml.
+    }
+    this.panel.webview.html = this.buildHtml(yamlText, path.basename(doc.fileName), sources);
+  }
+
+  private buildHtml(yamlText: string, filename: string, sources: CanonDocs): string {
     let bodyContent = '';
     let errorMsg = '';
     let warnings: string[] = [];
@@ -843,13 +874,16 @@ export class ActionPreview {
       const docDate = (typeof raw['generated_at'] === 'string' ? raw['generated_at'] : undefined)
         ?? (typeof raw['date'] === 'string' ? raw['date'] : undefined)
         ?? todayIso();
-      const v = validateActivities(parsed);
-      warnings = v.warnings.map(w => `${w.code}: ${w.message}`);
+      const isView = isActionViewDoc(parsed);
+      const input = isView ? resolveAction(parsed, sources) : parsed;
+      if (isView) warnings.push(...sources.warnings);
+      const v = validateActivities(input);
+      warnings.push(...v.warnings.map(w => `${w.code}: ${w.message}`));
       if (!v.valid) {
         errorMsg = v.errors.map(e => `${e.code}: ${e.message}`).join('\n');
       } else {
         const nodeSize = readActionNodeSize();
-        const views = buildActivityViews(parsed as ActivityDoc, { horizontalGap: spacing.horizontalGap, verticalGap: spacing.verticalGap, nodeWidth: nodeSize.width, nodeHeight: nodeSize.height }, curvature, entryCurvature, filename, docDate, docVersion);
+        const views = buildActivityViews(input as ActivityDoc, { horizontalGap: spacing.horizontalGap, verticalGap: spacing.verticalGap, nodeWidth: nodeSize.width, nodeHeight: nodeSize.height }, curvature, entryCurvature, filename, docDate, docVersion);
         bodyContent = buildCanvasContent(views);
         this.lastNetworkSvg = views.networkSvg;
         this.lastGanttSvg = views.ganttSvg;
