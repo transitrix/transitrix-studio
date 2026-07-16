@@ -34,6 +34,7 @@ import {
 } from '@transitrix/diagrams/compliance';
 import { resolveAction, isActionViewDoc } from '@transitrix/diagrams/activities';
 import { resolveFGCA, isFGCAViewDoc } from '@transitrix/diagrams/fgca';
+import { resolveGoals, isGoalsViewDoc } from '@transitrix/diagrams/goals/resolver.js';
 import {
   validateNotationDoc,
   isFileValidatableNotation,
@@ -212,8 +213,8 @@ export function runViewValidate(
   const skipped: Array<{ file: string; notation: string }> = [];
   // Lazily loaded canon elements/relations for projection-form resolution
   // (dgca: view_config.goals/factors/changes/activities; action: §4 of
-  // 07-action.md) — computed at most once per run, only when a
-  // projection-form document is actually encountered.
+  // 07-action.md; goals: §4 of 04-goals.md) — computed at most once per run,
+  // only when a projection-form document is actually encountered.
   let canonModel: { elements: unknown[]; relations: unknown[] } | undefined;
   function ensureCanonModel(): { elements: unknown[]; relations: unknown[] } {
     if (!canonModel) {
@@ -290,6 +291,13 @@ export function runViewValidate(
     if (notation === 'dgca' && isFGCAViewDoc(data)) {
       const model = ensureCanonModel();
       data = resolveFGCA(data, { elements: model.elements, relations: model.relations });
+    }
+
+    // Canon-projection form (04-goals.md §4): view_config present, no inline
+    // goals[] — resolve against canon/elements/** before validating, the
+    // same way the VS Code Goals preview does (goals-preview.ts).
+    if (notation === 'goals' && isGoalsViewDoc(data)) {
+      data = resolveGoals(data, { elements: ensureCanonModel().elements });
     }
 
     const validateOpts = { catalog: ctx?.catalog };
