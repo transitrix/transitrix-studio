@@ -12,6 +12,8 @@
  * §2). Filesystem-free — callable from unit tests without vscode.
  */
 
+import { isObject, str, strArray, descendantsOf, stripEnvelope } from '../canon-resolver-utils.js';
+
 export interface ActionViewConfig {
   scope?: {
     root_action?: string;
@@ -36,19 +38,10 @@ export interface ActionViewConfig {
 
 export interface ActionCanonSources {
   elements: unknown[];
-}
-
-function isObject(v: unknown): v is Record<string, unknown> {
-  return !!v && typeof v === 'object' && !Array.isArray(v);
-}
-
-function str(v: unknown): string | undefined {
-  return typeof v === 'string' && v.trim().length > 0 ? v : undefined;
-}
-
-function strArray(v: unknown): string[] {
-  if (!Array.isArray(v)) return [];
-  return v.filter((x): x is string => typeof x === 'string' && x.trim().length > 0);
+  /** `canon/relations/**` docs (`notation: relation`). Optional — omit for
+   *  canon stores with no relations tree; `action_goal` links then fall back
+   *  to each element's inline `goals[]`. */
+  relations?: unknown[];
 }
 
 /** ACTION elements by id. `notation: action` is canonical; `notation: activity`
@@ -68,6 +61,31 @@ function collectActionElements(docs: unknown[]): Map<string, Record<string, unkn
 }
 
 /**
+ * GOAL ids reached by an *active* `action_goal` (or legacy `activity_goal`)
+ * relation originating at `fromId`. A relation with a non-null `valid_to` has
+ * ended (the action was re-aimed) and is excluded. Mirrors
+ * `activity-card/resolver.ts`'s `activeActivityGoals` — the canonical, preferred
+ * source per elements/24-action.md §3 ("renderers prefer REL files when both
+ * are present").
+ */
+function activeActionGoalRelations(relations: unknown[], fromId: string): string[] {
+  const out: string[] = [];
+  for (const doc of relations) {
+    if (!isObject(doc)) continue;
+    if (str(doc['notation']) !== 'relation') continue;
+    const type = str(doc['type']);
+    if (type !== 'action_goal' && type !== 'activity_goal') continue;
+    if (str(doc['from']) !== fromId) continue;
+    const to = str(doc['to']);
+    if (!to) continue;
+    const validTo = doc['valid_to'];
+    if (validTo !== undefined && validTo !== null) continue; // ended relation
+    if (!out.includes(to)) out.push(to);
+  }
+  return out;
+}
+
+/**
  * Returns true when the parsed view document uses the canon-projection form
  * (`view_config` key present, no inline `actions[]`). Used by the preview and
  * CLI to decide whether to run the resolver or fall back to direct
@@ -76,28 +94,6 @@ function collectActionElements(docs: unknown[]): Map<string, Record<string, unkn
 export function isActionViewDoc(parsed: unknown): boolean {
   if (!isObject(parsed)) return false;
   return 'view_config' in parsed && !('actions' in parsed);
-}
-
-/** `rootId` and every element reachable by following `parent` links downward
- *  (Initiative → Programme → Project → Task, elements/24-action.md §1). */
-function descendantsOf(rootId: string, all: Map<string, Record<string, unknown>>): Set<string> {
-  const childrenByParent = new Map<string, string[]>();
-  for (const [id, el] of all) {
-    const parent = str(el['parent']);
-    if (!parent) continue;
-    const list = childrenByParent.get(parent) ?? [];
-    list.push(id);
-    childrenByParent.set(parent, list);
-  }
-  const result = new Set<string>();
-  const queue: string[] = [rootId];
-  while (queue.length > 0) {
-    const id = queue.shift()!;
-    if (result.has(id)) continue;
-    result.add(id);
-    for (const child of childrenByParent.get(id) ?? []) queue.push(child);
-  }
-  return result;
 }
 
 /**
@@ -118,6 +114,14 @@ export function resolveAction(
   const schedule = isObject(vc['schedule']) ? vc['schedule'] : {};
 
   const allActions = collectActionElements(sources.elements);
+  const relations = sources.relations ?? [];
+
+  /** Effective `goals[]` for an action — the active `action_goal` REL targets
+   *  when any exist, else the element's transitional inline `goals[]`. */
+  function effectiveGoals(id: string, el: Record<string, unknown>): string[] {
+    const relGoals = activeActionGoalRelations(relations, id);
+    return relGoals.length > 0 ? relGoals : strArray(el['goals']);
+  }
 
   // 1. Scope by root_action (this action + its descendants), or the full
   // catalogue when omitted (§5.1: "Omit to include elements from the full
@@ -130,11 +134,13 @@ export function resolveAction(
     candidateIds = new Set(allActions.keys());
   }
 
-  // 2. Narrow by goals — only actions linked to at least one listed GOAL.
+  // 2. Narrow by goals — only actions linked to at least one listed GOAL
+  // (via an active action_goal relation, or inline goals[] when no relation
+  // exists for that action).
   const goalsFilter = strArray(scope['goals']);
   if (goalsFilter.length > 0) {
     candidateIds = new Set(
-      [...candidateIds].filter((id) => strArray(allActions.get(id)?.['goals']).some((g) => goalsFilter.includes(g))),
+      [...candidateIds].filter((id) => effectiveGoals(id, allActions.get(id)!).some((g) => goalsFilter.includes(g))),
     );
   }
 
@@ -169,27 +175,17 @@ export function resolveAction(
 
   // Element fields map onto Activity fields unchanged, except the canonical
   // `type` (elements/24-action.md §2) which becomes the internal `activity_type`
-  // (types.ts `Activity.activity_type`) — the admission/lifecycle envelope
-  // fields (zone, admitted_*, gate_checks, valid_from/valid_to) are dropped,
-  // they carry no schedule/render meaning for `validateActivities`.
+  // (types.ts `Activity.activity_type`), and `goals` which is resolved via
+  // `effectiveGoals` (REL-preferred). The admission/lifecycle envelope fields
+  // carry no schedule/render meaning for `validateActivities` and are dropped.
   const selectedActions = [...candidateIds].map((id) => {
     const el = allActions.get(id)!;
-    const {
-      notation: _notation,
-      zone: _zone,
-      admitted_at: _admittedAt,
-      admitted_by: _admittedBy,
-      gate_checks: _gateChecks,
-      valid_from: _validFrom,
-      valid_to: _validTo,
-      type,
-      activity_type,
-      ...rest
-    } = el;
+    const { type, activity_type, goals: _inlineGoals, ...rest } = stripEnvelope(el);
     const resolvedType = type ?? activity_type;
     return {
       ...rest,
       id,
+      goals: effectiveGoals(id, el),
       ...(resolvedType !== undefined ? { activity_type: resolvedType } : {}),
     };
   });

@@ -29,6 +29,12 @@ import {
 import { handleExportComplianceCommand } from './export-compliance.js';
 import { isActionViewDoc } from '@transitrix/diagrams/activities';
 import { isFGCAViewDoc } from '@transitrix/diagrams/fgca';
+// Deep import, not the `@transitrix/diagrams/goals` barrel like the two
+// imports above: that barrel also re-exports the React GoalTreeView
+// component, which pulls in reactflow's CSS import — Node's ESM loader
+// can't resolve a bare .css specifier and this plain-Node CLI process
+// crashes with ERR_UNKNOWN_FILE_EXTENSION. Keep this deep path even if it
+// looks inconsistent with the lines above.
 import { isGoalsViewDoc } from '@transitrix/diagrams/goals/resolver.js';
 
 /** Notations whose canon-projection form (view_config, no inline element

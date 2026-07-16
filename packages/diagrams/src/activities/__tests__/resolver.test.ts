@@ -215,3 +215,64 @@ describe('resolveAction — empty sources', () => {
     expect((doc['actions'] as unknown[]).length).toBe(ELEMENTS.length);
   });
 });
+
+// ── resolveAction — action_goal relations preferred over inline goals[] ──────
+
+describe('resolveAction — action_goal relations', () => {
+  const RELATIONS = [
+    {
+      notation: 'relation', id: 'REL-1', type: 'action_goal',
+      from: 'ACTION-PLATFORM-LAUNCH-1', to: 'GOAL-RETENTION-1',
+    },
+    {
+      // Ended relation (valid_to set) — must not count as active.
+      notation: 'relation', id: 'REL-2', type: 'action_goal',
+      from: 'ACTION-GDPR-1', to: 'GOAL-EXPIRED-1', valid_to: '2025-12-31',
+    },
+  ];
+
+  it('prefers active action_goal relation targets over the inline goals[] field', () => {
+    const doc = resolveAction(VIEW_DOC, { elements: ELEMENTS, relations: RELATIONS });
+    const root = (doc['actions'] as Array<Record<string, unknown>>).find((a) => a.id === 'ACTION-PLATFORM-LAUNCH-1');
+    // ACTION-PLATFORM-LAUNCH-1's inline goals is ['GOAL-CUST-001'], but an
+    // active REL exists — REL wins per elements/24-action.md §3.
+    expect(root?.['goals']).toEqual(['GOAL-RETENTION-1']);
+  });
+
+  it('falls back to inline goals[] when the only relation for that action has ended', () => {
+    const viewDoc = { ...VIEW_DOC, view_config: { scope: { root_action: 'ACTION-GDPR-1' } } };
+    const doc = resolveAction(viewDoc, { elements: ELEMENTS, relations: RELATIONS });
+    const root = (doc['actions'] as Array<Record<string, unknown>>).find((a) => a.id === 'ACTION-GDPR-1');
+    expect(root?.['goals']).toEqual(['GOAL-COMPLIANCE-001']);
+  });
+
+  it('scope.goals matches against the REL-derived goal, not the stale inline one', () => {
+    const viewDoc = {
+      ...VIEW_DOC,
+      view_config: { scope: { root_action: 'ACTION-PLATFORM-LAUNCH-1', goals: ['GOAL-RETENTION-1'] } },
+    };
+    const doc = resolveAction(viewDoc, { elements: ELEMENTS, relations: RELATIONS });
+    const ids = (doc['actions'] as Array<{ id: string }>).map((a) => a.id);
+    expect(ids).toContain('ACTION-PLATFORM-LAUNCH-1');
+  });
+
+  it('falls back to inline goals[] when no relations are supplied at all', () => {
+    const doc = resolveAction(VIEW_DOC, SOURCES); // SOURCES has no relations field
+    const root = (doc['actions'] as Array<Record<string, unknown>>).find((a) => a.id === 'ACTION-PLATFORM-LAUNCH-1');
+    expect(root?.['goals']).toEqual(['GOAL-CUST-001']);
+  });
+});
+
+// ── resolveAction — whitespace-trimmed field matching ─────────────────────
+
+describe('resolveAction — trims incidental whitespace on matched fields', () => {
+  it('matches type_filter against a type value with trailing whitespace', () => {
+    const elements = [
+      { notation: 'action', id: 'ACTION-WS-1', name: 'Padded type', type: 'Task ' },
+    ];
+    const viewDoc = { notation: 'action', id: 'X', name: 'X', view_config: { scope: { type_filter: ['Task'] } } };
+    const doc = resolveAction(viewDoc, { elements });
+    const ids = (doc['actions'] as Array<{ id: string }>).map((a) => a.id);
+    expect(ids).toEqual(['ACTION-WS-1']);
+  });
+});
