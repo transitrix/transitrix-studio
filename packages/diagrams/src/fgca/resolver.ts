@@ -91,7 +91,11 @@ export function resolveFGCA(
   const factorElems = new Map([...factorElemsLegacy, ...factorElemsNew]);
   const goalElems = collectByNotation(sources.elements, 'goal');
   const changeElems = collectByNotation(sources.elements, 'change');
-  const activityElems = collectByNotation(sources.elements, 'activity');
+  // `action` is canonical since methodology 1.0; `activity` is the deprecated
+  // pre-rename alias, still accepted (elements/24-action.md §"Deprecated alias").
+  const activityElemsLegacy = collectByNotation(sources.elements, 'activity');
+  const activityElemsNew = collectByNotation(sources.elements, 'action');
+  const activityElems = new Map([...activityElemsLegacy, ...activityElemsNew]);
 
   // 1. Select goal set
   const goalsFilter = str(goalsConf['filter']) ?? 'all';

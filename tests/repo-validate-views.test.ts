@@ -297,3 +297,66 @@ describe('repo-scope views sweep — goals canon-projection form', () => {
     expect(goalsFindings.some((f) => f.ruleId === 'GOALS-004')).toBe(false);
   });
 });
+
+// loadRepoModel's readDoc() previously parsed canon YAML with plain
+// yaml.load(), never coercing bare (unquoted) ISO date scalars — js-yaml
+// parses those into native Date objects, not strings. The resolvers'
+// str() checks are typeof-string, so a Date-valued valid_from/valid_to was
+// silently treated as absent, disabling view_config.scope.valid_at filtering
+// for any canon element authored with an unquoted date (the ordinary way to
+// write one). This only affects the CLI (repo-validate.ts); the VS Code
+// preview's canon-loader.ts already coerced dates.
+describe('repo-scope views sweep — unquoted canon element dates (valid_at filtering)', () => {
+  let root: string;
+
+  beforeAll(() => {
+    root = mkdtempSync(join(tmpdir(), 'tx-views-unquoted-dates-'));
+    // Deliberately unquoted dates — js-yaml's default schema parses these as
+    // native Date objects, exactly the shape adopters write without knowing
+    // to quote them.
+    write(
+      root,
+      'canon/elements/05_implementation/actions/ACTION-EXPIRED-1.yaml',
+      'notation: action\nid: ACTION-EXPIRED-1\nname: Expired task\ntype: Task\nvalid_from: 2026-01-01\nvalid_to: 2026-02-01\n',
+    );
+    write(
+      root,
+      'canon/elements/05_implementation/actions/ACTION-ACTIVE-1.yaml',
+      'notation: action\nid: ACTION-ACTIVE-1\nname: Active task\ntype: Task\nvalid_from: 2026-01-01\nvalid_to: null\n',
+    );
+    write(
+      root,
+      'canon/views/action/schedule.action.transitrix.yaml',
+      [
+        'notation: action',
+        'spec_version: "0.1"',
+        'id: ACTION_SCHED-1',
+        'name: Schedule',
+        'view_config:',
+        '  scope:',
+        '    valid_at: "2026-07-15"',
+      ].join('\n'),
+    );
+  });
+
+  afterAll(() => {
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it('excludes an action whose unquoted valid_to has already closed by valid_at', () => {
+    const { findings } = runViewValidate(root);
+    // ACT-013 ("structurally orphan") only fires when >1 activity is present
+    // in the resolved doc. If the date-coercion bug were present, the
+    // already-closed ACTION-EXPIRED-1 would still be silently included
+    // alongside ACTION-ACTIVE-1, and both (having no predecessors/successors/
+    // goals) would be flagged as orphans. Correctly excluded, only
+    // ACTION-ACTIVE-1 remains — a single activity never triggers ACT-013.
+    expect(findings.some((f) => f.message.includes('ACTION-EXPIRED-1'))).toBe(false);
+    expect(findings.some((f) => f.ruleId === 'ACT-013')).toBe(false);
+  });
+
+  it('runRepoValidate (which loads the canon model once and passes it through) still applies the same filtering', () => {
+    const result = runRepoValidate(root);
+    expect(result.views.some((f) => f.message.includes('ACTION-EXPIRED-1'))).toBe(false);
+  });
+});

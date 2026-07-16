@@ -13,6 +13,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import * as path from 'node:path';
 import yaml from 'js-yaml';
+import { coerceDatesToIsoStrings } from '@transitrix/diagrams/yaml-normalize.js';
 import {
   validateRepoModel,
   type RepoDoc,
@@ -34,6 +35,11 @@ import {
 } from '@transitrix/diagrams/compliance';
 import { resolveAction, isActionViewDoc } from '@transitrix/diagrams/activities';
 import { resolveFGCA, isFGCAViewDoc } from '@transitrix/diagrams/fgca';
+// Deep import, not the `@transitrix/diagrams/goals` barrel like the two
+// imports above: that barrel also re-exports the React GoalTreeView
+// component, which pulls in reactflow's CSS import and crashes this
+// plain-Node CLI process (ERR_UNKNOWN_FILE_EXTENSION on the bare .css
+// specifier). See the identical note in cli.ts.
 import { resolveGoals, isGoalsViewDoc } from '@transitrix/diagrams/goals/resolver.js';
 import {
   validateNotationDoc,
@@ -64,7 +70,13 @@ function shouldSkip(rel: string): boolean {
 /** Read + parse one YAML file into a RepoDoc, capturing parse errors. */
 function readDoc(root: string, rel: string): RepoDoc {
   try {
-    const parsed = yaml.load(readFileSync(path.join(root, rel), 'utf-8'));
+    // js-yaml parses a bare (unquoted) ISO date scalar into a native Date,
+    // not a string — coerce it back, same as every other YAML entry point in
+    // this codebase (loadNotationYaml, extension/src/canon-loader.ts's
+    // loadCanon), so a canon element's valid_from/valid_to/start_date/etc.
+    // authored unquoted doesn't silently fail the resolvers' `typeof v ===
+    // 'string'` checks (e.g. view_config.scope.valid_at filtering).
+    const parsed = coerceDatesToIsoStrings(yaml.load(readFileSync(path.join(root, rel), 'utf-8')));
     const data =
       parsed && typeof parsed === 'object' && !Array.isArray(parsed)
         ? (parsed as Record<string, unknown>)
@@ -79,7 +91,14 @@ function readDoc(root: string, rel: string): RepoDoc {
 /** Collect canon docs under `<root>/canon/<zone>/**` exactly as lint.py globs
  *  them: elements from `canon/elements/**`, relations from `canon/relations/**`.
  *  Partitioning by zone (not by `notation`) keeps parity with the reference
- *  linter's element/relation universe. */
+ *  linter's element/relation universe.
+ *
+ *  Known gap: unlike `extension/src/canon-loader.ts`'s `loadCanon` (used by
+ *  the VS Code previews), this has no fallback for ACTION elements kept
+ *  under the legacy `canon/views/activities/**` location — a repo using that
+ *  fallback resolves a smaller `actions[]` set here than in the preview for
+ *  the same `view_config` scope. Not fixed yet; canonical elements belong
+ *  under `canon/elements/**` regardless. */
 export function loadRepoModel(root: string): RepoModelInput {
   const elements: RepoDoc[] = [];
   const relations: RepoDoc[] = [];
@@ -205,20 +224,24 @@ function loadViewDocs(root: string): Array<{ path: string; text: string }> {
 export function runViewValidate(
   root: string,
   ctx?: RepoValidateContext,
+  preloadedModel?: RepoModelInput,
 ): {
   findings: ViewFinding[];
   skipped: Array<{ file: string; notation: string }>;
 } {
   const findings: ViewFinding[] = [];
   const skipped: Array<{ file: string; notation: string }> = [];
-  // Lazily loaded canon elements/relations for projection-form resolution
-  // (dgca: view_config.goals/factors/changes/activities; action: §4 of
-  // 07-action.md; goals: §4 of 04-goals.md) — computed at most once per run,
-  // only when a projection-form document is actually encountered.
+  // Canon elements/relations for projection-form resolution (dgca:
+  // view_config.goals/factors/changes/activities; action: §4 of
+  // 07-action.md; goals: §4 of 04-goals.md). Reuses `preloadedModel` when the
+  // caller already walked canon/ (runRepoValidate does, for the canon
+  // cross-reference checks) instead of walking it a second time; otherwise
+  // loads lazily, at most once per run, only when a projection-form document
+  // is actually encountered.
   let canonModel: { elements: unknown[]; relations: unknown[] } | undefined;
   function ensureCanonModel(): { elements: unknown[]; relations: unknown[] } {
     if (!canonModel) {
-      const model = loadRepoModel(root);
+      const model = preloadedModel ?? loadRepoModel(root);
       canonModel = {
         elements: model.elements.map((d) => d.data).filter((d): d is Record<string, unknown> => d != null),
         relations: model.relations.map((d) => d.data).filter((d): d is Record<string, unknown> => d != null),
@@ -279,7 +302,8 @@ export function runViewValidate(
     // actions[] — resolve against canon/elements/** before validating, the
     // same way the VS Code preview does (action-preview.ts).
     if (notation === 'action' && isActionViewDoc(data)) {
-      data = resolveAction(data, { elements: ensureCanonModel().elements });
+      const model = ensureCanonModel();
+      data = resolveAction(data, { elements: model.elements, relations: model.relations });
     }
 
     // Canon-projection form (02-dgca.md): view_config present, no inline
@@ -560,8 +584,9 @@ export function runGapDashboardWarnings(ctx: RepoValidateContext): ViewFinding[]
  *  cross-references plus per-file notation sweep over canon/views/** and codex/**. */
 export function runRepoValidate(root: string): RepoScopeResult {
   const ctx = buildRepoValidateContext(root);
-  const canon = validateRepoModel(loadRepoModel(root));
-  const { findings: views, skipped } = runViewValidate(root, ctx);
+  const model = loadRepoModel(root);
+  const canon = validateRepoModel(model);
+  const { findings: views, skipped } = runViewValidate(root, ctx, model);
   const codex = runCodexValidate(root);
   const compliance = [
     ...runComplianceValidate(root, ctx),

@@ -175,6 +175,42 @@ describe('resolveGoals — goal_types synthesis', () => {
     const r = parseCanonicalGoals(doc);
     expect(r.valid, JSON.stringify(r.errors)).toBe(true);
   });
+
+  it('derives level from parent-chain depth, ignoring a stale/wrong stored level field', () => {
+    // GOAL-EU-1 is authored with a wrong stored level (5, should be 1 given
+    // its parent chain) — the synthesized table and the goal's own resolved
+    // level must both come from structural depth, not the stored value, so
+    // the result is deterministic regardless of element enumeration order.
+    const elements = [
+      { notation: 'goal', id: 'GOAL-ROOT-1', name: 'Root', type: 'Strategy', level: 0 },
+      { notation: 'goal', id: 'GOAL-EU-1', name: 'EU', type: 'Strategic Goal', level: 5, parent: 'GOAL-ROOT-1' },
+    ];
+    const viewDoc = {
+      notation: 'goals', id: 'GOALS-TEST-1', name: 'X',
+      view_config: { scope: { root_goal: 'GOAL-ROOT-1' } },
+    };
+    const doc = resolveGoals(viewDoc, { elements });
+    const eu = (doc['goals'] as Array<Record<string, unknown>>).find((g) => g.id === 'GOAL-EU-1');
+    expect(eu?.['level']).toBe(1); // structural depth, not the stored 5
+    expect(doc['goal_types']).toEqual([
+      { name: 'Strategy', level: 0 },
+      { name: 'Strategic Goal', level: 1 },
+    ]);
+    const r = parseCanonicalGoals(doc);
+    expect(r.valid, JSON.stringify(r.errors)).toBe(true);
+  });
+
+  it('does not synthesize a type label for a goal missing type — GOALS-006 still fires', () => {
+    const elements = [
+      { notation: 'goal', id: 'GOAL-TYPED-1', name: 'Typed', type: 'Strategy', level: 0 },
+      { notation: 'goal', id: 'GOAL-NO-TYPE-1', name: 'Untyped', level: 0 },
+    ];
+    const viewDoc = { notation: 'goals', id: 'GOALS-TEST-2', name: 'X', view_config: {} };
+    const doc = resolveGoals(viewDoc, { elements });
+    const r = parseCanonicalGoals(doc);
+    expect(r.valid).toBe(false);
+    expect(r.errors.some((e) => e.code === 'GOALS-006')).toBe(true);
+  });
 });
 
 // ── resolveGoals — empty / degenerate inputs ──────────────────────────────

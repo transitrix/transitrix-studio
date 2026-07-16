@@ -11,14 +11,26 @@
  * tests without vscode.
  *
  * `goal_types[]` synthesis: when `view_config.goal_types` is present it is
- * used as-is (the documented projection-form shape always includes it). When
- * absent, the spec allows a renderer to "infer levels from the parent chain
- * depth" — this resolver instead derives one `goal_types` entry per distinct
- * `type` name actually present on the selected GOAL elements (first-seen
- * `level` wins), a simpler and more honest choice: a GOAL element missing
- * `type`/`level` surfaces as a GOALS-006 finding from `parseCanonicalGoals`
- * rather than being silently papered over by structural inference.
+ * used as-is (the documented projection-form shape always includes it) and
+ * each goal keeps its own authored `level`, validated against that table as
+ * usual. When absent, §5.2 says the renderer "infers levels from the parent
+ * chain depth (root goals at 0, each step deeper adds 1)" — this resolver
+ * implements that literally (`parentChainDepth`), overriding each selected
+ * goal's `level` with its structural depth, rather than trusting the
+ * element's own stored `level` field. A stored `level` can't be trusted here:
+ * nothing enforces cross-element consistency on it (ELEMENT_PRIMITIVES.md
+ * §7.2: `type`/`level` are independent, both-optional per-element fields),
+ * and worse, using it made the synthesized table's chosen level depend on
+ * which element the canon loader happened to enumerate first — the CLI
+ * (`readdirSync`, unsorted) and the VS Code preview
+ * (`vscode.workspace.fs.readDirectory`, unsorted) can enumerate the same
+ * canon store in different orders, so the two surfaces could disagree on
+ * `GOALS-008` findings for identical input. Structural depth has no such
+ * dependency. A goal with no `type` still surfaces as a genuine `GOALS-006`
+ * finding — this resolver never synthesizes a type label to paper over one.
  */
+
+import { isObject, str, strArray, descendantsOf, parentChainDepth, stripEnvelope } from '../canon-resolver-utils.js';
 
 export interface GoalsViewConfig {
   scope?: {
@@ -36,19 +48,6 @@ export interface GoalsViewConfig {
 
 export interface GoalsCanonSources {
   elements: unknown[];
-}
-
-function isObject(v: unknown): v is Record<string, unknown> {
-  return !!v && typeof v === 'object' && !Array.isArray(v);
-}
-
-function str(v: unknown): string | undefined {
-  return typeof v === 'string' && v.trim().length > 0 ? v : undefined;
-}
-
-function strArray(v: unknown): string[] {
-  if (!Array.isArray(v)) return [];
-  return v.filter((x): x is string => typeof x === 'string' && x.trim().length > 0);
 }
 
 /** GOAL elements by id (`notation: goal`). */
@@ -73,27 +72,6 @@ function collectGoalElements(docs: unknown[]): Map<string, Record<string, unknow
 export function isGoalsViewDoc(parsed: unknown): boolean {
   if (!isObject(parsed)) return false;
   return 'view_config' in parsed && !('goals' in parsed);
-}
-
-/** `rootId` and every element reachable by following `parent` links downward. */
-function descendantsOf(rootId: string, all: Map<string, Record<string, unknown>>): Set<string> {
-  const childrenByParent = new Map<string, string[]>();
-  for (const [id, el] of all) {
-    const parent = str(el['parent']);
-    if (!parent) continue;
-    const list = childrenByParent.get(parent) ?? [];
-    list.push(id);
-    childrenByParent.set(parent, list);
-  }
-  const result = new Set<string>();
-  const queue: string[] = [rootId];
-  while (queue.length > 0) {
-    const id = queue.shift()!;
-    if (result.has(id)) continue;
-    result.add(id);
-    for (const child of childrenByParent.get(id) ?? []) queue.push(child);
-  }
-  return result;
 }
 
 /**
@@ -162,38 +140,34 @@ export function resolveGoals(
     );
   }
 
-  // Element fields map onto Goal fields unchanged — the admission/lifecycle
-  // envelope fields (zone, admitted_*, gate_checks, valid_from/valid_to)
-  // carry no rendering meaning for `parseCanonicalGoals` and are dropped.
-  const selectedGoals: Array<Record<string, unknown>> = [...candidateIds].map((id) => {
-    const el = allGoals.get(id)!;
-    const {
-      notation: _notation,
-      zone: _zone,
-      admitted_at: _admittedAt,
-      admitted_by: _admittedBy,
-      gate_checks: _gateChecks,
-      valid_from: _validFrom,
-      valid_to: _validTo,
-      ...rest
-    } = el;
-    return { ...rest, id };
-  });
-
   const explicitGoalTypes = Array.isArray(vc['goal_types'])
     ? (vc['goal_types'] as unknown[]).filter(isObject)
     : undefined;
 
+  // Element fields map onto Goal fields unchanged — the admission/lifecycle
+  // envelope fields carry no rendering meaning for `parseCanonicalGoals` and
+  // are dropped.
+  let selectedGoals: Array<Record<string, unknown>>;
   let goalTypes: Array<Record<string, unknown>>;
+
   if (explicitGoalTypes) {
+    // Main-line case: goals keep their own authored `level`, validated
+    // against the explicit table by parseCanonicalGoals as usual.
+    selectedGoals = [...candidateIds].map((id) => ({ ...stripEnvelope(allGoals.get(id)!), id }));
     goalTypes = explicitGoalTypes;
   } else {
+    // §5.2 fallback: level is the goal's structural depth in the parent
+    // chain, not its (untrustworthy, order-dependent) stored `level` field.
+    const depthMemo = new Map<string, number>();
+    selectedGoals = [...candidateIds].map((id) => {
+      const { level: _level, ...rest } = stripEnvelope(allGoals.get(id)!);
+      return { ...rest, id, level: parentChainDepth(id, allGoals, depthMemo) };
+    });
     const seen = new Map<string, number>();
     for (const g of selectedGoals) {
       const name = typeof g['type'] === 'string' ? g['type'] : undefined;
-      const level = typeof g['level'] === 'number' ? g['level'] : undefined;
-      if (name !== undefined && level !== undefined && !seen.has(name)) {
-        seen.set(name, level);
+      if (name !== undefined && !seen.has(name)) {
+        seen.set(name, g['level'] as number);
       }
     }
     goalTypes = [...seen.entries()].map(([name, level]) => ({ name, level }));

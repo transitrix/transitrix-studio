@@ -151,6 +151,36 @@ describe('resolveFGCA — surface=all', () => {
   });
 });
 
+// ── resolveFGCA — canonical `notation: action` elements ───────────────────────
+
+describe('resolveFGCA — action/activity notation alias', () => {
+  const MIXED_ELEMENTS = [
+    { notation: 'driver', id: 'FACTOR-1', name: 'Market pressure' },
+    { notation: 'goal', id: 'GOAL-1', name: 'Grow revenue', factors: ['FACTOR-1'] },
+    { notation: 'change', id: 'CHANGE-1', name: 'Launch product', goals: ['GOAL-1'] },
+    // Canonical notation (elements/24-action.md) — must resolve, not just the
+    // deprecated `activity` alias.
+    { notation: 'action', id: 'ACTION-1', name: 'Market research', changes: ['CHANGE-1'] },
+  ];
+
+  it('includes ACTION elements authored with the canonical notation: action', () => {
+    const viewDoc = {
+      ...VIEW_DOC,
+      view_config: { goals: { filter: 'all' }, factors: { surface: 'derived' }, changes: { surface: 'derived' }, activities: { surface: 'derived' } },
+    };
+    const doc = resolveFGCA(viewDoc, { elements: MIXED_ELEMENTS, relations: [] });
+    const actionIds = (doc['actions'] as Array<{ id: string }>).map((a) => a.id);
+    expect(actionIds).toEqual(['ACTION-1']);
+    const r = parseCanonicalFGCA(doc);
+    expect(r.valid, JSON.stringify(r.errors)).toBe(true);
+  });
+
+  it('still includes elements authored with the deprecated notation: activity alias', () => {
+    const doc = resolveFGCA(VIEW_DOC, SOURCES); // SOURCES uses notation: activity throughout
+    expect((doc['actions'] as unknown[]).length).toBe(5);
+  });
+});
+
 // ── resolveFGCA — empty / degenerate inputs ───────────────────────────────────
 
 describe('resolveFGCA — empty sources', () => {
