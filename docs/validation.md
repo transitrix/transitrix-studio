@@ -70,14 +70,14 @@ $ transitrix validate --scope=repo --root organizations/acme_corp
 The richer `target`/`category` finding taxonomy is intentionally **not** adopted
 yet (deferred per the ADR until a consumer needs it).
 
-### Resolved model output (`--include-model`, #669)
+### Resolved model output (`--include-model`)
 
 `transitrix validate --scope=repo --json --include-model` adds a `model` key
 alongside the findings — the resolved `canon/elements/**` and
 `canon/relations/**` records the repo-scope walk already parsed, for a
 non-JS consumer (e.g. DSM's Go backend) that wants the parsed model without
 re-implementing the notation schema. Off by default — `--json` without
-`--include-model` keeps the pre-#669 output shape unchanged.
+`--include-model` keeps the existing output shape unchanged.
 
 ```json
 {

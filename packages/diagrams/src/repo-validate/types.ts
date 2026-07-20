@@ -49,7 +49,7 @@ export interface RepoModelInput {
 }
 
 /** One resolved canon element, projected from a `RepoDoc` for a non-JS
- *  consumer (vkgeorgia/strategy#669 — DSM's Go importer). Mirrors the fields
+ *  consumer (DSM's Go importer). Mirrors the fields
  *  DSM's `methodology_element` table already persists (`ElementID`, `Name`,
  *  `ElementType`, `Layer`, `Notation`, `SourceFile`), minus DB-internal
  *  concerns (row id, timestamps). */
@@ -68,7 +68,7 @@ export interface ResolvedElementRecord {
   sourceFile: string;
 }
 
-/** One resolved canon relation, projected from a `RepoDoc` (#669). Only
+/** One resolved canon relation, projected from a `RepoDoc`. Only
  *  emitted when both endpoints resolve to a non-empty id — an endpoint that
  *  fails to resolve is already surfaced as a referential-integrity finding by
  *  `validateRepoModel`; this projection does not duplicate that as a
@@ -86,7 +86,7 @@ export interface ResolvedRelationRecord {
   sourceFile: string;
 }
 
-/** The resolved element/relation records for a repo-scope run (#669) —
+/** The resolved element/relation records for a repo-scope run —
  *  the shape `transitrix validate --scope=repo --json --include-model` adds
  *  alongside the validation findings. */
 export interface ResolvedRepoModel {

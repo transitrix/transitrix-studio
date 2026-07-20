@@ -1,9 +1,8 @@
-// Resolved element/relation records for `validate --scope=repo --json --include-model`
-// (vkgeorgia/strategy#669). A non-JS consumer (DSM's Go backend) needs the
-// canon model this CLI already parses without re-implementing the notation
-// schema — this is a pure projection over the same `RepoModelInput` the
-// repo-scope validator consumes, not a second parse pass, so the two never
-// drift out of sync.
+// Resolved element/relation records for `validate --scope=repo --json --include-model`.
+// A non-JS consumer (DSM's Go backend) needs the canon model this CLI already
+// parses without re-implementing the notation schema — this is a pure
+// projection over the same `RepoModelInput` the repo-scope validator
+// consumes, not a second parse pass, so the two never drift out of sync.
 
 import { docId, endpointId } from './validate-repo.js';
 import type {

@@ -14,11 +14,11 @@ function runCli(args: string[]): { status: number; stdout: string; stderr: strin
   return { status: r.status ?? 1, stdout: r.stdout ?? '', stderr: r.stderr ?? '' }
 }
 
-// vkgeorgia/strategy#669 — `validate --scope=repo --json --include-model` also
-// emits the resolved canon/elements/** and canon/relations/** records, for a
-// non-JS consumer (DSM's Go importer) that wants the parsed model without
-// re-implementing the notation schema.
-describe('CLI validate --scope=repo --include-model (#669)', () => {
+// `validate --scope=repo --json --include-model` emits the resolved
+// canon/elements/** and canon/relations/** records, for a non-JS consumer
+// (DSM's Go importer) that wants the parsed model without re-implementing
+// the notation schema.
+describe('CLI validate --scope=repo --include-model', () => {
   it('omits the `model` key by default (existing --json consumers unaffected)', () => {
     const { stdout } = runCli(['validate', '--scope=repo', '--root', acmeCorpRoot, '--json'])
     const output = JSON.parse(stdout)

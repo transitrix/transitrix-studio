@@ -598,7 +598,7 @@ export function runRepoValidate(root: string): RepoScopeResult {
 }
 
 /** Load the canon model under `root` and resolve it into the element/relation
- *  records a non-JS consumer can read (vkgeorgia/strategy#669) — the output
+ *  records a non-JS consumer can read — the output
  *  `validate --scope=repo --json --include-model` adds alongside findings.
  *  Reuses `loadRepoModel`, the same walk `runRepoValidate` uses for its canon
  *  cross-reference checks, so the two never see a different model. */
@@ -619,7 +619,7 @@ export function repoScopeHasErrors(result: RepoScopeResult): boolean {
 
 /** Print the repo-scope result (human or JSON). Returns nothing; the caller sets
  *  the exit code via repoScopeHasErrors(). `model` is set only when the caller
- *  passed `--include-model` (#669) — omitted from the JSON entirely otherwise,
+ *  passed `--include-model` — omitted from the JSON entirely otherwise,
  *  so the default output shape is unchanged for existing consumers. */
 export function reportRepoFindings(
   root: string,

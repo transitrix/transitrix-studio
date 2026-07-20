@@ -328,10 +328,10 @@ async function handleValidateCommand(argv: string[]): Promise<void> {
   if (scope === 'repo') {
     const repoRoot = root ?? process.cwd();
     const result = runRepoValidate(repoRoot);
-    // --include-model (vkgeorgia/strategy#669): also emit the resolved
-    // element/relation records the canon walk already parsed, for a non-JS
-    // consumer (DSM) that wants the model without a second parser. Opt-in so
-    // the default --scope=repo output shape is unchanged for existing callers.
+    // --include-model: also emit the resolved element/relation records the
+    // canon walk already parsed, for a non-JS consumer (DSM) that wants the
+    // model without a second parser. Opt-in so the default --scope=repo
+    // output shape is unchanged for existing callers.
     const includeModel = argv.includes('--include-model');
     const model = includeModel ? buildRepoModel(repoRoot) : undefined;
     reportRepoFindings(repoRoot, result, useJson, model);

@@ -81,7 +81,7 @@ transitrix export-compliance [--format md|pdf] [--scope law:<ID>|product:<ID>|ga
 | *(default)* / `compile` | YAML → BPMN 2.0 XML with computed layout; prints layout-quality metrics and validation findings. Exit 1 on validation errors. |
 | `serve` | Local web UI (run `npm run ui:build` once beforehand). |
 | `metrics` | Layout-quality metrics only (`--json` for CI). |
-| `validate` | Validation only, no XML output (`--json` for CI). Exit 1 on errors. Default scope is a single file; `--scope=repo` runs whole-`canon/` checks (referential integrity, atomicity, id uniqueness, policy) over `--root` (default cwd) — see [validation.md](validation.md#validation-scope-file-vs-repo). `--include-model` (with `--json`) also emits the resolved `canon/elements/**`/`canon/relations/**` records it parsed — see [validation.md](validation.md#resolved-model-output---include-model-669). |
+| `validate` | Validation only, no XML output (`--json` for CI). Exit 1 on errors. Default scope is a single file; `--scope=repo` runs whole-`canon/` checks (referential integrity, atomicity, id uniqueness, policy) over `--root` (default cwd) — see [validation.md](validation.md#validation-scope-file-vs-repo). `--include-model` (with `--json`) also emits the resolved `canon/elements/**`/`canon/relations/**` records it parsed — see [validation.md](validation.md#resolved-model-output---include-model). |
 | `export-compliance` | Markdown or PDF report of the compliance views (matrix by default; `law:` / `product:` / `gap` scopes). Scans `--root` (default cwd). PDF needs WeasyPrint on PATH (`pipx install weasyprint`). |
 
 Flags: `--no-metrics` suppresses the metrics report on compile; `--no-validate`
