@@ -47,3 +47,49 @@ export interface RepoModelInput {
   /** Documents found under `canon/relations/**`. */
   relations: RepoDoc[];
 }
+
+/** One resolved canon element, projected from a `RepoDoc` for a non-JS
+ *  consumer (vkgeorgia/strategy#669 — DSM's Go importer). Mirrors the fields
+ *  DSM's `methodology_element` table already persists (`ElementID`, `Name`,
+ *  `ElementType`, `Layer`, `Notation`, `SourceFile`), minus DB-internal
+ *  concerns (row id, timestamps). */
+export interface ResolvedElementRecord {
+  /** Canonical id, e.g. `DRIVER-COMP-1`. */
+  id: string;
+  /** `name` field; `''` when absent (should not happen for an admitted element). */
+  name: string;
+  /** The element TYPE's short name — the doc's `notation` field, e.g. `driver`, `goal`, `capability`. */
+  notation: string;
+  /** Subtype from the TYPE's controlled vocabulary (ELEMENT_PRIMITIVES.md §3), e.g. `internal`/`external` for DRIVER. Omitted when the doc has none. */
+  type?: string;
+  /** `motivation` / `business` / `application` / `technology` / `implementation`. Read from the doc's `layer` field when present, else derived from the `canon/elements/<NN>_<layer>/…` folder. */
+  layer?: string;
+  /** Source file path, relative to the scanned root. */
+  sourceFile: string;
+}
+
+/** One resolved canon relation, projected from a `RepoDoc` (#669). Only
+ *  emitted when both endpoints resolve to a non-empty id — an endpoint that
+ *  fails to resolve is already surfaced as a referential-integrity finding by
+ *  `validateRepoModel`; this projection does not duplicate that as a
+ *  half-resolved record. */
+export interface ResolvedRelationRecord {
+  /** Canonical id, e.g. `REL-EMP-PERSON-OPS-1`. `''` when the relation doc has no `id`. */
+  id: string;
+  /** The relation's `type` field, e.g. `employment`, `realizes`. Omitted when the doc has none. */
+  kind?: string;
+  /** Resolved `from` (or legacy `source`) endpoint id. */
+  source: string;
+  /** Resolved `to` (or legacy `target`) endpoint id. */
+  target: string;
+  /** Source file path, relative to the scanned root. */
+  sourceFile: string;
+}
+
+/** The resolved element/relation records for a repo-scope run (#669) —
+ *  the shape `transitrix validate --scope=repo --json --include-model` adds
+ *  alongside the validation findings. */
+export interface ResolvedRepoModel {
+  elements: ResolvedElementRecord[];
+  relations: ResolvedRelationRecord[];
+}

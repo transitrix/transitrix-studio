@@ -70,6 +70,61 @@ $ transitrix validate --scope=repo --root organizations/acme_corp
 The richer `target`/`category` finding taxonomy is intentionally **not** adopted
 yet (deferred per the ADR until a consumer needs it).
 
+### Resolved model output (`--include-model`, #669)
+
+`transitrix validate --scope=repo --json --include-model` adds a `model` key
+alongside the findings — the resolved `canon/elements/**` and
+`canon/relations/**` records the repo-scope walk already parsed, for a
+non-JS consumer (e.g. DSM's Go backend) that wants the parsed model without
+re-implementing the notation schema. Off by default — `--json` without
+`--include-model` keeps the pre-#669 output shape unchanged.
+
+```json
+{
+  "scope": "repo",
+  "root": "organizations/acme_corp",
+  "valid": true,
+  "findings": [],
+  "views": { "valid": true, "findings": [] },
+  "codex": { "valid": true, "findings": [] },
+  "compliance": { "valid": true, "findings": [] },
+  "skipped": [],
+  "model": {
+    "elements": [
+      {
+        "id": "DRIVER-COMP-1",
+        "name": "Support response time",
+        "notation": "driver",
+        "type": "internal",
+        "layer": "motivation",
+        "sourceFile": "canon/elements/01_motivation/factors/DRIVER-COMP-1.yaml"
+      }
+    ],
+    "relations": [
+      {
+        "id": "REL-EMP-PERSON-OPS-1",
+        "kind": "employment",
+        "source": "ACTOR-PERSON-1",
+        "target": "ACTOR-OPS-1",
+        "sourceFile": "canon/relations/REL-EMP-PERSON-OPS-1.yaml"
+      }
+    ]
+  }
+}
+```
+
+- **Elements** — `id`, `name` (`''` if absent), `notation` (the element TYPE's
+  short name, e.g. `driver`, `goal`, `capability`), `type` (per-TYPE subtype,
+  omitted when the doc has none), `layer` (from the doc's `layer` field, else
+  derived from the `canon/elements/<NN>_<layer>/…` folder — omitted if
+  neither is present), `sourceFile` (path relative to `--root`).
+- **Relations** — `id` (`''` if the doc has none), `kind` (the relation's
+  `type` field, omitted when absent), `source`/`target` (resolved `from`/`to`,
+  or the legacy `source`/`target` keys). A relation is only emitted once both
+  endpoints resolve to a non-empty id — an endpoint that fails to resolve is
+  already surfaced as a referential-integrity finding above; this projection
+  does not duplicate that as a half-resolved record.
+
 ## Rule Categories
 
 Rules are organized by element category using stable ID prefixes:
