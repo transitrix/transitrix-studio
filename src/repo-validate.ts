@@ -16,9 +16,11 @@ import yaml from 'js-yaml';
 import { coerceDatesToIsoStrings } from '@transitrix/diagrams/yaml-normalize.js';
 import {
   validateRepoModel,
+  resolveRepoModel,
   type RepoDoc,
   type RepoFinding,
   type RepoModelInput,
+  type ResolvedRepoModel,
 } from '@transitrix/diagrams/repo-validate';
 import {
   buildComplianceScan,
@@ -595,6 +597,15 @@ export function runRepoValidate(root: string): RepoScopeResult {
   return { canon, views, codex, compliance, skipped };
 }
 
+/** Load the canon model under `root` and resolve it into the element/relation
+ *  records a non-JS consumer can read — the output
+ *  `validate --scope=repo --json --include-model` adds alongside findings.
+ *  Reuses `loadRepoModel`, the same walk `runRepoValidate` uses for its canon
+ *  cross-reference checks, so the two never see a different model. */
+export function buildRepoModel(root: string): ResolvedRepoModel {
+  return resolveRepoModel(loadRepoModel(root));
+}
+
 /** True when the run has a blocking finding — a canon finding or a view error.
  *  View warnings and skipped files do not fail the run. */
 export function repoScopeHasErrors(result: RepoScopeResult): boolean {
@@ -607,8 +618,15 @@ export function repoScopeHasErrors(result: RepoScopeResult): boolean {
 }
 
 /** Print the repo-scope result (human or JSON). Returns nothing; the caller sets
- *  the exit code via repoScopeHasErrors(). */
-export function reportRepoFindings(root: string, result: RepoScopeResult, useJson: boolean): void {
+ *  the exit code via repoScopeHasErrors(). `model` is set only when the caller
+ *  passed `--include-model` — omitted from the JSON entirely otherwise,
+ *  so the default output shape is unchanged for existing consumers. */
+export function reportRepoFindings(
+  root: string,
+  result: RepoScopeResult,
+  useJson: boolean,
+  model?: ResolvedRepoModel,
+): void {
   const { canon, views, codex, compliance, skipped } = result;
   const viewErrors = views.filter((v) => v.severity === 'error');
   const viewWarnings = views.filter((v) => v.severity === 'warning');
@@ -634,6 +652,7 @@ export function reportRepoFindings(root: string, result: RepoScopeResult, useJso
           codex: { valid: codexErrors.length === 0, findings: codex },
           compliance: { valid: complianceErrors.length === 0, findings: compliance },
           skipped,
+          ...(model ? { model } : {}),
         },
         null,
         2,
@@ -644,6 +663,9 @@ export function reportRepoFindings(root: string, result: RepoScopeResult, useJso
 
   if (valid && skipped.length === 0) {
     console.log(`✓ ${root} — repo-scope validation passed`);
+    if (model) {
+      console.log(`  Resolved model: ${model.elements.length} element(s), ${model.relations.length} relation(s)`);
+    }
     console.log();
     return;
   }
@@ -748,6 +770,11 @@ export function reportRepoFindings(root: string, result: RepoScopeResult, useJso
   }
   if (parts.length > 0) {
     console.log(`Repo-scope validation: ${parts.join(', ')}`);
+    console.log();
+  }
+
+  if (model) {
+    console.log(`Resolved model: ${model.elements.length} element(s), ${model.relations.length} relation(s)`);
     console.log();
   }
 }

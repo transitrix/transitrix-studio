@@ -27,6 +27,7 @@ npx @transitrix/cli --help
 transitrix compile <input>.yaml <output>.bpmn   # YAML → BPMN 2.0 XML
 transitrix validate <input>.yaml                # per-file validation
 transitrix validate --scope=repo                # whole-repo canon checks
+transitrix validate --scope=repo --json --include-model  # + resolved elements/relations
 transitrix metrics <input>.yaml [--json]        # layout-quality metrics
 transitrix export-compliance [--format md|pdf]  # compliance report
 transitrix serve [--port 8765]                  # local web UI

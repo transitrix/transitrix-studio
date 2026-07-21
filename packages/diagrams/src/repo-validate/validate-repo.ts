@@ -33,15 +33,16 @@ const PScope: RepoFinding['scope'] = 'repo';
 /** Statuses that, per lint.py's policy check, require an owner. */
 const OWNER_REQUIRED_STATUSES = new Set(['Active', 'Production']);
 
-function isRecord(v: unknown): v is Record<string, unknown> {
+export function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v);
 }
 
 /** Read a string `id` from a parsed doc, or `null` if absent/non-string.
  *  Mirrors lint.py, which only treats a doc as an element/relation when it has
  *  a top-level `id` (sidecars such as versioned-attribute files have no `id`
- *  and are ignored). */
-function docId(doc: RepoDoc): string | null {
+ *  and are ignored). Exported for reuse by `resolve-model.ts`, which needs the
+ *  same id/endpoint reading rules to stay in lockstep with this validator. */
+export function docId(doc: RepoDoc): string | null {
   if (!doc.data) return null;
   const id = doc.data['id'];
   return typeof id === 'string' && id.length > 0 ? id : null;
@@ -49,7 +50,7 @@ function docId(doc: RepoDoc): string | null {
 
 /** Resolve a relation endpoint, which may be a bare id string or a `{ id }`
  *  mapping (lint.py accepts both). Returns the id string or `null`. */
-function endpointId(value: unknown): string | null {
+export function endpointId(value: unknown): string | null {
   if (typeof value === 'string') return value.length > 0 ? value : null;
   if (isRecord(value)) {
     const id = value['id'];

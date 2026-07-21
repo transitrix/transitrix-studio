@@ -17,7 +17,7 @@ import type { ValidationReport, ValidationFinding } from './validator-types.js';
 import { parseYamlToIr } from './parser.js';
 import { validateProcess } from './validator.js';
 import type { ProcessIr } from './ir.js';
-import { runRepoValidate, reportRepoFindings, repoScopeHasErrors } from './repo-validate.js';
+import { runRepoValidate, reportRepoFindings, repoScopeHasErrors, buildRepoModel } from './repo-validate.js';
 import {
   isFileValidatableNotation,
   loadNotationYaml,
@@ -56,7 +56,7 @@ function printUsage(): void {
        transitrix metrics [--ext=.bpmn.transitrix.yaml] <input.yaml> [--json]
        transitrix validate <input.yaml> [--json]
        transitrix validate [--ext=.bpmn.transitrix.yaml] <input.yaml> [--json]
-       transitrix validate --scope=repo [--root <dir>] [--json]
+       transitrix validate --scope=repo [--root <dir>] [--json] [--include-model]
        transitrix export-compliance [--format md|pdf] [--scope law:<ID>|product:<ID>|gap] [--output <path>] [--root <dir>]
        transitrix migrate [--from X.Y] [--to X.Y] [--dry-run] [--recipes <dir>] [target-dir]
 
@@ -69,7 +69,8 @@ function printUsage(): void {
               activities, activity-card, process-blueprint, blocks) routed by its
               notation: field — the same checks the Studio preview shows.
               --scope=repo runs whole-canon checks (referential integrity,
-              atomicity, id uniqueness, policy).
+              atomicity, id uniqueness, policy). --include-model (with --json)
+              also emits the resolved element/relation records it parsed.
   export-compliance — Markdown or PDF report of the compliance views (matrix by
               default; law:/product:/gap scopes). Scans --root (default cwd) for
               requirement/assertion/product/codex canon. PDF rendering requires
@@ -304,7 +305,7 @@ async function handleValidateCommand(argv: string[]): Promise<void> {
 
   if (wantsHelp) {
     console.error(`usage: transitrix validate <input.yaml> [--json]                 (file scope, default)`);
-    console.error(`       transitrix validate --scope=repo [--root <dir>] [--json]`);
+    console.error(`       transitrix validate --scope=repo [--root <dir>] [--json] [--include-model]`);
     console.error('');
     console.error('file scope — single-file structural/semantic validation (default).');
     console.error('             BPMN, or any diagram notation routed by its notation: field');
@@ -315,6 +316,10 @@ async function handleValidateCommand(argv: string[]): Promise<void> {
     console.error('             Canonical notation extensions are accepted without --ext.');
     console.error('repo scope — whole-canon checks (referential integrity, atomicity,');
     console.error('             id uniqueness, policy) over <root> (default: cwd).');
+    console.error('             --include-model (with --json) also emits the resolved');
+    console.error('             canon/elements/** and canon/relations/** records it parsed,');
+    console.error('             as { model: { elements: [...], relations: [...] } } — for a');
+    console.error('             non-JS consumer of the parsed model. Off by default.');
     console.error('Exits with code 1 if any findings.');
     process.exit(0);
   }
@@ -323,7 +328,13 @@ async function handleValidateCommand(argv: string[]): Promise<void> {
   if (scope === 'repo') {
     const repoRoot = root ?? process.cwd();
     const result = runRepoValidate(repoRoot);
-    reportRepoFindings(repoRoot, result, useJson);
+    // --include-model: also emit the resolved element/relation records the
+    // canon walk already parsed, for a non-JS consumer (DSM) that wants the
+    // model without a second parser. Opt-in so the default --scope=repo
+    // output shape is unchanged for existing callers.
+    const includeModel = argv.includes('--include-model');
+    const model = includeModel ? buildRepoModel(repoRoot) : undefined;
+    reportRepoFindings(repoRoot, result, useJson, model);
     if (repoScopeHasErrors(result)) {
       process.exit(1);
     }
