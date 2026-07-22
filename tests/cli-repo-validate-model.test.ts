@@ -43,6 +43,18 @@ describe('CLI validate --scope=repo --include-model', () => {
     })
     expect(driver.sourceFile).toMatch(/canon\/elements\/01_motivation\/factors\/DRIVER-COMP-1\.yaml$/)
 
+    // `data` carries the full parsed element — canon-authored fields beyond
+    // the minimal identity set (e.g. `description`) are readable without an
+    // engine schema change.
+    expect(driver.data).toMatchObject({
+      notation: 'driver',
+      id: 'DRIVER-COMP-1',
+      name: 'Support response time',
+      type: 'internal',
+    })
+    expect(typeof driver.data.description).toBe('string')
+    expect(driver.data.description.length).toBeGreaterThan(0)
+
     const relation = output.model.relations.find((r: { id: string }) => r.id === 'REL-EMP-PERSON-OPS-1')
     expect(relation).toMatchObject({
       id: 'REL-EMP-PERSON-OPS-1',

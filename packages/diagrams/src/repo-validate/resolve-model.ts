@@ -43,6 +43,7 @@ function resolveElement(doc: RepoDoc): ResolvedElementRecord | null {
     type: readString(doc.data, 'type'),
     layer: readString(doc.data, 'layer') ?? layerFromPath(doc.path),
     sourceFile: doc.path,
+    data: doc.data,
   };
 }
 
