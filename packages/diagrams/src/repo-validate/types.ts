@@ -49,10 +49,18 @@ export interface RepoModelInput {
 }
 
 /** One resolved canon element, projected from a `RepoDoc` for a non-JS
- *  consumer (DSM's Go importer). Mirrors the fields
- *  DSM's `methodology_element` table already persists (`ElementID`, `Name`,
- *  `ElementType`, `Layer`, `Notation`, `SourceFile`), minus DB-internal
- *  concerns (row id, timestamps). */
+ *  consumer (DSM's Go importer). The top-level fields below are a stable,
+ *  minimal identity projection — kept for backward compatibility with
+ *  consumers that only need `id`/`name`/`notation`/`type`/`layer`/`sourceFile`
+ *  (mirrors DSM's `methodology_element` table). `data` carries the complete
+ *  parsed element alongside it, so a consumer never needs an engine schema
+ *  change to read a canon-authored field the engine already parsed (a goal's
+ *  `level`/`parent`/`description`/`link`/`tags`, an action's scheduling and
+ *  ownership fields, etc.) — the engine owns each notation's field set
+ *  (ELEMENT_PRIMITIVES.md), so its output stays notation-shaped rather than
+ *  growing a bespoke field list per consumer. This is the faithful-projection
+ *  fallback: a typed per-notation shape may replace `data` later, but the
+ *  contract must not be curated down to what one consumer currently needs. */
 export interface ResolvedElementRecord {
   /** Canonical id, e.g. `DRIVER-COMP-1`. */
   id: string;
@@ -66,6 +74,11 @@ export interface ResolvedElementRecord {
   layer?: string;
   /** Source file path, relative to the scanned root. */
   sourceFile: string;
+  /** The full parsed element document — every field its author supplied,
+   *  unfiltered (including the admission/lifecycle envelope). The same
+   *  `RepoDoc.data` the repo-scope validator already consumes, so this
+   *  projection and the validation pass never see a different parse. */
+  data: Record<string, unknown>;
 }
 
 /** One resolved canon relation, projected from a `RepoDoc`. Only

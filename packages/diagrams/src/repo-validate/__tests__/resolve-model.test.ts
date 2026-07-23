@@ -8,15 +8,14 @@ function el(path: string, data: Record<string, unknown> | null, parseError?: str
 
 describe('resolveRepoModel — elements', () => {
   it('resolves id/name/notation/type/layer/sourceFile from an admitted element', () => {
+    const doc = {
+      notation: 'driver',
+      id: 'DRIVER-COMP-1',
+      name: 'Support response time',
+      type: 'internal',
+    };
     const model: RepoModelInput = {
-      elements: [
-        el('canon/elements/01_motivation/factors/DRIVER-COMP-1.yaml', {
-          notation: 'driver',
-          id: 'DRIVER-COMP-1',
-          name: 'Support response time',
-          type: 'internal',
-        }),
-      ],
+      elements: [el('canon/elements/01_motivation/factors/DRIVER-COMP-1.yaml', doc)],
       relations: [],
     };
     const { elements } = resolveRepoModel(model);
@@ -28,8 +27,30 @@ describe('resolveRepoModel — elements', () => {
         type: 'internal',
         layer: 'motivation',
         sourceFile: 'canon/elements/01_motivation/factors/DRIVER-COMP-1.yaml',
+        data: doc,
       },
     ]);
+  });
+
+  it('carries every canon-authored field on `data`, not just the minimal identity set', () => {
+    const doc = {
+      notation: 'goal',
+      id: 'GOAL-CUST-1',
+      name: 'Improve customer onboarding experience',
+      type: 'Strategic Goal',
+      level: 1,
+      parent: 'GOAL-ROOT-1',
+      description: 'Reduce time-to-value for new customers.',
+      link: 'https://wiki.example.com/onboarding',
+      tags: ['customer', 'q3'],
+      zone: 'canon',
+      admitted_at: '2026-05-29',
+    };
+    const model: RepoModelInput = {
+      elements: [el('canon/elements/01_motivation/goals/GOAL-CUST-1.yaml', doc)],
+      relations: [],
+    };
+    expect(resolveRepoModel(model).elements[0].data).toEqual(doc);
   });
 
   it('prefers an explicit `layer` field over the folder-derived one', () => {

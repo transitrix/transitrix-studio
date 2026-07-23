@@ -97,7 +97,20 @@ re-implementing the notation schema. Off by default — `--json` without
         "notation": "driver",
         "type": "internal",
         "layer": "motivation",
-        "sourceFile": "canon/elements/01_motivation/factors/DRIVER-COMP-1.yaml"
+        "sourceFile": "canon/elements/01_motivation/factors/DRIVER-COMP-1.yaml",
+        "data": {
+          "notation": "driver",
+          "id": "DRIVER-COMP-1",
+          "name": "Support response time",
+          "type": "internal",
+          "description": "Standing internal driver — the performance dimension of support first-response time. …",
+          "zone": "canon",
+          "admitted_at": "2026-05-29",
+          "admitted_by": "v.korobeinikov",
+          "gate_checks": { "uniqueness": "pass", "consistency": "pass", "completeness": "pass" },
+          "valid_from": "2026-05-26",
+          "valid_to": null
+        }
       }
     ],
     "relations": [
@@ -117,7 +130,15 @@ re-implementing the notation schema. Off by default — `--json` without
   short name, e.g. `driver`, `goal`, `capability`), `type` (per-TYPE subtype,
   omitted when the doc has none), `layer` (from the doc's `layer` field, else
   derived from the `canon/elements/<NN>_<layer>/…` folder — omitted if
-  neither is present), `sourceFile` (path relative to `--root`).
+  neither is present), `sourceFile` (path relative to `--root`), `data` — the
+  complete parsed element document, unfiltered (every canon-authored field the
+  file has, plus the admission/lifecycle envelope). `id`/`name`/`notation`/
+  `type`/`layer`/`sourceFile` stay a minimal, stable identity projection for
+  consumers that only need those; `data` is the faithful projection for a
+  consumer that needs a field the engine already parsed but the minimal set
+  doesn't carry (a goal's `level`/`parent`/`link`/`tags`, an action's
+  scheduling and ownership fields, …) — without the engine growing a
+  bespoke field list per consumer.
 - **Relations** — `id` (`''` if the doc has none), `kind` (the relation's
   `type` field, omitted when absent), `source`/`target` (resolved `from`/`to`,
   or the legacy `source`/`target` keys). A relation is only emitted once both
