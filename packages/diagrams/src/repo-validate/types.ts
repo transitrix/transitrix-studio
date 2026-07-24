@@ -18,6 +18,17 @@
 // (`docs/validation.md` § repo-scope rule list); the original structural
 // checks (syntax/uniqueness/atomicity/referential-integrity/policy) stay
 // uncoded rather than being retrofitted with invented codes.
+//
+// A second field, `severity`, is un-frozen for the same reason (vkgeorgia/
+// strategy#719): DSM's warn-severity strategy-chain rules (GOALS-009/011,
+// ACT-005, FGCA-012..014 — see check-strategy-chain.ts) are non-fatal by
+// DSM's own taxonomy ("import anyway, record the warning"); without a
+// severity field, porting them here would silently make them blocking,
+// since every existing repo-scope finding is implicitly blocking. `severity`
+// is optional and defaults to `'error'` when omitted — every finding from
+// before this field existed (syntax/uniqueness/atomicity/referential-
+// integrity/policy, plus the error-tier strategy-chain rules and
+// TSVC-003/INT-002) stays blocking with no code change at the call site.
 
 /** A single repo-scope validation finding. */
 export interface RepoFinding {
@@ -36,6 +47,13 @@ export interface RepoFinding {
    * Omitted for checks that don't yet have one.
    */
   ruleId?: string;
+  /**
+   * `'error'` (blocking) or `'warning'` (advisory). Omitted is equivalent to
+   * `'error'` — every check that predates this field never sets it and must
+   * stay blocking. Only the warn-severity strategy-chain rules set this to
+   * `'warning'` today (`docs/validation.md` § repo-scope rule list).
+   */
+  severity?: 'error' | 'warning';
 }
 
 /** A parsed canon document fed to the repo validator. IO (the filesystem walk)

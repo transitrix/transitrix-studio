@@ -606,11 +606,18 @@ export function buildRepoModel(root: string): ResolvedRepoModel {
   return resolveRepoModel(loadRepoModel(root));
 }
 
-/** True when the run has a blocking finding — a canon finding or a view error.
- *  View warnings and skipped files do not fail the run. */
+/** A canon finding blocks the run unless it explicitly opts into
+ *  `severity: 'warning'` — every finding that predates that field (and every
+ *  error-tier strategy-chain rule) has no `severity` set and stays blocking. */
+function isCanonBlocking(f: RepoFinding): boolean {
+  return f.severity !== 'warning';
+}
+
+/** True when the run has a blocking finding — a canon error or a view error.
+ *  Canon/view/codex/compliance warnings and skipped files do not fail the run. */
 export function repoScopeHasErrors(result: RepoScopeResult): boolean {
   return (
-    result.canon.length > 0
+    result.canon.some(isCanonBlocking)
     || result.views.some((v) => v.severity === 'error')
     || result.codex.some((c) => c.severity === 'error')
     || result.compliance.some((c) => c.severity === 'error')
@@ -628,6 +635,8 @@ export function reportRepoFindings(
   model?: ResolvedRepoModel,
 ): void {
   const { canon, views, codex, compliance, skipped } = result;
+  const canonErrors = canon.filter(isCanonBlocking);
+  const canonWarnings = canon.filter((c) => c.severity === 'warning');
   const viewErrors = views.filter((v) => v.severity === 'error');
   const viewWarnings = views.filter((v) => v.severity === 'warning');
   const codexErrors = codex.filter((c) => c.severity === 'error');
@@ -635,7 +644,7 @@ export function reportRepoFindings(
   const complianceErrors = compliance.filter((c) => c.severity === 'error');
   const complianceWarnings = compliance.filter((c) => c.severity === 'warning');
   const valid =
-    canon.length === 0
+    canonErrors.length === 0
     && viewErrors.length === 0
     && codexErrors.length === 0
     && complianceErrors.length === 0;
@@ -678,7 +687,8 @@ export function reportRepoFindings(
     console.log('Canon (elements / relations):');
     for (const f of canon) {
       const where = f.id ? f.id : '(file)';
-      console.log(`  \x1b[31m✗ ${where}\x1b[0m ${f.message}`);
+      const mark = f.severity === 'warning' ? `\x1b[33m⚠ ${where}\x1b[0m` : `\x1b[31m✗ ${where}\x1b[0m`;
+      console.log(`  ${mark} ${f.message}`);
     }
     console.log();
   }
@@ -739,8 +749,13 @@ export function reportRepoFindings(
   }
 
   const parts: string[] = [];
-  if (canon.length > 0) {
-    parts.push(`\x1b[31m${canon.length}\x1b[0m canon`);
+  if (canonErrors.length > 0) {
+    parts.push(`\x1b[31m${canonErrors.length}\x1b[0m canon error${canonErrors.length === 1 ? '' : 's'}`);
+  }
+  if (canonWarnings.length > 0) {
+    parts.push(
+      `\x1b[33m${canonWarnings.length}\x1b[0m canon warning${canonWarnings.length === 1 ? '' : 's'}`,
+    );
   }
   if (viewErrors.length > 0) {
     parts.push(`\x1b[31m${viewErrors.length}\x1b[0m view error${viewErrors.length === 1 ? '' : 's'}`);

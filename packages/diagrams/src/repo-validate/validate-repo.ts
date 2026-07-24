@@ -23,8 +23,9 @@
 //   6. Policy             (phase 6) — element marked Active/Production with no
 //                                     owner.
 //
-// Findings stay `{ scope, id, message }` — no severity, no target/category
-// taxonomy (deferred per the ADR).
+// Findings stay `{ scope, id, message }` plus the two un-frozen optional
+// fields `ruleId` and `severity` — the richer target/category taxonomy stays
+// deferred per the ADR.
 
 import { checkStrategyChainSemantics } from './check-strategy-chain.js';
 import type { RepoDoc, RepoFinding, RepoModelInput } from './types.js';

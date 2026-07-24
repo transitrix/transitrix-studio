@@ -31,29 +31,49 @@ describe('checkStrategyChainSemantics — GOALS-010 (parent cycle)', () => {
     const model = emptyModel();
     model.elements.push(goal('GOAL-A', { parent: 'GOAL-B' }), goal('GOAL-B', { parent: 'GOAL-A' }));
     const findings = validateRepoModel(model);
-    expect(findings).toHaveLength(1);
-    expect(findings[0]).toMatchObject({ scope: 'repo', ruleId: 'GOALS-010' });
-    expect(findings[0].message).toContain('cycle');
+    const errors = findings.filter((f) => f.severity !== 'warning');
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toMatchObject({ scope: 'repo', ruleId: 'GOALS-010' });
+    expect(errors[0].message).toContain('cycle');
+    // Both goals are unreferenced by any change/action — FGCA-013 warnings.
+    expect(findings.filter((f) => f.ruleId === 'FGCA-013')).toHaveLength(2);
   });
 
-  it('does not flag an acyclic parent chain', () => {
+  it('does not flag an acyclic parent chain (beyond the expected unreferenced-goal warnings)', () => {
     const model = emptyModel();
     model.elements.push(goal('GOAL-ROOT'), goal('GOAL-CHILD', { parent: 'GOAL-ROOT' }));
-    expect(validateRepoModel(model)).toEqual([]);
+    const findings = validateRepoModel(model);
+    expect(findings.filter((f) => f.severity !== 'warning')).toEqual([]);
+    expect(findings.every((f) => f.ruleId === 'FGCA-013')).toBe(true);
   });
 
-  it('does not flag a goal whose parent is unresolved (orphan, not a cycle — GOALS-009 deferred)', () => {
+  it('flags GOALS-009 for a goal whose parent is unresolved (orphan, not a cycle — warning)', () => {
     const model = emptyModel();
     model.elements.push(goal('GOAL-A', { parent: 'GOAL-MISSING' }));
-    expect(validateRepoModel(model)).toEqual([]);
+    const findings = validateRepoModel(model);
+    expect(findings).toContainEqual(
+      expect.objectContaining({ scope: 'repo', id: 'GOAL-A', ruleId: 'GOALS-009', severity: 'warning' }),
+    );
+    expect(findings.filter((f) => f.severity !== 'warning')).toEqual([]);
   });
 
-  it('does not flag a goal with no parent at all (v0.x transitional — GOALS-011 deferred)', () => {
+  it('flags GOALS-011 for a level >= 1 goal with no parent at all (backlog — warning)', () => {
     // Matches organizations/acme_corp's GOAL-CUST-1 / GOAL-OPS-1 shape: level
     // >= 1, no `parent` on the element (parent carried by the goals-tree view).
     const model = emptyModel();
     model.elements.push(goal('GOAL-BACKLOG', { type: 'Strategic Goal', level: 1 }));
-    expect(validateRepoModel(model)).toEqual([]);
+    const findings = validateRepoModel(model);
+    expect(findings).toContainEqual(
+      expect.objectContaining({ scope: 'repo', id: 'GOAL-BACKLOG', ruleId: 'GOALS-011', severity: 'warning' }),
+    );
+    expect(findings.filter((f) => f.severity !== 'warning')).toEqual([]);
+  });
+
+  it('does not flag GOALS-009/011 for a level-0 (root) goal with no parent', () => {
+    const model = emptyModel();
+    model.elements.push(goal('GOAL-ROOT', { type: 'Strategy', level: 0 }));
+    const findings = validateRepoModel(model);
+    expect(findings.some((f) => f.ruleId === 'GOALS-009' || f.ruleId === 'GOALS-011')).toBe(false);
   });
 });
 
@@ -84,10 +104,28 @@ describe('checkStrategyChainSemantics — ACT-006 (predecessor cycle) / ACT-007 
     expect(findings.every((f) => f.id === 'ACTION-SELF')).toBe(true);
   });
 
-  it('does not flag an unresolved predecessor (orphan — ACT-005 deferred)', () => {
+  it('flags ACT-005 for an unresolved predecessor (orphan — warning)', () => {
     const model = emptyModel();
     model.elements.push(action('ACTION-A', { predecessors: ['ACTION-MISSING'] }));
-    expect(validateRepoModel(model)).toEqual([]);
+    const findings = validateRepoModel(model);
+    expect(findings).toEqual([
+      expect.objectContaining({ scope: 'repo', id: 'ACTION-A', ruleId: 'ACT-005', severity: 'warning' }),
+    ]);
+  });
+
+  it('flags ACT-005 for an unresolved parent (orphan — warning)', () => {
+    const model = emptyModel();
+    model.elements.push(action('ACTION-A', { parent: 'ACTION-MISSING' }));
+    const findings = validateRepoModel(model);
+    expect(findings).toEqual([
+      expect.objectContaining({ scope: 'repo', id: 'ACTION-A', ruleId: 'ACT-005', severity: 'warning' }),
+    ]);
+  });
+
+  it('does not flag ACT-005 for a resolved predecessor/parent', () => {
+    const model = emptyModel();
+    model.elements.push(action('ACTION-ROOT'), action('ACTION-CHILD', { parent: 'ACTION-ROOT', predecessors: ['ACTION-ROOT'] }));
+    expect(validateRepoModel(model).filter((f) => f.ruleId === 'ACT-005')).toEqual([]);
   });
 });
 
@@ -170,29 +208,38 @@ describe('checkStrategyChainSemantics — FGCA-008..011 (strategy-chain cross-re
     const model = emptyModel();
     model.elements.push(goal('GOAL-A', { factors: ['DRIVER-MISSING'] }));
     const findings = validateRepoModel(model);
-    expect(findings).toHaveLength(1);
-    expect(findings[0]).toMatchObject({ id: 'GOAL-A', ruleId: 'FGCA-008' });
+    const errors = findings.filter((f) => f.severity !== 'warning');
+    expect(errors).toEqual([expect.objectContaining({ id: 'GOAL-A', ruleId: 'FGCA-008' })]);
+    // GOAL-A is also unreferenced by any change/action — FGCA-013 warning.
+    expect(findings.filter((f) => f.ruleId === 'FGCA-013')).toHaveLength(1);
   });
 
-  it('accepts GOAL.factors that resolve to a driver', () => {
+  it('accepts GOAL.factors that resolve to a driver (beyond the expected unreferenced-goal warning)', () => {
     const model = emptyModel();
     model.elements.push(driver('DRIVER-A'), goal('GOAL-A', { factors: ['DRIVER-A'] }));
-    expect(validateRepoModel(model)).toEqual([]);
+    const findings = validateRepoModel(model);
+    expect(findings.filter((f) => f.severity !== 'warning')).toEqual([]);
+    expect(findings).toEqual([
+      expect.objectContaining({ id: 'GOAL-A', ruleId: 'FGCA-013', severity: 'warning' }),
+    ]);
   });
 
   it('accepts the legacy `factor` notation value for the driver cross-reference', () => {
     const model = emptyModel();
     model.elements.push(el('canon/elements/01_motivation/factors/DRIVER-A.yaml', { notation: 'factor', id: 'DRIVER-A' }));
     model.elements.push(goal('GOAL-A', { factors: ['DRIVER-A'] }));
-    expect(validateRepoModel(model)).toEqual([]);
+    const findings = validateRepoModel(model);
+    expect(findings.filter((f) => f.severity !== 'warning')).toEqual([]);
   });
 
   it('flags CHANGE.goals referencing an undefined goal (FGCA-009)', () => {
     const model = emptyModel();
     model.elements.push(change('CHANGE-A', { goals: ['GOAL-MISSING'] }));
     const findings = validateRepoModel(model);
-    expect(findings).toHaveLength(1);
-    expect(findings[0]).toMatchObject({ id: 'CHANGE-A', ruleId: 'FGCA-009' });
+    const errors = findings.filter((f) => f.severity !== 'warning');
+    expect(errors).toEqual([expect.objectContaining({ id: 'CHANGE-A', ruleId: 'FGCA-009' })]);
+    // CHANGE-A is also unreferenced by any action — FGCA-014 warning.
+    expect(findings.filter((f) => f.ruleId === 'FGCA-014')).toHaveLength(1);
   });
 
   it('flags ACTION.delivers_changes referencing an undefined change (FGCA-010)', () => {
@@ -222,15 +269,24 @@ describe('checkStrategyChainSemantics — FGCA-008..011 (strategy-chain cross-re
     expect(validateRepoModel(model)).toEqual([]);
   });
 
-  it('does not flag a driver/goal/change that is unreferenced (orphan — FGCA-012..014 deferred)', () => {
+  it('flags FGCA-012..014 for a driver/goal/change that is unreferenced (orphan — warning)', () => {
     const model = emptyModel();
     model.elements.push(driver('DRIVER-UNUSED'), goal('GOAL-UNUSED'), change('CHANGE-UNUSED'));
-    expect(validateRepoModel(model)).toEqual([]);
+    const findings = validateRepoModel(model);
+    expect(findings.filter((f) => f.severity !== 'warning')).toEqual([]);
+    expect(findings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'DRIVER-UNUSED', ruleId: 'FGCA-012', severity: 'warning' }),
+        expect.objectContaining({ id: 'GOAL-UNUSED', ruleId: 'FGCA-013', severity: 'warning' }),
+        expect.objectContaining({ id: 'CHANGE-UNUSED', ruleId: 'FGCA-014', severity: 'warning' }),
+      ]),
+    );
+    expect(findings).toHaveLength(3);
   });
 });
 
 describe('checkStrategyChainSemantics — organizations/acme_corp parity shape', () => {
-  it('does not flag acme_corp-shaped goals/actions/drivers/changes', () => {
+  it('flags no error-severity finding on acme_corp-shaped goals/actions/drivers/changes', () => {
     // Mirrors organizations/acme_corp's real fixture: goals with no inline
     // `parent` (carried by the goals-tree view), actions using `duration_days`
     // with `predecessors` and `delivers_changes`, drivers/changes resolving.
@@ -244,6 +300,20 @@ describe('checkStrategyChainSemantics — organizations/acme_corp parity shape',
       action('ACTION-BUILD-1', { duration_days: 30, predecessors: ['ACTION-DESIGN-1'], delivers_changes: ['CHANGE-ONBOARD-1'] }),
       action('ACTION-LAUNCH-1', { duration_days: 5, predecessors: ['ACTION-BUILD-1'], delivers_changes: ['CHANGE-ONBOARD-1'] }),
     );
-    expect(validateRepoModel(model)).toEqual([]);
+    const findings = validateRepoModel(model);
+    // No blocking findings — the ERROR-tier parity bar this fixture has always held.
+    expect(findings.filter((f) => f.severity !== 'warning')).toEqual([]);
+    // Warning tier: GOAL-OPS-1/GOAL-CUST-1 are level >= 1 with no inline
+    // `parent` (GOALS-011 — expected, ported deliberately at warning severity);
+    // GOAL-OPS-1 is not referenced by any change/action's `goals` (FGCA-013) —
+    // only GOAL-CUST-1 is (via CHANGE-ONBOARD-1.goals).
+    expect(findings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'GOAL-OPS-1', ruleId: 'GOALS-011', severity: 'warning' }),
+        expect.objectContaining({ id: 'GOAL-CUST-1', ruleId: 'GOALS-011', severity: 'warning' }),
+        expect.objectContaining({ id: 'GOAL-OPS-1', ruleId: 'FGCA-013', severity: 'warning' }),
+      ]),
+    );
+    expect(findings).toHaveLength(3);
   });
 });
