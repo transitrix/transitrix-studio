@@ -7,11 +7,19 @@
 // runtime (methodology ADR "Validation Two-Axis Model"; Studio decision
 // "Validation Runtime Convergence").
 //
-// The finding shape is deliberately minimal — `{ scope, id, message }`. The
-// richer `target` / `category` reporting taxonomy is explicitly DEFERRED per the
-// ADR until a real consumer needs it; do not add it here.
+// The finding shape was originally frozen minimal — `{ scope, id, message }` —
+// with the richer `target` / `category` reporting taxonomy explicitly DEFERRED
+// per the ADR until a real consumer needed it. This un-freezes one field,
+// `ruleId`: DSM (migrating off its own Go `Validate*` functions) needs a
+// stable code per finding to map onto its existing import-log rule taxonomy
+// (`api02/internal/importer/{goals,activities,fgca}.go`). The richer
+// `target`/`category` taxonomy stays deferred — only `ruleId` is added.
+// `ruleId` is optional: only checks with a stable, documented code set it
+// (`docs/validation.md` § repo-scope rule list); the original structural
+// checks (syntax/uniqueness/atomicity/referential-integrity/policy) stay
+// uncoded rather than being retrofitted with invented codes.
 
-/** A single repo-scope validation finding. Shape is frozen at `{ scope, id, message }`. */
+/** A single repo-scope validation finding. */
 export interface RepoFinding {
   /** Always `'repo'` — the execution axis this finding came from. */
   scope: 'repo';
@@ -22,6 +30,12 @@ export interface RepoFinding {
   id: string;
   /** Human-readable description of the violation. */
   message: string;
+  /**
+   * Stable rule code (e.g. `GOALS-010`, `ACT-006`, `FGCA-008`), for a consumer
+   * that maps findings onto its own rule taxonomy (`docs/validation.md`).
+   * Omitted for checks that don't yet have one.
+   */
+  ruleId?: string;
 }
 
 /** A parsed canon document fed to the repo validator. IO (the filesystem walk)
