@@ -31,14 +31,69 @@ runtime. It scans `<root>/canon/elements/**` (elements) and
 `{ scope, id, message }`. Any finding exits non-zero — the CI gate.
 
 Repo-scope checks (parity reference: the `acme_corp` worked example, which
-passes with zero findings):
+passes with zero findings from the checks below — it does still carry
+pre-existing findings from the separate compliance suite, see below):
 
 - **YAML syntax** — an unparseable canon file is reported and graph checks are skipped.
 - **ID uniqueness** — the same `id` defined in more than one file.
 - **Atomicity** — an element file carrying an inline `relations:` section (relations belong in `canon/relations/`).
 - **Referential integrity** — a relation endpoint (`from`/`to`, or the legacy `source`/`target`) that does not resolve to a known element.
 - **Policy** — an element marked `Active`/`Production` (`metadata.status`) with no `metadata.owner`.
-- **ArchiMate layer-semantics** — *deferred* (lint.py ships this as a no-op stub; ported faithfully as a no-op until the methodology defines the rules).
+- **ArchiMate layer-semantics** — endpoint-type constraints for the relation
+  kinds with a formally-defined methodology semantics (`unit_located_at`,
+  `located_at`, `offers`, `realizes`, `hosts`, `uses`), plus `TSVC-003`
+  (TECHNOLOGY_SERVICE.node → NODE) and `INT-002` (INTEGRATION interface
+  endpoints → APPLICATION). lint.py ships this phase as a no-op stub; Studio
+  is ahead of the Python tool here — these findings are TypeScript-only.
+- **Strategy-chain semantics** (`GOALS-010`, `ACT-006`..`009`, `FGCA-008`..`011`)
+  — see below.
+
+### Strategy-chain semantic rules (`GOALS-*` / `ACT-*` / `FGCA-*`, #719)
+
+Ported from DSM's Go `Validate*` functions (`api02/internal/importer/
+{goals,activities,fgca}.go` in `transitrix-dsm`) onto the standalone-element
+shape (`canon/elements/01_motivation/goals/`, `canon/elements/
+05_implementation/{actions,changes}/`, `canon/elements/01_motivation/
+factors/`), so DSM can shell out to this CLI instead of maintaining its own
+copy of these checks (vkgeorgia/strategy#705). Each finding carries the DSM
+rule code as `RepoFinding.ruleId`, so DSM can map a CLI finding back onto its
+existing import-log taxonomy.
+
+| Rule | Checks |
+|---|---|
+| `GOALS-010` | A GOAL element's `parent` chain contains a cycle. |
+| `ACT-006` | An ACTION element's `predecessors` graph contains a cycle. |
+| `ACT-007` | An ACTION element lists itself in its own `predecessors`. |
+| `ACT-008` | An ACTION element's `start_date`/`end_date` is not a valid `YYYY-MM-DD` date, or `end_date` is before `start_date` (equal is allowed — e.g. a milestone). |
+| `ACT-009` | An ACTION element's `duration` (or the `duration_days` alias), `labor_cost`, `resources_cost`, `effort`, or `score` is negative. |
+| `FGCA-008` | A GOAL's `factors` references a DRIVER id that does not resolve to a DRIVER element. |
+| `FGCA-009` | A CHANGE's `goals` references a GOAL id that does not resolve to a GOAL element. |
+| `FGCA-010` | An ACTION's `delivers_changes` references a CHANGE id that does not resolve to a CHANGE element. |
+| `FGCA-011` | An ACTION's `goals` references a GOAL id that does not resolve to a GOAL element. |
+
+**Only DSM's error-severity rules are ported.** DSM's own taxonomy splits
+every rule error\|warn; `RepoFinding` has no severity field yet (the richer
+finding taxonomy stays deferred — see below), and every existing repo-scope
+finding is implicitly blocking (`validate --scope=repo` exits non-zero on any
+finding). DSM's warn-severity rules are deliberately **not** implemented here:
+
+- `GOALS-009`/`GOALS-011` (orphan / missing parent) and `ACT-005` (orphan
+  predecessor/parent) flag a normal state, not a bug, once adapted to the
+  standalone-element shape: a GOAL's `parent` is v0.x-transitional
+  (`ELEMENT_PRIMITIVES.md` §7.2 — its canonical home is a `goal_parent` REL
+  file or the goals-tree view's inline `parent`, not the element itself).
+  `organizations/acme_corp`'s own `GOAL-CUST-1`/`GOAL-OPS-1` are exactly this
+  shape (level 1, no `parent` on the element) — flagging that would fail this
+  repo's own reference fixture for doing nothing wrong.
+- `GOALS-008`'s error case ("type not declared in `goal_types`") needs a
+  catalogue this repo shape doesn't carry — `goal_types[]` lives on the
+  goals-tree view, not on the GOAL element — so it isn't portable here.
+- `FGCA-012`/`013`/`014` (unreferenced driver/goal/change) are
+  advisory-by-design in DSM ("import anyway, record the warning") — same
+  reasoning as the orphan-parent rules above.
+
+Promoting these to repo-scope findings is future work, gated on `RepoFinding`
+growing a severity field.
 
 ### Compliance suite (`--scope=repo`, #518)
 
@@ -67,8 +122,11 @@ $ transitrix validate --scope=repo --root organizations/acme_corp
 ✓ organizations/acme_corp — repo-scope validation passed
 ```
 
-The richer `target`/`category` finding taxonomy is intentionally **not** adopted
-yet (deferred per the ADR until a consumer needs it).
+The richer `target`/`category`/severity finding taxonomy is intentionally
+**not** adopted yet (deferred per the ADR until a consumer needs it). `#719`
+un-froze one field, `ruleId` — a stable code on findings that have one (see
+the strategy-chain rules above, plus `TSVC-003`/`INT-002`) — for DSM to map
+findings onto its own rule taxonomy; `target`/`category`/severity stay out.
 
 ### Resolved model output (`--include-model`)
 

@@ -26,6 +26,7 @@
 // Findings stay `{ scope, id, message }` — no severity, no target/category
 // taxonomy (deferred per the ADR).
 
+import { checkStrategyChainSemantics } from './check-strategy-chain.js';
 import type { RepoDoc, RepoFinding, RepoModelInput } from './types.js';
 
 const PScope: RepoFinding['scope'] = 'repo';
@@ -346,6 +347,7 @@ function checkLayerSemantics(input: RepoModelInput, findings: RepoFinding[]): vo
       findings.push({
         scope: PScope,
         id: svcId,
+        ruleId: 'TSVC-003',
         message:
           `TSVC-003: TECHNOLOGY_SERVICE '${svcId}' node '${nodeRef}' ` +
           `must resolve to a NODE element; got notation='${resolved['notation']}'.`,
@@ -369,6 +371,7 @@ function checkLayerSemantics(input: RepoModelInput, findings: RepoFinding[]): vo
         findings.push({
           scope: PScope,
           id: intId,
+          ruleId: 'INT-002',
           message:
             `INT-002: INTEGRATION '${intId}' interface_semantics endpoint '${endpointId}' ` +
             `(${field}) must resolve to an APPLICATION element; got notation='${resolved['notation']}'.`,
@@ -400,8 +403,9 @@ function checkPolicy(input: RepoModelInput, findings: RepoFinding[]): void {
 /**
  * Run all repo-scope checks over a loaded canon model and return the findings.
  * Pure: no IO, deterministic order (syntax, uniqueness, atomicity, referential,
- * semantics, policy). Reaches parity with `lint.py` on the `acme_corp` fixture
- * (zero findings on a clean tree).
+ * semantics, policy, strategy-chain). Reaches parity with `lint.py` on the
+ * `acme_corp` fixture (zero findings on a clean tree from the original
+ * lint.py-ported phases).
  */
 export function validateRepoModel(input: RepoModelInput): RepoFinding[] {
   const findings: RepoFinding[] = [];
@@ -416,5 +420,8 @@ export function validateRepoModel(input: RepoModelInput): RepoFinding[] {
   checkReferentialIntegrity(input, findings);
   checkLayerSemantics(input, findings);
   checkPolicy(input, findings);
+  // Phase 7 — strategy-chain semantic rules ported from DSM's Go Validate*
+  // functions (GOALS-010, ACT-006..009, FGCA-008..011; vkgeorgia/strategy#719).
+  checkStrategyChainSemantics(input, findings);
   return findings;
 }

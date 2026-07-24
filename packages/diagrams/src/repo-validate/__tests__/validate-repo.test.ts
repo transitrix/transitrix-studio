@@ -34,14 +34,16 @@ describe('validateRepoModel — parity / clean tree', () => {
     expect(findings.filter((f) => f.message.includes('Duplicate'))).toEqual([]);
   });
 
-  it('every finding carries the frozen { scope, id, message } shape', () => {
+  it('every finding carries { scope, id, message } plus an optional ruleId', () => {
     const model = cleanModel();
     model.relations.push(el('canon/relations/REL-BAD.yaml', { notation: 'relation', id: 'REL-BAD', from: 'NOPE', to: 'GOAL-OPS-1' }));
     const findings = validateRepoModel(model);
     expect(findings.length).toBeGreaterThan(0);
     for (const f of findings) {
-      expect(Object.keys(f).sort()).toEqual(['id', 'message', 'scope']);
+      const keys = Object.keys(f).filter((k) => k !== 'ruleId').sort();
+      expect(keys).toEqual(['id', 'message', 'scope']);
       expect(f.scope).toBe('repo');
+      if ('ruleId' in f) expect(typeof f.ruleId).toBe('string');
     }
   });
 });
