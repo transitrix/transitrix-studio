@@ -1,13 +1,13 @@
-// Strategy-chain semantic checks (vkgeorgia/strategy#719, epic #28) — the
-// error-severity subset of DSM's Go `Validate*` functions
-// (`api02/internal/importer/{goals,activities,fgca}.go` in transitrix-dsm),
-// ported onto the standalone-element repo shape (`canon/elements/**`) that
-// `validate --scope=repo` already loads, so DSM can drop those Go functions
-// per #705 without regressing the checks they enforce today.
+// Strategy-chain semantic checks — the error-severity subset of DSM's Go
+// `Validate*` functions (`api02/internal/importer/{goals,activities,fgca}.go`
+// in transitrix-dsm), ported onto the standalone-element repo shape
+// (`canon/elements/**`) that `validate --scope=repo` already loads, so DSM
+// can drop those Go functions without regressing the checks they enforce
+// today.
 //
 // Rule codes are DSM's own (`GOALS-010`, `ACT-006`..`009`, `FGCA-008`..`011`)
 // — not invented here — so DSM can map a CLI finding straight back onto its
-// import-log taxonomy (`RepoFinding.ruleId`, vkgeorgia/strategy#719).
+// import-log taxonomy (`RepoFinding.ruleId`).
 //
 // Scope — only DSM's ERROR-severity rules are ported. DSM's own taxonomy
 // splits every rule error|warn (`Issue.Severity` in the Go source). Porting
@@ -18,7 +18,7 @@
 //     existing repo-scope check is implicitly blocking — `validate
 //     --scope=repo` exits non-zero on ANY finding (docs/validation.md). A
 //     warn-severity DSM rule surfaced here would silently become a blocking
-//     one, which is a bigger behaviour change than #719 asked for.
+//     one, which is a bigger behaviour change than asked for.
 //   - Several of DSM's warn rules flag states that are normal, not bugs, once
 //     adapted to the standalone-element shape — confirmed against
 //     `organizations/acme_corp`, this repo's own parity fixture:

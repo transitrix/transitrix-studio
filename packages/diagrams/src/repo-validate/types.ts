@@ -9,11 +9,11 @@
 //
 // The finding shape was originally frozen minimal — `{ scope, id, message }` —
 // with the richer `target` / `category` reporting taxonomy explicitly DEFERRED
-// per the ADR until a real consumer needed it. vkgeorgia/strategy#719 un-freezes
-// one field, `ruleId`: DSM (migrating off its own Go `Validate*` functions per
-// #705) needs a stable code per finding to map onto its existing import-log
-// rule taxonomy (`api02/internal/importer/{goals,activities,fgca}.go`). The
-// richer `target`/`category` taxonomy stays deferred — only `ruleId` is added.
+// per the ADR until a real consumer needed it. This un-freezes one field,
+// `ruleId`: DSM (migrating off its own Go `Validate*` functions) needs a
+// stable code per finding to map onto its existing import-log rule taxonomy
+// (`api02/internal/importer/{goals,activities,fgca}.go`). The richer
+// `target`/`category` taxonomy stays deferred — only `ruleId` is added.
 // `ruleId` is optional: only checks with a stable, documented code set it
 // (`docs/validation.md` § repo-scope rule list); the original structural
 // checks (syntax/uniqueness/atomicity/referential-integrity/policy) stay

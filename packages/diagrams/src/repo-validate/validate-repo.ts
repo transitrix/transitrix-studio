@@ -421,7 +421,7 @@ export function validateRepoModel(input: RepoModelInput): RepoFinding[] {
   checkLayerSemantics(input, findings);
   checkPolicy(input, findings);
   // Phase 7 — strategy-chain semantic rules ported from DSM's Go Validate*
-  // functions (GOALS-010, ACT-006..009, FGCA-008..011; vkgeorgia/strategy#719).
+  // functions (GOALS-010, ACT-006..009, FGCA-008..011).
   checkStrategyChainSemantics(input, findings);
   return findings;
 }

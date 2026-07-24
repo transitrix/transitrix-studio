@@ -48,16 +48,16 @@ pre-existing findings from the separate compliance suite, see below):
 - **Strategy-chain semantics** (`GOALS-010`, `ACT-006`..`009`, `FGCA-008`..`011`)
   — see below.
 
-### Strategy-chain semantic rules (`GOALS-*` / `ACT-*` / `FGCA-*`, #719)
+### Strategy-chain semantic rules (`GOALS-*` / `ACT-*` / `FGCA-*`)
 
 Ported from DSM's Go `Validate*` functions (`api02/internal/importer/
 {goals,activities,fgca}.go` in `transitrix-dsm`) onto the standalone-element
 shape (`canon/elements/01_motivation/goals/`, `canon/elements/
 05_implementation/{actions,changes}/`, `canon/elements/01_motivation/
 factors/`), so DSM can shell out to this CLI instead of maintaining its own
-copy of these checks (vkgeorgia/strategy#705). Each finding carries the DSM
-rule code as `RepoFinding.ruleId`, so DSM can map a CLI finding back onto its
-existing import-log taxonomy.
+copy of these checks. Each finding carries the DSM rule code as
+`RepoFinding.ruleId`, so DSM can map a CLI finding back onto its existing
+import-log taxonomy.
 
 | Rule | Checks |
 |---|---|
@@ -123,10 +123,10 @@ $ transitrix validate --scope=repo --root organizations/acme_corp
 ```
 
 The richer `target`/`category`/severity finding taxonomy is intentionally
-**not** adopted yet (deferred per the ADR until a consumer needs it). `#719`
-un-froze one field, `ruleId` — a stable code on findings that have one (see
-the strategy-chain rules above, plus `TSVC-003`/`INT-002`) — for DSM to map
-findings onto its own rule taxonomy; `target`/`category`/severity stay out.
+**not** adopted yet (deferred per the ADR until a consumer needs it). One
+field, `ruleId`, is now un-frozen — a stable code on findings that have one
+(see the strategy-chain rules above, plus `TSVC-003`/`INT-002`) — for DSM to
+map findings onto its own rule taxonomy; `target`/`category`/severity stay out.
 
 ### Resolved model output (`--include-model`)
 
