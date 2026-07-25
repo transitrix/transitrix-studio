@@ -9,39 +9,37 @@
 // — not invented here — so DSM can map a CLI finding straight back onto its
 // import-log taxonomy (`RepoFinding.ruleId`).
 //
-// Scope — only DSM's ERROR-severity rules are ported. DSM's own taxonomy
-// splits every rule error|warn (`Issue.Severity` in the Go source). Porting
-// only the error half is deliberate, not an oversight:
+// Scope — DSM's full rule set is now ported except GOALS-008 (see below).
+// `RepoFinding` grew a `severity` field precisely so DSM's warn-severity
+// rules could land without becoming blocking: every finding from before that
+// field existed stays implicitly `'error'` (`types.ts`), and the six rules
+// below set `severity: 'warning'` explicitly, matching DSM's own
+// classification (`Issue.Severity` in the Go source) and its "import
+// anyway, record the warning" policy.
 //
-//   - `RepoFinding` has no severity field. The richer finding taxonomy stays
-//     "DEFERRED until a real consumer needs it" (types.ts), and every
-//     existing repo-scope check is implicitly blocking — `validate
-//     --scope=repo` exits non-zero on ANY finding (docs/validation.md). A
-//     warn-severity DSM rule surfaced here would silently become a blocking
-//     one, which is a bigger behaviour change than asked for.
-//   - Several of DSM's warn rules flag states that are normal, not bugs, once
-//     adapted to the standalone-element shape — confirmed against
-//     `organizations/acme_corp`, this repo's own parity fixture:
-//       - GOALS-009/011 (orphan / missing parent): GOAL's `parent` is
-//         declared "v0.x transitional" (methodology ELEMENT_PRIMITIVES.md
-//         §7.2) — its canonical home is a `goal_parent` REL file or the
-//         goals-tree view's inline `parent`, not the element. acme_corp's
-//         GOAL-CUST-1 / GOAL-OPS-1 are exactly this shape (level 1, no
-//         `parent` on the element, parent carried by the view per their own
-//         file comments) — flagging that as a repo-scope error would fail
-//         this repo's reference fixture for doing nothing wrong.
-//       - GOALS-008 (type/level mismatch): DSM's error case ("type not
-//         declared in goal_types") needs a catalogue this repo shape doesn't
-//         carry (`goal_types[]` lives on the goals-tree view, not on the
-//         element) — only DSM's *warning* case is even adaptable here, so
-//         under the ERROR-only policy above it is not ported.
-//       - ACT-005 (orphan predecessor/parent) and FGCA-012/013/014
-//         (unreferenced driver/goal/change) are advisory-by-design in DSM
-//         ("import anyway, record the warning") — the same reasoning as
-//         GOALS-009/011.
+// GOALS-009/011 (orphan / missing parent) are ported at warning severity even
+// though most standalone GOAL elements legitimately have no `parent` field —
+// GOAL.parent is "v0.x transitional" (ELEMENT_PRIMITIVES.md §7.2; canonical
+// home is a `goal_parent` REL file or the goals-tree view's inline `parent`).
+// `organizations/acme_corp`'s GOAL-CUST-1/GOAL-OPS-1/GOAL-EU-1 are exactly
+// this shape and do surface GOALS-011 warnings — that noise is the accepted
+// cost of a *warning* level rule (non-blocking, advisory), unlike the ERROR
+// tier this repo held the line on. This is a deliberate call, not an
+// oversight: keep the coverage rather than drop it, now that it can be
+// non-blocking.
 //
-//   Promoting these warn-severity rules to repo-scope findings is future
-//   work, gated on `RepoFinding` growing a severity field.
+// GOALS-008 (type/level mismatch) is still NOT ported, at either severity.
+// Both of DSM's cases ("type not declared in goal_types" / "level doesn't
+// match the type's declared level") need the `goal_types[]` catalogue, which
+// lives on the goals-tree *view* (`canon/views/goals/**`,
+// notations/views/04-goals.md §5.2) — a zone this validator's `RepoModelInput`
+// does not load (only `canon/elements/**` and `canon/relations/**`, per
+// `validate-repo.ts`). There is no standalone-element-shape data this rule
+// could run against without the validator growing a third input zone — a
+// bigger architectural change than adapting a predicate to data already in
+// scope, unlike every other ported rule here. This is flagged for a
+// per-rule call: skip it (status quo) or scope a follow-up that loads
+// `canon/views/goals/**`'s `goal_types[]` into the repo-scope model.
 //
 // Ported (error-severity, blocking):
 //   GOALS-010 — GOAL `parent` chain contains a cycle.
@@ -54,6 +52,17 @@
 //   FGCA-009  — CHANGE.goals references an undefined GOAL.
 //   FGCA-010  — ACTION.delivers_changes references an undefined CHANGE.
 //   FGCA-011  — ACTION.goals references an undefined GOAL.
+//
+// Ported (warning-severity, advisory):
+//   GOALS-009 — GOAL.parent is set but does not resolve to a known GOAL (orphan).
+//   GOALS-011 — GOAL has no `parent` and `level` >= 1 (backlog).
+//   ACT-005   — ACTION.predecessors entry or ACTION.parent does not resolve
+//               to a known ACTION (orphan).
+//   FGCA-012  — a DRIVER is not referenced by any GOAL.factors (unreferenced).
+//   FGCA-013  — a GOAL is not referenced by any CHANGE.goals or ACTION.goals
+//               (unreferenced).
+//   FGCA-014  — a CHANGE is not referenced by any ACTION.delivers_changes
+//               (unreferenced).
 
 import { docId } from './validate-repo.js';
 import type { RepoDoc, RepoFinding, RepoModelInput } from './types.js';
@@ -202,6 +211,39 @@ function checkGoalParentCycle(goals: ChainElement[], findings: RepoFinding[]): v
   }
 }
 
+/** GOALS-009 / GOALS-011 — GOAL `parent` resolution (warning). Mirrors DSM's
+ *  goals.go: the two are mutually exclusive per goal — a goal with no
+ *  `parent` is checked for GOALS-011 (backlog, level >= 1); a goal with a
+ *  `parent` is checked for GOALS-009 (orphan, parent unresolved) instead. */
+function checkGoalParentResolution(goals: ChainElement[], findings: RepoFinding[]): void {
+  const knownIds = new Set(goals.map((g) => g.id));
+  for (const g of goals) {
+    const parent = readString(g.data, 'parent');
+    if (!parent) {
+      const level = readFiniteNumber(g.data, 'level');
+      if (level !== undefined && level >= 1) {
+        findings.push({
+          scope: PScope,
+          id: g.id,
+          ruleId: 'GOALS-011',
+          severity: 'warning',
+          message: `GOALS-011: goal '${g.id}' (level ${level}) has no parent; treated as backlog until attached.`,
+        });
+      }
+      continue;
+    }
+    if (!knownIds.has(parent)) {
+      findings.push({
+        scope: PScope,
+        id: g.id,
+        ruleId: 'GOALS-009',
+        severity: 'warning',
+        message: `GOALS-009: goal '${g.id}' parent '${parent}' does not resolve to a known goal; treated as orphan.`,
+      });
+    }
+  }
+}
+
 /** ACT-007 — an ACTION cannot list itself as its own predecessor. */
 function checkActionSelfPredecessor(actions: ChainElement[], findings: RepoFinding[]): void {
   for (const a of actions) {
@@ -226,6 +268,36 @@ function checkActionPredecessorCycle(actions: ChainElement[], findings: RepoFind
       ruleId: 'ACT-006',
       message: `ACT-006: predecessor graph contains a cycle involving action '${cyc}'.`,
     });
+  }
+}
+
+/** ACT-005 — an ACTION `predecessors` entry or `parent` that does not resolve
+ *  to a known ACTION is an orphan reference (warning — advisory in DSM, same
+ *  as the goal-parent orphan checks above). */
+function checkActionOrphanReferences(actions: ChainElement[], findings: RepoFinding[]): void {
+  const knownIds = new Set(actions.map((a) => a.id));
+  for (const a of actions) {
+    for (const p of readStringArray(a.data, 'predecessors')) {
+      if (!knownIds.has(p)) {
+        findings.push({
+          scope: PScope,
+          id: a.id,
+          ruleId: 'ACT-005',
+          severity: 'warning',
+          message: `ACT-005: action '${a.id}' predecessor '${p}' does not resolve to a known action.`,
+        });
+      }
+    }
+    const parent = readString(a.data, 'parent');
+    if (parent && !knownIds.has(parent)) {
+      findings.push({
+        scope: PScope,
+        id: a.id,
+        ruleId: 'ACT-005',
+        severity: 'warning',
+        message: `ACT-005: action '${a.id}' parent '${parent}' does not resolve to a known action.`,
+      });
+    }
   }
 }
 
@@ -370,10 +442,73 @@ function checkStrategyChainReferences(
   }
 }
 
+/** FGCA-012..014 — a DRIVER/GOAL/CHANGE defined but never referenced
+ *  downstream in the strategy chain is unreferenced (warning — advisory in
+ *  DSM, mirroring the orphan-reference checks above). */
+function checkStrategyChainOrphans(
+  goals: ChainElement[],
+  actions: ChainElement[],
+  drivers: ChainElement[],
+  changes: ChainElement[],
+  findings: RepoFinding[],
+): void {
+  const referencedDrivers = new Set<string>();
+  for (const g of goals) {
+    for (const f of readStringArray(g.data, 'factors')) referencedDrivers.add(f);
+  }
+  for (const d of drivers) {
+    if (!referencedDrivers.has(d.id)) {
+      findings.push({
+        scope: PScope,
+        id: d.id,
+        ruleId: 'FGCA-012',
+        severity: 'warning',
+        message: `FGCA-012: driver '${d.id}' is not referenced by any goal.`,
+      });
+    }
+  }
+
+  const referencedGoals = new Set<string>();
+  for (const c of changes) {
+    for (const g of readStringArray(c.data, 'goals')) referencedGoals.add(g);
+  }
+  for (const a of actions) {
+    for (const g of readStringArray(a.data, 'goals')) referencedGoals.add(g);
+  }
+  for (const g of goals) {
+    if (!referencedGoals.has(g.id)) {
+      findings.push({
+        scope: PScope,
+        id: g.id,
+        ruleId: 'FGCA-013',
+        severity: 'warning',
+        message: `FGCA-013: goal '${g.id}' is not referenced by any change or action.`,
+      });
+    }
+  }
+
+  const referencedChanges = new Set<string>();
+  for (const a of actions) {
+    for (const c of readStringArray(a.data, 'delivers_changes')) referencedChanges.add(c);
+  }
+  for (const c of changes) {
+    if (!referencedChanges.has(c.id)) {
+      findings.push({
+        scope: PScope,
+        id: c.id,
+        ruleId: 'FGCA-014',
+        severity: 'warning',
+        message: `FGCA-014: change '${c.id}' is not referenced by any action.`,
+      });
+    }
+  }
+}
+
 /**
- * Run the strategy-chain semantic checks (GOALS-010, ACT-006..009,
- * FGCA-008..011) over the loaded element set and append findings. Called from
- * `validateRepoModel` after the structural phases. Pure, deterministic order.
+ * Run the strategy-chain semantic checks (GOALS-009..011, ACT-005..009,
+ * FGCA-008..014 except GOALS-008 — see the module header) over the loaded
+ * element set and append findings. Called from `validateRepoModel` after the
+ * structural phases. Pure, deterministic order.
  */
 export function checkStrategyChainSemantics(input: RepoModelInput, findings: RepoFinding[]): void {
   const goals = collectByNotation(input.elements, isGoalNotation);
@@ -382,9 +517,12 @@ export function checkStrategyChainSemantics(input: RepoModelInput, findings: Rep
   const changes = collectByNotation(input.elements, isChangeNotation);
 
   checkGoalParentCycle(goals, findings);
+  checkGoalParentResolution(goals, findings);
   checkActionSelfPredecessor(actions, findings);
   checkActionPredecessorCycle(actions, findings);
+  checkActionOrphanReferences(actions, findings);
   checkActionDates(actions, findings);
   checkActionNegativeNumbers(actions, findings);
   checkStrategyChainReferences(goals, actions, drivers, changes, findings);
+  checkStrategyChainOrphans(goals, actions, drivers, changes, findings);
 }

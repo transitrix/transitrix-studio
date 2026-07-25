@@ -31,8 +31,10 @@ runtime. It scans `<root>/canon/elements/**` (elements) and
 `{ scope, id, message }`. Any finding exits non-zero — the CI gate.
 
 Repo-scope checks (parity reference: the `acme_corp` worked example, which
-passes with zero findings from the checks below — it does still carry
-pre-existing findings from the separate compliance suite, see below):
+passes with zero **error**-severity findings from the checks below — it does
+carry `GOALS-011`/`FGCA-013` **warnings** from the strategy-chain rules
+described below, plus pre-existing findings from the separate compliance
+suite, see below):
 
 - **YAML syntax** — an unparseable canon file is reported and graph checks are skipped.
 - **ID uniqueness** — the same `id` defined in more than one file.
@@ -45,8 +47,8 @@ pre-existing findings from the separate compliance suite, see below):
   (TECHNOLOGY_SERVICE.node → NODE) and `INT-002` (INTEGRATION interface
   endpoints → APPLICATION). lint.py ships this phase as a no-op stub; Studio
   is ahead of the Python tool here — these findings are TypeScript-only.
-- **Strategy-chain semantics** (`GOALS-010`, `ACT-006`..`009`, `FGCA-008`..`011`)
-  — see below.
+- **Strategy-chain semantics** (`GOALS-009`..`011`, `ACT-005`..`009`,
+  `FGCA-008`..`014`) — see below.
 
 ### Strategy-chain semantic rules (`GOALS-*` / `ACT-*` / `FGCA-*`)
 
@@ -57,43 +59,61 @@ shape (`canon/elements/01_motivation/goals/`, `canon/elements/
 factors/`), so DSM can shell out to this CLI instead of maintaining its own
 copy of these checks. Each finding carries the DSM rule code as
 `RepoFinding.ruleId`, so DSM can map a CLI finding back onto its existing
-import-log taxonomy.
+import-log taxonomy, plus a `severity` (`'error'` | `'warning'`) matching
+DSM's own `Issue.Severity` classification for that rule.
 
-| Rule | Checks |
-|---|---|
-| `GOALS-010` | A GOAL element's `parent` chain contains a cycle. |
-| `ACT-006` | An ACTION element's `predecessors` graph contains a cycle. |
-| `ACT-007` | An ACTION element lists itself in its own `predecessors`. |
-| `ACT-008` | An ACTION element's `start_date`/`end_date` is not a valid `YYYY-MM-DD` date, or `end_date` is before `start_date` (equal is allowed — e.g. a milestone). |
-| `ACT-009` | An ACTION element's `duration` (or the `duration_days` alias), `labor_cost`, `resources_cost`, `effort`, or `score` is negative. |
-| `FGCA-008` | A GOAL's `factors` references a DRIVER id that does not resolve to a DRIVER element. |
-| `FGCA-009` | A CHANGE's `goals` references a GOAL id that does not resolve to a GOAL element. |
-| `FGCA-010` | An ACTION's `delivers_changes` references a CHANGE id that does not resolve to a CHANGE element. |
-| `FGCA-011` | An ACTION's `goals` references a GOAL id that does not resolve to a GOAL element. |
+| Rule | Severity | Checks |
+|---|---|---|
+| `GOALS-009` | warning | A GOAL's `parent` is set but does not resolve to a known GOAL (orphan). |
+| `GOALS-010` | error | A GOAL element's `parent` chain contains a cycle. |
+| `GOALS-011` | warning | A GOAL has no `parent` and `level` >= 1 (backlog — untethered from the tree until attached). |
+| `ACT-005` | warning | An ACTION's `predecessors` entry, or its `parent`, does not resolve to a known ACTION (orphan). |
+| `ACT-006` | error | An ACTION element's `predecessors` graph contains a cycle. |
+| `ACT-007` | error | An ACTION element lists itself in its own `predecessors`. |
+| `ACT-008` | error | An ACTION element's `start_date`/`end_date` is not a valid `YYYY-MM-DD` date, or `end_date` is before `start_date` (equal is allowed — e.g. a milestone). |
+| `ACT-009` | error | An ACTION element's `duration` (or the `duration_days` alias), `labor_cost`, `resources_cost`, `effort`, or `score` is negative. |
+| `FGCA-008` | error | A GOAL's `factors` references a DRIVER id that does not resolve to a DRIVER element. |
+| `FGCA-009` | error | A CHANGE's `goals` references a GOAL id that does not resolve to a GOAL element. |
+| `FGCA-010` | error | An ACTION's `delivers_changes` references a CHANGE id that does not resolve to a CHANGE element. |
+| `FGCA-011` | error | An ACTION's `goals` references a GOAL id that does not resolve to a GOAL element. |
+| `FGCA-012` | warning | A DRIVER is not referenced by any GOAL's `factors` (unreferenced). |
+| `FGCA-013` | warning | A GOAL is not referenced by any CHANGE's or ACTION's `goals` (unreferenced). |
+| `FGCA-014` | warning | A CHANGE is not referenced by any ACTION's `delivers_changes` (unreferenced). |
 
-**Only DSM's error-severity rules are ported.** DSM's own taxonomy splits
-every rule error\|warn; `RepoFinding` has no severity field yet (the richer
-finding taxonomy stays deferred — see below), and every existing repo-scope
-finding is implicitly blocking (`validate --scope=repo` exits non-zero on any
-finding). DSM's warn-severity rules are deliberately **not** implemented here:
+**`GOALS-008` is the one DSM rule still not ported, at either severity.** Both
+of its cases ("type not declared in `goal_types`" and "level doesn't match
+the type's declared level") need the `goal_types[]` catalogue, which lives on
+the goals-tree *view* (`canon/views/goals/**`, `notations/views/04-goals.md`
+§5.2) — a zone this validator's `RepoModelInput` does not load (only
+`canon/elements/**` and `canon/relations/**`). There is no standalone-element
+data this rule could run against without the validator growing a third input
+zone. Flagged for a decision: skip permanently, or scope a follow-up that
+loads the goals-tree catalogue into the repo-scope model.
 
-- `GOALS-009`/`GOALS-011` (orphan / missing parent) and `ACT-005` (orphan
-  predecessor/parent) flag a normal state, not a bug, once adapted to the
-  standalone-element shape: a GOAL's `parent` is v0.x-transitional
-  (`ELEMENT_PRIMITIVES.md` §7.2 — its canonical home is a `goal_parent` REL
-  file or the goals-tree view's inline `parent`, not the element itself).
-  `organizations/acme_corp`'s own `GOAL-CUST-1`/`GOAL-OPS-1` are exactly this
-  shape (level 1, no `parent` on the element) — flagging that would fail this
-  repo's own reference fixture for doing nothing wrong.
-- `GOALS-008`'s error case ("type not declared in `goal_types`") needs a
-  catalogue this repo shape doesn't carry — `goal_types[]` lives on the
-  goals-tree view, not on the GOAL element — so it isn't portable here.
-- `FGCA-012`/`013`/`014` (unreferenced driver/goal/change) are
-  advisory-by-design in DSM ("import anyway, record the warning") — same
-  reasoning as the orphan-parent rules above.
+**Why the warning tier exists at all.** `RepoFinding` grew an optional
+`severity` field (`'error'` | `'warning'`, defaulting to `'error'` when
+omitted) precisely so DSM's warn-severity rules could be ported without
+becoming blocking findings — every finding that predates this field (the
+structural checks above, plus the error-tier strategy-chain rules and
+`TSVC-003`/`INT-002`) has no `severity` set and stays implicitly blocking;
+`validate --scope=repo` only exits non-zero on an error-severity finding.
 
-Promoting these to repo-scope findings is future work, gated on `RepoFinding`
-growing a severity field.
+**Expect warning-tier noise on `parent`-light repos, by design.** GOAL's
+`parent` field is v0.x-transitional (`ELEMENT_PRIMITIVES.md` §7.2 — its
+canonical home is a `goal_parent` REL file or the goals-tree view's inline
+`parent`, not the element itself), so most standalone GOAL elements
+legitimately omit it. `organizations/acme_corp`'s own `GOAL-CUST-1`/
+`GOAL-OPS-1`/`GOAL-EU-1` are exactly this shape (level 1, no `parent` on the
+element) and do surface `GOALS-011` warnings. That is accepted, not a defect:
+warnings are advisory and non-blocking, unlike the error tier this repo held
+the line on when these rules were first scoped. Similarly, `FGCA-012`..`014`
+read only the inline `factors`/`goals`/`delivers_changes` arrays (the same
+fields `FGCA-008`..`011` already read) — a repo wiring the strategy chain
+through `REL` files instead (e.g. `action_goal`, per `elements/24-action.md`
+§3) will see `FGCA-013`/`014` warnings on elements that are, in fact, wired
+via a relation this validator doesn't yet cross-reference. This is a known
+gap shared with the pre-existing error-tier rules, not a regression
+introduced by the warning tier.
 
 ### Compliance suite (`--scope=repo`, #518)
 
@@ -122,11 +142,13 @@ $ transitrix validate --scope=repo --root organizations/acme_corp
 ✓ organizations/acme_corp — repo-scope validation passed
 ```
 
-The richer `target`/`category`/severity finding taxonomy is intentionally
-**not** adopted yet (deferred per the ADR until a consumer needs it). One
-field, `ruleId`, is now un-frozen — a stable code on findings that have one
-(see the strategy-chain rules above, plus `TSVC-003`/`INT-002`) — for DSM to
-map findings onto its own rule taxonomy; `target`/`category`/severity stay out.
+The richer `target`/`category` finding taxonomy is intentionally **not**
+adopted yet (deferred per the ADR until a consumer needs it). Two fields are
+un-frozen: `ruleId` — a stable code on findings that have one (see the
+strategy-chain rules above, plus `TSVC-003`/`INT-002`) — and `severity`
+(`'error'` | `'warning'`, omitted meaning `'error'`) — needed so DSM's
+warn-severity strategy-chain rules could be ported without becoming blocking
+findings. `target`/`category` stay out.
 
 ### Resolved model output (`--include-model`)
 

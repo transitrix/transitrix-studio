@@ -12,7 +12,12 @@ function el(path: string, data: Record<string, unknown> | null, parseError?: str
 function cleanModel(): RepoModelInput {
   return {
     elements: [
-      el('canon/elements/01_motivation/goals/GOAL-OPS-1.yaml', { notation: 'goal', id: 'GOAL-OPS-1' }),
+      // notation is deliberately NOT 'goal' — this id is reused across this file
+      // as a generic relation-endpoint placeholder, unrelated to strategy-chain
+      // checks; giving it the 'goal' notation would draw it into
+      // check-strategy-chain.ts's GOALS-*/FGCA-* rules (e.g. FGCA-013,
+      // "unreferenced goal") and add unrelated noise to unrelated tests.
+      el('canon/elements/01_motivation/goals/GOAL-OPS-1.yaml', { notation: 'assessment', id: 'GOAL-OPS-1' }),
       el('canon/elements/01_motivation/assessments/ASSESSMENT-1.yaml', { notation: 'assessment', id: 'ASSESSMENT-1' }),
       el('canon/elements/02_business/capabilities/CAPABILITY-V1.yaml', { notation: 'capability', id: 'CAPABILITY-V1' }),
       // sidecar with no `id` — must be ignored (no duplicate, not an element)

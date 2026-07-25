@@ -320,7 +320,7 @@ async function handleValidateCommand(argv: string[]): Promise<void> {
     console.error('             canon/elements/** and canon/relations/** records it parsed,');
     console.error('             as { model: { elements: [...], relations: [...] } } — for a');
     console.error('             non-JS consumer of the parsed model. Off by default.');
-    console.error('Exits with code 1 if any findings.');
+    console.error('Exits with code 1 on any error-severity finding (warnings do not fail the run).');
     process.exit(0);
   }
 
