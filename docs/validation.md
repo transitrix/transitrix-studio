@@ -49,6 +49,8 @@ suite, see below):
   is ahead of the Python tool here — these findings are TypeScript-only.
 - **Strategy-chain semantics** (`GOALS-009`..`011`, `ACT-005`..`009`,
   `FGCA-008`..`014`) — see below.
+- **Standalone-element envelope hygiene** (`GOAL-ELEM-002`/`003`,
+  `ACTION-001`/`002`/`005`) — see below.
 
 ### Strategy-chain semantic rules (`GOALS-*` / `ACT-*` / `FGCA-*`)
 
@@ -114,6 +116,70 @@ through `REL` files instead (e.g. `action_goal`, per `elements/24-action.md`
 via a relation this validator doesn't yet cross-reference. This is a known
 gap shared with the pre-existing error-tier rules, not a regression
 introduced by the warning tier.
+
+### Standalone-element envelope rules (`GOAL-ELEM-*` / `ACTION-*`)
+
+Ported from DSM's Go `Validate*Element` functions
+(`api02/internal/importer/{goal_element,action_element}.go`), sibling to the
+strategy-chain rules above but covering the per-element envelope instead of
+cross-element references — `packages/diagrams/src/repo-validate/
+check-element-hygiene.ts`.
+
+| Rule | Severity | Checks |
+|---|---|---|
+| `GOAL-ELEM-002` | error | GOAL element `id` is missing. |
+| `GOAL-ELEM-002` | warning | GOAL element `id` does not match `GOAL-[<middle>-]<INTEGER>` (non-fatal — DSM still imports it). |
+| `GOAL-ELEM-003` | error | GOAL element `name` is missing. |
+| `ACTION-001` | error | ACTION element `id` or `name` is missing. |
+| `ACTION-001` | warning | ACTION element `id` does not match `ACTION-[<middle>-]<INTEGER>`. |
+| `ACTION-002` | error | ACTION element `type` is set but not one of Initiative \| Strategic Initiative \| Programme \| Project \| Task. |
+| `ACTION-005` | warning | ACTION element uses a deprecated alias: `notation: activity`, an `ACTIVITY-` id prefix, or the `activity_type` field (migrate to `type`). |
+
+**`GOAL-ELEM-001`/`ACTION-001`'s "wrong notation" case is not ported.** DSM
+identifies a GOAL/ACTION element by its folder location during its import
+walk, so a wrong `notation` field on an already-located file is still
+checkable there. This repo-scope model has no such pre-typing —
+`RepoModelInput.elements` is a flat, untyped list — so candidate selection is
+content-based (`notation === 'goal'`/`'action'`/`'activity'`), the same
+convention `check-strategy-chain.ts` already uses. An id-prefix-based
+candidate signal was tried as an alternative (flag any `GOAL-`/`ACTION-`
+prefixed id regardless of notation) but produced false positives against
+this repo's own test suite, which reuses a `GOAL-`-prefixed id under a
+`goals/` path for an unrelated notation as a referential-integrity test
+double. Flagged for a decision, same as `GOALS-008`: skip permanently, or
+scope a follow-up once the repo-scope model gains path-aware typing.
+
+**Not ported: `GOALS-007`/`ACT-004`'s duplicate-id half.** Already covered
+generically by `checkIdUniqueness` above, which spans every canon
+element/relation id, not just GOAL/ACTION.
+
+**Deliberately NOT ported: `ACT-020` and `DGCA-DEPR`.** DSM's Go importer
+still accepts the pre-2026-06-25 `activities` notation/root-key alias (for
+`action` docs) and the `activities` root key (for `dgca`/`fgca` docs) as a
+non-fatal warning. Studio's own validators (`activities/validate.ts`,
+`fgca/parse-canonical.ts`) deliberately **removed** that leniency in PR #320
+(`refactor(notations): drop deprecated notation aliases
+fgca/fga/activities/activity-card`) — deprecated notation values are now
+rejected with an error, not a warning, with tests asserting the old alias is
+"no longer accepted". Re-introducing `ACT-020`/`DGCA-DEPR` would reverse that
+already-shipped decision, not fill a gap. Flagged for a call rather than
+silently reversed either way.
+
+**Deliberately NOT ported at repo-scope: `HDR-001`/`002` and
+`LIFECYCLE-001`/`004` for capabilities.** DSM's `ValidateCapMap`
+(`capabilities.go`) validates the `capability-map` *view document* (the
+inline `capability_map.capabilities[]` tree), not a standalone element — so
+these are ported into `packages/diagrams/src/capability-map/validate.ts`
+(the `--scope=file`/view-sweep validator for that notation), alongside the
+notation's own pre-existing `CMAP-*` codes, rather than into
+`check-element-hygiene.ts`. `HDR-001`/`002` duplicate `CMAP-001`'s existing
+notation check under DSM's own code (so DSM can map a finding straight back
+onto its import-log taxonomy); `LIFECYCLE-001`/`004` (`valid_from`/`valid_to`
+per CONTRACT.md §7) are net new — this notation's own schema
+(`capability-map/types.ts`) does not track lifecycle dates today, tracking
+`target_date` instead, but real documents (e.g. `organizations/acme_corp`)
+author `valid_from`/`valid_to` inline per §7 regardless, so the checks read
+them directly off the raw untyped node.
 
 ### Compliance suite (`--scope=repo`, #518)
 

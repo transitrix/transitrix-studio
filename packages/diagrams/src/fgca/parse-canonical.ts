@@ -130,6 +130,14 @@ export function parseCanonicalFGCA(input: unknown): CanonicalFGCAResult {
   }
   const activitiesRaw = asObjectArray(raw['actions']);
   if (activitiesRaw === null && 'activities' in raw) {
+    // DSM's Go ValidateFGCA (fgca.go) still accepts this as the deprecated
+    // "activities" key and promotes it with a DGCA-DEPR warning, not an
+    // error. Deliberately NOT matched here — PR #320 ("drop deprecated
+    // notation aliases fgca/fga/activities/activity-card") already removed
+    // that leniency from this validator on purpose. Re-introducing
+    // DGCA-DEPR would reverse a deliberate, shipped decision, not fill a
+    // gap; see docs/validation.md's "Standalone-element envelope rules"
+    // section for the full note.
     errors.push({ code: 'FGCA-004', message: '"activities" key is not accepted — rename to "actions"', path: 'actions' });
   }
 
