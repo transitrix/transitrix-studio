@@ -61,21 +61,33 @@ export type ParseValidateArgvResult =
       ok: true;
       scope: ValidateScope;
       root: string | undefined;
+      template: string | undefined;
       positional: string[];
       extList: string[];
       wantsHelp: boolean;
     }
-  | { ok: false; error: '--ext_requires_value' | '--scope_requires_value' | '--root_requires_value' | 'bad_scope'; scope?: ValidateScope };
+  | {
+      ok: false;
+      error:
+        | '--ext_requires_value'
+        | '--scope_requires_value'
+        | '--root_requires_value'
+        | '--template_requires_value'
+        | 'bad_scope';
+      scope?: ValidateScope;
+    };
 
 /**
  * Parse `validate` argv (#141). Recognises `--scope=file|repo` (and the spaced
- * `--scope repo` form) and `--root <dir>` for repo-scope; everything else is
- * delegated to {@link parseCliFileArgv}. Default scope is `file`, preserving the
- * existing per-file `validate <input.yaml>` behaviour.
+ * `--scope repo` form), `--root <dir>` for repo-scope, and `--template <name>`
+ * (matrix-subset `blocks` documents, §6a — e.g. `raci`) for file scope;
+ * everything else is delegated to {@link parseCliFileArgv}. Default scope is
+ * `file`, preserving the existing per-file `validate <input.yaml>` behaviour.
  */
 export function parseValidateArgv(argv: string[]): ParseValidateArgvResult {
   let scope: ValidateScope = 'file';
   let root: string | undefined;
+  let template: string | undefined;
   const rest: string[] = [];
 
   for (let i = 0; i < argv.length; i++) {
@@ -103,6 +115,16 @@ export function parseValidateArgv(argv: string[]): ParseValidateArgvResult {
       root = a.slice('--root='.length);
       continue;
     }
+    if (a === '--template') {
+      const v = argv[++i];
+      if (v === undefined) return { ok: false, error: '--template_requires_value' };
+      template = v;
+      continue;
+    }
+    if (a.startsWith('--template=')) {
+      template = a.slice('--template='.length);
+      continue;
+    }
     rest.push(a);
   }
 
@@ -113,6 +135,7 @@ export function parseValidateArgv(argv: string[]): ParseValidateArgvResult {
     ok: true,
     scope,
     root,
+    template,
     positional: parsed.positional,
     extList: parsed.extList,
     wantsHelp: parsed.wantsHelp,

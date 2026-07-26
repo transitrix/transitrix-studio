@@ -1,7 +1,26 @@
-import type { Block } from './types.js';
+import type { Block, GridColumn, GridHeader, GridRow } from './types.js';
 import type { ValidationError, ValidationWarning, ValidationResult } from '../validation-types.js';
 
 export type { ValidationError, ValidationWarning, ValidationResult };
+
+/**
+ * A template-level check over an already well-formed grid document (matrix
+ * subset, §4a). Templates built on the `grid:` root (e.g. RACI) supply their
+ * own `GridRule`s for vocabulary-specific invariants — the base validator
+ * intentionally does not fix what `assign` values mean (08-blocks.md §6a), so
+ * those invariants never live inside `validateGrid` itself.
+ */
+export interface GridRule {
+  /** Template-namespaced rule code, e.g. "RACI-001" — never a BL-0xx code. */
+  ruleId: string;
+  severity: 'error' | 'warning';
+  check(grid: GridHeader): Array<{ message: string; path?: string }>;
+}
+
+export interface ValidateGridOptions {
+  /** Extra template-level rules to run once the base grid is well-formed. */
+  rules?: GridRule[];
+}
 
 /** Document-level ID grammar: BLOCKS-[<middle>-]<INTEGER>. */
 const BLOCKS_DOC_ID_RE = /^BLOCKS(-[A-Z0-9][A-Z0-9_]*)*-\d+$/;
@@ -186,6 +205,143 @@ export function validateNestedBlocks(input: unknown): ValidationResult {
   }
 
   return { valid: errors.length === 0, errors, warnings };
+}
+
+/** Matrix subset (§4a): validate a `grid:` root document — BL-021..BL-025. */
+export function validateGrid(input: unknown, options: ValidateGridOptions = {}): ValidationResult {
+  const errors: ValidationError[] = [];
+  const warnings: ValidationWarning[] = [];
+
+  if (!input || typeof input !== 'object') {
+    return { valid: false, errors: [{ code: 'BL-001', message: 'Input must be an object' }], warnings };
+  }
+
+  const raw = input as Record<string, unknown>;
+
+  if ('notation' in raw && raw['notation'] !== 'blocks') {
+    errors.push({
+      code: 'BL-001',
+      message: `notation must be "blocks", got "${String(raw['notation'])}"`,
+    });
+  }
+
+  if (!('grid' in raw) || !raw['grid'] || typeof raw['grid'] !== 'object') {
+    errors.push({ code: 'BL-020', message: 'Missing required root key: grid' });
+    return { valid: false, errors, warnings };
+  }
+
+  const grid = raw['grid'] as Record<string, unknown>;
+  const rawColumns = grid['columns'];
+  const rawRows = grid['rows'];
+
+  if (!Array.isArray(rawColumns) || rawColumns.length === 0) {
+    errors.push({ code: 'BL-021', message: 'grid.columns must be a non-empty array' });
+  }
+  if (!Array.isArray(rawRows) || rawRows.length === 0) {
+    errors.push({ code: 'BL-022', message: 'grid.rows must be a non-empty array' });
+  }
+  if (errors.length > 0) return { valid: false, errors, warnings };
+
+  const columnIds = new Set<string>();
+  const columns: GridColumn[] = [];
+  (rawColumns as unknown[]).forEach((entry, i) => {
+    const path = `grid.columns[${i}]`;
+    const c = entry as Record<string, unknown>;
+    if (!entry || typeof entry !== 'object' || !isNonEmptyString(c['id']) || !isNonEmptyString(c['name'])) {
+      errors.push({ code: 'BL-023', message: `${path} must have non-empty id and name`, path });
+      return;
+    }
+    const id = c['id'].trim();
+    if (columnIds.has(id)) {
+      errors.push({ code: 'BL-024', message: `Duplicate column id: "${id}"`, path });
+    } else {
+      columnIds.add(id);
+    }
+    columns.push({ id, name: c['name'] });
+  });
+
+  const rowIds = new Set<string>();
+  const rows: GridRow[] = [];
+  (rawRows as unknown[]).forEach((entry, i) => {
+    const path = `grid.rows[${i}]`;
+    const r = entry as Record<string, unknown>;
+    if (!entry || typeof entry !== 'object' || !isNonEmptyString(r['id']) || !isNonEmptyString(r['name'])) {
+      errors.push({ code: 'BL-023', message: `${path} must have non-empty id and name`, path });
+      return;
+    }
+    const id = r['id'].trim();
+    if (rowIds.has(id)) {
+      errors.push({ code: 'BL-024', message: `Duplicate row id: "${id}"`, path });
+    } else {
+      rowIds.add(id);
+    }
+
+    const rawAssign = r['assign'];
+    let assign: Record<string, unknown> | undefined;
+    if (rawAssign !== undefined) {
+      if (!rawAssign || typeof rawAssign !== 'object' || Array.isArray(rawAssign)) {
+        errors.push({ code: 'BL-023', message: `${path}.assign must be a map when present`, path });
+      } else {
+        assign = rawAssign as Record<string, unknown>;
+        for (const colId of Object.keys(assign)) {
+          if (!columnIds.has(colId)) {
+            errors.push({
+              code: 'BL-025',
+              message: `${path}.assign references unknown column id "${colId}"`,
+              path,
+            });
+          }
+        }
+      }
+    }
+    rows.push({ id, name: r['name'], assign });
+  });
+
+  if (errors.length > 0) return { valid: false, errors, warnings };
+
+  const grid_: GridHeader = { columns, rows };
+  for (const rule of options.rules ?? []) {
+    for (const finding of rule.check(grid_)) {
+      const entry = { code: rule.ruleId, message: finding.message, path: finding.path };
+      if (rule.severity === 'error') errors.push(entry);
+      else warnings.push(entry);
+    }
+  }
+
+  return { valid: errors.length === 0, errors, warnings };
+}
+
+export interface ValidateBlocksOptions extends ValidateGridOptions {}
+
+/**
+ * Root-form dispatcher (§4/§4a): a document declares exactly one of
+ * `nested_blocks` (tree form) or `grid` (matrix subset) — never both, never
+ * neither (BL-020). Delegates to whichever form is present.
+ */
+export function validateBlocks(input: unknown, options: ValidateBlocksOptions = {}): ValidationResult {
+  if (!input || typeof input !== 'object') {
+    return { valid: false, errors: [{ code: 'BL-001', message: 'Input must be an object' }], warnings: [] };
+  }
+
+  const raw = input as Record<string, unknown>;
+  const hasNested = raw['nested_blocks'] !== undefined && raw['nested_blocks'] !== null;
+  const hasGrid = raw['grid'] !== undefined && raw['grid'] !== null;
+
+  if (hasNested && hasGrid) {
+    return {
+      valid: false,
+      errors: [{ code: 'BL-020', message: 'Document root must declare exactly one of nested_blocks or grid, not both' }],
+      warnings: [],
+    };
+  }
+  if (hasGrid) return validateGrid(input, options);
+  if (hasNested) return validateNestedBlocks(input);
+
+  return {
+    valid: false,
+    errors: [{ code: 'BL-020', message: 'Document root must declare exactly one of nested_blocks or grid' }],
+    warnings: [],
+  };
 }
 
 /**
