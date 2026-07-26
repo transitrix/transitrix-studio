@@ -154,9 +154,9 @@ export function renderBlocksSvg(doc: BlocksFile, options: RenderBlocksOptions = 
 }
 
 /**
- * Matrix subset (08-blocks.md §4a) — first cut per vkgeorgia/strategy#764: a
- * single-layer rectangular `grid:` document (the RACI-style matrix case)
- * rendered as a plain HTML/CSS-table-like SVG grid. Layers, arbitrary
+ * Matrix subset (08-blocks.md §4a) — first cut: a single-layer rectangular
+ * `grid:` document (the RACI-style matrix case) rendered as a plain
+ * HTML/CSS-table-like SVG grid. Layers, arbitrary
  * (non-rectangular) cell sets, and nested sub-grids belong to the general
  * layered-grid superset, which is still in design upstream (methodology) and
  * out of scope here — see 08-blocks.md §4a / §8.
