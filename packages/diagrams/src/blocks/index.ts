@@ -9,6 +9,11 @@ export type {
   GridRow,
   GridHeader,
   GridFile,
+  GridLayoutOptions,
+  LaidOutGridColumn,
+  LaidOutGridRow,
+  LaidOutGridCell,
+  GridLayout,
 } from './types.js';
 
 export { validateNestedBlocks, validateGrid, validateBlocks, isWellFormedBlock } from './validate.js';
@@ -21,6 +26,6 @@ export type {
   ValidateBlocksOptions,
 } from './validate.js';
 
-export { layoutNestedBlocks, iterateBlocks } from './layout.js';
+export { layoutNestedBlocks, layoutGrid, iterateBlocks } from './layout.js';
 
 export { GRID_TEMPLATE_RULES } from './templates/index.js';

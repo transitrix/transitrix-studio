@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { layoutNestedBlocks, iterateBlocks } from '../layout.js';
-import type { BlocksFile, LaidOutBlock } from '../types.js';
+import { layoutNestedBlocks, layoutGrid, iterateBlocks } from '../layout.js';
+import type { BlocksFile, GridFile, LaidOutBlock } from '../types.js';
 
 function findById(layout: ReturnType<typeof layoutNestedBlocks>, id: string): LaidOutBlock | undefined {
   for (const b of iterateBlocks(layout)) {
@@ -165,5 +165,84 @@ describe('layoutNestedBlocks', () => {
     expect(layout.blocks).toHaveLength(0);
     expect(layout.bounds.width).toBe(0);
     expect(layout.bounds.height).toBe(0);
+  });
+});
+
+// Matrix subset (08-blocks.md §4a) — modelled on the real RACI template
+// (methodology `templates/raci/raci.blocks.transitrix.yaml`).
+const RACI_GRID: GridFile = {
+  notation: 'blocks',
+  spec_version: '0.1',
+  grid: {
+    columns: [
+      { id: 'ROLE-PRODUCT', name: 'Product Owner' },
+      { id: 'ROLE-LEAD-ARCH', name: 'Lead Architect' },
+      { id: 'ROLE-REVIEW-BOARD', name: 'Architecture Review Board' },
+    ],
+    rows: [
+      {
+        id: 'ACT-PROPOSE',
+        name: 'Propose a change',
+        assign: { 'ROLE-PRODUCT': 'A', 'ROLE-LEAD-ARCH': 'C', 'ROLE-REVIEW-BOARD': 'I' },
+      },
+      {
+        id: 'ACT-DECIDE',
+        name: 'Approve / reject',
+        assign: { 'ROLE-REVIEW-BOARD': 'A', 'ROLE-LEAD-ARCH': 'R' },
+      },
+    ],
+  },
+};
+
+describe('layoutGrid', () => {
+  it('positions the row-header column at x=0 and the first data column right after it', () => {
+    const layout = layoutGrid(RACI_GRID);
+    expect(layout.columns[0].x).toBe(layout.rowHeaderWidth);
+  });
+
+  it('positions the column-header row at y=0 and the first data row right below it', () => {
+    const layout = layoutGrid(RACI_GRID);
+    expect(layout.rows[0].y).toBe(layout.headerHeight);
+  });
+
+  it('lays out one cell per (row, column) pair, including blank cells', () => {
+    const layout = layoutGrid(RACI_GRID);
+    expect(layout.cells).toHaveLength(RACI_GRID.grid.rows.length * RACI_GRID.grid.columns.length);
+    const blank = layout.cells.find((c) => c.rowId === 'ACT-DECIDE' && c.colId === 'ROLE-PRODUCT');
+    expect(blank?.value).toBeUndefined();
+  });
+
+  it('carries the assign value through to the matching cell', () => {
+    const layout = layoutGrid(RACI_GRID);
+    const cell = layout.cells.find((c) => c.rowId === 'ACT-PROPOSE' && c.colId === 'ROLE-PRODUCT');
+    expect(cell?.value).toBe('A');
+  });
+
+  it('bounds cover the full row-header + columns width and header + rows height', () => {
+    const layout = layoutGrid(RACI_GRID);
+    const lastCol = layout.columns[layout.columns.length - 1];
+    const lastRow = layout.rows[layout.rows.length - 1];
+    expect(layout.bounds.width).toBe(lastCol.x + lastCol.width);
+    expect(layout.bounds.height).toBe(lastRow.y + lastRow.height);
+  });
+
+  it('honours custom layout options', () => {
+    const layout = layoutGrid(RACI_GRID, { columnWidth: 100, rowHeight: 30, rowHeaderWidth: 150, headerHeight: 40 });
+    expect(layout.rowHeaderWidth).toBe(150);
+    expect(layout.headerHeight).toBe(40);
+    expect(layout.columns[0].width).toBe(100);
+    expect(layout.rows[0].height).toBe(30);
+  });
+
+  it('handles an empty grid gracefully (returns zero-size bounds)', () => {
+    const layout = layoutGrid({
+      notation: 'blocks',
+      // Schema-wise this is invalid (BL-021/BL-022), but the layout function
+      // still needs to be defensive — validation runs separately.
+      grid: { columns: [], rows: [] },
+    });
+    expect(layout.columns).toHaveLength(0);
+    expect(layout.rows).toHaveLength(0);
+    expect(layout.cells).toHaveLength(0);
   });
 });

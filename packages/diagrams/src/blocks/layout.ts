@@ -3,7 +3,13 @@ import type {
   BlocksFile,
   BlocksLayout,
   BlocksLayoutOptions,
+  GridFile,
+  GridLayout,
+  GridLayoutOptions,
   LaidOutBlock,
+  LaidOutGridCell,
+  LaidOutGridColumn,
+  LaidOutGridRow,
 } from './types.js';
 import { ENTITY_NODE_SIZE } from '../node-size-presets.js';
 
@@ -14,6 +20,13 @@ const DEFAULTS: Required<BlocksLayoutOptions> = {
   headerHeight: 32,
   childGap: 12,
   topLevelGap: 24,
+};
+
+const GRID_DEFAULTS: Required<GridLayoutOptions> = {
+  columnWidth: 130,
+  rowHeight: 44,
+  rowHeaderWidth: 200,
+  headerHeight: 56,
 };
 
 interface MeasuredBlock {
@@ -184,4 +197,61 @@ export function* iterateBlocks(layout: BlocksLayout): Iterable<LaidOutBlock> {
     for (const c of b.children) yield* walk(c);
   }
   for (const b of layout.blocks) yield* walk(b);
+}
+
+/**
+ * Matrix subset (08-blocks.md §4a): lay out a `grid:` root document as a
+ * single-layer rectangular table — a row-header column, a column-header row,
+ * and one cell per `(row, column)` pair. Assumes the document is already
+ * well-formed ({@link validateGrid}); callers validate first.
+ */
+export function layoutGrid(file: GridFile, options?: GridLayoutOptions): GridLayout {
+  const opts = { ...GRID_DEFAULTS, ...(options ?? {}) };
+  const grid = file?.grid;
+  const rawColumns = Array.isArray(grid?.columns) ? grid.columns : [];
+  const rawRows = Array.isArray(grid?.rows) ? grid.rows : [];
+
+  const columns: LaidOutGridColumn[] = rawColumns.map((c, i) => ({
+    id: c.id,
+    name: c.name,
+    x: opts.rowHeaderWidth + i * opts.columnWidth,
+    width: opts.columnWidth,
+  }));
+
+  const rows: LaidOutGridRow[] = rawRows.map((r, i) => ({
+    id: r.id,
+    name: r.name,
+    y: opts.headerHeight + i * opts.rowHeight,
+    height: opts.rowHeight,
+  }));
+
+  const cells: LaidOutGridCell[] = [];
+  for (let ri = 0; ri < rawRows.length; ri++) {
+    const row = rawRows[ri];
+    for (let ci = 0; ci < rawColumns.length; ci++) {
+      const col = rawColumns[ci];
+      const raw = row.assign?.[col.id];
+      cells.push({
+        rowId: row.id,
+        colId: col.id,
+        x: columns[ci].x,
+        y: rows[ri].y,
+        width: opts.columnWidth,
+        height: opts.rowHeight,
+        value: raw === undefined ? undefined : String(raw),
+      });
+    }
+  }
+
+  const width = opts.rowHeaderWidth + rawColumns.length * opts.columnWidth;
+  const height = opts.headerHeight + rawRows.length * opts.rowHeight;
+
+  return {
+    bounds: { x: 0, y: 0, width, height },
+    rowHeaderWidth: opts.rowHeaderWidth,
+    headerHeight: opts.headerHeight,
+    columns,
+    rows,
+    cells,
+  };
 }

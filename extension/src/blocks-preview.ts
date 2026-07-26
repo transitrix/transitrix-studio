@@ -5,14 +5,17 @@ import { buildDiagramFrame, type ThemeId, OPEN_THEME_COMMAND } from './diagram-f
 import { TITLE_BLOCK_H, titleBlockSvg, todayIso } from './svg-title-block.js';
 import { StaticSvgPreview } from './static-preview.js';
 import {
-  validateNestedBlocks,
+  validateBlocks,
   layoutNestedBlocks,
+  layoutGrid,
   iterateBlocks,
   type BlocksFile,
   type BlocksLayout,
+  type GridFile,
+  type GridLayout,
 } from '@transitrix/diagrams/blocks';
 import { coerceDatesToIsoStrings } from '@transitrix/diagrams/yaml-normalize.js';
-import { renderBlocksLayoutSvg } from '@transitrix/diagrams/webview/render-blocks.js';
+import { renderBlocksLayoutSvg, renderGridLayoutSvg } from '@transitrix/diagrams/webview/render-blocks.js';
 import { readBlocksLeafSize } from './node-size-config.js';
 
 
@@ -39,6 +42,22 @@ function layoutToSvg(
   return renderBlocksLayoutSvg(layout, { topInset: titleH, title: titleSvg });
 }
 
+/**
+ * Matrix subset (§4a) counterpart to {@link layoutToSvg} — same VS Code title
+ * block, delegating body emission to {@link renderGridLayoutSvg}.
+ */
+function gridLayoutToSvg(
+  layout: GridLayout,
+  filename?: string,
+  date?: string,
+  version?: string,
+): string {
+  const showTitle = filename != null && date != null;
+  const titleH = showTitle ? TITLE_BLOCK_H : 0;
+  const titleSvg = showTitle ? titleBlockSvg('Nested Blocks', filename!, date!, PAD, PAD, version) : '';
+  return renderGridLayoutSvg(layout, { topInset: titleH, title: titleSvg });
+}
+
 export class BlocksPreview extends StaticSvgPreview {
   readonly panelTitle = 'Blocks Preview';
   protected readonly viewType = 'blocksPreview';
@@ -58,13 +77,23 @@ export class BlocksPreview extends StaticSvgPreview {
 
     try {
       const parsed = coerceDatesToIsoStrings(yaml.load(yamlText) as unknown);
-      const v = validateNestedBlocks(parsed);
+      const raw = (parsed && typeof parsed === 'object' ? parsed : {}) as Record<string, unknown>;
+      const hasGrid = raw['grid'] !== undefined && raw['grid'] !== null;
+
+      const v = validateBlocks(parsed);
       warnings = v.warnings.map((w) => `${w.code}: ${w.message}`);
       if (!v.valid) {
         errorMsg = v.errors.map((e) => `${e.code}: ${e.message}`).join('\n');
+      } else if (hasGrid) {
+        // Matrix subset (08-blocks.md §4a) — single-layer rectangular grid,
+        // e.g. a RACI matrix. Layers/arbitrary shapes/sub-grids belong to the
+        // still-in-design layered-grid superset and are not handled here.
+        const file = parsed as GridFile;
+        const docDate = (typeof raw['generated_at'] === 'string' ? raw['generated_at'] : undefined) ?? todayIso();
+        const layout = layoutGrid(file);
+        svgContent = gridLayoutToSvg(layout, filename, docDate);
       } else {
         const file = parsed as BlocksFile;
-        const raw = (parsed && typeof parsed === 'object' ? parsed : {}) as Record<string, unknown>;
         const nb =
           (file as unknown as { nested_blocks?: { version?: unknown; date?: unknown } })
             .nested_blocks ?? {};

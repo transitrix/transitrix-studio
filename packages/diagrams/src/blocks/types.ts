@@ -43,6 +43,51 @@ export interface GridFile {
   grid: GridHeader;
 }
 
+export interface GridLayoutOptions {
+  /** Width of each data column (px). */
+  columnWidth?: number;
+  /** Height of each data row (px). */
+  rowHeight?: number;
+  /** Width of the row-header column carrying each row's name (px). */
+  rowHeaderWidth?: number;
+  /** Height of the column-header row carrying each column's name (px). */
+  headerHeight?: number;
+}
+
+export interface LaidOutGridColumn {
+  id: string;
+  name: string;
+  x: number;
+  width: number;
+}
+
+export interface LaidOutGridRow {
+  id: string;
+  name: string;
+  y: number;
+  height: number;
+}
+
+export interface LaidOutGridCell {
+  rowId: string;
+  colId: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  /** The cell's `assign` value, stringified; omitted (blank) when unassigned. */
+  value?: string;
+}
+
+export interface GridLayout {
+  bounds: LayoutBounds;
+  rowHeaderWidth: number;
+  headerHeight: number;
+  columns: LaidOutGridColumn[];
+  rows: LaidOutGridRow[];
+  cells: LaidOutGridCell[];
+}
+
 export interface BlocksLayoutOptions {
   /** Width of a leaf block (a block with no children). */
   leafWidth?: number;

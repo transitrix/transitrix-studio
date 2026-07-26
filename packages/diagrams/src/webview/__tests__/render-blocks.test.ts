@@ -8,8 +8,8 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import type { BlocksFile } from '../../blocks/types.js';
-import { renderBlocksSvg } from '../render-blocks.js';
+import type { BlocksFile, GridFile } from '../../blocks/types.js';
+import { renderBlocksSvg, renderGridSvg } from '../render-blocks.js';
 import { CHAR_W_PRIMARY as CHAR_W, CHAR_W_ID, TEXT_MARGIN_X } from '../entity-text-layout.js';
 import { ENTITY_NODE_SIZE } from '../../node-size-presets.js';
 
@@ -202,5 +202,66 @@ describe('renderBlocksSvg — name/ID vertical overlap regression (follows-up on
     const lastNameBottom = Math.max(...nameY) + NAME_HALF_H;
     const firstIdTop = Math.min(...idY) - ID_HALF_H;
     expect(firstIdTop).toBeGreaterThan(lastNameBottom);
+  });
+});
+
+// Matrix subset (08-blocks.md §4a) — modelled on the real RACI template
+// (methodology `templates/raci/raci.blocks.transitrix.yaml`).
+const RACI_GRID: GridFile = {
+  notation: 'blocks',
+  spec_version: '0.1',
+  grid: {
+    columns: [
+      { id: 'ROLE-PRODUCT', name: 'Product Owner' },
+      { id: 'ROLE-LEAD-ARCH', name: 'Lead Architect' },
+      { id: 'ROLE-REVIEW-BOARD', name: 'Architecture Review Board' },
+    ],
+    rows: [
+      {
+        id: 'ACT-PROPOSE',
+        name: 'Propose a change',
+        assign: { 'ROLE-PRODUCT': 'A', 'ROLE-LEAD-ARCH': 'C', 'ROLE-REVIEW-BOARD': 'I' },
+      },
+      {
+        id: 'ACT-DECIDE',
+        name: 'Approve / reject',
+        assign: { 'ROLE-REVIEW-BOARD': 'A', 'ROLE-LEAD-ARCH': 'R' },
+      },
+    ],
+  },
+};
+
+describe('renderGridSvg — matrix subset', () => {
+  it('renders one text-header line per column and one text-primary line per row', () => {
+    const svg = renderGridSvg(RACI_GRID);
+    for (const col of RACI_GRID.grid.columns) {
+      // Column names are wrapped to up to 2 lines, so match on a fragment.
+      expect(svg).toMatch(new RegExp(`<text class="text-header"[\\s\\S]*?${col.name.split(' ')[0]}`));
+    }
+    for (const row of RACI_GRID.grid.rows) {
+      expect(svg).toMatch(new RegExp(`<text class="text-primary"[\\s\\S]*?${row.name.split(' ')[0]}`));
+    }
+  });
+
+  it('renders every non-blank assign value as text-secondary', () => {
+    const svg = renderGridSvg(RACI_GRID);
+    const values = svg.match(/<text class="text-secondary"[^>]*>([^<]*)<\/text>/g) ?? [];
+    expect(values.some((t) => t.includes('>A<'))).toBe(true);
+    expect(values.some((t) => t.includes('>R<'))).toBe(true);
+    expect(values.some((t) => t.includes('>C<'))).toBe(true);
+    expect(values.some((t) => t.includes('>I<'))).toBe(true);
+  });
+
+  it('does not emit a text-secondary element for a blank cell', () => {
+    const svg = renderGridSvg(RACI_GRID);
+    // 3 columns x 2 rows = 6 cells; only 5 are assigned (ACT-DECIDE has no
+    // ROLE-PRODUCT entry), so exactly 5 value texts should render.
+    const values = svg.match(/<text class="text-secondary"[^>]*>[^<]*<\/text>/g) ?? [];
+    expect(values).toHaveLength(5);
+  });
+
+  it('returns a zero-size svg for an empty grid', () => {
+    const svg = renderGridSvg({ notation: 'blocks', grid: { columns: [], rows: [] } });
+    expect(svg).toContain('width="0" height="0"');
   });
 });
