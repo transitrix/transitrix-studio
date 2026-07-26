@@ -355,7 +355,7 @@ describe('validate-notation — parity with the preview validator (#258, #518 C1
 // blocks matrix subset (08-blocks.md §4a/§6/§6a) — the grid: root form plus the
 // --template opt-in mechanism a template (e.g. RACI) uses to layer its own
 // cell-value invariant on top of the base BL-02x well-formedness rules.
-describe('validate-notation — blocks grid: root + --template (§6a, vkgeorgia/strategy#779)', () => {
+describe('validate-notation — blocks grid: root + --template (§6a)', () => {
   const wellFormedRaci = {
     notation: 'blocks',
     grid: {

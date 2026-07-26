@@ -1,5 +1,5 @@
 // blocks matrix subset (08-blocks.md §4a/§6/§6a) — grid: root CLI validation
-// end-to-end, plus the --template opt-in mechanism (vkgeorgia/strategy#779).
+// end-to-end, plus the --template opt-in mechanism.
 //
 // This is the real-world acceptance check: `npx @transitrix/cli validate
 // <raci file> --template raci` must PASS a well-formed RACI grid (exactly one
@@ -62,7 +62,7 @@ const TWO_A = raciDoc([
   { id: 'ACT-PROPOSE', name: 'Propose a change', assign: { 'ROLE-PRODUCT': 'A', 'ROLE-LEAD-ARCH': 'A' } },
 ]);
 
-describe('transitrix validate — blocks grid: root (§4a/§6, strategy#779)', () => {
+describe('transitrix validate — blocks grid: root (§4a/§6)', () => {
   const temps: string[] = [];
 
   afterEach(() => {
