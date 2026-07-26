@@ -22,8 +22,13 @@ jobs:
 
       - name: Block internal agent-ops filenames
         run: |
-          if git ls-files | grep -qiE '(^|/)(CLAUDE|AGENTS)\.md$'; then
-            echo "::error::CLAUDE.md/AGENTS.md are not allowed in this public repo (internal agent-ops docs)"
+          # organizations/** is the demo-adopter fixture tree (e.g. acme_corp) —
+          # its own CLAUDE.md/AGENTS.md are intentionally-shipped example content
+          # showing an adopter how to configure agent guidance in their own repo,
+          # not this project's internal agent-ops docs. Excluded from the block;
+          # every other path in the tree still fails the build.
+          if git ls-files | grep -v '^organizations/' | grep -qiE '(^|/)(CLAUDE|AGENTS)\.md$'; then
+            echo "::error::CLAUDE.md/AGENTS.md are not allowed in this public repo outside organizations/** demo fixtures (internal agent-ops docs)"
             exit 1
           fi
 
