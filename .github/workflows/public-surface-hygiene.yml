@@ -22,8 +22,12 @@ jobs:
 
       - name: Block internal agent-ops filenames
         run: |
-          if git ls-files | grep -qiE '(^|/)(CLAUDE|AGENTS)\.md$'; then
+          # organizations/** holds intentional demo-adopter fixture content (e.g. acme_corp's own
+          # AGENTS.md, vendored for example purposes) -- legit, not the internal-ops leak this guards against.
+          hits=$(git ls-files | grep -iE '(^|/)(CLAUDE|AGENTS)\.md$' | grep -v '^organizations/' || true)
+          if [ -n "$hits" ]; then
             echo "::error::CLAUDE.md/AGENTS.md are not allowed in this public repo (internal agent-ops docs)"
+            echo "$hits"
             exit 1
           fi
 
