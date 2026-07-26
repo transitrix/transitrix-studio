@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import yaml from 'js-yaml';
-import { validateNestedBlocks } from '../validate.js';
+import { validateNestedBlocks, validateGrid, validateBlocks } from '../validate.js';
+import { RACI_GRID_RULES } from '../templates/raci.js';
 
 const EXAMPLES_DIR = path.resolve(process.cwd(), '..', '..', 'tests', 'fixtures', 'notation-corpus', 'blocks');
 
@@ -240,6 +241,167 @@ describe('validateNestedBlocks', () => {
     const r = validateNestedBlocks(VALID_DOC);
     expect(r.valid).toBe(true);
     expect(r.warnings).toHaveLength(0);
+  });
+});
+
+const VALID_GRID_DOC = {
+  notation: 'blocks',
+  spec_version: '0.1',
+  grid: {
+    columns: [
+      { id: 'role_a', name: 'Role A' },
+      { id: 'role_b', name: 'Role B' },
+    ],
+    rows: [
+      { id: 'activity_1', name: 'Activity 1', assign: { role_a: 'A', role_b: 'R' } },
+      { id: 'activity_2', name: 'Activity 2', assign: { role_b: 'A' } },
+    ],
+  },
+};
+
+describe('validateGrid', () => {
+  it('passes on a valid grid document', () => {
+    const r = validateGrid(VALID_GRID_DOC);
+    expect(r.valid).toBe(true);
+    expect(r.errors).toHaveLength(0);
+  });
+
+  it('BL-020: rejects missing grid root key', () => {
+    const r = validateGrid({ notation: 'blocks' });
+    expect(r.errors.some((e) => e.code === 'BL-020')).toBe(true);
+  });
+
+  it('BL-021: rejects missing/empty columns', () => {
+    const r = validateGrid({ ...VALID_GRID_DOC, grid: { ...VALID_GRID_DOC.grid, columns: [] } });
+    expect(r.errors.some((e) => e.code === 'BL-021')).toBe(true);
+  });
+
+  it('BL-022: rejects missing/empty rows', () => {
+    const r = validateGrid({ ...VALID_GRID_DOC, grid: { ...VALID_GRID_DOC.grid, rows: [] } });
+    expect(r.errors.some((e) => e.code === 'BL-022')).toBe(true);
+  });
+
+  it('BL-023: rejects a column entry missing id or name', () => {
+    const r = validateGrid({
+      ...VALID_GRID_DOC,
+      grid: { ...VALID_GRID_DOC.grid, columns: [{ id: 'role_a', name: 'Role A' }, { id: '', name: 'Role B' }] },
+    });
+    expect(r.errors.some((e) => e.code === 'BL-023')).toBe(true);
+  });
+
+  it('BL-024: rejects duplicate column ids', () => {
+    const r = validateGrid({
+      ...VALID_GRID_DOC,
+      grid: {
+        ...VALID_GRID_DOC.grid,
+        columns: [{ id: 'role_a', name: 'Role A' }, { id: 'role_a', name: 'Role A again' }],
+      },
+    });
+    expect(r.errors.some((e) => e.code === 'BL-024')).toBe(true);
+  });
+
+  it('BL-024: rejects duplicate row ids, but allows a column and row to share an id', () => {
+    const dupeRows = validateGrid({
+      ...VALID_GRID_DOC,
+      grid: {
+        ...VALID_GRID_DOC.grid,
+        rows: [
+          { id: 'activity_1', name: 'Activity 1' },
+          { id: 'activity_1', name: 'Activity 1 again' },
+        ],
+      },
+    });
+    expect(dupeRows.errors.some((e) => e.code === 'BL-024')).toBe(true);
+
+    const sharedNamespace = validateGrid({
+      ...VALID_GRID_DOC,
+      grid: {
+        columns: [{ id: 'shared', name: 'Role A' }],
+        rows: [{ id: 'shared', name: 'Activity 1', assign: { shared: 'A' } }],
+      },
+    });
+    expect(sharedNamespace.errors).toHaveLength(0);
+  });
+
+  it('BL-025: rejects an assign key referencing an unknown column', () => {
+    const r = validateGrid({
+      ...VALID_GRID_DOC,
+      grid: {
+        ...VALID_GRID_DOC.grid,
+        rows: [{ id: 'activity_1', name: 'Activity 1', assign: { nonexistent_col: 'A' } }],
+      },
+    });
+    expect(r.errors.some((e) => e.code === 'BL-025')).toBe(true);
+  });
+
+  it('tolerates an omitted assign key (blank cell) and an all-blank row', () => {
+    const r = validateGrid({
+      ...VALID_GRID_DOC,
+      grid: { ...VALID_GRID_DOC.grid, rows: [{ id: 'activity_1', name: 'Activity 1' }] },
+    });
+    expect(r.valid).toBe(true);
+  });
+});
+
+describe('validateGrid with RACI template rules', () => {
+  it('passes when every row has exactly one "A"', () => {
+    const r = validateGrid(VALID_GRID_DOC, { rules: RACI_GRID_RULES });
+    expect(r.valid).toBe(true);
+  });
+
+  it('RACI-001: rejects a row with zero "A" assignments', () => {
+    const r = validateGrid(
+      {
+        ...VALID_GRID_DOC,
+        grid: {
+          ...VALID_GRID_DOC.grid,
+          rows: [{ id: 'activity_1', name: 'Activity 1', assign: { role_a: 'R', role_b: 'R' } }],
+        },
+      },
+      { rules: RACI_GRID_RULES },
+    );
+    expect(r.errors.some((e) => e.code === 'RACI-001')).toBe(true);
+  });
+
+  it('RACI-001: rejects a row with two "A" assignments', () => {
+    const r = validateGrid(
+      {
+        ...VALID_GRID_DOC,
+        grid: {
+          ...VALID_GRID_DOC.grid,
+          rows: [{ id: 'activity_1', name: 'Activity 1', assign: { role_a: 'A', role_b: 'A' } }],
+        },
+      },
+      { rules: RACI_GRID_RULES },
+    );
+    expect(r.errors.some((e) => e.code === 'RACI-001')).toBe(true);
+  });
+});
+
+describe('validateBlocks (root-form dispatcher)', () => {
+  it('dispatches nested_blocks documents to validateNestedBlocks', () => {
+    const r = validateBlocks(VALID_DOC);
+    expect(r.valid).toBe(true);
+  });
+
+  it('dispatches grid documents to validateGrid', () => {
+    const r = validateBlocks(VALID_GRID_DOC);
+    expect(r.valid).toBe(true);
+  });
+
+  it('BL-020: rejects a document with neither nested_blocks nor grid', () => {
+    const r = validateBlocks({ notation: 'blocks' });
+    expect(r.errors.some((e) => e.code === 'BL-020')).toBe(true);
+  });
+
+  it('BL-020: rejects a document with both nested_blocks and grid', () => {
+    const r = validateBlocks({ ...VALID_DOC, grid: VALID_GRID_DOC.grid });
+    expect(r.errors.some((e) => e.code === 'BL-020')).toBe(true);
+  });
+
+  it('passes template rules through to the grid form', () => {
+    const r = validateBlocks(VALID_GRID_DOC, { rules: RACI_GRID_RULES });
+    expect(r.valid).toBe(true);
   });
 });
 

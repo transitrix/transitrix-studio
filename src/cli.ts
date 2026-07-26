@@ -285,13 +285,15 @@ async function handleValidateCommand(argv: string[]): Promise<void> {
       console.error('transitrix validate: --scope requires a value (file|repo).');
     } else if (parsed.error === '--root_requires_value') {
       console.error('transitrix validate: --root requires a directory path.');
+    } else if (parsed.error === '--template_requires_value') {
+      console.error('transitrix validate: --template requires a value (e.g. raci).');
     } else {
       console.error('transitrix: --ext requires a comma-separated list of suffixes.');
     }
     process.exit(1);
   }
 
-  const { scope, root, positional, extList, wantsHelp } = parsed;
+  const { scope, root, template, positional, extList, wantsHelp } = parsed;
   // Default extension list for validate: BPMN + all canonical notation extensions.
   // Notation files are already routed by their notation: field before the extension
   // gate, so this expanded default mainly prevents a confusing error message when a
@@ -304,7 +306,7 @@ async function handleValidateCommand(argv: string[]): Promise<void> {
   const useJson = argv.includes('--json');
 
   if (wantsHelp) {
-    console.error(`usage: transitrix validate <input.yaml> [--json]                 (file scope, default)`);
+    console.error(`usage: transitrix validate <input.yaml> [--json] [--template <name>] (file scope, default)`);
     console.error(`       transitrix validate --scope=repo [--root <dir>] [--json] [--include-model]`);
     console.error('');
     console.error('file scope — single-file structural/semantic validation (default).');
@@ -314,6 +316,9 @@ async function handleValidateCommand(argv: string[]): Promise<void> {
     console.error('             products, scenarios, process-map, requirement, constraint,');
     console.error('             assertion, compliance-impact, coverage-metric, codex) — same checks as the preview.');
     console.error('             Canonical notation extensions are accepted without --ext.');
+    console.error('             --template <name> (blocks matrix-subset grid: root only, §6a) — e.g.');
+    console.error('             "raci" — additionally enforces that template\'s own invariant');
+    console.error('             (RACI-001: exactly one "A" per row) on top of the base BL-02x rules.');
     console.error('repo scope — whole-canon checks (referential integrity, atomicity,');
     console.error('             id uniqueness, policy) over <root> (default: cwd).');
     console.error('             --include-model (with --json) also emits the resolved');
@@ -397,7 +402,7 @@ async function handleValidateCommand(argv: string[]): Promise<void> {
     const projectionInfo = PROJECTION_ONLY_NOTATIONS[validatorKey];
     const isUnresolvableProjection = projectionInfo ? projectionInfo.check(data) : false;
     if (isFileValidatableNotation(validatorKey) && !isUnresolvableProjection) {
-      const report = validateNotationDoc(validatorKey, data, { filePath: src });
+      const report = validateNotationDoc(validatorKey, data, { filePath: src, template });
       emitFileReport(src, report, useJson, validatorKey);
       if (!report.isValid) {
         process.exit(1);

@@ -33,7 +33,8 @@ import {
 import { validateActivities } from '@transitrix/diagrams/activities/validate.js';
 import { validateActivityCard } from '@transitrix/diagrams/activity-card/validate.js';
 import { validateProcessBlueprint } from '@transitrix/diagrams/process-blueprint/validate.js';
-import { validateNestedBlocks } from '@transitrix/diagrams/blocks/validate.js';
+import { validateBlocks } from '@transitrix/diagrams/blocks/validate.js';
+import { GRID_TEMPLATE_RULES } from '@transitrix/diagrams/blocks/templates/index.js';
 import { validateApplicationsCatalogue } from '@transitrix/diagrams/applications/validate.js';
 import { validateCapabilityMap } from '@transitrix/diagrams/capability-map/validate.js';
 import { validateProductsCatalogue } from '@transitrix/diagrams/products/validate.js';
@@ -92,6 +93,34 @@ function validateConstraintDoc(input: unknown, options: ValidateNotationOptions 
   return mapPackageResult(validateConstraint(input, { catalog: options.catalog }));
 }
 
+function validateBlocksDoc(input: unknown, options: ValidateNotationOptions = {}): NotationValidationResult {
+  if (options.template !== undefined) {
+    const rules = GRID_TEMPLATE_RULES[options.template];
+    // An unrecognised --template name must fail loudly, not silently validate
+    // the grid without the template invariant the caller asked for — a typo
+    // (e.g. "racy") would otherwise pass a RACI file with a missing/duplicate
+    // Accountable owner with no warning at all.
+    if (!rules) {
+      const known = Object.keys(GRID_TEMPLATE_RULES);
+      return {
+        valid: false,
+        errors: [
+          {
+            code: 'BL-TEMPLATE-UNKNOWN',
+            message:
+              known.length > 0
+                ? `Unknown --template "${options.template}". Known templates: ${known.join(', ')}.`
+                : `Unknown --template "${options.template}". No grid templates are registered.`,
+          },
+        ],
+        warnings: [],
+      };
+    }
+    return mapPackageResult(validateBlocks(input, { rules }));
+  }
+  return mapPackageResult(validateBlocks(input, {}));
+}
+
 function validateComplianceImpactDoc(input: unknown): NotationValidationResult {
   const r = parseImpactViewConfig(input);
   if (r.ok) return { valid: true, errors: [], warnings: [] };
@@ -137,7 +166,7 @@ const VALIDATORS: Record<string, NotationValidator> = {
   action: wrapValidator(validateActivities),
   'action-card': wrapValidator(validateActivityCard),
   'process-blueprint': wrapValidator(validateProcessBlueprint),
-  blocks: wrapValidator(validateNestedBlocks),
+  blocks: validateBlocksDoc,
   // Group B — deduped from inline preview copies in Phase B; package is now canonical.
   applications: wrapValidator(validateApplicationsCatalogue),
   'capability-map': wrapValidator(validateCapabilityMap),
@@ -228,6 +257,9 @@ export interface ValidateNotationOptions {
   filePath?: string;
   /** Admitted canon catalogue — enables REQ-002 and ASSERT-002..005 (#518 C3). */
   catalog?: CanonCatalog;
+  /** Grid-template name (matrix subset, §6a) — e.g. "raci" — opts into that
+   *  template's extra GridRule checks on top of the base BL-02x rules. */
+  template?: string;
 }
 
 /** Parse + date-coerce a YAML string exactly as the previews do, so validator

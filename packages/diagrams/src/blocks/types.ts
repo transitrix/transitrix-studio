@@ -21,6 +21,28 @@ export interface BlocksFile {
   nested_blocks: NestedBlocksHeader;
 }
 
+export interface GridColumn {
+  id: string;
+  name: string;
+}
+
+export interface GridRow {
+  id: string;
+  name: string;
+  assign?: Record<string, unknown>;
+}
+
+export interface GridHeader {
+  columns: GridColumn[];
+  rows: GridRow[];
+}
+
+export interface GridFile {
+  notation: string;
+  spec_version?: string;
+  grid: GridHeader;
+}
+
 export interface BlocksLayoutOptions {
   /** Width of a leaf block (a block with no children). */
   leafWidth?: number;
