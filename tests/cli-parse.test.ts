@@ -85,5 +85,24 @@ describe('parseValidateArgv (#141 — validate scope)', () => {
   it('passes --help through as wantsHelp', () => {
     expect(parseValidateArgv(['--scope=repo', '--help'])).toMatchObject({ ok: true, wantsHelp: true });
   });
+
+  it('parses --template (equals and spaced forms)', () => {
+    expect(parseValidateArgv(['raci.blocks.transitrix.yaml', '--template=raci'])).toMatchObject({
+      ok: true,
+      template: 'raci',
+    });
+    expect(parseValidateArgv(['raci.blocks.transitrix.yaml', '--template', 'raci'])).toMatchObject({
+      ok: true,
+      template: 'raci',
+    });
+  });
+
+  it('leaves template undefined when not given', () => {
+    expect(parseValidateArgv(['model.cervin.yaml'])).toMatchObject({ ok: true, template: undefined });
+  });
+
+  it('signals --template without a value', () => {
+    expect(parseValidateArgv(['--template'])).toEqual({ ok: false, error: '--template_requires_value' });
+  });
 });
 

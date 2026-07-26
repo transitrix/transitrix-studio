@@ -351,3 +351,76 @@ describe('validate-notation — parity with the preview validator (#258, #518 C1
     expect(withCatalog.findings.some((f) => f.ruleId === 'REQ-002')).toBe(true);
   });
 });
+
+// blocks matrix subset (08-blocks.md §4a/§6/§6a) — the grid: root form plus the
+// --template opt-in mechanism a template (e.g. RACI) uses to layer its own
+// cell-value invariant on top of the base BL-02x well-formedness rules.
+describe('validate-notation — blocks grid: root + --template (§6a, vkgeorgia/strategy#779)', () => {
+  const wellFormedRaci = {
+    notation: 'blocks',
+    grid: {
+      columns: [
+        { id: 'ROLE-PRODUCT', name: 'Product Owner' },
+        { id: 'ROLE-LEAD-ARCH', name: 'Lead Architect' },
+      ],
+      rows: [
+        { id: 'ACT-PROPOSE', name: 'Propose a change', assign: { 'ROLE-PRODUCT': 'A', 'ROLE-LEAD-ARCH': 'C' } },
+        { id: 'ACT-DECIDE', name: 'Approve / reject', assign: { 'ROLE-LEAD-ARCH': 'A', 'ROLE-PRODUCT': 'I' } },
+      ],
+    },
+  };
+
+  it('a well-formed grid: document validates without --template (base BL-02x rules only)', () => {
+    const report = validateNotationDoc('blocks', wellFormedRaci);
+    expect(report.isValid).toBe(true);
+    expect(report.findings).toEqual([]);
+  });
+
+  it('--template raci passes a well-formed RACI (exactly one "A" per row)', () => {
+    const report = validateNotationDoc('blocks', wellFormedRaci, { template: 'raci' });
+    expect(report.isValid).toBe(true);
+  });
+
+  it('--template raci fails a row with zero "A" assignments', () => {
+    const zeroA = {
+      ...wellFormedRaci,
+      grid: {
+        ...wellFormedRaci.grid,
+        rows: [
+          { id: 'ACT-PROPOSE', name: 'Propose a change', assign: { 'ROLE-PRODUCT': 'R', 'ROLE-LEAD-ARCH': 'C' } },
+        ],
+      },
+    };
+    const report = validateNotationDoc('blocks', zeroA, { template: 'raci' });
+    expect(report.isValid).toBe(false);
+    expect(report.findings.some((f) => f.ruleId === 'RACI-001')).toBe(true);
+  });
+
+  it('--template raci fails a row with two "A" assignments', () => {
+    const twoA = {
+      ...wellFormedRaci,
+      grid: {
+        ...wellFormedRaci.grid,
+        rows: [
+          { id: 'ACT-PROPOSE', name: 'Propose a change', assign: { 'ROLE-PRODUCT': 'A', 'ROLE-LEAD-ARCH': 'A' } },
+        ],
+      },
+    };
+    const report = validateNotationDoc('blocks', twoA, { template: 'raci' });
+    expect(report.isValid).toBe(false);
+    expect(report.findings.some((f) => f.ruleId === 'RACI-001')).toBe(true);
+  });
+
+  it('an unrecognised --template name fails clearly instead of silently skipping the invariant', () => {
+    const report = validateNotationDoc('blocks', wellFormedRaci, { template: 'not-a-real-template' });
+    expect(report.isValid).toBe(false);
+    expect(report.findings.some((f) => f.ruleId === 'BL-TEMPLATE-UNKNOWN')).toBe(true);
+  });
+
+  it('BL-020: a grid: document still reports base errors even with --template set', () => {
+    const bothRoots = { notation: 'blocks', nested_blocks: { id: 'BLOCKS-1', name: 'X', blocks: [{ id: 'a', name: 'A' }] }, grid: wellFormedRaci.grid };
+    const report = validateNotationDoc('blocks', bothRoots, { template: 'raci' });
+    expect(report.isValid).toBe(false);
+    expect(report.findings.some((f) => f.ruleId === 'BL-020')).toBe(true);
+  });
+});
