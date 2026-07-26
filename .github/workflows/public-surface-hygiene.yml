@@ -20,6 +20,13 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.event.pull_request.head.sha }}
 
+      - name: Block internal agent-ops filenames
+        run: |
+          if git ls-files | grep -qiE '(^|/)(CLAUDE|AGENTS)\.md$'; then
+            echo "::error::CLAUDE.md/AGENTS.md are not allowed in this public repo (internal agent-ops docs)"
+            exit 1
+          fi
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
