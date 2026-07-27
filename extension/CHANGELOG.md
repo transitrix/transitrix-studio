@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## 3.1.0 — 2026-07-27
+
+Blocks gains a matrix form (RACI-style tables), `transitrix validate --scope=repo` now distinguishes errors from warnings and covers more of the methodology's rule set, and `--include-model` gives tooling a parsed view of your repo without re-implementing the notation schema.
+
+### Added
+
+- **Blocks matrix (`grid:`) documents** — a single-layer rectangular table, e.g. a RACI chart — are now validated and rendered in the preview, alongside the existing tree (`nested_blocks`) form. `transitrix validate --template raci` additionally checks that every row has exactly one Accountable owner.
+- **`transitrix validate --scope=repo` now distinguishes errors from warnings.** Only errors fail the command; checks for orphaned goal/action parents and unreferenced drivers/goals/changes surface as warnings instead of blocking validation.
+- **More of the methodology's validation rule set is enforced**, including goal/action element hygiene, capability map header/lifecycle rules, and additional strategy-chain checks (parent-chain cycles, dangling cross-references, invalid action dates/ordering).
+- **`transitrix validate --scope=repo --json --include-model` emits the parsed repo model** (elements and relations) for tools that want to consume Transitrix data without re-implementing the notation schema.
+
 ## 3.0.9 — 2026-07-17
 
 Action Schedule, DGCA, and Goals Tree can now be shared across documents (canon-projection form), plus several correctness fixes for `transitrix validate`.

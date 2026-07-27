@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## [3.1.0] — 2026-07-27
+
 ### Added
 
 - **`validate --scope=repo --json --include-model` emits the resolved element/relation model** (#406, #407). Opt-in flag adds a `model: { elements, relations }` key — id/name/notation/type/layer per element, id/kind/source/target per relation — reusing the same canon walk the repo-scope validator already does, for a non-JS consumer (DSM's Go backend) that wants the parsed model without re-implementing the notation schema. #407 adds a `data` field carrying the complete parsed element document alongside the minimal projection, so callers can read notation-specific fields (a goal's `level`/`parent`, an action's scheduling fields, …) without an engine schema change. Existing `--scope=repo --json` output is unchanged when `--include-model` is omitted.
@@ -14,6 +16,7 @@
 
 ### Packages
 
+- **Transitrix Studio extension** 3.0.9 → 3.1.0
 - **`@transitrix/cli`** 2.0.1 → 2.1.0 (#408, enables `--include-model` from #407) → 2.2.0 (#411 — the `grid:` validator and the `--template raci` flag).
 - **`@transitrix/diagrams`** 1.8.11 → 1.8.18 — grid-matrix rendering (#413) and the repo-validate rule additions above (#409, #410, #414).
 
