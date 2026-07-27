@@ -21,10 +21,17 @@ export function validateCapabilityMap(input: unknown): ValidationResult {
   }
   const raw = input as Record<string, unknown>;
 
+  // HDR-001/002 — DSM's own rule codes for the same header check CMAP-001
+  // already makes (api02/internal/importer/capabilities.go ValidateCapMap),
+  // added alongside it (not instead of it) so DSM can map a finding straight
+  // back onto its own import-log taxonomy while CMAP-001 stays the richer,
+  // pre-existing Studio-native code for this notation's own validator.
   if (!('notation' in raw)) {
     errors.push({ code: 'CMAP-001', message: 'Missing required field: notation' });
+    errors.push({ code: 'HDR-001', message: 'notation field is missing' });
   } else if (raw['notation'] !== 'capability-map') {
     errors.push({ code: 'CMAP-001', message: `notation must be "capability-map", got "${raw['notation']}"` });
+    errors.push({ code: 'HDR-002', message: `notation must be "capability-map", got "${raw['notation']}"` });
   }
   if (errors.length > 0) return { valid: false, errors, warnings };
 
@@ -115,6 +122,39 @@ function validateCapabilityTree(
 
     if (node['applications'] !== undefined && !Array.isArray(node['applications']))
       errors.push({ code: 'CMAP-003', message: `${nodePath}: applications must be an array` });
+
+    // LIFECYCLE-001/004 — DSM's own rule codes (capabilities.go
+    // ValidateCapMap/validateCapMapNodes) for `valid_from`/`valid_to`, the
+    // CONTRACT.md §7 primitive-lifecycle fields. Net new: this notation's own
+    // validator has no equivalent check today — `CapabilityNode` (types.ts)
+    // does not even declare these fields, since Studio's own schema tracks
+    // lifecycle via `target_date` instead. The fields are still read directly
+    // off the raw untyped node here because real capability-map documents
+    // (e.g. organizations/acme_corp) author them inline per §7 regardless.
+    {
+      const id = typeof node['id'] === 'string' ? (node['id'] as string) : nodePath;
+      const validFrom = node['valid_from'];
+      const validTo = node['valid_to'];
+      let fromDate: string | undefined;
+      let toDate: string | undefined;
+      if (validFrom !== undefined && validFrom !== null) {
+        if (typeof validFrom !== 'string' || !DATE_RE.test(validFrom)) {
+          errors.push({ code: 'LIFECYCLE-001', message: `capability ${id} valid_from "${String(validFrom)}" is not a valid YYYY-MM-DD date (must be quoted)` });
+        } else {
+          fromDate = validFrom;
+        }
+      }
+      if (validTo !== undefined && validTo !== null) {
+        if (typeof validTo !== 'string' || !DATE_RE.test(validTo)) {
+          errors.push({ code: 'LIFECYCLE-001', message: `capability ${id} valid_to "${String(validTo)}" is not a valid YYYY-MM-DD date (must be quoted)` });
+        } else {
+          toDate = validTo;
+        }
+      }
+      if (fromDate && toDate && toDate < fromDate) {
+        errors.push({ code: 'LIFECYCLE-004', message: `capability ${id} valid_to ${toDate} is before valid_from ${fromDate}` });
+      }
+    }
 
     if (node['children'] !== undefined) {
       if (!Array.isArray(node['children'])) {

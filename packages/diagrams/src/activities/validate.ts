@@ -19,7 +19,15 @@ export function validateActivities(input: unknown): ActivityValidationResult {
 
   const raw = input as Record<string, unknown>;
 
-  // ACT-001: notation must be "action"
+  // ACT-001: notation must be "action". ACT-020 is deliberately NOT ported
+  // here (DSM's api02/internal/importer/activities.go ValidateActivities
+  // still accepts the pre-2026-06-25 "activities" notation/root-key alias
+  // with a warning) — PR #320 ("drop deprecated notation aliases
+  // fgca/fga/activities/activity-card") already removed that leniency from
+  // this validator on purpose, with tests asserting it is "no longer
+  // accepted". Re-introducing it would reverse a deliberate, shipped
+  // decision, not fill a gap; flagged in the PR for a call rather than
+  // silently reversed either way.
   if (raw.notation === undefined) {
     errors.push({ code: 'ACT-001', message: 'notation field is required' });
     return { valid: false, errors, warnings };

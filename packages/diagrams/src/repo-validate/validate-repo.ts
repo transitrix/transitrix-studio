@@ -28,6 +28,7 @@
 // deferred per the ADR.
 
 import { checkStrategyChainSemantics } from './check-strategy-chain.js';
+import { checkElementHygiene } from './check-element-hygiene.js';
 import type { RepoDoc, RepoFinding, RepoModelInput } from './types.js';
 
 const PScope: RepoFinding['scope'] = 'repo';
@@ -424,5 +425,8 @@ export function validateRepoModel(input: RepoModelInput): RepoFinding[] {
   // Phase 7 — strategy-chain semantic rules ported from DSM's Go Validate*
   // functions (GOALS-010, ACT-006..009, FGCA-008..011).
   checkStrategyChainSemantics(input, findings);
+  // Phase 8 — standalone-element envelope rules ported from DSM's Go
+  // Validate*Element functions (GOAL-ELEM-001..003, ACTION-001/002/005).
+  checkElementHygiene(input, findings);
   return findings;
 }

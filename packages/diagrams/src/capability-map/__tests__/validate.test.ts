@@ -221,6 +221,74 @@ describe('validateCapabilityMap', () => {
     expect(r.valid).toBe(false);
     expect(r.errors.some(e => e.code === 'CMAP-003')).toBe(true);
   });
+
+  // DSM rule codes (api02/internal/importer/capabilities.go), ported alongside
+  // the pre-existing CMAP-*/native codes above — see the module header note.
+  it('HDR-001: rejects missing notation alongside CMAP-001', () => {
+    const { notation: _, ...rest } = VALID_MAP;
+    const r = validateCapabilityMap(rest);
+    expect(r.errors.some(e => e.code === 'HDR-001')).toBe(true);
+    expect(r.errors.some(e => e.code === 'CMAP-001')).toBe(true);
+  });
+
+  it('HDR-002: rejects wrong notation value alongside CMAP-001', () => {
+    const r = validateCapabilityMap({ ...VALID_MAP, notation: 'goals' });
+    expect(r.errors.some(e => e.code === 'HDR-002')).toBe(true);
+    expect(r.errors.some(e => e.code === 'CMAP-001')).toBe(true);
+  });
+
+  it('does not flag HDR-001/002 on valid input', () => {
+    const r = validateCapabilityMap(VALID_MAP);
+    expect(r.errors.some(e => e.code === 'HDR-001' || e.code === 'HDR-002')).toBe(false);
+  });
+
+  it('LIFECYCLE-001: rejects a malformed valid_from', () => {
+    const map = {
+      ...VALID_MAP.capability_map,
+      capabilities: [{ id: 'V1', name: 'X', current_maturity: 2, valid_from: '01/01/2026' }],
+    };
+    const r = validateCapabilityMap({ ...VALID_MAP, capability_map: map });
+    expect(r.errors.some(e => e.code === 'LIFECYCLE-001')).toBe(true);
+  });
+
+  it('LIFECYCLE-001: rejects a malformed valid_to', () => {
+    const map = {
+      ...VALID_MAP.capability_map,
+      capabilities: [{ id: 'V1', name: 'X', current_maturity: 2, valid_to: 'not-a-date' }],
+    };
+    const r = validateCapabilityMap({ ...VALID_MAP, capability_map: map });
+    expect(r.errors.some(e => e.code === 'LIFECYCLE-001')).toBe(true);
+  });
+
+  it('LIFECYCLE-004: rejects valid_to before valid_from', () => {
+    const map = {
+      ...VALID_MAP.capability_map,
+      capabilities: [{
+        id: 'V1', name: 'X', current_maturity: 2,
+        valid_from: '2026-06-01', valid_to: '2026-01-01',
+      }],
+    };
+    const r = validateCapabilityMap({ ...VALID_MAP, capability_map: map });
+    expect(r.errors.some(e => e.code === 'LIFECYCLE-004')).toBe(true);
+  });
+
+  it('accepts a well-formed valid_from/valid_to lifecycle, including on nested children', () => {
+    const map = {
+      ...VALID_MAP.capability_map,
+      capabilities: [{
+        id: 'V1', name: 'X', current_maturity: 2,
+        valid_from: '2026-01-01', valid_to: null,
+        children: [{ id: 'V1.1', name: 'Y', current_maturity: 2, valid_from: '2026-01-01', valid_to: '2027-12-31' }],
+      }],
+    };
+    const r = validateCapabilityMap({ ...VALID_MAP, capability_map: map });
+    expect(r.errors.some(e => e.code === 'LIFECYCLE-001' || e.code === 'LIFECYCLE-004')).toBe(false);
+  });
+
+  it('does not require valid_from/valid_to at all (absent is not an error)', () => {
+    const r = validateCapabilityMap(VALID_MAP);
+    expect(r.errors.some(e => e.code === 'LIFECYCLE-001' || e.code === 'LIFECYCLE-004')).toBe(false);
+  });
 });
 
 describe('capability-map examples (regression)', () => {
