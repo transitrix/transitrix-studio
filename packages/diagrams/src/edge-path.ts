@@ -67,8 +67,8 @@ export function horizontalCubicEdgePath(
  * Builds the SVG `d` for a "skip" edge that must arc over an intermediate
  * node sitting on the direct (sx,sy)→(tx,ty) line — e.g. a Network/PSND view
  * where a multi-predecessor activity's nearer predecessor shares a row with
- * one of the columns in between (vkgeorgia/strategy — "arrow goes straight
- * through the node"). Both control points target `bowY` instead of each
+ * one of the columns in between, so the direct line would be drawn straight
+ * through that node. Both control points target `bowY` instead of each
  * endpoint's own Y, producing a hump that departs/arrives at an angle rather
  * than the flat horizontal tangent of `horizontalCubicEdgePath`.
  *

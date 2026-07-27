@@ -89,7 +89,7 @@ describe('bowedCubicEdgePath', () => {
     expect(Number(m![4])).toBe(20);
   });
 
-  it('clears a same-row obstacle sitting on the direct sy=ty line (vkgeorgia/strategy — arrow through node)', () => {
+  it('clears a same-row obstacle sitting on the direct sy=ty line (arrow drawn through the node)', () => {
     // Reproduces the SDS-workflow scenario: A-001 (col 0) -> A-003 (col 2),
     // with A-002 (col 1) occupying the same row in between.
     const sx = 274, sy = 138, tx = 752, ty = 138; // A-001 right edge -> A-003 left edge
