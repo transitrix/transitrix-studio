@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Added
+
+- **The `blocks` matrix subset (`grid:` root) is validated** (#411). `transitrix validate` recognises the single-layer rectangular matrix form alongside the existing `nested_blocks` tree form, enforcing `BL-020`..`BL-025`: root-form exclusivity, `columns`/`rows` well-formedness, id uniqueness across the two namespaces, and `assign` keys referencing a declared column.
+- **Template-level cell invariants via `--template`** (#411). A template built on the matrix subset can plug its own cell-value rule on top of the shared validator through a closed `GridRule` mechanism, so the base notation does not have to fix what `assign` values mean. First entry: `transitrix validate --template raci` enforces `RACI-001` — exactly one column per row assigned `"A"` — so a RACI row with two Accountable owners, or none, fails validation instead of rotting silently.
+
+### Packages
+
+- **`@transitrix/cli`** 2.1.0 → 2.2.0 — the `grid:` validator and the `--template raci` flag ship here.
+
 ## [3.0.9] — 2026-07-17
 
 ### Added
