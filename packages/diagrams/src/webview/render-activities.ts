@@ -23,7 +23,7 @@ import type {
   ActivitiesLayout,
   ActivitiesLayoutOptions,
 } from '../activities/types.js';
-import { horizontalCubicEdgePath, DEFAULT_EDGE_CURVATURE } from '../edge-path.js';
+import { horizontalCubicEdgePath, bowedCubicEdgePath, DEFAULT_EDGE_CURVATURE } from '../edge-path.js';
 import { parseNodeSizePreset, resolveActionNodeSize, type NodeSizePreset } from '../node-size-presets.js';
 import { generateSvgEmbedCss } from '../theme/index.js';
 import { emitCenteredTextSvg, layoutCenteredEntityText } from './entity-text-layout.js';
@@ -54,6 +54,72 @@ export const ACTIVITIES_NETWORK_DEFS = `<defs>
     <path d="M0,0 L0,6 L8,3 z" class="arrow-fill-critical"/>
   </marker>
 </defs>`;
+
+type ActivityLayoutNode = ActivitiesLayout['nodes'][number];
+
+/**
+ * Nodes horizontally between `source` and `target` (a "skip" edge passes over
+ * their column) whose vertical span overlaps the edge's Y band. A
+ * straight-tangent cubic (`horizontalCubicEdgePath`) stays within
+ * [min(sourceCenterY,targetCenterY), max(...)] by convex hull, so any such
+ * node sits directly on the edge's path — the "arrow goes straight through
+ * the node" bug reported against a linear PSND chain where a multi-predecessor
+ * activity's nearer predecessor shares a row with an intermediate column.
+ */
+function blockingNodes(
+  nodes: ActivityLayoutNode[],
+  source: ActivityLayoutNode,
+  target: ActivityLayoutNode,
+): ActivityLayoutNode[] {
+  const sCenterY = source.y + source.height / 2;
+  const tCenterY = target.y + target.height / 2;
+  const loY = Math.min(sCenterY, tCenterY);
+  const hiY = Math.max(sCenterY, tCenterY);
+  const sRight = source.x + source.width;
+  const tLeft = target.x;
+  return nodes.filter((n) => {
+    if (n.id === source.id || n.id === target.id) return false;
+    if (n.x + n.width <= sRight || n.x >= tLeft) return false; // not between the two columns
+    return n.y < hiY && n.y + n.height > loY; // vertical overlap with the edge's band
+  });
+}
+
+/**
+ * Pre-offset bow-control-point Y for a skip edge arcing over `blockers`: one
+ * full node-height of clearance above the topmost blocker's top edge. A
+ * cubic's apex only reaches part-way toward its control point (see
+ * `bowedCubicEdgePath` doc), so this generous margin is what actually keeps
+ * the visible curve clear of the box — verified numerically in
+ * `render-activities.test.ts`.
+ */
+function bowY(blockers: ActivityLayoutNode[]): number {
+  const topY = Math.min(...blockers.map((n) => n.y));
+  const clearance = Math.max(...blockers.map((n) => n.height));
+  return topY - clearance;
+}
+
+/**
+ * Extra top padding (px) a network-view canvas must add so skip-edge bows
+ * (see `blockingNodes`/`bowY` above) never draw above the SVG's y=0 and get
+ * clipped. `oyBase` is the canvas's Y offset *before* this padding — the
+ * historical `-bounds.y + N_PAD + titleH` both hosts compute — since a bow
+ * near the topmost row can reach above the diagram's own node bounds.
+ * Callers add the returned value to both `oyBase` and the canvas height.
+ */
+export function computeNetworkTopPad(layout: ActivitiesLayout, oyBase: number): number {
+  const nodeMap = new Map(layout.nodes.map((n) => [n.id, n]));
+  let pad = 0;
+  for (const e of layout.edges) {
+    const s = nodeMap.get(e.sourceId);
+    const t = nodeMap.get(e.targetId);
+    if (!s || !t) continue;
+    const blockers = blockingNodes(layout.nodes, s, t);
+    if (blockers.length === 0) continue;
+    const shortfall = -(oyBase + bowY(blockers));
+    if (shortfall > pad) pad = shortfall;
+  }
+  return pad;
+}
 
 function activityNodeSvg(
   n: ActivitiesLayout['nodes'][number],
@@ -119,7 +185,11 @@ export function renderActivitiesNetworkBody(
       const ty = t.y + oy + t.height / 2;
       const cls = e.isCritical ? 'diagram-edge critical-edge' : 'diagram-edge';
       const marker = `url(#${e.isCritical ? 'arrow-crit' : 'arrow'})`;
-      return `<path d="${horizontalCubicEdgePath(sx, sy, tx, ty, curvature, entryCurvature)}" class="${cls}" marker-end="${marker}"/>`;
+      const blockers = blockingNodes(layout.nodes, s, t);
+      const d = blockers.length > 0
+        ? bowedCubicEdgePath(sx, sy, tx, ty, bowY(blockers) + oy, curvature)
+        : horizontalCubicEdgePath(sx, sy, tx, ty, curvature, entryCurvature);
+      return `<path d="${d}" class="${cls}" marker-end="${marker}"/>`;
     })
     .join('\n');
 
@@ -207,10 +277,12 @@ export function renderActivitiesSvg(doc: ActivityDoc, options: RenderActivitiesO
 
   const cpm = computeCpm(renderDoc.activities ?? []);
   const titleH = title ? 24 : 0;
+  const oyBase = -layout.bounds.y + N_PAD + titleH;
+  const topPad = computeNetworkTopPad(layout, oyBase);
   const w = layout.bounds.width + N_PAD * 2;
-  const h = layout.bounds.height + N_PAD * 2 + titleH;
+  const h = layout.bounds.height + N_PAD * 2 + titleH + topPad;
   const ox = -layout.bounds.x + N_PAD;
-  const oy = -layout.bounds.y + N_PAD + titleH;
+  const oy = oyBase + topPad;
 
   const body = renderActivitiesNetworkBody(layout, cpm, ox, oy, curvature, entryCurvature);
 

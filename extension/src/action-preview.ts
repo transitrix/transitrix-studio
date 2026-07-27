@@ -22,7 +22,7 @@ import {
 import { coerceDatesToIsoStrings } from '@transitrix/diagrams/yaml-normalize.js';
 import { loadCanon, findCanonRoot, isUnderCanon, type CanonDocs } from './canon-loader.js';
 import { DEFAULT_EDGE_CURVATURE } from '@transitrix/diagrams/edge-path.js';
-import { renderActivitiesNetworkBody, ACTIVITIES_NETWORK_DEFS } from '@transitrix/diagrams/webview/render-activities.js';
+import { renderActivitiesNetworkBody, ACTIVITIES_NETWORK_DEFS, computeNetworkTopPad } from '@transitrix/diagrams/webview/render-activities.js';
 import { savePngFromSvg, copyPngFromSvg } from './png-export.js';
 import { readSpacing, readCurvature, readEntryCurvature, applyControlMessage, OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND } from './spacing-config.js';
 import { readActionNodeSize, readNodeSizePreset } from './node-size-config.js';
@@ -82,10 +82,12 @@ function networkSvg(doc: ActivityDoc, gaps: ActivitiesLayoutOptions = {}, curvat
   const showTitle = heading != null && filename != null && date != null;
   const titleH = showTitle ? (TITLE_BLOCK_H + (actionName ? ACTIVITY_ACTION_NAME_H : 0)) : 0;
   const cpm = computeCpm(doc.activities ?? []);
+  const oyBase = -layout.bounds.y + N_PAD + titleH;
+  const topPad = computeNetworkTopPad(layout, oyBase);
   const W = layout.bounds.width + N_PAD * 2;
-  const H = layout.bounds.height + N_PAD * 2 + titleH;
+  const H = layout.bounds.height + N_PAD * 2 + titleH + topPad;
   const ox = -layout.bounds.x + N_PAD;
-  const oy = -layout.bounds.y + N_PAD + titleH;
+  const oy = oyBase + topPad;
 
   const body = renderActivitiesNetworkBody(layout, cpm, ox, oy, curvature, entryCurvature);
 

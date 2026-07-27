@@ -62,3 +62,30 @@ export function horizontalCubicEdgePath(
   const entryHandle = baseHandle * (entryCurvature ?? curvature);
   return `M${sx},${sy} C${sx + exitHandle},${sy} ${tx - entryHandle},${ty} ${tx},${ty}`;
 }
+
+/**
+ * Builds the SVG `d` for a "skip" edge that must arc over an intermediate
+ * node sitting on the direct (sx,sy)→(tx,ty) line — e.g. a Network/PSND view
+ * where a multi-predecessor activity's nearer predecessor shares a row with
+ * one of the columns in between (vkgeorgia/strategy — "arrow goes straight
+ * through the node"). Both control points target `bowY` instead of each
+ * endpoint's own Y, producing a hump that departs/arrives at an angle rather
+ * than the flat horizontal tangent of `horizontalCubicEdgePath`.
+ *
+ * A cubic's actual apex only reaches part-way from an endpoint Y to the
+ * control-point Y (75% at the midpoint for a fully symmetric sy=ty curve),
+ * so callers must pick `bowY` well past the obstacle for the apex to clear
+ * it — see `render-activities.ts`'s `blockingNodes`/`bowY` for the margin.
+ */
+export function bowedCubicEdgePath(
+  sx: number,
+  sy: number,
+  tx: number,
+  ty: number,
+  bowY: number,
+  curvature: number = DEFAULT_EDGE_CURVATURE,
+): string {
+  const dx = tx - sx;
+  const handle = Math.max(EDGE_MIN_HANDLE, Math.min(Math.abs(dx) * DX_FACTOR, MAX_HANDLE)) * curvature;
+  return `M${sx},${sy} C${sx + handle},${bowY} ${tx - handle},${bowY} ${tx},${ty}`;
+}
