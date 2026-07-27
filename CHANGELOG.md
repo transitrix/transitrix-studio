@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## [3.1.1] — 2026-07-27
+
+### Fixed
+
+- **Network/PSND view could draw a skip edge as a straight line directly through an intermediate node** (#418). When a multi-predecessor activity's nearer predecessor and an in-between column shared the same row, the straight-tangent cubic connecting them degenerated into a flat horizontal line crossing that node's box. Skip edges now detect the collision and arc above the obstacle instead, growing the canvas's top padding so the arc is never clipped. Shared by the webview renderer and the VS Code extension preview (`renderActivitiesNetworkBody`).
+
+### Packages
+
+- **`@transitrix/diagrams`** 1.8.18 → 1.8.19 — the skip-edge routing fix above.
+
 ## [3.1.0] — 2026-07-27
 
 ### Added

@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 3.1.1 — 2026-07-27
+
+A Network/PSND view rendering fix: an activity dependency line could be drawn straight through an unrelated node instead of around it.
+
+### Fixed
+
+- **Network/PSND view no longer draws a dependency line through an unrelated activity box.** When an activity depended on two predecessors from different columns, the line from the nearer one could cross directly over a node sitting in between if it shared the same row. That line now arcs above the node instead.
+
 ## 3.1.0 — 2026-07-27
 
 Blocks gains a matrix form (RACI-style tables), `transitrix validate --scope=repo` now distinguishes errors from warnings and covers more of the methodology's rule set, and `--include-model` gives tooling a parsed view of your repo without re-implementing the notation schema.
