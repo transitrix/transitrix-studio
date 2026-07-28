@@ -45,23 +45,55 @@ const CANONICAL_ID_RE = /^[A-Z][A-Z0-9_]*(-[A-Z0-9][A-Z0-9_]*)+-\d+$/;
  */
 const CAPABILITY_ID_RE = /^CAPABILITY-[VH]\d+(\.\d+){0,2}$/;
 
-/** Element-level TYPE registry — IDS_AND_REFERENCES.md §3.1. */
-const REGISTERED_ELEMENT_TYPES = new Set<string>([
+/**
+ * Element-level TYPE registry — IDS_AND_REFERENCES.md §3.1, plus
+ * `VERIFICATION` (§3.7): block diagrams cross-reference the full
+ * hazard → risk-control → requirement → verification chain, and
+ * `VERIFICATION` is the terminal link in that chain.
+ *
+ * `FACTOR` and `ACTIVITY` are kept alongside their canonical replacements
+ * `DRIVER` and `ACTION` — both still-valid grandfathered/deprecated aliases
+ * per §3.1 and §6, not yet forced to migrate.
+ *
+ * `UNIT`/`EMPLOYEE` (replaced by `ACTOR`, removed from canon 2026-05-29) and
+ * `ISSUE` (retired 2026-06-07, no replacement TYPE — see methodology
+ * `docs/decisions/2026-06-07-retire-model-issue-type.md`) are deliberately
+ * not carried forward. `STAGE` was never a canonical TYPE.
+ */
+export const REGISTERED_ELEMENT_TYPES = new Set<string>([
+  'DRIVER',
   'FACTOR',
   'GOAL',
   'CHANGE',
+  'ACTION',
   'ACTIVITY',
   'CAPABILITY',
   'PROCESS',
+  'STEP',
   'PRODUCT',
   'APPLICATION',
   'INTEGRATION',
   'ROLE',
-  'UNIT',
-  'EMPLOYEE',
+  'ACTOR',
+  'LOCATION',
+  'BUSINESS_SERVICE',
   'SCENARIO',
-  'ISSUE',
-  'STAGE',
+  'EQUIPMENT',
+  'NODE',
+  'TECHNOLOGY_SERVICE',
+  'BUSINESS_OBJECT',
+  'RULE',
+  'REGISTRY',
+  'CONSTRAINT',
+  'REQUIREMENT',
+  'STAKEHOLDER',
+  'ASSESSMENT',
+  'HAZARD',
+  'RISK_CONTROL',
+  'TARGET_STATE',
+  'REL',
+  'MILESTONE',
+  'VERIFICATION',
 ]);
 
 /**
