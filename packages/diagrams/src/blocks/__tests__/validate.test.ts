@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import yaml from 'js-yaml';
-import { validateNestedBlocks, validateGrid, validateBlocks } from '../validate.js';
+import { validateNestedBlocks, validateGrid, validateBlocks, REGISTERED_ELEMENT_TYPES } from '../validate.js';
 import { RACI_GRID_RULES } from '../templates/raci.js';
 
 const EXAMPLES_DIR = path.resolve(process.cwd(), '..', '..', 'tests', 'fixtures', 'notation-corpus', 'blocks');
@@ -165,6 +165,78 @@ describe('validateNestedBlocks', () => {
       },
     });
     expect(r.errors.some((e) => e.code === 'BL-006')).toBe(false);
+  });
+
+  it('BL-006: matches the current IDS_AND_REFERENCES.md §3.1 registry exactly (+ VERIFICATION, §3.7) — fails on drift', () => {
+    // Hardcoded against the spec, not re-derived from the module under test —
+    // if methodology adds/retires a TYPE and this file isn't updated to match,
+    // this assertion is what catches it (see validate.ts's own doc comment).
+    expect(REGISTERED_ELEMENT_TYPES).toEqual(
+      new Set([
+        'DRIVER',
+        'FACTOR',
+        'GOAL',
+        'CHANGE',
+        'ACTION',
+        'ACTIVITY',
+        'CAPABILITY',
+        'PROCESS',
+        'STEP',
+        'PRODUCT',
+        'APPLICATION',
+        'INTEGRATION',
+        'ROLE',
+        'ACTOR',
+        'LOCATION',
+        'BUSINESS_SERVICE',
+        'SCENARIO',
+        'EQUIPMENT',
+        'NODE',
+        'TECHNOLOGY_SERVICE',
+        'BUSINESS_OBJECT',
+        'RULE',
+        'REGISTRY',
+        'CONSTRAINT',
+        'REQUIREMENT',
+        'STAKEHOLDER',
+        'ASSESSMENT',
+        'HAZARD',
+        'RISK_CONTROL',
+        'TARGET_STATE',
+        'REL',
+        'MILESTONE',
+        'VERIFICATION',
+      ]),
+    );
+  });
+
+  it('BL-006: accepts the newly-covered ISO 14971 chain TYPEs (HAZARD, RISK_CONTROL, REQUIREMENT, VERIFICATION)', () => {
+    const r = validateNestedBlocks({
+      ...VALID_DOC,
+      nested_blocks: {
+        ...VALID_DOC.nested_blocks,
+        blocks: [
+          { id: 'HAZARD-BATTERY-1', name: 'Battery overheat' },
+          { id: 'RISK_CONTROL-FUSE-1', name: 'Thermal fuse' },
+          { id: 'REQUIREMENT-IEC-1', name: 'IEC 60601 clause 4' },
+          { id: 'VERIFICATION-BENCH-1', name: 'Bench test protocol' },
+        ],
+      },
+    });
+    expect(r.errors.some((e) => e.code === 'BL-006')).toBe(false);
+  });
+
+  it('BL-006: rejects TYPE prefixes retired/removed from canon (UNIT, EMPLOYEE, ISSUE) and STAGE (never canonical)', () => {
+    for (const id of ['UNIT-HR-1', 'EMPLOYEE-HR-1', 'ISSUE-BUG-1', 'STAGE-PHASE-1']) {
+      const r = validateNestedBlocks({
+        ...VALID_DOC,
+        nested_blocks: {
+          ...VALID_DOC.nested_blocks,
+          blocks: [{ id, name: 'X' }],
+        },
+      });
+      expect(r.errors.some((e) => e.code === 'BL-006')).toBe(true);
+    }
   });
 
   it('BL-006: accepts free-form local labels (APPLICATION_LAYER, frontend, my-thing)', () => {
