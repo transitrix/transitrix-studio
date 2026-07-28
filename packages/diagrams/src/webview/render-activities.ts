@@ -100,13 +100,16 @@ function bowY(blockers: ActivityLayoutNode[]): number {
 
 /**
  * Extra top padding (px) a network-view canvas must add so skip-edge bows
- * (see `blockingNodes`/`bowY` above) never draw above the SVG's y=0 and get
- * clipped. `oyBase` is the canvas's Y offset *before* this padding — the
- * historical `-bounds.y + N_PAD + titleH` both hosts compute — since a bow
- * near the topmost row can reach above the diagram's own node bounds.
- * Callers add the returned value to both `oyBase` and the canvas height.
+ * (see `blockingNodes`/`bowY` above) never rise above the diagram's own node
+ * bounds (`layout.bounds.y`). Node rows shift down by the returned amount to
+ * make room for the bow within the diagram area; the title block — drawn
+ * separately, above that area, at a fixed position independent of this pad —
+ * is left undisturbed, so the bow can never climb into the reserved title
+ * zone (the earlier version floored against the canvas's literal y=0, which
+ * let a tall bow draw straight through the title text sitting between 0 and
+ * the diagram's un-padded top).
  */
-export function computeNetworkTopPad(layout: ActivitiesLayout, oyBase: number): number {
+export function computeNetworkTopPad(layout: ActivitiesLayout): number {
   const nodeMap = new Map(layout.nodes.map((n) => [n.id, n]));
   let pad = 0;
   for (const e of layout.edges) {
@@ -115,7 +118,7 @@ export function computeNetworkTopPad(layout: ActivitiesLayout, oyBase: number): 
     if (!s || !t) continue;
     const blockers = blockingNodes(layout.nodes, s, t);
     if (blockers.length === 0) continue;
-    const shortfall = -(oyBase + bowY(blockers));
+    const shortfall = layout.bounds.y - bowY(blockers);
     if (shortfall > pad) pad = shortfall;
   }
   return pad;
@@ -278,7 +281,7 @@ export function renderActivitiesSvg(doc: ActivityDoc, options: RenderActivitiesO
   const cpm = computeCpm(renderDoc.activities ?? []);
   const titleH = title ? 24 : 0;
   const oyBase = -layout.bounds.y + N_PAD + titleH;
-  const topPad = computeNetworkTopPad(layout, oyBase);
+  const topPad = computeNetworkTopPad(layout);
   const w = layout.bounds.width + N_PAD * 2;
   const h = layout.bounds.height + N_PAD * 2 + titleH + topPad;
   const ox = -layout.bounds.x + N_PAD;

@@ -165,6 +165,25 @@ describe('renderActivitiesSvg — skip-edge arcs over an intermediate node', () 
     }
   });
 
+  it('with a title present, never bows into the title\'s reserved zone', () => {
+    // Regression: an earlier version of the top-pad calc floored the bow
+    // against the canvas's literal y=0 rather than the diagram's own
+    // un-padded top, so a bow could rise straight through the title text
+    // sitting between y=0 and the diagram area — the "arrow enters the
+    // title zone" bug. The title itself never moves (drawn at a fixed N_PAD
+    // offset independent of the bow), so the bow must stay at/below the
+    // diagram's un-padded top edge, i.e. N_PAD + titleH.
+    const N_PAD = 24;
+    const titleH = 24;
+    const svg = renderActivitiesSvg(doc, { title: 'Network view' });
+    const paths = [...svg.matchAll(/<path d="M([\d.]+),([\d.]+) C([\d.-]+),([\d.-]+) ([\d.-]+),([\d.-]+) ([\d.]+),([\d.]+)"/g)]
+      .map((m) => m.slice(1).map(Number) as [number, number, number, number, number, number, number, number]);
+    for (const [, , , y1, , y2] of paths) {
+      expect(y1).toBeGreaterThanOrEqual(N_PAD + titleH);
+      expect(y2).toBeGreaterThanOrEqual(N_PAD + titleH);
+    }
+  });
+
   it('leaves non-colliding edges as a plain horizontal-tangent curve', () => {
     const svg = renderActivitiesSvg(doc);
     // A-001->A-002 (adjacent columns, nothing in between) keeps the
