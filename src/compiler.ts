@@ -15,9 +15,6 @@ export interface CompileTransitrixOptions {
   layout?: Partial<LayoutDiagramOptions>
 }
 
-/** @deprecated Use {@link CompileTransitrixOptions}. */
-export type CompileCervinOptions = CompileTransitrixOptions
-
 export interface CompileResult {
   ir: ProcessIr
   layout: LayoutIr

@@ -14,7 +14,7 @@ const DOCS_BASE_URL = 'https://github.com/transitrix/transitrix-studio/blob/main
 const VALIDATION_DOC_PATH = /^docs\/[A-Za-z0-9._/-]+\.md(#[A-Za-z0-9._-]+)?$/;
 
 /** Webview: bpmn-js viewer + compile loop. */
-export class CervinPreview {
+export class BpmnJsPreview {
   readonly panelTitle = 'BPMN Preview';
   private panel: vscode.WebviewPanel | undefined;
   private trackedUri: string | undefined;

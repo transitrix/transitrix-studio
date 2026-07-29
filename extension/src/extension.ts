@@ -3,7 +3,7 @@ import { pathToFileURL } from 'node:url';
 import * as vscode from 'vscode';
 
 import type { CompileFn } from './preview.js';
-import { CervinPreview } from './preview.js';
+import { BpmnJsPreview } from './preview.js';
 import { ProcessPreview, type ProcessLayoutFn, type BpmnDisplayOpts, SAVE_BPMN_PROCESS_SVG_COMMAND, OPEN_BPMN_SETTINGS_COMMAND } from './process-preview.js';
 import { GoalsPreview } from './goals-preview.js';
 import { DGCAPreview, DGAPreview } from './dgca-preview.js';
@@ -198,7 +198,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     return compilerPromise;
   }
 
-  const preview = new CervinPreview(context.extensionUri, (yaml: string) =>
+  const preview = new BpmnJsPreview(context.extensionUri, (yaml: string) =>
     compiler().then((c) => c(yaml)),
   );
 

@@ -10,7 +10,7 @@ import { handleBlocksCompile } from '../src/serve-ui.ts';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(__dirname, '..');
 
-function cervinCompileMiddleware() {
+function transitrixCompileMiddleware() {
   return async (req: IncomingMessage, res: {
     statusCode: number;
     setHeader(name: string, value: string): void;
@@ -96,28 +96,28 @@ function cervinCompileMiddleware() {
         res.end(JSON.stringify({ message: (e as PayloadTooLargeError).message, details: [] }));
         return;
       }
-      console.error('cervin dev api: unhandled error', e);
+      console.error('transitrix dev api: unhandled error', e);
       res.statusCode = 500;
       res.end('Internal server error');
     }
   };
 }
 
-function cervinDevApi(): Plugin {
+function transitrixDevApi(): Plugin {
   return {
-    name: 'cervin-dev-compile-api',
+    name: 'transitrix-dev-compile-api',
     configureServer(server) {
-      server.middlewares.use(cervinCompileMiddleware() as Parameters<typeof server.middlewares.use>[0]);
+      server.middlewares.use(transitrixCompileMiddleware() as Parameters<typeof server.middlewares.use>[0]);
     },
     configurePreviewServer(server) {
-      server.middlewares.use(cervinCompileMiddleware() as Parameters<typeof server.middlewares.use>[0]);
+      server.middlewares.use(transitrixCompileMiddleware() as Parameters<typeof server.middlewares.use>[0]);
     },
   };
 }
 
-function cervinBlocksDevApi(): Plugin {
+function transitrixBlocksDevApi(): Plugin {
   return {
-    name: 'cervin-dev-blocks-compile-api',
+    name: 'transitrix-dev-blocks-compile-api',
     configureServer(server) {
       server.middlewares.use(async (req, res, next) => {
         const pathOnly = (req.url ?? '').split('?')[0];
@@ -128,7 +128,7 @@ function cervinBlocksDevApi(): Plugin {
         try {
           await handleBlocksCompile(req as IncomingMessage, res as ServerResponse);
         } catch (e) {
-          console.error('cervin dev nested-blocks api: error', e);
+          console.error('transitrix dev nested-blocks api: error', e);
           if (!(res as ServerResponse & { writableEnded?: boolean }).writableEnded) {
             res.statusCode = 500;
             res.setHeader('Content-Type', 'application/json; charset=utf-8');
@@ -147,7 +147,7 @@ function cervinBlocksDevApi(): Plugin {
         try {
           await handleBlocksCompile(req as IncomingMessage, res as ServerResponse);
         } catch (e) {
-          console.error('cervin preview nested-blocks api: error', e);
+          console.error('transitrix preview nested-blocks api: error', e);
           if (!(res as ServerResponse & { writableEnded?: boolean }).writableEnded) {
             res.statusCode = 500;
             res.setHeader('Content-Type', 'application/json; charset=utf-8');
@@ -176,5 +176,5 @@ export default {
   optimizeDeps: {
     include: ['bpmn-js', 'diagram-js', 'inherits-browser', 'min-dash'],
   },
-  plugins: [cervinDevApi(), cervinBlocksDevApi()],
+  plugins: [transitrixDevApi(), transitrixBlocksDevApi()],
 };

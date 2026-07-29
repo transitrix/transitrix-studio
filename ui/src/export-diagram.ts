@@ -24,7 +24,7 @@ export function guessExportBasenameFromYaml(yamlText: string): string {
     .replace(/[^a-zA-Z0-9._-]+/g, '-')
     .replace(/^-+|-+$/g, '')
     .slice(0, 96);
-  return sanitized || 'cervin-diagram';
+  return sanitized || 'transitrix-diagram';
 }
 
 /**

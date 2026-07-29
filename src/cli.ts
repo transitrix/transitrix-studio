@@ -356,7 +356,7 @@ async function handleValidateCommand(argv: string[]): Promise<void> {
 
   // Read first, so we can probe the `notation:` field before the extension gate:
   // diagram-notation files (*.goals.transitrix.yaml, …) don't match the default
-  // BPMN/Cervin extension list, and their notation field — not the filename — is
+  // BPMN/Transitrix extension list, and their notation field — not the filename — is
   // the authoritative signal. TX-R004 — keep the read inside try so a missing
   // file exits 1 cleanly instead of throwing.
   let fileText: string;

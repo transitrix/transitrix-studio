@@ -5,7 +5,7 @@ import './style.css';
 import NavigatedViewer from 'bpmn-js/lib/NavigatedViewer.js';
 import yaml from 'js-yaml';
 
-import initialYaml from '../../tests/fixtures/notation-corpus/bpmn/order-fulfillment.cervin.yaml?raw';
+import initialYaml from '../../tests/fixtures/notation-corpus/bpmn/order-fulfillment.bpmn.transitrix.yaml?raw';
 import nestedBlocksAscii from '../../tests/fixtures/notation-corpus/nested-blocks/nested.txt?raw';
 import blocksTablesMarkdown from '../../tests/fixtures/notation-corpus/nested-blocks/tables.md?raw';
 import initialGoalsYaml from '../../tests/fixtures/notation-corpus/goals/strategy-2026.goals.transitrix.yaml?raw';
@@ -30,10 +30,10 @@ import {
   rasterSvgStringToPngBlob,
 } from './export-diagram.ts';
 
-const THEME_STORAGE_KEY = 'cervin-ui-theme';
-const LAYOUT_STORAGE_KEY = 'cervin-layout-defaults';
+const THEME_STORAGE_KEY = 'transitrix-ui-theme';
+const LAYOUT_STORAGE_KEY = 'transitrix-layout-defaults';
 /** Stored value must match backends/blocks compile ``mode``. */
-const BLOCKS_MODE_STORAGE_KEY = 'cervin-ui-blocks-mode';
+const BLOCKS_MODE_STORAGE_KEY = 'transitrix-ui-blocks-mode';
 type UiTheme = 'light' | 'dark';
 
 type BlocksCompileUiMode = 'ascii' | 'markdown_table' | 'markdown_tables';
@@ -144,7 +144,7 @@ function renderShell(root: HTMLElement): void {
 <div class="shell-header">
   <h1>Transitrix Studio <span class="sub">text-first BPMN</span></h1>
   <div class="actions">
-    <input id="pick-file" class="a11y-file" type="file" accept=".yaml,.yml,.cervin.yaml,.bpmn.transitrix.yaml,.txt,.md,.markdown,text/yaml,text/x-yaml,text/plain" aria-label="Open source file from disk" />
+    <input id="pick-file" class="a11y-file" type="file" accept=".yaml,.yml,.bpmn.transitrix.yaml,.txt,.md,.markdown,text/yaml,text/x-yaml,text/plain" aria-label="Open source file from disk" />
     <button type="button" id="btn-open">Open…</button>
     <button type="button" id="btn-compile">Rebuild</button>
     <button type="button" id="btn-reset">Sample</button>

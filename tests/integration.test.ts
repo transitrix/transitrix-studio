@@ -12,11 +12,11 @@ import { layoutProcess } from '../src/layout.js';
 import { irFromValidatedDsl, parseYamlToIr, type YamlDocumentRoot } from '../src/parser.js';
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
-const sampleCervinPath = join(repoRoot, 'tests', 'fixtures', 'notation-corpus', 'bpmn', 'order-fulfillment.bpmn.transitrix.yaml');
+const sampleTransitrixPath = join(repoRoot, 'tests', 'fixtures', 'notation-corpus', 'bpmn', 'order-fulfillment.bpmn.transitrix.yaml');
 
 describe('parser', () => {
   it('parses sample and collects flows', () => {
-    const yaml = readFileSync(sampleCervinPath, 'utf8');
+    const yaml = readFileSync(sampleTransitrixPath, 'utf8');
     const ir = parseYamlToIr(yaml);
     expect(ir.id).toBe('order-fulfillment');
     expect(ir.flows).toHaveLength(6);
@@ -257,7 +257,7 @@ process:
 
 describe('layout', () => {
   it('assigns geometry to every element via ELK', async () => {
-    const yaml = readFileSync(sampleCervinPath, 'utf8');
+    const yaml = readFileSync(sampleTransitrixPath, 'utf8');
     const ir = parseYamlToIr(yaml);
     const layout = await layoutProcess(ir);
     for (const id of ir.lanes.flatMap((l) => l.elements.map((e) => e.id))) {
@@ -267,7 +267,7 @@ describe('layout', () => {
   });
 
   it('respects layout options (lane vertical gap changes pool height)', async () => {
-    const yaml = readFileSync(sampleCervinPath, 'utf8');
+    const yaml = readFileSync(sampleTransitrixPath, 'utf8');
     const ir = parseYamlToIr(yaml);
     const baseline = await layoutProcess(ir);
     const wideGap = await layoutProcess(ir, { laneVerticalGap: 120 });
@@ -1061,7 +1061,7 @@ describe('layout', () => {
 
 describe('compiler + bpmn-moddle', () => {
   it('emits XML that the BPMN 2.0 parser accepts', async () => {
-    const yaml = readFileSync(sampleCervinPath, 'utf8');
+    const yaml = readFileSync(sampleTransitrixPath, 'utf8');
     const xml = await compileTransitrixYaml(yaml);
     expect(xml).toContain(`exporterVersion="${transitrixPackageVersion()}"`);
     expect(xml).toContain('<definitions');
