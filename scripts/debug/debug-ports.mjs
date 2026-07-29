@@ -7,7 +7,7 @@ import { compileTransitrixYamlWithLayout } from '../../dist/compiler.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const projectRoot = path.resolve(__dirname, '../../')
-const inputFile = process.argv[2] || path.join(projectRoot, 'tests/fixtures/notation-corpus/bpmn/feature-release.cervin.yaml')
+const inputFile = process.argv[2] || path.join(projectRoot, 'tests/fixtures/notation-corpus/bpmn/feature-release.bpmn.transitrix.yaml')
 const yaml = await fs.readFile(inputFile, 'utf-8')
 const { layout } = await compileTransitrixYamlWithLayout(yaml, { layout: {} })
 

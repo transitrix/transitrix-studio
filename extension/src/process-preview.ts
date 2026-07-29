@@ -3,7 +3,7 @@
  * emitter from @transitrix/diagrams (custom process renderer programme, P1–P3).
  *
  * Active when `transitrix.bpmnRenderer` is set to `"custom"`. The default
- * bpmn.io path (CervinPreview) is unaffected.
+ * bpmn.io path (BpmnJsPreview) is unaffected.
  *
  * P3: migrated to buildDiagramFrame for zoom/pan parity with all other
  * diagram previews.

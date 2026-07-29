@@ -230,7 +230,7 @@ export interface ImpactMatrixHtmlOptions {
  * Renders an `ImpactMatrix` (from `buildImpactMatrix`) as a self-contained
  * A4 HTML document suitable for WeasyPrint PDF output.
  *
- * Used by `cervin export-compliance --report <id> --format pdf`.
+ * Used by `transitrix export-compliance --report <id> --format pdf`.
  */
 export function renderImpactMatrixHtml(matrix: ImpactMatrix, options: ImpactMatrixHtmlOptions = {}): string {
   const STATUS_GLYPH: Partial<Record<string, string>> = {
