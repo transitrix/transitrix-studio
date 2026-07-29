@@ -5,7 +5,7 @@ import path from 'node:path';
 import yaml from 'js-yaml';
 import { buildComplianceIndex } from '../reverse-index.js';
 import { buildGapReport } from '../gap-report.js';
-import type { ComplianceIndexInput, IndexAssertion, IndexRequirement } from '../types.js';
+import type { ComplianceIndexInput, IndexAssertion, IndexRequirement, IndexVerification } from '../types.js';
 
 const input: ComplianceIndexInput = {
   requirements: [
@@ -45,6 +45,56 @@ describe('buildGapReport', () => {
 
   it('produces no stale list when today is not supplied (clock-free)', () => {
     expect(buildGapReport(index, {}).staleAssertions).toEqual([]);
+  });
+});
+
+describe('buildGapReport — REQ-VERIF-COVERAGE-001/002', () => {
+  const verifInput: ComplianceIndexInput = {
+    requirements: [
+      { id: 'REQUIREMENT-A-1', name: 'A', severity: 'high' },   // closed verification -> covered
+      { id: 'REQUIREMENT-B-1', name: 'B', severity: 'low' },    // no verification at all -> -001
+      { id: 'REQUIREMENT-C-1', name: 'C', severity: 'medium' }, // only unresolved verifications -> -002
+      { id: 'REQUIREMENT-D-1', name: 'D' },                     // no verification, no severity
+    ],
+    assertions: [],
+    verifications: [
+      { id: 'VERIFICATION-1', verifies: 'REQUIREMENT-A-1', method: 'test', outcome: 'pass' },
+      { id: 'VERIFICATION-2', verifies: 'REQUIREMENT-C-1', method: 'test', outcome: 'not_yet_run' },
+      { id: 'VERIFICATION-3', verifies: 'REQUIREMENT-C-1', method: 'analysis', outcome: 'inconclusive' },
+    ],
+  };
+  const verifIndex = buildComplianceIndex(verifInput);
+  const verifReport = buildGapReport(verifIndex);
+
+  it('lists requirements with no verification at all, severity-sorted (REQ-VERIF-COVERAGE-001)', () => {
+    expect(verifReport.requirementsWithoutVerification.map(r => r.id)).toEqual(['REQUIREMENT-B-1', 'REQUIREMENT-D-1']);
+  });
+
+  it('excludes requirements whose verifications are merely unresolved from -001', () => {
+    expect(verifReport.requirementsWithoutVerification.map(r => r.id)).not.toContain('REQUIREMENT-C-1');
+  });
+
+  it('lists requirements whose verifications never closed (REQ-VERIF-COVERAGE-002)', () => {
+    expect(verifReport.requirementsWithUnresolvedVerification.map(r => r.id)).toEqual(['REQUIREMENT-C-1']);
+  });
+
+  it('-001 and -002 are mutually exclusive by construction', () => {
+    const inBoth = verifReport.requirementsWithoutVerification
+      .filter(r => verifReport.requirementsWithUnresolvedVerification.some(u => u.id === r.id));
+    expect(inBoth).toEqual([]);
+  });
+
+  it('a requirement with a closed (pass/fail) verification is in neither list', () => {
+    expect(verifReport.requirementsWithoutVerification.map(r => r.id)).not.toContain('REQUIREMENT-A-1');
+    expect(verifReport.requirementsWithUnresolvedVerification.map(r => r.id)).not.toContain('REQUIREMENT-A-1');
+  });
+
+  it('with no verifications supplied at all, every requirement is a -001 gap (backward compatible)', () => {
+    const noVerif = buildGapReport(buildComplianceIndex({ requirements: verifInput.requirements, assertions: [] }));
+    expect(noVerif.requirementsWithoutVerification.map(r => r.id).sort()).toEqual(
+      verifInput.requirements.map(r => r.id).sort(),
+    );
+    expect(noVerif.requirementsWithUnresolvedVerification).toEqual([]);
   });
 });
 

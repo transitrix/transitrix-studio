@@ -24,6 +24,7 @@ import { validateScenario } from '../packages/diagrams/src/scenarios/validate.js
 import { validateProcessMap } from '../packages/diagrams/src/process-map/validate.js';
 import { validateRequirement } from '../packages/diagrams/src/requirement/validate.js';
 import { validateAssertion } from '../packages/diagrams/src/assertion/validate.js';
+import { validateVerification } from '../packages/diagrams/src/verification/validate.js';
 import { parseImpactViewConfig } from '../packages/diagrams/src/compliance/impact.js';
 import { parseCoverageMetricConfig } from '../packages/diagrams/src/compliance/coverage-metric.js';
 import { validateCodex } from '../packages/diagrams/src/codex/validate.js';
@@ -51,7 +52,7 @@ const GROUP_B = [
 ];
 
 // Group C — compliance suite wired in #518 Phase C1–C4.
-const GROUP_C = ['requirement', 'constraint', 'assertion', 'compliance-impact', 'coverage-metric', 'codex'];
+const GROUP_C = ['requirement', 'constraint', 'assertion', 'verification', 'compliance-impact', 'coverage-metric', 'codex'];
 
 const ALL_NOTATIONS = [...GROUP_A, ...GROUP_B, ...GROUP_C];
 
@@ -100,6 +101,10 @@ describe('validate-notation — canonical extension helpers (#343)', () => {
 
   it('inferNotationFromFilename recognises constraint typed-id filenames', () => {
     expect(inferNotationFromFilename('canon/elements/constraints/CONSTRAINT-GDPR-1.yaml')).toBe('constraint');
+  });
+
+  it('inferNotationFromFilename recognises verification typed-id filenames', () => {
+    expect(inferNotationFromFilename('canon/verifications/VERIFICATION-DEVICE-ALARM-TEST-1.yaml')).toBe('verification');
   });
 
   it('inferNotationFromFilename returns undefined for non-canonical names', () => {
@@ -158,7 +163,7 @@ describe('validate-notation — the view notation corpus validates clean (#258)'
 });
 
 describe('validate-notation — element notation corpus validates clean (#518 C1)', () => {
-  for (const notation of ['requirement', 'assertion'] as const) {
+  for (const notation of ['requirement', 'assertion', 'verification'] as const) {
     for (const file of elementFixtures(notation)) {
       const name = file.slice(corpusRoot.length + 1).replace(/\\/g, '/');
       it(`${name} → valid`, () => {
@@ -294,6 +299,15 @@ describe('validate-notation — parity with the preview validator (#258, #518 C1
     const today = new Date().toISOString().slice(0, 10);
     const raw = validateAssertion(broken, { today });
     const report = validateNotationDoc('assertion', broken);
+    expect(report.isValid).toBe(raw.valid);
+    expect(report.findings.filter((f) => f.severity === 'error').map((f) => f.ruleId))
+      .toEqual(raw.errors.map((e) => e.code));
+  });
+
+  it('verification: CLI findings mirror validateVerification exactly', () => {
+    const broken = { notation: 'verification' };
+    const raw = validateVerification(broken);
+    const report = validateNotationDoc('verification', broken);
     expect(report.isValid).toBe(raw.valid);
     expect(report.findings.filter((f) => f.severity === 'error').map((f) => f.ruleId))
       .toEqual(raw.errors.map((e) => e.code));

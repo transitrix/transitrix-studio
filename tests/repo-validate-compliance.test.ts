@@ -7,6 +7,7 @@ import { afterAll, beforeAll, describe, it, expect } from 'vitest';
 
 import {
   runComplianceValidate,
+  runGapDashboardWarnings,
   runRepoValidate,
   repoScopeHasErrors,
   buildRepoValidateContext,
@@ -63,6 +64,11 @@ describe('repo-scope compliance catalogue (#518 C3)', () => {
       root,
       'canon/assertions/ASSERTION-MOBILE-DATA-ERASURE-1.yaml',
       'assertion/ASSERTION-MOBILE-DATA-ERASURE-1.yaml',
+    );
+    copyCorpus(
+      root,
+      'canon/verifications/VERIFICATION-DATA-ERASURE-TEST-1.yaml',
+      'verification/VERIFICATION-DATA-ERASURE-TEST-1.yaml',
     );
     copyCorpus(
       root,
@@ -135,6 +141,35 @@ describe('repo-scope compliance catalogue (#518 C3)', () => {
           || f.file.endsWith('ASSERTION-MOBILE-DATA-ERASURE-1.yaml')),
     );
     expect(clean).toEqual([]);
+  });
+
+  it('runComplianceValidate passes the clean verification file with full catalogue', () => {
+    const ctx = buildRepoValidateContext(root);
+    const findings = runComplianceValidate(root, ctx);
+    const clean = findings.filter(
+      (f) => f.severity === 'error' && f.file.endsWith('VERIFICATION-DATA-ERASURE-TEST-1.yaml'),
+    );
+    expect(clean).toEqual([]);
+  });
+
+  it('runGapDashboardWarnings does not flag REQ-VERIF-COVERAGE-001 for a requirement with a verification', () => {
+    const ctx = buildRepoValidateContext(root);
+    const findings = runGapDashboardWarnings(ctx);
+    expect(
+      findings.some(
+        (f) => f.ruleId === 'REQ-VERIF-COVERAGE-001' && f.file.endsWith('REQUIREMENT-DATA-ERASURE-1.yaml'),
+      ),
+    ).toBe(false);
+  });
+
+  it('runGapDashboardWarnings flags REQ-VERIF-COVERAGE-001 for a requirement with no verification', () => {
+    const ctx = buildRepoValidateContext(root);
+    const findings = runGapDashboardWarnings(ctx);
+    expect(
+      findings.some(
+        (f) => f.ruleId === 'REQ-VERIF-COVERAGE-001' && f.file.endsWith('REQUIREMENT-BAD-REF-1.yaml'),
+      ),
+    ).toBe(true);
   });
 
   it('runComplianceValidate validates constraint elements with catalogue', () => {

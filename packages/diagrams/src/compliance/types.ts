@@ -3,6 +3,7 @@
 // single-product view here, and the gap dashboard in Phase 4.
 
 import type { AssertionStatus } from '../assertion/types.js';
+import type { VerificationMethod, VerificationOutcome } from '../verification/types.js';
 import type { ComplianceCodexDoc } from './classify.js';
 
 /** Projection of a REQUIREMENT (or CONSTRAINT) the compliance views need. */
@@ -90,6 +91,20 @@ export interface IndexAssertion {
   owner_to_confirm?: string;
 }
 
+/** Projection of a VERIFICATION the compliance views need (27-verification.md §2). */
+export interface IndexVerification {
+  id: string;
+  /** Typed ID of the REQUIREMENT this verification targets. */
+  verifies: string;
+  method: VerificationMethod;
+  outcome: VerificationOutcome;
+  performed_at?: string;
+  /** Number of evidence entries — feeds the VERIF-006 gap. */
+  evidenceCount?: number;
+  /** Admission date (CONTRACT §6) — feeds DQ-1 freshness decay. */
+  admitted_at?: string;
+}
+
 // ── Stage grouping (CV-3a) ──────────────────────────────────────────────────
 
 /** One stage (or task) element of a business object, used as a matrix sub-column. */
@@ -127,6 +142,8 @@ export interface ObjectDetailInput {
 export interface ComplianceIndexInput {
   requirements: IndexRequirement[];
   assertions: IndexAssertion[];
+  /** Optional — absent inputs (existing callers) simply index no verifications. */
+  verifications?: IndexVerification[];
 }
 
 /** The reverse-index — all maps are keyed by canonical id. */
@@ -143,6 +160,10 @@ export interface ComplianceIndex {
    * (15-requirement.md §2.4). Enables the requirement-hierarchy view.
    */
   requirementsByParent: Map<string, IndexRequirement[]>;
+  /** Requirement id → verifications whose `verifies` names it
+   *  (27-verification.md §2). The engineering V&V analogue of
+   *  `assertionsByRequirement` — the two catalogues are independent. */
+  verificationsByRequirement: Map<string, IndexVerification[]>;
 }
 
 // ── Single-law tree ─────────────────────────────────────────────────────────
@@ -197,6 +218,13 @@ export interface TraceAssertionRow {
   realisedVia: TraceElementRef[];
 }
 
+/** One VERIFICATION targeting the traced requirement (27-verification.md §2).
+ *  No subject/realised_via — a verification claims a protocol was run against
+ *  the requirement's acceptance criteria directly (16-assertion.md §4). */
+export interface TraceVerificationRow {
+  verification: IndexVerification;
+}
+
 /**
  * Requirement traceability + hierarchy view.
  *
@@ -218,6 +246,10 @@ export interface RequirementTrace {
   sources: TraceSourceRef[];
   /** Forward-trace via ASSERTION. Empty for CONSTRAINT elements (16-assertion.md §1) or for a REQUIREMENT with no filed assertion. */
   assertions: TraceAssertionRow[];
+  /** Forward-trace via VERIFICATION (27-verification.md §2). Empty for CONSTRAINT
+   *  elements (the engineering V&V leg applies to REQUIREMENT only, same posture
+   *  as ASSERTION) or for a REQUIREMENT with no filed verification. */
+  verifications: TraceVerificationRow[];
   /** Parent chain: immediate parent first, root last. Empty when the element has no `parent`. */
   ancestors: IndexRequirement[];
   /** Direct children: elements naming this one as their `parent`, id-sorted. */

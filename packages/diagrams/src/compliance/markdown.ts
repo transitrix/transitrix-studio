@@ -111,10 +111,16 @@ function productMarkdown(canon: ComplianceCanon, productId: string): string {
 }
 
 function gapMarkdown(canon: ComplianceCanon, today?: string): string {
-  const index = buildComplianceIndex({ requirements: canon.requirements, assertions: canon.assertions });
+  const index = buildComplianceIndex({
+    requirements: canon.requirements,
+    assertions: canon.assertions,
+    verifications: canon.verifications,
+  });
   const report = buildGapReport(index, { today });
-  const total = report.requirementsWithoutAssertions.length + report.assertionsWithoutEvidence.length + report.staleAssertions.length + report.pastDeadlineRequirements.length;
-  const out: string[] = ['# Compliance Gap Dashboard', '', `_${total} gap(s) across 4 checks_`, ''];
+  const total = report.requirementsWithoutAssertions.length + report.assertionsWithoutEvidence.length
+    + report.staleAssertions.length + report.pastDeadlineRequirements.length
+    + report.requirementsWithoutVerification.length + report.requirementsWithUnresolvedVerification.length;
+  const out: string[] = ['# Compliance Gap Dashboard', '', `_${total} gap(s) across 6 checks_`, ''];
 
   out.push(`## Requirements without assertions (${report.requirementsWithoutAssertions.length})`, '');
   if (report.requirementsWithoutAssertions.length === 0) out.push('_✓ none_', '');
@@ -131,6 +137,14 @@ function gapMarkdown(canon: ComplianceCanon, today?: string): string {
   out.push(`## Past-deadline requirements — CV-5 (${report.pastDeadlineRequirements.length})`, '');
   if (report.pastDeadlineRequirements.length === 0) out.push('_✓ none_', '');
   else { for (const r of report.pastDeadlineRequirements) out.push(`- [ ] \`${r.id}\` ${r.name} — deadline: ${r.deadline ?? '—'}${r.severity ? `, severity: ${r.severity}` : ''}`); out.push(''); }
+
+  out.push(`## Requirements without verification — REQ-VERIF-COVERAGE-001 (${report.requirementsWithoutVerification.length})`, '');
+  if (report.requirementsWithoutVerification.length === 0) out.push('_✓ none_', '');
+  else { for (const r of report.requirementsWithoutVerification) out.push(`- [ ] \`${r.id}\` ${r.name}${r.severity ? ` — severity: ${r.severity}` : ''}`); out.push(''); }
+
+  out.push(`## Requirements with unresolved verification — REQ-VERIF-COVERAGE-002 (${report.requirementsWithUnresolvedVerification.length})`, '');
+  if (report.requirementsWithUnresolvedVerification.length === 0) out.push('_✓ none_', '');
+  else { for (const r of report.requirementsWithUnresolvedVerification) out.push(`- [ ] \`${r.id}\` ${r.name}${r.severity ? ` — severity: ${r.severity}` : ''}`); out.push(''); }
 
   return out.join('\n');
 }

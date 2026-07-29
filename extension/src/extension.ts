@@ -518,7 +518,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       void goalsPreview.refreshIfSiblingSaved(doc);
       // Compliance views are repo-wide: re-scan the open ones whenever a canon
       // artefact (by filename convention) is saved. No-op when no panel is open.
-      if (/^(PRODUCT|REQUIREMENT|CONSTRAINT|ASSERTION|LAW|REGULATION|POLICY|INTERNAL_STANDARD)-.*\.ya?ml$/.test(path.basename(doc.fileName))) {
+      if (/^(PRODUCT|REQUIREMENT|CONSTRAINT|ASSERTION|VERIFICATION|LAW|REGULATION|POLICY|INTERNAL_STANDARD)-.*\.ya?ml$/.test(path.basename(doc.fileName))) {
         void complianceMatrixPreview.refresh();
         void complianceImpactPreview.refresh();
         void singleLawPreview.refresh();

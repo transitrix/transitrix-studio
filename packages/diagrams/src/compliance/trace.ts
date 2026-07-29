@@ -22,6 +22,7 @@ import type {
   IndexRequirement,
   RequirementTrace,
   TraceAssertionRow,
+  TraceVerificationRow,
   TraceElementCatalog,
   TraceElementRef,
   TraceSourceRef,
@@ -95,10 +96,15 @@ export function buildRequirementTrace(
       realisedVia: (assertion.realised_via ?? []).map(rid => resolveElement(rid, catalog)),
     }));
 
+  const rawVerifications = index.verificationsByRequirement.get(requirementId) ?? [];
+  const verifications: TraceVerificationRow[] = [...rawVerifications]
+    .sort(byId)
+    .map(verification => ({ verification }));
+
   const ancestors = collectAncestors(requirement, index);
   const children = [...(index.requirementsByParent.get(requirementId) ?? [])].sort(byId);
 
-  return { requirement, sources, assertions, ancestors, children };
+  return { requirement, sources, assertions, verifications, ancestors, children };
 }
 
 /**

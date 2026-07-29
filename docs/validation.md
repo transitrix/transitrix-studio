@@ -191,6 +191,7 @@ validators the VS Code preview uses:
 | `canon/elements/**/REQUIREMENT-*.yaml` | `REQ-*` shape | `REQ-002`/`003` with scanned `CanonCatalog` |
 | `canon/elements/**/CONSTRAINT-*.yaml` | `CONST-*` shape | `CONST-004`/`005` with scanned `CanonCatalog` |
 | `canon/assertions/ASSERTION-*.yaml` | `ASSERT-*` shape | `ASSERT-002`..`005` + `ASSERT-007`/`008` warnings |
+| `canon/verifications/VERIFICATION-*.yaml` | `VERIF-*` shape | `VERIF-002`/`005` with scanned `CanonCatalog` + `REQ-VERIF-COVERAGE-001`/`002` warnings |
 | `codex/**` | `CODEX-*` | folder jurisdiction (`CODEX-005`) |
 | `canon/views/**.compliance-impact.*` | `COMPIMP-001` parse | `COMPIMP-REF`, `COMPIMP-009`..`011`, `buildImpactMatrix` |
 | `canon/views/**.coverage-metric.*` | `COVMET-*` parse | `COVMET-REF`, `buildCoverageMatrix` |
@@ -198,6 +199,30 @@ validators the VS Code preview uses:
 **Derived views** (no YAML config file) — `compliance-matrix`, `gap-dashboard`,
 `single-law`, `single-product`, `requirement-trace` — are built interactively in
 the preview / `export-compliance`; they are not separate file validators.
+
+**`VERIFICATION` (27-verification.md) — the engineering V&V analogue of
+`ASSERTION`.** `VERIF-001..006` are the single-file
+shape rules (mirrors `ASSERT-001..008` — no staleness rule, since a
+verification has no `next_review_at`). The reverse-trace completeness check —
+"does every `REQUIREMENT` have a verification, and has it closed?" — is
+cross-cutting, computed the same way as `GAP-REQ-NO-ASSERT`:
+
+| ruleId | Fires when |
+|---|---|
+| `REQ-VERIF-COVERAGE-001` | No admitted `VERIFICATION` carries `verifies: <this REQUIREMENT id>`. |
+| `REQ-VERIF-COVERAGE-002` | One or more `VERIFICATION`s target the requirement, but every one is still `not_yet_run`/`inconclusive` — none has reached `pass`/`fail`. Mutually exclusive with `-001` by construction. |
+
+Both are `warning`-severity (a newly admitted REQUIREMENT legitimately has no
+verification yet), surfaced in the `compliance` findings bucket alongside
+`GAP-REQ-NO-ASSERT`. The Studio extension surfaces the same verdict where the
+author is working, not only in a report: the **Requirement Trace** preview
+(opened from a `REQUIREMENT-*.yaml`/`CONSTRAINT-*.yaml` file) renders a
+"Verification" section that reads as an open obligation — labelled "Not
+verified" or "Unresolved" — rather than a blank section when the gap exists;
+the **Compliance Gap Dashboard** lists every affected requirement repo-wide.
+Both re-scan on save of any `VERIFICATION-*.yaml` file. The core validator is
+the single source of the verdict — the previews render `buildGapReport`'s
+output, they never compute their own judgement.
 
 File-scope `transitrix validate <requirement.yaml>` runs shape rules only unless
 you pass a catalogue (repo-scope builds one automatically from `canon/**` +

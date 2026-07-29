@@ -90,6 +90,6 @@ describe('gapMarkdown CV-5 pastDeadlineRequirements section', () => {
     expect(md).toContain('Past-deadline requirements');
     expect(md).toContain('REQ-PD-1');
     expect(md).toContain('2020-01-01');
-    expect(md).toContain('4 checks');
+    expect(md).toContain('6 checks');
   });
 });
