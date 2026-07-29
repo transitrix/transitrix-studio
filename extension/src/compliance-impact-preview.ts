@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { escXml } from '@transitrix/diagrams/webview/render-util.js';
 import yaml from 'js-yaml';
-import { generateWebviewCss, type ThemeId } from '@transitrix/diagrams/theme';
+import { type ThemeId } from '@transitrix/diagrams/theme';
 import {
   buildImpactMatrix,
   type ImpactColumn,
@@ -14,7 +14,7 @@ import type { IndexRequirement, DeadlineStatus } from '@transitrix/diagrams/comp
 import { genNonce, colWidthPxFromSetting, colWidthRootCss } from './preview-controls.js';
 import { scanComplianceCanon, openComplianceFile } from './compliance-scan.js';
 import type { ScannedCanon } from './compliance-scan.js';
-import { WARN_BLOCK_CSS, buildWarnHtml, ERROR_BLOCK_CSS, buildErrorHtml } from './diagram-frame.js';
+import { buildDiagramFrame, OPEN_THEME_COMMAND } from './diagram-frame.js';
 
 // Compliance-impact matrix preview -- CV-2 (vkgeorgia/strategy#84).
 //
@@ -310,7 +310,8 @@ export class ComplianceImpactPreview {
 
   async refresh(): Promise<void> {
     if (!this.panel) return;
-    this.panel.webview.html = this.buildLoadingHtml();
+    const loadingThemeId = vscode.workspace.getConfiguration('transitrix').get<ThemeId>('theme', 'transitrix');
+    this.panel.webview.html = this.buildLoadingHtml(loadingThemeId);
 
     try {
       const canon = await scanComplianceCanon();
@@ -377,49 +378,48 @@ export class ComplianceImpactPreview {
     this.panel.webview.html = this.buildHtml(themeId);
   }
 
-  private buildLoadingHtml(): string {
-    return `<!DOCTYPE html><html lang="en"><body style="padding:24px;font-family:sans-serif;color:#64748b">Scanning canon&#8230;</body></html>`;
+  private buildLoadingHtml(themeId: ThemeId): string {
+    return buildDiagramFrame({
+      notation: 'Compliance Impact',
+      filename: '',
+      themeId,
+      bodyContent: '<div class="ci-empty"><p>Scanning canon&#8230;</p></div>',
+      themeCommand: OPEN_THEME_COMMAND,
+      refreshCommand: REFRESH_COMMAND,
+      extraStyles: IMPACT_CSS,
+    });
   }
 
   private buildHtml(themeId: ThemeId): string {
     const nonce = genNonce();
-    const { input: errInput, block: errBlock } = buildErrorHtml(this.errorMsg);
-
-    if (!this.matrix || !this.config) {
-      return (
-        '<!DOCTYPE html>\n<html lang="en">\n<head>\n' +
-        '<meta charset="UTF-8"/>\n' +
-        '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; style-src \'unsafe-inline\';">\n' +
-        '<style>\n' + generateWebviewCss(themeId) + '\n' + IMPACT_CSS + '\n' + ERROR_BLOCK_CSS + '\n</style>\n' +
-        '</head>\n<body data-theme="' + escXml(themeId) + '">\n' +
-        errInput + '\n' +
-        '<div id="toolbar">' +
-        '<span class="toolbar-label">' + escXml(this.config?.name ?? 'Compliance Impact Matrix') + '</span>' +
-        '<div class="toolbar-actions">' +
-        '<a href="command:transitrixStudio.changeTheme" class="toolbar-btn" title="Change the color scheme for all diagram previews">Theme…</a>' +
-        '<a href="command:' + REFRESH_COMMAND + '" class="toolbar-btn" title="Re-scan the workspace and reload view config">Refresh</a>' +
-        '</div>' +
-        '</div>\n' +
-        errBlock + '\n' +
-        '</body>\n</html>'
-      );
-    }
-
     const matrix = this.matrix;
     const config = this.config;
 
-    const { rows, columns, cells } = applyFilter(matrix, this.filter, this.jIndex);
-    const allJurisdictions = collectAllJurisdictions(matrix.rows, this.jIndex);
-
-    const totalGaps = matrix.cells.flat().filter(c => c.kind === 'gap').length;
-    const totalPending = [...this.pendingIndex.values()].reduce((a, b) => a + b, 0);
-    const pendingSummary = totalPending > 0 ? ' &middot; <strong>' + totalPending + '</strong> pending (admission)' : '';
     const skippedList = this.canon?.skippedNotations ?? [];
     const skippedWarnings = skippedList.map(s => 'Skipped — unrecognized notation "' + s.notation + '": ' + s.shortPath);
-    const { input: warnInput, block: warnBlock } = buildWarnHtml(skippedWarnings);
 
-    const empty = rows.length === 0 || columns.length === 0;
-    const bodyHtml = empty ? this.emptyHtml(matrix) : this.gridHtml(rows, columns, cells, matrix.emptyLabels, matrix.obligationsLane, this.filter.showObligationsLane);
+    const allJurisdictions = matrix ? collectAllJurisdictions(matrix.rows, this.jIndex) : [];
+
+    let bodyHtml: string;
+    let summaryTitle: string | undefined;
+    let configLine: string | undefined;
+
+    if (!matrix || !config) {
+      bodyHtml = '<div class="ci-empty"><p>Scan failed — see error above.</p></div>';
+    } else {
+      const { rows, columns, cells } = applyFilter(matrix, this.filter, this.jIndex);
+      const totalGaps = matrix.cells.flat().filter(c => c.kind === 'gap').length;
+      const totalPending = [...this.pendingIndex.values()].reduce((a, b) => a + b, 0);
+      const pendingSummary = totalPending > 0 ? ` · ${totalPending} pending (admission)` : '';
+      const empty = rows.length === 0 || columns.length === 0;
+      bodyHtml = empty
+        ? this.emptyHtml(matrix)
+        : this.gridHtml(rows, columns, cells, matrix.emptyLabels, matrix.obligationsLane, this.filter.showObligationsLane);
+      summaryTitle = `${rows.length} obligations × ${columns.length} subjects · ${totalGaps} gaps${pendingSummary}`;
+      configLine = config.id === 'auto'
+        ? 'Auto-config (add *.compliance-impact.{view,transitrix}.yaml to pin)'
+        : `View: ${config.id}`;
+    }
 
     const statusBoxes = ALL_STATUSES.map(
       s =>
@@ -470,115 +470,64 @@ export class ComplianceImpactPreview {
         .join('') +
       '</select>';
 
-    const configLine =
-      config.id === 'auto'
-        ? 'Auto-config (add *.compliance-impact.{view,transitrix}.yaml to pin)'
-        : 'View: <code>' + escXml(config.id) + '</code>';
+    const filtersPanel = `<div id="ci-filters">
+    <span class="ci-filter-label">Status</span>${statusBoxes}
+    <span class="ci-filter-label">Severity</span>${severityBoxes}
+    ${jurisdictionRow}
+    <span class="ci-filter-label">Lanes</span>${laneToggle}
+    ${colWidthSelect}
+  </div>`;
+
+    const filterScript = `<script nonce="${nonce}">
+(function () {
+  var vscode = acquireVsCodeApi();
+  function collect(attr) {
+    var out = [];
+    document.querySelectorAll('[data-ci-' + attr + ']').forEach(function (el) {
+      if (el.checked) out.push(el.getAttribute('data-ci-' + attr));
+    });
+    return out;
+  }
+  document.querySelectorAll('[data-ci-status],[data-ci-severity],[data-ci-jurisdiction]').forEach(function (el) {
+    el.addEventListener('change', function () {
+      vscode.postMessage({
+        type: 'transitrix:impact-filter',
+        statuses: collect('status'),
+        severities: collect('severity'),
+        jurisdictions: collect('jurisdiction'),
+        showObligationsLane: !!(document.querySelector('[data-ci-lane-obligations]') || {}).checked,
+      });
+    });
+  });
+  var colWidthSel = document.querySelector('[data-ci-col-width]');
+  if (colWidthSel) {
+    colWidthSel.addEventListener('change', function () {
+      vscode.postMessage({ type: 'transitrix:col-width', columnWidth: colWidthSel.value });
+    });
+  }
+}());
+</script>`;
 
     const colWCss = colWidthRootCss(colWidthPxFromSetting(this.colWidth));
 
-    return (
-      '<!DOCTYPE html>\n' +
-      '<html lang="en">\n' +
-      '<head>\n' +
-      '  <meta charset="UTF-8"/>\n' +
-      '  <meta http-equiv="Content-Security-Policy" content="default-src \'none\'; style-src \'unsafe-inline\'; script-src \'nonce-' +
-      nonce +
-      '\';">\n' +
-      '  <style>\n' +
-      colWCss +
-      '\n' +
-      generateWebviewCss(themeId) +
-      '\n' +
-      IMPACT_CSS +
-      '\n' +
-      ERROR_BLOCK_CSS +
-      '\n' +
-      WARN_BLOCK_CSS +
-      '\n' +
-      '  </style>\n' +
-      '</head>\n' +
-      '<body data-theme="' +
-      escXml(themeId) +
-      '">\n' +
-      errInput +
-      warnInput +
-      '  <div id="toolbar">\n' +
-      '    <span class="toolbar-label">' + escXml(config.name) + '</span>\n' +
-      '    <div class="toolbar-actions">\n' +
-      '      <a href="command:transitrixStudio.changeTheme" class="toolbar-btn" title="Change the color scheme for all diagram previews">Theme…</a>\n' +
-      '      <a href="command:' +
-      REFRESH_COMMAND +
-      '" class="toolbar-btn" title="Re-scan the workspace and reload view config">Refresh</a>\n' +
-      '    </div>\n' +
-      '  </div>\n' +
-      errBlock +
-      warnBlock +
-      '  <div id="ci-filters">\n' +
-      '    <span class="ci-summary">' +
-      rows.length +
-      ' obligations &times; ' +
-      columns.length +
-      ' subjects &middot; <strong>' +
-      totalGaps +
-      '</strong> gaps' +
-      pendingSummary +
-      '</span>' +
-      '    <span class="ci-config">' +
-      configLine +
-      '</span>' +
-      '    <span class="ci-filter-sep"></span>' +
-      '    <span class="ci-filter-label">Status</span>' +
-      statusBoxes +
-      '\n' +
-      '    <span class="ci-filter-label">Severity</span>' +
-      severityBoxes +
-      '\n' +
-      '    ' +
-      jurisdictionRow +
-      '\n    <span class="ci-filter-label">Lanes</span>' +
-      laneToggle +
-      '\n    ' +
-      colWidthSelect +
-      '\n' +
-      '  </div>\n' +
-      '\n' +
-      bodyHtml +
-      '\n' +
-      '  <script nonce="' +
-      nonce +
-      '">\n' +
-      '(function () {\n' +
-      "  var vscode = acquireVsCodeApi();\n" +
-      "  function collect(attr) {\n" +
-      "    var out = [];\n" +
-      "    document.querySelectorAll('[data-ci-' + attr + ']').forEach(function (el) {\n" +
-      "      if (el.checked) out.push(el.getAttribute('data-ci-' + attr));\n" +
-      "    });\n" +
-      "    return out;\n" +
-      "  }\n" +
-      "  document.querySelectorAll('[data-ci-status],[data-ci-severity],[data-ci-jurisdiction]').forEach(function (el) {\n" +
-      "    el.addEventListener('change', function () {\n" +
-      "      vscode.postMessage({\n" +
-      "        type: 'transitrix:impact-filter',\n" +
-      "        statuses: collect('status'),\n" +
-      "        severities: collect('severity'),\n" +
-      "        jurisdictions: collect('jurisdiction'),\n" +
-      "        showObligationsLane: !!(document.querySelector('[data-ci-lane-obligations]') || {}).checked,\n" +
-      "      });\n" +
-      "    });\n" +
-      "  });\n" +
-      "  var colWidthSel = document.querySelector('[data-ci-col-width]');\n" +
-      "  if (colWidthSel) {\n" +
-      "    colWidthSel.addEventListener('change', function () {\n" +
-      "      vscode.postMessage({ type: 'transitrix:col-width', columnWidth: colWidthSel.value });\n" +
-      "    });\n" +
-      "  }\n" +
-      '}());\n' +
-      '  </script>\n' +
-      '</body>\n' +
-      '</html>'
-    );
+    return buildDiagramFrame({
+      notation: config?.name ?? 'Compliance Impact',
+      filename: '',
+      title: summaryTitle,
+      subtitle: configLine,
+      themeId,
+      errorMsg: this.errorMsg,
+      warnings: skippedWarnings,
+      bodyContent: bodyHtml,
+      themeCommand: OPEN_THEME_COMMAND,
+      refreshCommand: REFRESH_COMMAND,
+      extraStyles: `${colWCss}\n${IMPACT_CSS}`,
+      interactive: {
+        nonce,
+        controlsPanel: filtersPanel,
+        controlsScript: filterScript,
+      },
+    });
   }
 
   private emptyHtml(matrix: ImpactMatrix): string {
@@ -758,23 +707,13 @@ export class ComplianceImpactPreview {
 }
 
 const IMPACT_CSS = `
-body { padding: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-#toolbar { flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 16px; border-bottom: 1px solid var(--ts-border, #cbd5e1); flex-wrap: wrap; }
-.toolbar-label { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: 700; color: var(--ts-header-text, #0f172a); }
-.toolbar-actions { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
-.toolbar-btn { cursor: pointer; user-select: none; font-size: 11px; padding: 1px 8px; border-radius: 4px; color: var(--ts-text-muted, #64748b); white-space: nowrap; text-decoration: none; }
-.toolbar-btn:hover { color: var(--ts-text, #0f172a); background: var(--ts-bg-elevated, #f1f5f9); }
-.ci-summary { font-size: 11px; color: var(--ts-text-muted, #64748b); }
-.ci-summary strong { color: var(--ts-text, #0f172a); }
-.ci-config { font-size: 11px; color: var(--ts-text-muted, #64748b); padding-left: 4px; border-left: 1px solid var(--ts-border, #cbd5e1); margin-left: 4px; }
-.ci-config code { background: var(--ts-bg-subtle, #f1f5f9); padding: 1px 4px; border-radius: 3px; }
-.ci-filter-sep { flex-basis: 100%; height: 0; }
-#ci-filters { flex-shrink: 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 16px; border-bottom: 1px solid var(--ts-border, #cbd5e1); font-size: 11px; }
+#canvas { padding: 0; }
+#ci-filters { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 16px; border-bottom: 1px solid var(--ts-border, #cbd5e1); font-size: 11px; }
 .ci-filter-label { font-weight: 600; color: var(--ts-text, #0f172a); margin-left: 8px; }
 .ci-filter-label:first-child { margin-left: 0; }
 .ci-chip { display: inline-flex; align-items: center; gap: 4px; color: var(--ts-text-muted, #64748b); cursor: pointer; }
 .ci-col-width-select { font-size: 11px; font-family: var(--vscode-font-family, sans-serif); color: var(--vscode-input-foreground, #333); background: var(--vscode-input-background, #fff); border: 1px solid var(--vscode-input-border, var(--ts-border, #cbd5e1)); border-radius: 3px; padding: 1px 4px; }
-#ci-grid-wrap { flex: 1 1 0; overflow: auto; padding: 12px 16px 24px; min-height: 0; }
+#ci-grid-wrap { overflow: auto; padding: 12px 16px 24px; }
 .ci-type-chip { display: inline-block; padding: 1px 5px; border-radius: 3px; font-size: 9px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 3px; }
 .ci-type-product { color: #1e40af; background: #dbeafe; }
 .ci-type-process { color: #065f46; background: #d1fae5; }
