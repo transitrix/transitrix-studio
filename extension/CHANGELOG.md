@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+## 3.1.2 — 2026-07-29
+
+Network/PSND dependency arcs no longer cross the diagram title, and Blocks diagrams accept the current methodology element types (including the hazard → verification chain).
+
+### Fixed
+
+- **Network/PSND dependency arcs no longer draw through the diagram title.** A previous fix routed long dependency lines above intermediate nodes; those arcs could still climb into the heading. They now stay below the title.
+- **Blocks diagrams accept the current methodology element types.** Types such as Hazard, Risk Control, Requirement, and Verification were incorrectly rejected; a few retired types that are no longer in the methodology were still accepted. The allowlist now matches the methodology registry.
+
+### Changed
+
+- **Compliance views use the shared status colour roles** (info / warning) instead of one-off hard-coded colours, and the Compliance Impact preview shares the same toolbar chrome as the other diagram previews.
+
 ## 3.1.1 — 2026-07-27
 
 A Network/PSND view rendering fix: an activity dependency line could be drawn straight through an unrelated node instead of around it.
