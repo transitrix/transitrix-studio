@@ -183,11 +183,13 @@ export function renderComplianceHtml(canon: ComplianceCanon, scope: ReportScope,
     }
 
     case 'gap': {
-      const index = buildComplianceIndex({ requirements: canon.requirements, assertions: canon.assertions });
+      const index = buildComplianceIndex({
+        requirements: canon.requirements,
+        assertions: canon.assertions,
+        verifications: canon.verifications,
+      });
       const report = buildGapReport(index, { today: options.today });
       const title = options.title ?? 'Compliance Gap Dashboard';
-      const total = report.requirementsWithoutAssertions.length + report.assertionsWithoutEvidence.length + report.staleAssertions.length;
-      const summary = `<p class="cmp-summary">${total} gap(s)</p>`;
       const section = (heading: string, count: number, items: string[]): string => {
         const body = items.length === 0
           ? '<p class="cmp-ok">✓ none</p>'
@@ -206,13 +208,23 @@ export function renderComplianceHtml(canon: ComplianceCanon, scope: ReportScope,
       const pastDl = report.pastDeadlineRequirements.map(r => (
         `<li><code>${escHtml(r.id)}</code> ${escHtml(r.name)} <span class="cmp-meta">deadline ${r.deadline ? escHtml(r.deadline) : '—'}${r.severity ? `, severity ${escHtml(r.severity)}` : ''}</span></li>`
       ));
-      const total4 = report.requirementsWithoutAssertions.length + report.assertionsWithoutEvidence.length + report.staleAssertions.length + report.pastDeadlineRequirements.length;
+      const noVerif = report.requirementsWithoutVerification.map(r => (
+        `<li><code>${escHtml(r.id)}</code> ${escHtml(r.name)}${r.severity ? ` <span class="cmp-meta">severity ${escHtml(r.severity)}</span>` : ''}</li>`
+      ));
+      const unresolvedVerif = report.requirementsWithUnresolvedVerification.map(r => (
+        `<li><code>${escHtml(r.id)}</code> ${escHtml(r.name)}${r.severity ? ` <span class="cmp-meta">severity ${escHtml(r.severity)}</span>` : ''}</li>`
+      ));
+      const total6 = report.requirementsWithoutAssertions.length + report.assertionsWithoutEvidence.length
+        + report.staleAssertions.length + report.pastDeadlineRequirements.length
+        + report.requirementsWithoutVerification.length + report.requirementsWithUnresolvedVerification.length;
       const body = [
-        `<p class="cmp-summary">${total4} gap(s) across 4 checks</p>`,
+        `<p class="cmp-summary">${total6} gap(s) across 6 checks</p>`,
         section('Requirements without assertions', report.requirementsWithoutAssertions.length, reqs),
         section('Assertions without evidence — ASSERT-007', report.assertionsWithoutEvidence.length, noEvidence),
         section('Stale assertions — ASSERT-008', report.staleAssertions.length, stale),
         section('Past-deadline requirements (CV-5)', report.pastDeadlineRequirements.length, pastDl),
+        section('Requirements without verification — REQ-VERIF-COVERAGE-001', report.requirementsWithoutVerification.length, noVerif),
+        section('Requirements with unresolved verification — REQ-VERIF-COVERAGE-002', report.requirementsWithUnresolvedVerification.length, unresolvedVerif),
       ].join('');
       return htmlDoc(title, options.today, body);
     }

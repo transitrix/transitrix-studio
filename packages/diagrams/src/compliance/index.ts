@@ -5,6 +5,7 @@ export { buildGapReport } from './gap-report.js';
 export type { GapReport, GapReportOptions } from './gap-report.js';
 export { emptyCanon, ingestComplianceDoc } from './classify.js';
 export type { ComplianceCanon, ComplianceProduct, ComplianceCodexDoc } from './classify.js';
+export { CLOSED_VERIFICATION_OUTCOMES } from '../verification/types.js';
 export {
   admitDocumentToCatalog,
   buildComplianceScan,
@@ -58,6 +59,7 @@ export type {
   DeadlineStatus,
   IndexRequirement,
   IndexAssertion,
+  IndexVerification,
   LawTree,
   LawTreeRequirement,
   ProductView,
@@ -66,6 +68,7 @@ export type {
   ObjectDetailInput,
   RequirementTrace,
   TraceAssertionRow,
+  TraceVerificationRow,
   TraceElementCatalog,
   TraceElementRef,
   TraceSourceRef,

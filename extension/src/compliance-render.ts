@@ -2,6 +2,7 @@ import { type ThemeId } from '@transitrix/diagrams/theme';
 import { escXml } from '@transitrix/diagrams/webview/render-util.js';
 export { escXml };
 import type { AssertionStatus } from '@transitrix/diagrams/assertion/types.js';
+import type { VerificationOutcome } from '@transitrix/diagrams/verification/types.js';
 import type { ViewScore } from '@transitrix/diagrams/confidence';
 import { computeDeadlineStatus } from '@transitrix/diagrams/compliance/impact.js';
 import { buildDiagramFrame, OPEN_THEME_COMMAND } from './diagram-frame.js';
@@ -23,6 +24,17 @@ export const STATUS_LABELS: Record<AssertionStatus, string> = {
 /** A coloured status pill. */
 export function statusBadge(status: AssertionStatus): string {
   return `<span class="cmp-badge cmp-${status}">${escXml(STATUS_LABELS[status])}</span>`;
+}
+
+export const OUTCOME_LABELS: Record<VerificationOutcome, string> = {
+  pass: 'Pass',
+  fail: 'Fail',
+  inconclusive: 'Inconclusive',
+  not_yet_run: 'Not yet run',
+};
+/** A coloured verification-outcome pill (27-verification.md §3). */
+export function outcomeBadge(outcome: VerificationOutcome): string {
+  return `<span class="cmp-badge cmp-outcome-${outcome}">${escXml(OUTCOME_LABELS[outcome])}</span>`;
 }
 
 /**
@@ -64,6 +76,11 @@ const COMPLIANCE_CSS = `
 .cmp-under_review { background: var(--ts-status-info-bg, #e0f2fe); color: var(--ts-status-info-fg, #0c4a6e); }
 .cmp-n_a { background: var(--ts-bg-subtle, #f1f5f9); color: var(--ts-text-muted, #64748b); }
 .cmp-pending_owner { background: var(--ts-status-info-bg, #e0f2fe); color: var(--ts-status-info-fg, #0c4a6e); }
+.cmp-outcome-pass { background: var(--ts-status-success-bg, #d1fae5); color: var(--ts-status-success-fg, #065f46); }
+.cmp-outcome-fail { background: var(--ts-status-error-bg, #fee2e2); color: var(--ts-status-error-fg, #991b1b); }
+.cmp-outcome-inconclusive { background: var(--ts-status-warning-bg, #fef9c3); color: var(--ts-status-warning-fg, #854d0e); }
+.cmp-outcome-not_yet_run { background: var(--ts-bg-subtle, #f1f5f9); color: var(--ts-text-muted, #64748b); }
+.cmp-gap { color: var(--ts-status-warning-fg, #854d0e); font-weight: 600; }
 
 /* Tree (single-law) */
 .cmp-req { margin: 0 0 14px; border: 1px solid var(--ts-border, #cbd5e1); border-radius: 6px; overflow: hidden; }

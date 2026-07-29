@@ -1,6 +1,7 @@
-// Gap dashboard report (vkgeorgia/strategy#84 Phase 4 / CV-5).
+// Gap dashboard report (Phase 4 / CV-5; REQ-VERIF-COVERAGE-001/002 per
+// 15-requirement.md §4).
 //
-// Four operational gap lists computed from the shared reverse-index (Phase 3):
+// Operational gap lists computed from the shared reverse-index (Phase 3):
 //   1. Requirements with no Assertion targeting them (severity-sorted).
 //   2. Assertions without evidence — the ASSERT-007 case: status ∈
 //      {compliant, partial} AND no evidence. `under_review` / `non_compliant` /
@@ -9,9 +10,17 @@
 //   3. Stale Assertions — the ASSERT-008 case: `next_review_at` is in the past.
 //   4. Past-deadline requirements (CV-5) — REQUIREMENT.deadline < today AND
 //      the requirement has no fully-compliant assertion. Deadline-missed gaps.
+//   5. Requirements with no Verification targeting them — REQ-VERIF-COVERAGE-001
+//      (27-verification.md §5 / 15-requirement.md §4). Independent of #1 — the
+//      ASSERTION and VERIFICATION catalogues never disagree with each other by
+//      construction; a requirement may have one, both, or neither.
+//   6. Requirements whose verifications exist but never closed — every one is
+//      still `not_yet_run` / `inconclusive` — REQ-VERIF-COVERAGE-002. Mutually
+//      exclusive with #5 by construction.
 
 import type { ComplianceIndex, IndexAssertion, IndexRequirement } from './types.js';
 import { computeDeadlineStatus } from './impact.js';
+import { CLOSED_VERIFICATION_OUTCOMES } from '../verification/types.js';
 
 export interface GapReport {
   /** Requirements with no assertion about them, severity-sorted then id. */
@@ -26,6 +35,18 @@ export interface GapReport {
    * (oldest first). Empty when `today` is not supplied.
    */
   pastDeadlineRequirements: IndexRequirement[];
+  /**
+   * REQ-VERIF-COVERAGE-001: requirements with no VERIFICATION targeting them,
+   * severity-sorted then id — the engineering V&V analogue of
+   * `requirementsWithoutAssertions`.
+   */
+  requirementsWithoutVerification: IndexRequirement[];
+  /**
+   * REQ-VERIF-COVERAGE-002: requirements with one or more VERIFICATIONs
+   * targeting them, but none closed (`pass`/`fail`) — every one is still
+   * `not_yet_run`/`inconclusive`. Severity-sorted then id.
+   */
+  requirementsWithUnresolvedVerification: IndexRequirement[];
 }
 
 export interface GapReportOptions {
@@ -90,5 +111,30 @@ export function buildGapReport(index: ComplianceIndex, options: GapReportOptions
         })
     : [];
 
-  return { requirementsWithoutAssertions, assertionsWithoutEvidence, staleAssertions, pastDeadlineRequirements };
+  // REQ-VERIF-COVERAGE-001 — no VERIFICATION targets the requirement at all.
+  const requirementsWithoutVerification = [...index.requirementById.values()]
+    .filter(r => (index.verificationsByRequirement.get(r.id) ?? []).length === 0)
+    .sort((a, b) => {
+      const d = severityRank(a.severity) - severityRank(b.severity);
+      return d !== 0 ? d : a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+    });
+
+  // REQ-VERIF-COVERAGE-002 — has verifications, but none closed (pass/fail).
+  // Mutually exclusive with -001 by construction (only requirements with at
+  // least one verification are considered here).
+  const requirementsWithUnresolvedVerification = [...index.requirementById.values()]
+    .filter(r => {
+      const verifications = index.verificationsByRequirement.get(r.id) ?? [];
+      return verifications.length > 0
+        && !verifications.some(v => (CLOSED_VERIFICATION_OUTCOMES as readonly string[]).includes(v.outcome));
+    })
+    .sort((a, b) => {
+      const d = severityRank(a.severity) - severityRank(b.severity);
+      return d !== 0 ? d : a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+    });
+
+  return {
+    requirementsWithoutAssertions, assertionsWithoutEvidence, staleAssertions, pastDeadlineRequirements,
+    requirementsWithoutVerification, requirementsWithUnresolvedVerification,
+  };
 }

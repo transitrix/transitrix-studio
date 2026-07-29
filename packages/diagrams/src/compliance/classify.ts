@@ -4,7 +4,8 @@
 // rules live once. Pure: takes a parsed YAML document, no IO.
 
 import type { AssertionStatus } from '../assertion/types.js';
-import type { IndexAssertion, IndexRequirement } from './types.js';
+import type { VerificationMethod, VerificationOutcome } from '../verification/types.js';
+import type { IndexAssertion, IndexRequirement, IndexVerification } from './types.js';
 
 export interface ComplianceProduct {
   id: string;
@@ -22,6 +23,8 @@ export interface ComplianceCanon {
   products: ComplianceProduct[];
   requirements: IndexRequirement[];
   assertions: IndexAssertion[];
+  /** VERIFICATION artefacts (27-verification.md) — the engineering V&V peer of `assertions`. */
+  verifications: IndexVerification[];
   codex: ComplianceCodexDoc[];
   /**
    * Named elements that can serve as assertion subjects beyond `products`:
@@ -32,7 +35,7 @@ export interface ComplianceCanon {
 }
 
 export function emptyCanon(): ComplianceCanon {
-  return { products: [], requirements: [], assertions: [], codex: [], subjects: [] };
+  return { products: [], requirements: [], assertions: [], verifications: [], codex: [], subjects: [] };
 }
 
 const str = (v: unknown): string | undefined => (typeof v === 'string' ? v : undefined);
@@ -95,6 +98,19 @@ export function ingestComplianceDoc(canon: ComplianceCanon, doc: unknown): strin
       admitted_at: str(d.admitted_at),
       realised_via: strArray(d.realised_via),
       owner_to_confirm: str(d.owner_to_confirm),
+    });
+    return id;
+  }
+  if (d.notation === 'verification') {
+    const verifies = str(d.verifies);
+    const method = str(d.method) as VerificationMethod | undefined;
+    const outcome = str(d.outcome) as VerificationOutcome | undefined;
+    if (!verifies || !method || !outcome) return null;
+    canon.verifications.push({
+      id, verifies, method, outcome,
+      performed_at: str(d.performed_at),
+      evidenceCount: Array.isArray(d.evidence) ? d.evidence.length : 0,
+      admitted_at: str(d.admitted_at),
     });
     return id;
   }

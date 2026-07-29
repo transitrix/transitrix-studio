@@ -539,6 +539,42 @@ export function runComplianceValidate(root: string, ctx: RepoValidateContext): V
     }
   }
 
+  let verificationEntries: string[] = [];
+  try {
+    verificationEntries = readdirSync(path.join(root, 'canon', 'verifications'), { recursive: true }) as string[];
+  } catch {
+    verificationEntries = [];
+  }
+  for (const rel of verificationEntries) {
+    if (typeof rel !== 'string' || !isYaml(rel) || shouldSkip(rel)) continue;
+    const fullRel = path.join('canon', 'verifications', rel).replace(/\\/g, '/');
+    let data: unknown;
+    try {
+      data = loadNotationYaml(readFileSync(path.join(root, fullRel), 'utf-8'));
+    } catch (e) {
+      findings.push({
+        file: fullRel,
+        notation: '',
+        ruleId: 'YAML',
+        severity: 'error',
+        message: (e as Error).message,
+      });
+      continue;
+    }
+    const notation = notationOf(data);
+    if (notation !== 'verification') continue;
+    for (const f of validateNotationDoc('verification', data, validateOpts).findings) {
+      if (f.severity === 'info') continue;
+      findings.push({
+        file: fullRel,
+        notation: 'verification',
+        ruleId: f.ruleId,
+        severity: f.severity,
+        message: f.message,
+      });
+    }
+  }
+
   return findings;
 }
 
@@ -548,6 +584,7 @@ export function runGapDashboardWarnings(ctx: RepoValidateContext): ViewFinding[]
   const index = buildComplianceIndex({
     requirements: ctx.complianceCanon.requirements,
     assertions: ctx.complianceCanon.assertions,
+    verifications: ctx.complianceCanon.verifications,
   });
   const report = buildGapReport(index, { today: new Date().toISOString().slice(0, 10) });
 
@@ -576,6 +613,24 @@ export function runGapDashboardWarnings(ctx: RepoValidateContext): ViewFinding[]
       ruleId: 'ASSERT-008',
       severity: 'warning',
       message: `Assertion "${a.id}" next_review_at (${a.next_review_at}) is in the past.`,
+    });
+  }
+  for (const req of report.requirementsWithoutVerification) {
+    findings.push({
+      file: ctx.pathById.get(req.id) ?? req.id,
+      notation: req.element_kind ?? 'requirement',
+      ruleId: 'REQ-VERIF-COVERAGE-001',
+      severity: 'warning',
+      message: `${req.element_kind === 'constraint' ? 'Constraint' : 'Requirement'} "${req.id}" has no verification targeting it.`,
+    });
+  }
+  for (const req of report.requirementsWithUnresolvedVerification) {
+    findings.push({
+      file: ctx.pathById.get(req.id) ?? req.id,
+      notation: req.element_kind ?? 'requirement',
+      ruleId: 'REQ-VERIF-COVERAGE-002',
+      severity: 'warning',
+      message: `${req.element_kind === 'constraint' ? 'Constraint' : 'Requirement'} "${req.id}" has verification(s), but none has reached outcome pass or fail.`,
     });
   }
 

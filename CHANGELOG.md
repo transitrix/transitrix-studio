@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Added
+
+- **`REQUIREMENT` → `VERIFICATION` coverage surfaced as an obligation.** New `VERIFICATION` element (`canon/verifications/`, `VERIF-001..006`) — the engineering V&V analogue of `ASSERTION`. The reverse-trace completeness rules `REQ-VERIF-COVERAGE-001` (no verification targets a requirement) and `-002` (every verification against it is still unresolved) are computed cross-cuttingly and surfaced in `validate --scope=repo`'s `compliance` findings. The Requirement Trace preview renders a "Verification" section labelled "Not verified" / "Unresolved" for a gap rather than a blank section; the Compliance Gap Dashboard lists every affected requirement repo-wide (both re-scan on save of any `VERIFICATION-*.yaml` file).
+
 ## [3.1.3] — 2026-07-29
 
 ### Fixed

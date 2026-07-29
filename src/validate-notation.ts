@@ -43,6 +43,7 @@ import { validateProcessMap } from '@transitrix/diagrams/process-map/validate.js
 import { validateRequirement } from '@transitrix/diagrams/requirement/validate.js';
 import { validateConstraint } from '@transitrix/diagrams/constraint/validate.js';
 import { validateAssertion } from '@transitrix/diagrams/assertion/validate.js';
+import { validateVerification } from '@transitrix/diagrams/verification/validate.js';
 import { parseImpactViewConfig } from '@transitrix/diagrams/compliance/impact.js';
 import { parseCoverageMetricConfig } from '@transitrix/diagrams/compliance/coverage-metric.js';
 import {
@@ -87,6 +88,10 @@ function validateRequirementDoc(input: unknown, options: ValidateNotationOptions
 function validateAssertionDoc(input: unknown, options: ValidateNotationOptions = {}): NotationValidationResult {
   const today = new Date().toISOString().slice(0, 10);
   return mapPackageResult(validateAssertion(input, { catalog: options.catalog, today }));
+}
+
+function validateVerificationDoc(input: unknown, options: ValidateNotationOptions = {}): NotationValidationResult {
+  return mapPackageResult(validateVerification(input, { catalog: options.catalog }));
 }
 
 function validateConstraintDoc(input: unknown, options: ValidateNotationOptions = {}): NotationValidationResult {
@@ -177,6 +182,7 @@ const VALIDATORS: Record<string, NotationValidator> = {
   requirement: validateRequirementDoc,
   constraint: validateConstraintDoc,
   assertion: validateAssertionDoc,
+  verification: validateVerificationDoc,
   'compliance-impact': wrapValidator(validateComplianceImpactDoc),
   'coverage-metric': wrapValidator(validateCoverageMetricDoc),
   // Group C — codex zone (#518 Phase C2); `zone: codex`, not a notation: tag.
@@ -222,6 +228,7 @@ export function inferNotationFromFilename(filePath: string): string | undefined 
   if (base.startsWith('requirement-') && base.endsWith('.yaml')) return 'requirement';
   if (base.startsWith('constraint-') && base.endsWith('.yaml')) return 'constraint';
   if (base.startsWith('assertion-') && base.endsWith('.yaml')) return 'assertion';
+  if (base.startsWith('verification-') && base.endsWith('.yaml')) return 'verification';
   const rawBase = (filePath.replace(/\\/g, '/').split('/').pop() ?? '').replace(/\.ya?ml$/i, '');
   const idType = typeOfId(rawBase);
   if (idType && (CODEX_ARTEFACT_TYPES as readonly string[]).includes(idType)) return 'codex';

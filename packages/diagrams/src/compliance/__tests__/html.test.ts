@@ -100,9 +100,17 @@ describe('renderComplianceHtml — gap', () => {
     expect(html).toContain('class="cmp-ok">✓ none');
   });
 
-  it('counts gaps in the summary line', () => {
+  it('lists both requirements as gaps under REQ-VERIF-COVERAGE-001 — no VERIFICATION artefacts scanned', () => {
+    const html = renderComplianceHtml(synthetic(), { mode: 'gap' }, { today: '2026-06-02' });
+    expect(html).toContain('Requirements without verification — REQ-VERIF-COVERAGE-001');
+    expect(html).toContain('REQUIREMENT-ERASURE-1');
+    expect(html).toContain('Requirements with unresolved verification — REQ-VERIF-COVERAGE-002');
+  });
+
+  it('counts gaps in the summary line, including the REQ-VERIF-COVERAGE-001 gaps', () => {
     const html = renderComplianceHtml(synthetic(), { mode: 'gap' });
-    expect(html).toMatch(/1 gap\(s\)/);
+    // 1 requirement without an assertion + 2 requirements without any verification (neither in `synthetic()` has one).
+    expect(html).toMatch(/3 gap\(s\)/);
   });
 });
 

@@ -1,0 +1,35 @@
+# Worked example — closed (pass) V&V claim against a REQUIREMENT.
+# Schema: notations/elements/27-verification.md §2.
+# Demonstrates: method = test, outcome = pass, note evidence.
+
+notation: verification
+id: VERIFICATION-DATA-ERASURE-TEST-1
+verifies: REQUIREMENT-DATA-ERASURE-1                  # → canon/elements/01_motivation/requirements/
+
+method: test
+protocol: >
+  Submit a data-subject erasure request against a seeded test account; poll
+  the erasure job queue until completion; confirm no personal-data record for
+  the account remains in any downstream store after 30 days.
+result: "Erasure completed and confirmed across all downstream stores at day 4."
+outcome: pass
+
+evidence:
+  - kind: note
+    text: "Automated erasure-verification suite run 2026-07-20, 10/10 accounts cleared within window."
+
+performed_at: "2026-07-20"
+performed_by: ROLE-VERIFICATION-ENG-1
+
+# Admission record (CONTRACT.md §6)
+zone: canon
+admitted_at: "2026-07-21"
+admitted_by: "v.korobeinikov"
+gate_checks:
+  uniqueness: pass
+  consistency: pass
+  completeness: pass
+
+# Primitive lifecycle (CONTRACT.md §7)
+valid_from: "2026-07-21"
+valid_to: null

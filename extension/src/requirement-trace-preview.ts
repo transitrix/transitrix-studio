@@ -7,19 +7,23 @@ import {
   buildRequirementTrace,
   buildTraceElementCatalog,
   scoreComplianceView,
+  CLOSED_VERIFICATION_OUTCOMES,
   type RequirementTrace,
 } from '@transitrix/diagrams/compliance';
 import { scanComplianceCanon } from './compliance-scan.js';
-import { complianceShell, escXml, openLink, statusBadge } from './compliance-render.js';
+import { complianceShell, escXml, openLink, statusBadge, outcomeBadge } from './compliance-render.js';
 
 // Requirement traceability + hierarchy view. Triggered
 // from a REQUIREMENT-*.yaml or CONSTRAINT-*.yaml file in the editor-title bar.
 // Shows the trace chain (derived_from → element → ASSERTION → subject +
-// realised_via) and the hierarchy (parent chain + direct children). Read-only,
-// script-less; click-to-open via command URIs.
+// realised_via), the V&V trace via VERIFICATION, and the hierarchy (parent
+// chain + direct children). Read-only, script-less; click-to-open via command
+// URIs.
 //
 // Assertion coverage applies to REQUIREMENT only (16-assertion.md §1) — a
 // CONSTRAINT-side trace shows sources + hierarchy but no assertion block.
+// Same posture for VERIFICATION (27-verification.md §4): the engineering V&V
+// leg applies to REQUIREMENT only.
 
 const OPEN_FILE_COMMAND = 'transitrixStudio.openComplianceFile';
 const REFRESH_COMMAND = 'transitrixStudio.refreshRequirementTrace';
@@ -96,7 +100,11 @@ export class RequirementTracePreview {
     }
 
     const scan = await scanComplianceCanon();
-    const index = buildComplianceIndex({ requirements: scan.requirements, assertions: scan.assertions });
+    const index = buildComplianceIndex({
+      requirements: scan.requirements,
+      assertions: scan.assertions,
+      verifications: scan.verifications,
+    });
     const catalog = buildTraceElementCatalog(scan.products, scan.subjects);
     const trace = buildRequirementTrace(elementId, index, catalog, scan.codex);
 
@@ -134,7 +142,7 @@ export class RequirementTracePreview {
     kind: 'requirement' | 'constraint',
     pathById: Map<string, string>,
   ): string {
-    const { requirement, sources, assertions, ancestors, children } = trace;
+    const { requirement, sources, assertions, verifications, ancestors, children } = trace;
 
     const description = requirement.description
       ? `<p class="rt-desc">${escXml(requirement.description)}</p>`
@@ -237,7 +245,53 @@ export class RequirementTracePreview {
       </section>`;
     }
 
-    return `<style>${RT_CSS}</style>${description}${hierarchyHtml}${sourcesHtml}${assertionsHtml}${childrenHtml}`;
+    // Forward trace via VERIFICATION — REQUIREMENT only (27-verification.md §4),
+    // same posture as ASSERTION. A gap is rendered as a defect, not a blank
+    // section — never silently omitted.
+    let verificationsHtml = '';
+    if (kind === 'constraint') {
+      verificationsHtml = `<section class="rt-section">
+        <h2>Verification</h2>
+        <p class="rt-note">CONSTRAINT-side VERIFICATION mechanism is out of scope for v1 (27-verification.md §4).
+          Engineering V&amp;V for this element is tracked via its <code>status</code> or downstream tooling.</p>
+      </section>`;
+    } else if (verifications.length === 0) {
+      verificationsHtml = `<section class="rt-section">
+        <h2>Verification</h2>
+        <p class="rt-note rt-gap">No VERIFICATION targets this requirement — V&amp;V gap
+          (<code>REQ-VERIF-COVERAGE-001</code>). Not verified.</p>
+      </section>`;
+    } else {
+      const hasClosedVerification = verifications.some(row =>
+        (CLOSED_VERIFICATION_OUTCOMES as readonly string[]).includes(row.verification.outcome),
+      );
+      const gapNote = hasClosedVerification
+        ? ''
+        : `<p class="rt-note rt-gap">Every verification against this requirement is still open
+            (<code>REQ-VERIF-COVERAGE-002</code>). Unresolved — the trace link exists but has not closed.</p>`;
+      const rows = verifications.map(row => {
+        const v = row.verification;
+        const vLink = openLink(OPEN_FILE_COMMAND, pathById.get(v.id), escXml(v.id), `Open ${v.id}`);
+        const meta = [
+          `method: ${v.method}`,
+          v.performed_at ? `performed ${v.performed_at}` : null,
+        ].filter(Boolean).join(' · ');
+        return `<li class="rt-assertion">
+          <div class="rt-assertion-head">
+            ${outcomeBadge(v.outcome)}
+            <span class="rt-assertion-id">${vLink}</span>
+          </div>
+          ${meta ? `<div class="cmp-meta">${escXml(meta)}</div>` : ''}
+        </li>`;
+      }).join('');
+      verificationsHtml = `<section class="rt-section">
+        <h2>Verification <span class="cmp-count">(${verifications.length} verification${verifications.length === 1 ? '' : 's'})</span></h2>
+        ${gapNote}
+        <ul class="rt-assertions">${rows}</ul>
+      </section>`;
+    }
+
+    return `<style>${RT_CSS}</style>${description}${hierarchyHtml}${sourcesHtml}${assertionsHtml}${verificationsHtml}${childrenHtml}`;
   }
 }
 
@@ -256,6 +310,7 @@ const RT_CSS = `
 .rt-parent-chain li.rt-self { font-weight: 600; color: var(--ts-text, #0f172a); }
 .rt-note { color: var(--ts-text-muted, #64748b); font-size: 12px; margin: 0; }
 .rt-note code { font-family: var(--vscode-editor-font-family, monospace); }
+.rt-note.rt-gap { color: var(--ts-status-warning-fg, #854d0e); font-weight: 600; margin: 0 0 8px; }
 .rt-jur { display: inline-block; padding: 0 6px; margin-left: 4px; border-radius: 3px; font-size: 10px; background: var(--ts-bg-subtle, #f1f5f9); color: var(--ts-text-muted, #64748b); text-transform: uppercase; letter-spacing: 0.04em; }
 .rt-dangling { color: var(--ts-status-warning-fg, #854d0e); font-size: 11px; font-style: normal; }
 .rt-origin { display: inline-block; padding: 0 6px; margin-left: 6px; border-radius: 3px; font-size: 10px; background: var(--ts-bg-subtle, #f1f5f9); color: var(--ts-text-muted, #64748b); text-transform: uppercase; letter-spacing: 0.04em; }
