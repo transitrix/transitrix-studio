@@ -1,4 +1,4 @@
-// Gap dashboard report (vkgeorgia/strategy#84 Phase 4 / CV-5).
+// Gap dashboard report (HUB-84 Phase 4 / CV-5).
 //
 // Four operational gap lists computed from the shared reverse-index (Phase 3):
 //   1. Requirements with no Assertion targeting them (severity-sorted).

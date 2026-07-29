@@ -6,7 +6,7 @@ import { scanComplianceCanon } from './compliance-scan.js';
 import { complianceShell, deadlineBadge, escXml, openLink, statusBadge } from './compliance-render.js';
 import type { ViewScore } from '@transitrix/diagrams/confidence';
 
-// Gap dashboard (vkgeorgia/strategy#84 Phase 4). A repo-wide operational view
+// Gap dashboard (HUB-84 Phase 4). A repo-wide operational view
 // for compliance owners: requirements with no assertion, assertions with a
 // positive status but no evidence (ASSERT-007), and stale assertions past their
 // review date (ASSERT-008). Read-only, script-less; click-to-open via command

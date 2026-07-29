@@ -86,7 +86,7 @@ describe('layoutActivities', () => {
     expect(layout.bounds.height).toBeGreaterThan(0);
   });
 
-  // vkgeorgia/strategy#75 — configurable spacing.
+  // HUB-75 — configurable spacing.
   it('empty options reproduce the default no-arg layout', () => {
     const a = layoutActivities(diamondDoc);
     const b = layoutActivities(diamondDoc, {});

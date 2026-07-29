@@ -64,7 +64,7 @@ describe('layoutGoalTree', () => {
     expect(layout.nodes[0].height).toBe(60);
   });
 
-  // vkgeorgia/strategy#75 — configurable spacing. The preview maps
+  // HUB-75 — configurable spacing. The preview maps
   // horizontalGap → rankSep and verticalGap → nodeSep.
   it('larger rankSep widens the column step', () => {
     const tight = layoutGoalTree(TREE, { rankSep: 80 });
@@ -145,7 +145,7 @@ describe('layoutGoalTree', () => {
     expect(() => layoutGoalTree(cyclic)).not.toThrow();
   });
 
-  // vkgeorgia/strategy#77 — scope filtering.
+  // HUB-77 — scope filtering.
   describe('scope', () => {
     const ids = (l: ReturnType<typeof layoutGoalTree>) => l.nodes.map(n => n.id).sort((a, b) => a - b);
 

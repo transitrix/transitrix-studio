@@ -1,5 +1,5 @@
 // Compliance-impact matrix derivation + markdown renderer
-// (vkgeorgia/strategy#166 — interim renderer; CV-1 view-config wiring
+// (HUB-166 — interim renderer; CV-1 view-config wiring
 // per strategy#84 decomposition refresh).
 //
 // Implements the render contract from

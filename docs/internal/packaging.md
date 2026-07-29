@@ -8,7 +8,7 @@ per-OS optional dependency (`@resvg/resvg-js-win32-x64-msvc`,
 matching the machine doing the install.
 
 That makes the extension **platform-specific** for distribution purposes
-(vkgeorgia/strategy#32 chose per-platform VSIX over one ~10 MB fat bundle).
+(HUB-32 chose per-platform VSIX over one ~10 MB fat bundle).
 
 ## Build a VSIX for the current platform
 
