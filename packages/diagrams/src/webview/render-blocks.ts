@@ -163,8 +163,6 @@ export function renderBlocksSvg(doc: BlocksFile, options: RenderBlocksOptions = 
  */
 const GRID_CELL_PAD_X = 8;
 const GRID_LINE_HEIGHT = 15;
-const GRID_EMBED_CSS = `
-.blocks-grid-border { fill: none; stroke: var(--ts-border, #cbd5e1); }`;
 
 function centeredGridCellTextSvg(
   lines: string[],
@@ -246,7 +244,13 @@ export function renderGridBody(layout: GridLayout, ox: number, oy: number): stri
     parts.push(`<line class="diagram-edge" x1="${colLineX}" y1="${gridY1}" x2="${colLineX}" y2="${gridY2}"/>`);
   }
 
-  parts.push(`<rect class="blocks-grid-border" x="${ox}" y="${oy}" width="${tw}" height="${th}"/>`);
+  // Explicit fill="none" alongside the class: this rect covers the full grid
+  // bounds and is the last (topmost) element emitted, so if `.blocks-grid-border`
+  // is ever missing from a host's CSS (as it was in the VS Code webview path —
+  // see hub #853), it must not fall back to SVG's default opaque black fill.
+  parts.push(
+    `<rect class="blocks-grid-border" fill="none" x="${ox}" y="${oy}" width="${tw}" height="${th}"/>`,
+  );
 
   return parts.join('\n');
 }
@@ -270,7 +274,7 @@ export function renderGridLayoutSvg(layout: GridLayout, options: RenderGridLayou
   const oy = PAD + topInset;
 
   const body = renderGridBody(layout, ox, oy);
-  const styleLine = embedCssTheme ? `\n<style>${generateSvgEmbedCss(embedCssTheme)}${GRID_EMBED_CSS}</style>` : '';
+  const styleLine = embedCssTheme ? `\n<style>${generateSvgEmbedCss(embedCssTheme)}</style>` : '';
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${styleLine}
 ${title}

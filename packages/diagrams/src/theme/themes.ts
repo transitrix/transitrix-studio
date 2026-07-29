@@ -184,7 +184,8 @@ ${levelRules}
 .tree-maturity-5{fill:var(${cv.treeMaturity5});}
 .tree-collapse-btn{cursor:pointer;fill:white;stroke:var(${cv.nodeStroke});stroke-width:1.5;}
 .tree-collapse-btn:hover{fill:var(${cv.bgElevated});}
-.tree-collapse-lbl{fill:var(${cv.textSecondary});font-family:${t.fontFamily};font-size:12px;font-weight:700;dominant-baseline:central;pointer-events:none;}`;
+.tree-collapse-lbl{fill:var(${cv.textSecondary});font-family:${t.fontFamily};font-size:12px;font-weight:700;dominant-baseline:central;pointer-events:none;}
+.blocks-grid-border{fill:none;stroke:var(${cv.border});}`;
 }
 
 /**
