@@ -29,3 +29,17 @@ describe('CLI top-level help (#187)', () => {
     expect(runCli(['definitely-not-a-command']).status).not.toBe(0)
   })
 })
+
+describe('CLI --version', () => {
+  it('exits 0 and reports both the cli and bundled @transitrix/diagrams version', () => {
+    const { status, stdout } = runCli(['--version'])
+    expect(status).toBe(0)
+    expect(stdout).toMatch(/^transitrix \d+\.\d+\.\d+ \(bundles @transitrix\/diagrams \d+\.\d+\.\d+\)/)
+  })
+
+  it('-v is an alias for --version', () => {
+    const { status, stdout } = runCli(['-v'])
+    expect(status).toBe(0)
+    expect(stdout).toMatch(/^transitrix \d+\.\d+\.\d+/)
+  })
+})
