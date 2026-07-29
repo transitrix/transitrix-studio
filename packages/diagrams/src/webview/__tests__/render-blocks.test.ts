@@ -9,9 +9,11 @@
 import { describe, expect, it } from 'vitest';
 
 import type { BlocksFile, GridFile } from '../../blocks/types.js';
-import { renderBlocksSvg, renderGridSvg } from '../render-blocks.js';
+import { layoutGrid } from '../../blocks/layout.js';
+import { renderBlocksSvg, renderGridSvg, renderGridLayoutSvg } from '../render-blocks.js';
 import { CHAR_W_PRIMARY as CHAR_W, CHAR_W_ID, TEXT_MARGIN_X } from '../entity-text-layout.js';
 import { ENTITY_NODE_SIZE } from '../../node-size-presets.js';
+import { generateWebviewCss } from '../../theme/index.js';
 
 const LEAF_W = ENTITY_NODE_SIZE.normal.width;
 const LEAF_H = ENTITY_NODE_SIZE.normal.height;
@@ -263,5 +265,50 @@ describe('renderGridSvg — matrix subset', () => {
   it('returns a zero-size svg for an empty grid', () => {
     const svg = renderGridSvg({ notation: 'blocks', grid: { columns: [], rows: [] } });
     expect(svg).toContain('width="0" height="0"');
+  });
+});
+
+// Regression for hub #853: the grid preview rendered as a solid black
+// rectangle in the VS Code webview (CLI validation and `nested_blocks`
+// preview were unaffected). Root cause: the full-bounds border rect —
+// the last, topmost element emitted — carried a CSS class
+// (`.blocks-grid-border`) that was only ever defined in a locally-embedded
+// `<style>` block passed by the CLI/IntelliJ host path. The live VS Code
+// webview builds its SVG body via `renderGridLayoutSvg` *without*
+// `embedCssTheme` (see `extension/src/blocks-preview.ts`'s `gridLayoutToSvg`)
+// and supplies CSS separately via the webview shell — so that class never
+// resolved there, and the rect fell back to SVG's default opaque black fill,
+// painting over every header/cell beneath it.
+describe('renderGridLayoutSvg — webview render pipeline (no embedded CSS)', () => {
+  const layout = layoutGrid(RACI_GRID);
+
+  it('the full-bounds border rect is explicitly fill="none", independent of any CSS class resolving', () => {
+    // This is the path blocks-preview.ts (VS Code) actually takes: no
+    // embedCssTheme, CSS supplied live by the webview shell instead.
+    const svg = renderGridLayoutSvg(layout);
+    const borderRect = svg.match(/<rect class="blocks-grid-border"[^>]*\/>/)?.[0];
+    expect(borderRect).toBeDefined();
+    expect(borderRect).toContain('fill="none"');
+  });
+
+  it('does not paint an opaque rect on top of the header/cell content', () => {
+    const svg = renderGridLayoutSvg(layout);
+    // Any <rect> without an explicit fill="none" and without a
+    // .diagram-node/level-N class relies on the webview to supply the fill —
+    // guard that only the known, level-classed background/header/row rects
+    // do that; every other rect must be self-defensive.
+    const rects = svg.match(/<rect[^>]*\/>/g) ?? [];
+    for (const rect of rects) {
+      const hasLevelClass = /class="diagram-node level-\d"/.test(rect);
+      const hasExplicitFillNone = /fill="none"/.test(rect);
+      expect(hasLevelClass || hasExplicitFillNone).toBe(true);
+    }
+  });
+
+  it('the live webview theme CSS (both themes) defines .blocks-grid-border with fill:none', () => {
+    for (const themeId of ['transitrix', 'transitrix-dark'] as const) {
+      const css = generateWebviewCss(themeId);
+      expect(css).toMatch(/\.blocks-grid-border\{fill:none;stroke:var\(--ts-border\);\}/);
+    }
   });
 });
