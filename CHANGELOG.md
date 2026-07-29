@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+## [3.1.2] — 2026-07-29
+
+### Fixed
+
+- **Network/PSND skip-edge bows could climb into the title block** (#420). Follow-up to #418: the top-pad floor used the canvas edge (`y=0`), so the arc could still rise through the "Network view — …" heading. `computeNetworkTopPad` now floors against the diagram's own node bounds, so bows stay in the diagram area and leave the title zone alone.
+- **Blocks `BL-006` TYPE allowlist was stale vs the methodology registry** (#421). `REGISTERED_ELEMENT_TYPES` still accepted retired TYPEs (`UNIT`/`EMPLOYEE`/`ISSUE`, plus never-canonical `STAGE`) and rejected current ones adopters need (`HAZARD`, `RISK_CONTROL`, `REQUIREMENT`, `VERIFICATION`, …). Now matches `IDS_AND_REFERENCES.md` §3.1 exactly (plus `VERIFICATION` from §3.7), with a CI-pinned expected-set test so the next drift fails loudly.
+
+### Changed
+
+- **Compliance status colours use functional `--ts-status-*` tokens** (#422) instead of hardcoded purple / `#b45309`-class hexes for `pending_owner`, severity-medium, pending, dangling, and unresolved. Coverage-metric RAG middle-band copy renamed to "Warning".
+- **Compliance Impact preview adopts the shared `buildDiagramFrame` chrome** (#423), including a framed loading state (Theme…/Refresh present) instead of a bare body.
+- **BPMN preview toolbar vocabulary aligned** with the shared frame (#424).
+
+### Packages
+
+- **Transitrix Studio extension** 3.1.1 → 3.1.2
+- **`@transitrix/diagrams`** 1.8.19 → 1.8.20 — skip-edge title-zone floor (#420) and BL-006 TYPE registry sync (#421).
+
 ## [3.1.1] — 2026-07-27
 
 ### Fixed
