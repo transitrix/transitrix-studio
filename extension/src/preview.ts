@@ -189,12 +189,22 @@ export class CervinPreview {
     html,body{width:100%;height:100%;overflow:hidden;}
     /* flex chain so layout height reaches #canvas — otherwise diagram-js measures ~0px */
     body{display:flex;flex-direction:column;min-height:0;}
-    #toolbar{flex-shrink:0;border-bottom:1px solid var(--vscode-panel-border);padding:6px 8px;font-family:var(--vscode-font-family);font-size:12px;display:flex;flex-direction:column;gap:6px;}
-    .toolbar-btn{cursor:pointer;user-select:none;font-size:11px;padding:1px 8px;border-radius:4px;color:var(--ts-text-muted,#64748b);background:transparent;border:none;white-space:nowrap;align-self:flex-end;text-decoration:none;}
+    /* Toolbar layout mirrors the shared diagram-frame vocabulary (toolbar-label
+       left / toolbar-actions right — see buildDiagramFrame in diagram-frame.ts)
+       so this preview reads consistently with the rest of the product, even
+       though bpmn-js's live canvas + postMessage export flow keeps it on its
+       own hand-rolled HTML rather than buildDiagramFrame itself. */
+    #toolbar{flex-shrink:0;border-bottom:1px solid var(--vscode-panel-border);padding:6px 8px;font-family:var(--vscode-font-family);font-size:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;}
+    .toolbar-label{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .toolbar-actions{display:flex;gap:4px;align-items:center;flex-wrap:wrap;justify-content:flex-end;}
+    .toolbar-btn{cursor:pointer;user-select:none;font-size:11px;padding:1px 8px;border-radius:4px;color:var(--ts-text-muted,#64748b);background:transparent;border:none;white-space:nowrap;text-decoration:none;}
     .toolbar-btn:hover:not(:disabled){color:var(--ts-text,#0f172a);background:var(--ts-bg-elevated,#f1f5f9);}
     .toolbar-btn:disabled{opacity:0.4;cursor:default;}
-    #toolbar-message{flex-shrink:0;}
     #metrics-display{display:flex;gap:16px;flex-wrap:wrap;align-items:center;font-size:11px;color:var(--vscode-descriptionForeground);}
+    /* :not([hidden]) so the padding/border only render once JS populates and
+       reveals this row — an empty-but-displayed flex box (id selector beats
+       the UA [hidden] rule) would otherwise show as an empty bordered bar. */
+    #metrics-display:not([hidden]){flex-shrink:0;padding:4px 8px 6px;border-bottom:1px solid var(--vscode-panel-border);}
     .metric{display:flex;align-items:center;gap:4px;}
     .metric-label{font-weight:600;opacity:0.85;}
     .metric-value{font-family:monospace;}
@@ -230,10 +240,12 @@ export class CervinPreview {
 <body>
   <div class="layout">
     <div id="toolbar">
-      <span id="toolbar-message" class="muted">Save YAML to refresh the preview.</span>
-      <div id="metrics-display" hidden></div>
-      <button id="save-png-btn" class="toolbar-btn" title="Save the current diagram as a .png file" disabled>Save .png</button>
+      <span id="toolbar-message" class="toolbar-label muted">Save YAML to refresh the preview.</span>
+      <div class="toolbar-actions">
+        <button id="save-png-btn" class="toolbar-btn" title="Save the current diagram as a .png file" disabled>Save .png</button>
+      </div>
     </div>
+    <div id="metrics-display" hidden></div>
     <pre id="err" hidden></pre>
     <div id="findings">
       <div class="findings-header">
