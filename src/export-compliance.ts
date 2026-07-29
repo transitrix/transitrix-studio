@@ -1,4 +1,4 @@
-// `transitrix export-compliance` handler (vkgeorgia/strategy#84 Phase 5 + PDF follow-on).
+// `transitrix export-compliance` handler.
 //
 // Lives in its own module — separate from cli.ts — because it imports the
 // compliance library from `@transitrix/diagrams` *source*. The root emit build
