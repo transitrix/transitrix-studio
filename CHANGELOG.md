@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+## [3.1.3] — 2026-07-29
+
+### Fixed
+
+- **`@transitrix/cli` on npm shipped a stale diagrams bundle** (#426). Published `@transitrix/cli@2.2.0` still carried the pre-#421 `BL-006` TYPE registry, so `npx @transitrix/cli validate` rejected current TYPE-prefixed block ids (`HAZARD-*`, `RISK_CONTROL-*`, …) that the extension accepted. Root cause: the idempotent npm publish step compared only the CLI's own version — if diagrams bumped without a matching CLI bump, the publish silently no-oped. Fix: bump CLI to `2.3.0`, record the bundled diagrams version in `dist/diagrams-version.json`, expose it via `transitrix --version`, and add a PR-level CI guard (`cli-diagrams-alignment.yml`) that fails a diagrams bump without a matching CLI bump.
+- **Residual Cervin identifiers scrubbed** (#427). Internal class names, localStorage keys, dev-UI plugin names, debug-script fixture paths, test variables, and stale comments still referencing the pre-rename `cervin`/`Cervin*` identifier — replaced with Transitrix equivalents. Removed the unused `@deprecated CompileCervinOptions` type alias. Migration guards and CHANGELOG history are kept per the task's "must keep" list.
+
+### Packages
+
+- **Transitrix Studio extension** 3.1.2 → 3.1.3
+- **`@transitrix/cli`** 2.2.0 → 2.3.0 — rebundled with `@transitrix/diagrams` 1.8.21, `transitrix --version` now reports the bundled diagrams version.
+- **`@transitrix/diagrams`** 1.8.20 → 1.8.21 — Cervin identifier cleanup in compliance HTML renderer.
+
 ## [3.1.2] — 2026-07-29
 
 ### Fixed

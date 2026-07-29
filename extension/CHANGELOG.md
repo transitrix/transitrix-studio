@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 3.1.3 — 2026-07-29
+
+The CLI npm package now ships the same diagrams behavior as the extension (fixes false `BL-006` rejections on current element types), and internal legacy identifiers have been cleaned up.
+
+### Fixed
+
+- **`transitrix validate` on the npm CLI no longer rejects current element types** like `HAZARD`, `RISK_CONTROL`, `REQUIREMENT`, and `VERIFICATION` in blocks diagrams — the published CLI bundle was stale. Bumped to `@transitrix/cli@2.3.0` with current diagrams; `transitrix --version` now reports the bundled diagrams version so mismatches are easy to spot.
+- **Internal Cervin identifiers cleaned up** — no user-visible change, but the last legacy naming remnants in preview classes, dev-UI keys, and debug scripts are now Transitrix-native.
+
 ## 3.1.2 — 2026-07-29
 
 Network/PSND dependency arcs no longer cross the diagram title, and Blocks diagrams accept the current methodology element types (including the hazard → verification chain).
