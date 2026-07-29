@@ -257,7 +257,7 @@ const RT_CSS = `
 .rt-note { color: var(--ts-text-muted, #64748b); font-size: 12px; margin: 0; }
 .rt-note code { font-family: var(--vscode-editor-font-family, monospace); }
 .rt-jur { display: inline-block; padding: 0 6px; margin-left: 4px; border-radius: 3px; font-size: 10px; background: var(--ts-bg-subtle, #f1f5f9); color: var(--ts-text-muted, #64748b); text-transform: uppercase; letter-spacing: 0.04em; }
-.rt-dangling { color: #b45309; font-size: 11px; font-style: normal; }
+.rt-dangling { color: var(--ts-status-warning-fg, #854d0e); font-size: 11px; font-style: normal; }
 .rt-origin { display: inline-block; padding: 0 6px; margin-left: 6px; border-radius: 3px; font-size: 10px; background: var(--ts-bg-subtle, #f1f5f9); color: var(--ts-text-muted, #64748b); text-transform: uppercase; letter-spacing: 0.04em; }
 .rt-assertions { list-style: none; margin: 0; padding: 0; }
 .rt-assertion { border: 1px solid var(--ts-border, #cbd5e1); border-radius: 6px; padding: 8px 12px; margin: 0 0 8px; }

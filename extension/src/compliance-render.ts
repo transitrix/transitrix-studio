@@ -63,7 +63,7 @@ const COMPLIANCE_CSS = `
 .cmp-non_compliant { background: var(--ts-status-error-bg, #fee2e2); color: var(--ts-status-error-fg, #991b1b); }
 .cmp-under_review { background: var(--ts-status-info-bg, #e0f2fe); color: var(--ts-status-info-fg, #0c4a6e); }
 .cmp-n_a { background: var(--ts-bg-subtle, #f1f5f9); color: var(--ts-text-muted, #64748b); }
-.cmp-pending_owner { background: #f3e8ff; color: #6b21a8; }
+.cmp-pending_owner { background: var(--ts-status-info-bg, #e0f2fe); color: var(--ts-status-info-fg, #0c4a6e); }
 
 /* Tree (single-law) */
 .cmp-req { margin: 0 0 14px; border: 1px solid var(--ts-border, #cbd5e1); border-radius: 6px; overflow: hidden; }
@@ -71,7 +71,7 @@ const COMPLIANCE_CSS = `
 .cmp-req-name { font-weight: 600; color: var(--ts-text, #0f172a); }
 .cmp-req-id { font-size: 11px; color: var(--ts-text-muted, #64748b); font-family: var(--vscode-editor-font-family, monospace); }
 .cmp-sev { font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; }
-.cmp-sev-high { color: #b91c1c; } .cmp-sev-medium { color: #b45309; } .cmp-sev-low { color: #2563eb; }
+.cmp-sev-high { color: #b91c1c; } .cmp-sev-medium { color: var(--ts-status-warning-fg, #854d0e); } .cmp-sev-low { color: #2563eb; }
 .cmp-assertions { list-style: none; margin: 0; padding: 0; }
 .cmp-assertions li { display: flex; align-items: center; gap: 8px; padding: 6px 12px 6px 24px; border-top: 1px solid var(--ts-border, #e2e8f0); font-size: 12px; }
 .cmp-assertions li .cmp-meta { color: var(--ts-text-muted, #64748b); font-size: 11px; }
