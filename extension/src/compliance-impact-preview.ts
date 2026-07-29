@@ -788,14 +788,14 @@ body { padding: 0; display: flex; flex-direction: column; height: 100vh; overflo
 .ci-row-id { font-size: 11px; font-family: var(--vscode-editor-font-family, monospace); color: var(--ts-text-muted, #64748b); }
 .ci-row-name { font-weight: 600; color: var(--ts-text, #0f172a); font-size: 12px; white-space: normal; }
 .ci-sev { font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 2px; }
-.ci-sev-high { color: #b91c1c; } .ci-sev-medium { color: #b45309; } .ci-sev-low { color: #2563eb; }
+.ci-sev-high { color: #b91c1c; } .ci-sev-medium { color: var(--ts-status-warning-fg, #854d0e); } .ci-sev-low { color: #2563eb; }
 .ci-jur { display: inline-block; padding: 1px 5px; border-radius: 3px; font-size: 10px; color: var(--ts-text-muted, #64748b); background: var(--ts-bg-elevated, #e2e8f0); text-transform: uppercase; letter-spacing: 0.04em; margin-top: 2px; margin-right: 2px; }
 .ci-cell { width: var(--ts-col-w, 120px); height: 40px; text-align: center; vertical-align: middle; }
 .ci-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
 .ci-link { text-decoration: none; }
 .ci-gap { background: repeating-linear-gradient(-45deg, transparent, transparent 5px, var(--ts-bg-subtle, #f1f5f9) 5px, var(--ts-bg-subtle, #f1f5f9) 10px); }
-.ci-pending { background: #fef9c3; border: 1px dashed #b45309 !important; }
-.ci-badge-pending { display: inline-block; padding: 2px 6px; border-radius: 8px; font-size: 10px; font-weight: 600; color: #b45309; background: #fef9c3; }
+.ci-pending { background: var(--ts-status-warning-bg, #fef9c3); border: 1px dashed var(--ts-status-warning-fg, #854d0e) !important; }
+.ci-badge-pending { display: inline-block; padding: 2px 6px; border-radius: 8px; font-size: 10px; font-weight: 600; color: var(--ts-status-warning-fg, #854d0e); background: var(--ts-status-warning-bg, #fef9c3); }
 .ci-filtered { background: var(--ts-bg-subtle, #f8fafc); opacity: 0.35; }
 .ci-na { background: var(--ts-bg-subtle, #f1f5f9); }
 .ci-badge-na { color: var(--ts-text-muted, #64748b); background: var(--ts-bg-subtle, #f1f5f9); }
@@ -807,8 +807,8 @@ body { padding: 0; display: flex; flex-direction: column; height: 100vh; overflo
 .ci-badge-non_compliant { color: var(--ts-status-error-fg, #991b1b); background: var(--ts-status-error-bg, #fee2e2); }
 .ci-under_review { background: var(--ts-status-info-bg, #e0f2fe); }
 .ci-badge-under_review { color: var(--ts-status-info-fg, #0c4a6e); background: var(--ts-status-info-bg, #e0f2fe); }
-.ci-pending_owner { background: #f3e8ff; }
-.ci-badge-pending_owner { color: #6b21a8; background: #f3e8ff; }
+.ci-pending_owner { background: var(--ts-status-info-bg, #e0f2fe); }
+.ci-badge-pending_owner { color: var(--ts-status-info-fg, #0c4a6e); background: var(--ts-status-info-bg, #e0f2fe); }
 .ci-empty { padding: 40px 24px; color: var(--ts-text-muted, #64748b); max-width: 640px; }
 .ci-empty code { background: var(--ts-bg-subtle, #f1f5f9); padding: 1px 4px; border-radius: 3px; }
 .ci-new { box-shadow: inset 0 0 0 2px #6366f1; }

@@ -29,7 +29,7 @@ function pct(n: number): string {
 
 const RAG_LABELS: Record<RagStatus, string> = {
   green: 'Green',
-  amber: 'Amber',
+  amber: 'Warning',
   red: 'Red',
   no_data: 'No data',
 };
@@ -67,7 +67,7 @@ function buildTableHtml(matrix: CoverageMatrix): string {
   }
 
   const rows = matrix.rows.map(buildRowHtml).join('');
-  const threshLine = `Green ≥ ${pct(matrix.thresholds.green)} · Amber ≥ ${pct(matrix.thresholds.amber)}`;
+  const threshLine = `Green ≥ ${pct(matrix.thresholds.green)} · Warning ≥ ${pct(matrix.thresholds.amber)}`;
 
   return (
     '<div class="cm-wrap">' +
@@ -82,7 +82,7 @@ function buildTableHtml(matrix: CoverageMatrix): string {
     '<th class="cm-under_review" title="Requirements under review">Under review</th>' +
     '<th class="cm-gap" title="Requirements with no assertion for scoped products">Gap</th>' +
     '<th>Coverage</th>' +
-    '<th title="Coverage status against configured thresholds (green / amber / red)">Coverage Status</th>' +
+    '<th title="Coverage status against configured thresholds (green / warning / red)">Coverage Status</th>' +
     '</tr></thead>' +
     '<tbody>' +
     rows +
