@@ -181,6 +181,6 @@ the install metadata and a re-publish at the same version is rejected.
 
 ## Relates
 
-- Strategy hub: [`vkgeorgia/strategy#184`](https://github.com/vkgeorgia/strategy/issues/184) — the Cursor publish task this runbook codifies.
+- Strategy hub: [`HUB-184`](HUB-184) — the Cursor publish task this runbook codifies.
 - [`packaging.md`](packaging.md) — VSIX packaging (the artefact shape Open VSX consumes).
 - [`release-runbook.md`](release-runbook.md) — separate procedure for `@transitrix/*` npm packages.

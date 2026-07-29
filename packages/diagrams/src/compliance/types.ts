@@ -1,5 +1,4 @@
-// Shared compliance reverse-index + derived views (vkgeorgia/strategy#84
-// Phase 3). The reverse-index pass (Law → Requirements, Requirement →
+// Shared compliance reverse-index + derived views (HUB-84, Phase 3). The reverse-index pass (Law → Requirements, Requirement →
 // Assertions, Subject → Assertions) backs the single-law tree and the
 // single-product view here, and the gap dashboard in Phase 4.
 

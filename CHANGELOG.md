@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### Changed
+
+- **Work-item references use the neutral `HUB-NNN` form** across comments, READMEs and docstrings (54 files). Not the hash form — a bare `#84` auto-links to this repository's own issue 84, rendering as a working link to an unrelated item.
+- **Public-surface hygiene gains a pattern slot and a full-tree pass** (`scripts/ci-hygiene-tree.mjs`). The diff check only sees what a PR adds, so anything already committed was invisible to it; the tree pass reads every tracked text file. Scoped to the new slot alone so it fails on the change under review, not on pre-existing content. Patterns stay in repository secrets; output is `file:line` only.
+
+### Packages
+
+- `@transitrix/diagrams` 1.8.21 → 1.8.22 — comment-only change under `src/`; version moved because the guard requires it.
+- `@transitrix/cli` 2.3.0 → 2.3.1 — paired bump per `cli-diagrams-alignment`.
+
 ## [3.1.3] — 2026-07-29
 
 ### Fixed

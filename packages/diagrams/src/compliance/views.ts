@@ -1,4 +1,4 @@
-// Single-law tree + single-product view builders (vkgeorgia/strategy#84 Phase 3).
+// Single-law tree + single-product view builders (HUB-84 Phase 3).
 
 import type {
   ComplianceIndex,

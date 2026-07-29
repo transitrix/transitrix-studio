@@ -1,4 +1,4 @@
-// Reverse-index builder (vkgeorgia/strategy#84 Phase 3).
+// Reverse-index builder (HUB-84 Phase 3).
 
 import type { ComplianceIndex, ComplianceIndexInput, IndexAssertion, IndexRequirement } from './types.js';
 

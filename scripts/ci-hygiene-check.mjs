@@ -16,7 +16,10 @@ if (!blocklist || blocklist.trim() === '') {
 }
 
 const blocklistHub = process.env.HYGIENE_BLOCKLIST_HUB;
-const combined = blocklistHub && blocklistHub.trim() ? `${blocklist}|${blocklistHub}` : blocklist;
+const blocklist3 = process.env.HYGIENE_BLOCKLIST_3;
+const combined = [blocklist, blocklistHub, blocklist3]
+  .filter((p) => p && p.trim())
+  .join('|');
 
 let pattern;
 try {

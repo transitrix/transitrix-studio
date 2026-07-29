@@ -1,4 +1,4 @@
-// Compliance matrix model (vkgeorgia/strategy#84 Phase 2).
+// Compliance matrix model (HUB-84 Phase 2).
 //
 // The matrix is Products × Requirements. Each cell is the status of the
 // (Product, Requirement) ASSERTION when one exists, or a gap when none does.

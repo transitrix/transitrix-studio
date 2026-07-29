@@ -21,7 +21,7 @@ export function validateGoalTree(input: unknown): ValidationResult {
   const tree = raw as unknown as GoalTree;
 
   // GOALS-013 — goal_types[].level values must be contiguous starting from 0.
-  // Per the N+1 rule (decision in vkgeorgia/strategy#66), the level set must
+  // Per the N+1 rule (decision in HUB-66), the level set must
   // be exactly {0, 1, …, N}; a gap breaks the parent→child level invariant
   // and means GOALS-012 cannot be enforced consistently.
   const levels = tree.goal_types
@@ -96,7 +96,7 @@ export function validateGoalTree(input: unknown): ValidationResult {
       continue;
     }
     // GOALS-012 — parent must be exactly one level above the child (N+1
-    // hierarchy, decision in vkgeorgia/strategy#66). Only enforced when the
+    // hierarchy, decision in HUB-66). Only enforced when the
     // parent is resolvable; a missing parent is covered by BROKEN_PARENT_REF.
     if (g.parent_id !== 0) {
       const parentLevel = levelById.get(g.parent_id);

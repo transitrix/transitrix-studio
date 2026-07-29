@@ -5,7 +5,7 @@
 // arrow reads as perpendicular to the node's vertical edge.
 //
 // Pulling the path math here (rather than duplicating it inline in each
-// preview) makes the configurable-curvature behaviour (vkgeorgia/strategy#76)
+// preview) makes the configurable-curvature behaviour (HUB-76)
 // unit-testable — the extension has no test harness.
 
 /**

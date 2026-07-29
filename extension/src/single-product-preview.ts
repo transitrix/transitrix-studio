@@ -11,7 +11,7 @@ function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-// Single-product view (vkgeorgia/strategy#84 Phase 3). Triggered from a PRODUCT
+// Single-product view (HUB-84 Phase 3). Triggered from a PRODUCT
 // file in the editor-title bar. Shows the product → every requirement an
 // assertion binds it to → the status of each. Read-only, script-less;
 // click-to-open via command URIs.

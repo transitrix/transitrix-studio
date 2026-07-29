@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Compliance-impact matrix renderer — CV-1 view-config wiring
- * (vkgeorgia/strategy#84, builds on #166 interim renderer).
+ * (HUB-84, builds on #166 interim renderer).
  *
  * Materialises the subject × obligation × status matrix per the render
  * contract in methodology/notations/views/21-compliance-impact.md §5.
