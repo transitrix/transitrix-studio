@@ -24,8 +24,23 @@ import { NODE_BUILTIN_EXTERNALS, REQUIRE_BANNER, COMPILER_RUNTIME_EXTERNALS } fr
 
 const root = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const pkgRoot = resolve(root, 'packages', 'cli');
+const diagramsRoot = resolve(root, 'packages', 'diagrams');
 const distOut = resolve(pkgRoot, 'dist');
 const schemaOut = resolve(pkgRoot, 'schemas');
+
+// The bundled @transitrix/diagrams *source* has no package.json of its own
+// once esbuild inlines it — record which workspace version was bundled so
+// `transitrix --version` can report it at runtime (see src/diagrams-version.ts)
+// and so a stale-bundle regression (diagrams bumped, cli republish skipped
+// because npm-publish.yml compares cli's own version) is easy to spot from
+// an installed package.
+const diagramsPkg = JSON.parse(
+  await fs.readFile(resolve(diagramsRoot, 'package.json'), 'utf8'),
+);
+const diagramsVersion = diagramsPkg.version;
+if (typeof diagramsVersion !== 'string' || diagramsVersion.length === 0) {
+  throw new Error(`Could not read a version from ${resolve(diagramsRoot, 'package.json')}`);
+}
 
 await fs.rm(distOut, { recursive: true, force: true });
 await fs.mkdir(distOut, { recursive: true });
@@ -89,4 +104,11 @@ for (const name of await fs.readdir(resolve(root, 'schemas'))) {
   }
 }
 
-console.log(`@transitrix/cli assembled → ${pkgRoot}`);
+// Record the bundled @transitrix/diagrams version next to dist/ — read by
+// src/diagrams-version.ts for `transitrix --version`.
+await fs.writeFile(
+  resolve(distOut, 'diagrams-version.json'),
+  JSON.stringify({ version: diagramsVersion }, null, 2) + '\n',
+);
+
+console.log(`@transitrix/cli assembled → ${pkgRoot} (bundles @transitrix/diagrams ${diagramsVersion})`);

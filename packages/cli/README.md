@@ -24,6 +24,7 @@ npx @transitrix/cli --help
 ## Quick reference
 
 ```bash
+transitrix --version                            # cli + bundled diagrams version
 transitrix compile <input>.yaml <output>.bpmn   # YAML → BPMN 2.0 XML
 transitrix validate <input>.yaml                # per-file validation
 transitrix validate --scope=repo                # whole-repo canon checks
@@ -53,6 +54,14 @@ PDF compliance export requires WeasyPrint on `PATH`
 `@transitrix/cli` ships on its own version line, independent of the
 Transitrix Studio extension and `@transitrix/diagrams`. The first published
 release is `1.0.0`.
+
+`@transitrix/diagrams` source (not a runtime dependency — see "What's
+included" above) is bundled in at prepack, so a diagrams fix only reaches
+adopters once `@transitrix/cli` itself is republished. A CI guard
+(`scripts/check-cli-diagrams-alignment.mjs`) fails a PR that bumps
+`packages/diagrams/package.json` without also bumping `packages/cli/package.json`,
+so the two never drift apart. Run `transitrix --version` to see exactly which
+`@transitrix/diagrams` version is bundled into an installed CLI.
 
 ## Naming
 

@@ -27,6 +27,8 @@ import {
   resolveValidatorKey,
 } from './validate-notation.js';
 import { handleExportComplianceCommand } from './export-compliance.js';
+import { transitrixPackageVersion } from './package-version.js';
+import { bundledDiagramsVersion } from './diagrams-version.js';
 import { isActionViewDoc } from '@transitrix/diagrams/activities';
 import { isFGCAViewDoc } from '@transitrix/diagrams/fgca';
 // Deep import, not the `@transitrix/diagrams/goals` barrel like the two
@@ -47,8 +49,19 @@ const PROJECTION_ONLY_NOTATIONS: Record<string, { check: (d: unknown) => boolean
   goals: { check: isGoalsViewDoc, label: 'Goals Tree', inlineField: 'goals[]' },
 };
 
+function printVersion(): void {
+  const cliVersion = transitrixPackageVersion();
+  const diagramsVersion = bundledDiagramsVersion();
+  console.log(
+    diagramsVersion
+      ? `transitrix ${cliVersion} (bundles @transitrix/diagrams ${diagramsVersion})`
+      : `transitrix ${cliVersion}`,
+  );
+}
+
 function printUsage(): void {
   console.error(`Transitrix Studio CLI — usage:
+       transitrix --version | -v
        transitrix serve [--port 8765] [--host 127.0.0.1]
        transitrix <input.yaml> <output.bpmn> [--no-metrics] [--no-validate]
        transitrix [--ext=.bpmn.transitrix.yaml] <input.yaml> <output.bpmn> [--no-metrics] [--no-validate]
@@ -562,6 +575,15 @@ const subcommand = process.argv[2];
 // rather than falling through to the "unknown command" branch.
 if (subcommand === '--help' || subcommand === '-h' || subcommand === 'help') {
   printUsage();
+  process.exit(0);
+}
+
+// Top-level version: reports both the CLI's own version and the
+// @transitrix/diagrams version bundled into it (BL-006 TYPE-registry drift
+// between the two is exactly what let a stale npm publish go unnoticed —
+// see scripts/check-cli-diagrams-alignment.mjs).
+if (subcommand === '--version' || subcommand === '-v') {
+  printVersion();
   process.exit(0);
 }
 
