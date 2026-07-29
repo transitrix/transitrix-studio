@@ -59,6 +59,12 @@ jobs:
       - name: Build @transitrix/diagrams
         run: npm run build --workspace packages/diagrams
 
+      - name: Assemble @transitrix/cli bundle
+        run: npm run build --workspace packages/cli
+
+      - name: Verify @transitrix/cli bundle aligns with diagrams version
+        run: node scripts/verify-cli-bundle-alignment.mjs
+
       # Publish order matters: diagrams first, then cli (runbook convention).
       - name: Publish @transitrix/diagrams (skips if version already published)
         env:

@@ -4,6 +4,25 @@ Migration notes for adopters upgrading across major changes.
 
 ---
 
+## Release train guard (CLI + diagrams)
+
+`@transitrix/cli` bundles diagrams source at prepack time; it does not install
+`@transitrix/diagrams` as a runtime npm dependency. When diagrams changes are
+user-visible in CLI paths (`validate --scope=repo`, notation validators, export),
+publish the CLI in the same release train after the diagrams bump.
+
+Before tagging a release, ensure:
+
+1. `packages/cli/package.json` is bumped (for example `2.2.0` -> `2.3.0`) when
+   bundled diagrams behavior changed.
+2. `npm run build --workspace packages/cli` regenerates `packages/cli/dist/`.
+3. `node scripts/verify-cli-bundle-alignment.mjs` passes (it checks bundled
+   metadata against `packages/diagrams/package.json`).
+
+The npm publish workflow enforces this alignment and fails on skew.
+
+---
+
 ## Extension 3.0 — legacy identifier sunset (2026-07)
 
 Transitrix Studio extension **3.0.0** removes the last user-facing Cervin compatibility

@@ -24,6 +24,8 @@ import { NODE_BUILTIN_EXTERNALS, REQUIRE_BANNER, COMPILER_RUNTIME_EXTERNALS } fr
 
 const root = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const pkgRoot = resolve(root, 'packages', 'cli');
+const diagramsPkgPath = resolve(root, 'packages', 'diagrams', 'package.json');
+const cliPkgPath = resolve(pkgRoot, 'package.json');
 const distOut = resolve(pkgRoot, 'dist');
 const schemaOut = resolve(pkgRoot, 'schemas');
 
@@ -88,5 +90,20 @@ for (const name of await fs.readdir(resolve(root, 'schemas'))) {
     await fs.copyFile(resolve(root, 'schemas', name), resolve(schemaOut, name));
   }
 }
+
+const diagramsPkg = JSON.parse(await fs.readFile(diagramsPkgPath, 'utf8'));
+const cliPkg = JSON.parse(await fs.readFile(cliPkgPath, 'utf8'));
+await fs.writeFile(
+  resolve(distOut, 'bundle-metadata.json'),
+  `${JSON.stringify(
+    {
+      diagramsVersion: diagramsPkg.version,
+      cliVersion: cliPkg.version,
+    },
+    null,
+    2,
+  )}\n`,
+  'utf8',
+);
 
 console.log(`@transitrix/cli assembled → ${pkgRoot}`);
