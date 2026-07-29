@@ -120,5 +120,5 @@ Still deferred (tracked under the epic):
 - Auto-refresh on save outside the active preview.
 - PNG export (resvg-js native binary path).
 
-Follow epic [`vkgeorgia/strategy#135`](https://github.com/vkgeorgia/strategy/issues/135)
+Follow epic [`HUB-135`](HUB-135)
 for any post-release work.

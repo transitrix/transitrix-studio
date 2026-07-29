@@ -354,7 +354,7 @@ export interface CanonicalFGAResult extends ValidationResult {
  * FGA-001..011). The resulting internal `FGCADoc` carries `activity.goal_id`,
  * which is exactly what the renderer needs to draw goal → activity edges —
  * the field whose absence produced the "FGA nodes render, no edges" bug
- * (transitrix/methodology#65 / vkgeorgia/strategy#65).
+ * (transitrix/methodology#65 / HUB-65).
  *
  * Lives beside `parseCanonicalFGCA` (rather than inline in the extension) so
  * the canonical FGA path is unit-testable and the library owns the single

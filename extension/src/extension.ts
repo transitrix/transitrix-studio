@@ -378,7 +378,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       actionPreview.saveAsSvg(),
     ),
     // PNG export — save-to-file + copy-to-clipboard per vector notation
-    // (vkgeorgia/strategy#32). Rasterized in the Node host via resvg.
+    // (HUB-32). Rasterized in the Node host via resvg.
     vscode.commands.registerCommand('transitrixStudio.saveBlocksAsPng', () => blocksPreview.saveAsPng()),
     vscode.commands.registerCommand('transitrixStudio.copyBlocksAsPng', () => blocksPreview.copyAsPng()),
     vscode.commands.registerCommand('transitrixStudio.saveGoalsAsPng', () => goalsPreview.saveAsPng()),
@@ -405,15 +405,15 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     }),
     vscode.commands.registerCommand('transitrixStudio.saveActivityCardAsPng', () => activityCardPreview.saveAsPng()),
     vscode.commands.registerCommand('transitrixStudio.copyActivityCardAsPng', () => activityCardPreview.copyAsPng()),
-    // Compliance matrix (vkgeorgia/strategy#84 Phase 2) — a repo-wide view, not
+    // Compliance matrix (HUB-84 Phase 2) — a repo-wide view, not
     // bound to a file. `openComplianceFile` is invoked from cell command URIs.
     vscode.commands.registerCommand('transitrixStudio.previewComplianceMatrix', () => complianceMatrixPreview.showOrReveal()),
     vscode.commands.registerCommand('transitrixStudio.refreshComplianceMatrix', () => complianceMatrixPreview.refresh()),
     vscode.commands.registerCommand('transitrixStudio.openComplianceFile', (fsPath: string) => openComplianceFile(fsPath)),
-    // Compliance-impact matrix (vkgeorgia/strategy#84 CV-2) — obligation × subject
+    // Compliance-impact matrix (HUB-84 CV-2) — obligation × subject
     // view per §5 of 21-compliance-impact.md; uses ImpactViewConfig (CV-1).
     vscode.commands.registerCommand('transitrixStudio.refreshComplianceImpact', () => complianceImpactPreview.refresh()),
-    // Single-law tree + single-product view (vkgeorgia/strategy#84 Phase 3) —
+    // Single-law tree + single-product view (HUB-84 Phase 3) —
     // triggered from a codex / product file's editor-title bar; repo-wide scan.
     vscode.commands.registerCommand('transitrixStudio.refreshSingleLaw', () => singleLawPreview.refresh()),
     vscode.commands.registerCommand('transitrixStudio.refreshSingleProduct', () => singleProductPreview.refresh()),
@@ -423,7 +423,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     // ASSERTION → subject + realised_via) and the hierarchy (parent chain +
     // direct children); origin-agnostic per 15-requirement.md §2.1.
     vscode.commands.registerCommand('transitrixStudio.refreshRequirementTrace', () => requirementTracePreview.refresh()),
-    // Gap dashboard (vkgeorgia/strategy#84 Phase 4) — repo-wide, palette-invoked.
+    // Gap dashboard (HUB-84 Phase 4) — repo-wide, palette-invoked.
     vscode.commands.registerCommand('transitrixStudio.previewGapDashboard', () => gapDashboardPreview.showOrReveal()),
     vscode.commands.registerCommand('transitrixStudio.refreshGapDashboard', () => gapDashboardPreview.refresh()),
     vscode.commands.registerCommand('transitrixStudio.exportGapDashboardCsv', () => gapDashboardPreview.exportCsv()),

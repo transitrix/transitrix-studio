@@ -6,6 +6,16 @@
 
 - **`REQUIREMENT` → `VERIFICATION` coverage surfaced as an obligation.** New `VERIFICATION` element (`canon/verifications/`, `VERIF-001..006`) — the engineering V&V analogue of `ASSERTION`. The reverse-trace completeness rules `REQ-VERIF-COVERAGE-001` (no verification targets a requirement) and `-002` (every verification against it is still unresolved) are computed cross-cuttingly and surfaced in `validate --scope=repo`'s `compliance` findings. The Requirement Trace preview renders a "Verification" section labelled "Not verified" / "Unresolved" for a gap rather than a blank section; the Compliance Gap Dashboard lists every affected requirement repo-wide (both re-scan on save of any `VERIFICATION-*.yaml` file).
 
+### Changed
+
+- **Work-item references use the neutral `HUB-NNN` form** across comments, READMEs and docstrings (54 files). Not the hash form — a bare `#84` auto-links to this repository's own issue 84, rendering as a working link to an unrelated item.
+- **Public-surface hygiene gains a pattern slot and a full-tree pass** (`scripts/ci-hygiene-tree.mjs`). The diff check only sees what a PR adds, so anything already committed was invisible to it; the tree pass reads every tracked text file. Scoped to the new slot alone so it fails on the change under review, not on pre-existing content. Patterns stay in repository secrets; output is `file:line` only.
+
+### Packages
+
+- `@transitrix/diagrams` 1.8.21 → 1.9.0 — the V&V coverage rules; supersedes the interim 1.8.22 comment-only bump.
+- `@transitrix/cli` 2.3.0 → 2.4.0 — paired bump per `cli-diagrams-alignment`; supersedes the interim 2.3.1.
+
 ## [3.1.3] — 2026-07-29
 
 ### Fixed

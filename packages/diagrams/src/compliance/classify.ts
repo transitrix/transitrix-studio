@@ -1,4 +1,4 @@
-// Canon-artefact classification (vkgeorgia/strategy#84). The single authority
+// Canon-artefact classification (HUB-84). The single authority
 // for "what is a compliance artefact" — used by both the Studio extension scan
 // (webview previews) and the CLI scan (`export-compliance`), so the recognition
 // rules live once. Pure: takes a parsed YAML document, no IO.

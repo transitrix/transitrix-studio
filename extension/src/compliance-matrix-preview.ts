@@ -13,7 +13,7 @@ import { scanComplianceCanon } from './compliance-scan.js';
 import type { ScannedCanon } from './compliance-scan.js';
 import { buildDiagramFrame, OPEN_THEME_COMMAND } from './diagram-frame.js';
 
-// Compliance matrix preview (vkgeorgia/strategy#84 Phase 2).
+// Compliance matrix preview (HUB-84 Phase 2).
 //
 // A repo-wide view (not bound to a file): scans the workspace for the canon
 // artefacts that carry `notation: product | requirement | assertion`, builds the

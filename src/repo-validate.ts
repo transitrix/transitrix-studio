@@ -127,8 +127,8 @@ export function loadRepoModel(root: string): RepoModelInput {
   return { elements, relations };
 }
 
-/** A per-file notation finding from sweeping canon/views/** (vkgeorgia/strategy
- *  #258, Phase A.2). Unlike the frozen `RepoFinding` (canon cross-references),
+/** A per-file notation finding from sweeping canon/views/** (HUB-258,
+ *  Phase A.2). Unlike the frozen `RepoFinding` (canon cross-references),
  *  this carries the file, notation, and rule code an agent needs to fix it. */
 export interface ViewFinding {
   /** Source file path, relative to the scanned root. */

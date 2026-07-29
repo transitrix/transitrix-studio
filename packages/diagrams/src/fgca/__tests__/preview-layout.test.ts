@@ -76,7 +76,7 @@ describe('layoutFGCAPreview', () => {
     expect(gapOf(120)).toBeGreaterThan(gapOf(20));
   });
 
-  // vkgeorgia/strategy#77 — scope filtering. FGCA goals are flat, so 'root'
+  // HUB-77 — scope filtering. FGCA goals are flat, so 'root'
   // selects the single matching goal plus the factors/changes/activities that
   // touch it.
   describe('scope', () => {

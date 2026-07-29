@@ -1,4 +1,4 @@
-// Gap dashboard report (Phase 4 / CV-5; REQ-VERIF-COVERAGE-001/002 per
+// Gap dashboard report (HUB-84 Phase 4 / CV-5; REQ-VERIF-COVERAGE-001/002 per
 // 15-requirement.md §4).
 //
 // Operational gap lists computed from the shared reverse-index (Phase 3):

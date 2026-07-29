@@ -2,7 +2,7 @@
  * SVG → PNG rasterization for diagram export.
  *
  * Kept deliberately free of any `vscode` import so it can be unit-tested in
- * plain Node and — per the architectural note on vkgeorgia/strategy#32 —
+ * plain Node and — per the architectural note on HUB-32 —
  * lifted into the shared `@transitrix/diagrams` library later without
  * untangling editor glue. The VS Code wiring (save dialog, clipboard) lives
  * in `png-export.ts`.
@@ -10,7 +10,7 @@
  * Rasterizer: `@resvg/resvg-js` (Rust/usvg, prebuilt per-platform binaries).
  * Chosen over a headless browser (tens of MB, heavy startup) and `sharp`
  * (librsvg SVG path is weaker on fonts/CSS, larger binary). Decision recorded
- * on vkgeorgia/strategy#32.
+ * on HUB-32.
  */
 
 /**

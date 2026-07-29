@@ -1,4 +1,4 @@
-// Markdown renderers for the compliance views (vkgeorgia/strategy#84 Phase 5).
+// Markdown renderers for the compliance views (HUB-84 Phase 5).
 // Pure string builders consumed by the `transitrix export-compliance` CLI.
 // PDF rendering lives in `html.ts` (HTML doc fed to WeasyPrint by the CLI).
 

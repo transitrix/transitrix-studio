@@ -49,7 +49,7 @@ export interface FGCAPreviewLayoutOptions {
   colGap?: number;
   /** Vertical gap (px) between stacked nodes within a column. Default matches the historical hardcoded value. */
   rowGap?: number;
-  /** Trim to a level cap or a single root goal (vkgeorgia/strategy#77). Defaults to 'all'. */
+  /** Trim to a level cap or a single root goal (HUB-77). Defaults to 'all'. */
   scope?: Scope;
   /** Entity node width (px). Default {@link FGCA_NODE_W}. */
   nodeWidth?: number;
