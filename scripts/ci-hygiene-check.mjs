@@ -30,10 +30,8 @@ const SLOTS = [
 
 // Self-validation. A pattern can be perfectly valid and still useless: an empty
 // alternative (`a||b`) or a bare `.*` compiles and then matches every input,
-// which turns the guard from a filter into a wall and is indistinguishable from
-// a real hit. Each slot is checked against a deliberately meaningless control
-// string that nothing legitimate can blocklist, and an over-broad slot is
-// reported BY NAME — the value itself is still never printed.
+// which turns a filter into a wall. Each slot is checked against a meaningless
+// control string, and an over-broad slot is reported BY NAME — the value itself is still never printed.
 const CANARY = 'zq-canary-000 lorem ipsum dolor sit amet zq-canary-999';
 {
   let broad = false;

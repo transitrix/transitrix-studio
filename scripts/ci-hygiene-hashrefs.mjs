@@ -1,35 +1,30 @@
 #!/usr/bin/env node
 // Public-surface hygiene — work-item references.
 //
-// Two rules, on two different surfaces.
+// A work-item reference does not go on a public surface: not in committed
+// content, not in a PR title, not in a PR body, not in a commit message. It
+// lives in the hub issue, which already links to the pull request.
 //
-// 1. COMMITTED CONTENT carries no reference to a work item at all — neither the
-// neutral `HUB-<number>` form nor a bare hash-number. The evidence for the
-// stronger rule is the sweep that produced it: of roughly 110 such references
-// across this repository and its sibling, not one carried information a reader
-// could use. The prose beside them already said what the code does and why; the
-// number was decoration that only a maintainer with private access could
-// resolve, and it aged badly the moment a work item was renumbered or closed.
-// What a line of code needs is the REASON, and a durable reason is a decision —
-// cited by name and date, which is stable, public, and resolvable by anyone.
+// Two operative reasons, both about how the text reads later:
 //
-// 2. A PR TITLE OR BODY may cite a work item, and there `HUB-<number>` is the
-// form. A pull request is a transient coordination surface, not content anyone
-// reads later. A bare hash-number is still forbidden there, for a separate
-// reason: GitHub auto-links it to the item of that number IN THIS REPOSITORY,
-// which renders as a WORKING link to something unrelated — worse than a dead
-// reference, because it reads as correct.
+// - A number is not a reason. What a line needs is why it is the way it is, and
+//   the durable form for that is a decision cited by name and date - resolvable
+//   by any reader, and stable when a work item is renumbered or closed.
+// - PR metadata is committed content with a delay. A PR title becomes a commit
+//   subject on merge. Commit messages are read for the same reason, over
+//   BASE..HEAD only, so a change is judged on what it adds.
 //
-// A reference to this repository's own issue or pull request is untouched by
-// either rule: a plain hash-number, and the `closes` / `fixes` auto-close
-// keywords, mean what they say. Only work-item forms match — the `HUB-` prefix,
-// or a hash-number dressed as task / epic / hub work.
+// A reference to this repository's own issue or PR is untouched: a plain
+// hash-number, and the `closes` / `fixes` auto-close keywords, mean what they
+// say. Only work-item forms match: the `HUB-` prefix, or a hash-number dressed
+// as task / epic / hub work. The bare hash-number is the worst form - it
+// auto-links to the item of that number IN THIS REPOSITORY, so it renders as a
+// working link to something unrelated.
 //
-// These patterns name nothing confidential, so they live here in the open and
-// the matched token IS printed. A contributor who cannot see why the build
-// failed routes around the rule, which is how this class of reference
-// accumulated in the first place. This file is in the skip list; that exclusion
-// is also the escape hatch for a doc that must legitimately show the form.
+// These patterns name nothing confidential, so the matched token is printed - a
+// contributor has to be able to see what tripped. This file is in its own skip
+// list, which doubles as the escape hatch for a doc that must legitimately show
+// the form.
 
 import { execSync } from 'node:child_process';
 import { readFileSync, statSync } from 'node:fs';
