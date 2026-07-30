@@ -75,7 +75,7 @@ export class GoalsPreview {
         { viewColumn: vscode.ViewColumn.Beside, preserveFocus: false },
         {
           // Scripts enabled for the in-preview spacing/curvature/scope controls
-          // (HUB-75/#76/#77 PR2) under the strict nonce CSP set
+          // (PR2) under the strict nonce CSP set
           // in buildDiagramFrame. localResourceRoots is pinned to the
           // extension's own media even though the inline-nonce'd controls load
           // no resources — defence in depth per Valerii's posture call.

@@ -50,7 +50,7 @@ interface FGCADoc {
 // ── Column layout ─────────────────────────────────────────────────────────────────────────────────
 //
 // Geometry + edge routing now live in @transitrix/diagrams
-// (`layoutFGCAPreview`) so the configurable-gap behaviour (HUB-75)
+// (`layoutFGCAPreview`) so the configurable-gap behaviour
 // is unit-tested. This file owns only the SVG presentation of that layout and
 // the column header labels.
 
@@ -143,7 +143,7 @@ interface ChainPreviewParams {
 
 /**
  * Shared render path for the FGCA and FGA previews. Branches on the persisted
- * tree↔table view (HUB-137):
+ * tree↔table view:
  *  - **tree** — the chain SVG, with the spacing/curvature/scope control panel +
  *    Save/Zoom toolbar (the PR #86 interactive surface) plus the view toggle.
  *  - **table** — the flattened chain table; the spacing/curvature/scope controls

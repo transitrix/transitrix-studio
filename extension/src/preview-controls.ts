@@ -2,7 +2,7 @@ import { randomBytes } from 'node:crypto';
 import { escXml } from '@transitrix/diagrams/webview/render-util.js';
 
 // In-preview interactive control panel for the spacing / curvature / scope
-// previews (HUB-75 / #76 / #77 — PR2).
+// previews (PR2).
 //
 // PR1 shipped the same controls as VS Code settings + a "…" toolbar link that
 // opens Settings. PR2 adds live, in-preview controls. Per Valerii's joint
@@ -90,7 +90,7 @@ export interface SnapshotMessage {
   snapshot?: string;
 }
 
-/** Tree ↔ table view, persisted per notation (HUB-137). */
+/** Tree ↔ table view, persisted per notation. */
 export type PreviewView = 'tree' | 'table';
 
 // Spacing bounds mirror the package.json `transitrix.spacing.*` schema (20–300).

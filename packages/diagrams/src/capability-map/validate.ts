@@ -8,8 +8,7 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 // Canonical form per `IDS_AND_REFERENCES.md` §2: `CAPABILITY-V…` /
 // `CAPABILITY-H…` with the dotted address (`V1`, `V1.2.1`, `H1`). The bare
 // legacy form (`V1`, `H1`) is still accepted so existing maps without the
-// canonical prefix do not break — migration is tracked under
-// HUB-36.
+// canonical prefix do not break; migration is tracked separately.
 const CAP_ID_RE = /^(CAPABILITY-)?(V|H)\d+(\.\d+)*$/;
 
 export function validateCapabilityMap(input: unknown): ValidationResult {

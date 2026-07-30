@@ -6,8 +6,7 @@ import {
   type ControlsModel,
 } from '../extension/src/preview-controls.js';
 
-// Unit coverage for the in-preview control panel (HUB-75/#76/#77
-// PR2). The panel + wiring script are pure string builders (no `vscode`), so
+// Unit coverage for the in-preview control panel (PR2). The panel + wiring script are pure string builders (no `vscode`), so
 // the data-attribute contract between markup and script is testable here.
 
 const spacingDefaults = { horizontalGap: 100, verticalGap: 24 };

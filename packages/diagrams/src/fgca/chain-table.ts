@@ -1,4 +1,4 @@
-// Chain-table model for the FGCA / FGA previews (HUB-137).
+// Chain-table model for the FGCA / FGA previews.
 //
 // The tree/chain preview (`layoutFGCAPreview`) shows Driver → Goal → Change →
 // Activity as columns of nodes joined by edges. This module produces the

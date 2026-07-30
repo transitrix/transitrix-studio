@@ -17,7 +17,7 @@
  * historically but the layout code only uses IDs as opaque keys, so
  * string IDs work fine.
  *
- * Strategy hub #63: this lives at the input boundary so the library's
+ * This lives at the input boundary so the library's
  * internal types (currently using DSM-API form — numeric IDs and
  * singular cross-refs) can stay where they are. A follow-up task can
  * unify the internal types with the canonical form across all sister
@@ -354,7 +354,7 @@ export interface CanonicalFGAResult extends ValidationResult {
  * FGA-001..011). The resulting internal `FGCADoc` carries `activity.goal_id`,
  * which is exactly what the renderer needs to draw goal → activity edges —
  * the field whose absence produced the "FGA nodes render, no edges" bug
- * (transitrix/methodology#65 / HUB-65).
+ * (transitrix/methodology#65).
  *
  * Lives beside `parseCanonicalFGCA` (rather than inline in the extension) so
  * the canonical FGA path is unit-testable and the library owns the single

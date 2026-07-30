@@ -21,6 +21,39 @@ const combined = [blocklist, blocklistHub, blocklist3]
   .filter((p) => p && p.trim())
   .join('|');
 
+const TAG = 'hygiene';
+const SLOTS = [
+  ['HYGIENE_BLOCKLIST', blocklist],
+  ['HYGIENE_BLOCKLIST_HUB', blocklistHub],
+  ['HYGIENE_BLOCKLIST_3', blocklist3],
+];
+
+// Self-validation. A pattern can be perfectly valid and still useless: an empty
+// alternative (`a||b`) or a bare `.*` compiles and then matches every input,
+// which turns the guard from a filter into a wall and is indistinguishable from
+// a real hit. Each slot is checked against a deliberately meaningless control
+// string that nothing legitimate can blocklist, and an over-broad slot is
+// reported BY NAME — the value itself is still never printed.
+const CANARY = 'zq-canary-000 lorem ipsum dolor sit amet zq-canary-999';
+{
+  let broad = false;
+  for (const [name, value] of SLOTS) {
+    if (!value || !value.trim()) continue;
+    let re;
+    try {
+      re = new RegExp(value, 'i');
+    } catch {
+      console.error(`[${TAG}] ${name} is not a valid JavaScript regex.`);
+      process.exit(2);
+    }
+    if (re.test(CANARY)) {
+      console.error(`[${TAG}] ${name} matches a meaningless control string — the value is over-broad (a stray empty alternative or an unanchored wildcard matches every input). The value is deliberately not printed.`);
+      broad = true;
+    }
+  }
+  if (broad) process.exit(2);
+}
+
 let pattern;
 try {
   pattern = new RegExp(combined, 'i');

@@ -1,4 +1,4 @@
-// HTML renderers for the compliance views (HUB-84 Phase 5,
+// HTML renderers for the compliance views (Phase 5,
 // PDF follow-on). Pure string builders — fed to WeasyPrint by the
 // `transitrix export-compliance --format pdf` path in src/export-compliance.ts.
 //

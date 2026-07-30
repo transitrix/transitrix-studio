@@ -1,6 +1,6 @@
 // Conformance test for the shipped REQUIREMENT worked examples — the
 // acme_corp canon files mirrored under `tests/fixtures/notation-corpus/requirement/`. Pins the
-// success signal of HUB-84 Phase 1: the library consumes the
+// success signal of Phase 1: the library consumes the
 // canonical example files without error.
 
 import { describe, it, expect } from 'vitest';

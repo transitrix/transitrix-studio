@@ -5,7 +5,7 @@ import {
 import type { Scope } from '@transitrix/diagrams/scope.js';
 import type { ControlMessage, PreviewView } from './preview-controls.js';
 
-// Per-notation spacing controls (HUB-75). PR1 persists the
+// Per-notation spacing controls. PR1 persists the
 // chosen gaps in VS Code configuration (`transitrix.spacing.<notation>.*`),
 // mirroring the existing `transitrix.theme` pattern, and re-renders previews
 // on change. In-preview live sliders are deferred to PR2.
@@ -34,7 +34,7 @@ export const SPACING_CONFIG_SECTION = 'transitrix.spacing';
 /** Command that opens Settings filtered to the spacing controls. */
 export const OPEN_SPACING_SETTINGS_COMMAND = 'transitrixStudio.openSpacingSettings';
 
-// ── Edge curvature (HUB-76) ──────────────────────────────────
+// ── Edge curvature ────────────────────────────────────────────
 //
 // A single per-notation multiplier on the edge control-handle length. Same
 // PR1 persistence pattern as spacing: settings-backed, re-rendered on change,
@@ -68,7 +68,7 @@ export function readEntryCurvature(notation: CurvatureNotation): number {
 /** Config section that, when changed, re-renders curvature-aware previews. */
 export const ENTRY_CURVATURE_CONFIG_SECTION = 'transitrix.entryCurvature';
 
-// ── Scope filter (HUB-77) ────────────────────────────────────
+// ── Scope filter ──────────────────────────────────────────────
 //
 // Trim a preview to a subtree root or a level cap. Same PR1 persistence
 // pattern as spacing: settings-backed, re-rendered on change. The in-preview

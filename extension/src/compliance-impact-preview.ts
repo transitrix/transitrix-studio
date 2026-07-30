@@ -16,7 +16,7 @@ import { scanComplianceCanon, openComplianceFile } from './compliance-scan.js';
 import type { ScannedCanon } from './compliance-scan.js';
 import { buildDiagramFrame, OPEN_THEME_COMMAND } from './diagram-frame.js';
 
-// Compliance-impact matrix preview -- CV-2 (HUB-84).
+// Compliance-impact matrix preview -- CV-2.
 //
 // Renders the obligation x subject matrix (buildImpactMatrix ss5) as an in-IDE
 // webview. Distinct from the Products x Requirements compliance-matrix preview

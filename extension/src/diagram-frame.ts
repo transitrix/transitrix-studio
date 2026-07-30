@@ -82,7 +82,7 @@ export interface DiagramFrameOpts {
   copyPngCommand?: string;
   /**
    * Command ID for the "Spacing…" toolbar link (opens Settings filtered to the
-   * per-notation gap controls — HUB-75). Rendered for previews
+   * per-notation gap controls). Rendered for previews
    * that honour `transitrix.spacing.*`. Shown even on error renders so the user
    * can widen/tighten and re-render. The preview's webview must opt into command
    * URIs via `enableCommandUris`.
@@ -90,13 +90,13 @@ export interface DiagramFrameOpts {
   spacingCommand?: string;
   /**
    * Command ID for the "Curvature…" toolbar link (opens Settings filtered to
-   * the per-notation edge-curvature control — HUB-76). Same
+   * the per-notation edge-curvature control). Same
    * opt-in contract as `spacingCommand`.
    */
   curvatureCommand?: string;
   /**
    * Command ID for the "Scope…" toolbar link (opens Settings filtered to the
-   * per-notation level/root scope controls — HUB-77). Same
+   * per-notation level/root scope controls). Same
    * opt-in contract as `spacingCommand`.
    */
   scopeCommand?: string;
@@ -133,8 +133,8 @@ export interface DiagramFrameOpts {
    */
   legendToggle?: boolean;
   /**
-   * Opt-in to in-preview interactive controls (HUB-75/#76/#77 —
-   * PR2). When present, the frame switches from the script-less static CSP to a
+   * Opt-in to in-preview interactive controls (PR2). When present, the frame
+   * switches from the script-less static CSP to a
    * strict nonce-based CSP (`default-src 'none'; style-src 'unsafe-inline';
    * script-src 'nonce-…'`), injects the control panel below the toolbar, and
    * appends the nonce'd wiring script. The preview's webview MUST be created
@@ -149,8 +149,8 @@ export interface DiagramFrameOpts {
     controlsPanel: string;
     controlsScript: string;
     /**
-     * Optional toolbar segmented control (e.g. the tree↔table view toggle,
-     * HUB-137). Injected as the first item in the toolbar
+     * Optional toolbar segmented control (e.g. the tree↔table view toggle).
+     * Injected as the first item in the toolbar
      * actions. Pass '' / omit when the preview has no toolbar control.
      */
     viewToggleHtml?: string;
@@ -581,7 +581,7 @@ export function buildDiagramFrame(opts: DiagramFrameOpts): string {
     ? `<div class="toolbar-actions">${actionParts.join('')}</div>`
     : '';
 
-  // Interactive previews (HUB-75/#76/#77 PR2) opt into a strict
+  // Interactive previews (PR2) opt into a strict
   // nonce-based CSP and the in-preview control panel. Static previews keep the
   // script-less CSP unchanged — the only diff in their output is none.
   const wasmScriptSrc = interactive?.allowWasmRendering ? " 'wasm-unsafe-eval'" : '';

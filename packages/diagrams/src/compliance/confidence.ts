@@ -1,4 +1,4 @@
-// Confidence bridge for the compliance views (HUB-162 — DQ-2).
+// Confidence bridge for the compliance views (DQ-2).
 // Maps the compliance index projections (IndexRequirement / IndexAssertion) onto
 // the DQ-1 ScoringElement shape, scores the view, and renders the §11.6 header
 // line. Lives in @transitrix/diagrams so Studio and DSM share one bridge and

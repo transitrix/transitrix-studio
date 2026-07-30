@@ -11,7 +11,7 @@ import {
   repoScopeHasErrors,
 } from '../src/repo-validate.js';
 
-// Phase A.2 (HUB-258): `validate --scope=repo` sweeps every
+// Phase A.2: `validate --scope=repo` sweeps every
 // notation file under canon/views/** with the same validators the preview uses.
 
 const corpus = join(

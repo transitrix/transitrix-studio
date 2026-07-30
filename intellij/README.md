@@ -119,6 +119,3 @@ Still deferred (tracked under the epic):
 - Editor-title parity with the VS Code extension.
 - Auto-refresh on save outside the active preview.
 - PNG export (resvg-js native binary path).
-
-Follow epic [`HUB-135`](HUB-135)
-for any post-release work.

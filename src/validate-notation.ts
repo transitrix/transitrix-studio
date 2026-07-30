@@ -1,4 +1,4 @@
-// File-scope validation for diagram notations (HUB-258).
+// File-scope validation for diagram notations.
 // Group C (compliance suite): #518 Phase C1–C2.
 //
 // The VS Code preview renders its red error block from per-notation validators

@@ -8,7 +8,7 @@ const DEFAULT_RANK_SEP = 80;
 const DEFAULT_NODE_SEP = 40;
 
 /**
- * Trims a flat goal list to a scope (HUB-77).
+ * Trims a flat goal list to a scope.
  *   - 'level' → goals with `level <= maxLevel`.
  *   - 'root'  → the root goal (matched by string id) plus all its descendants
  *               via `parent_id`; an empty list when the root is absent.

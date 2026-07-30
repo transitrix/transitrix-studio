@@ -118,7 +118,7 @@ function shellCss(): string {
   const cv = CSS_VAR;
   const t = TYPOGRAPHY;
   // Full-height flex chain lifted from blocks-preview / activities-preview
-  // into the shared shell (per strategy hub #35). Body is a flex column
+  // into the shared shell. Body is a flex column
   // sized to the iframe; #canvas takes the remaining height with its own
   // scroll region. Without this, #canvas was content-height and any
   // overflow-x scrollbar landed mid-panel with empty space below it — the
