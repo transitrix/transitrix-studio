@@ -119,7 +119,7 @@ const titleHit = pattern.test(process.env.PR_TITLE || '');
 const bodyHit = pattern.test(process.env.PR_BODY || '');
 
 if (hits.length === 0 && !titleHit && !bodyHit) {
-  console.log('[hygiene] no blocklist matches in diff or PR metadata.');
+  console.log('[hygiene] no blocklist matches in the diff, PR metadata, or a commit message.');
   process.exit(0);
 }
 
