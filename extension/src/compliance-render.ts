@@ -8,7 +8,7 @@ import { computeDeadlineStatus } from '@transitrix/diagrams/compliance/impact.js
 import { buildDiagramFrame, OPEN_THEME_COMMAND } from './diagram-frame.js';
 
 // Shared HTML rendering for the script-less compliance views — the single-law
-// tree and single-product view (HUB-84 Phase 3). These previews
+// tree and single-product view (Phase 3). These previews
 // are read-only and need no scripts: click-to-open uses command URIs and status
 // is shown with inline badges, so they keep `enableScripts: false` and the
 // script-less CSP (smallest security surface).

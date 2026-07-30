@@ -170,8 +170,8 @@ describe('parseCanonicalFGCA', () => {
   });
 });
 
-// The "FGCA preview blank / FGA no edges" regression (HUB-65,
-// transitrix/methodology#65) was a data defect: the canonical flat shape was
+// The "FGCA preview blank / FGA no edges" regression
+// (transitrix/methodology#65) was a data defect: the canonical flat shape was
 // not being mapped to the internal cross-ref fields the renderer turns into
 // edges. These assert the edge-driving fields are populated, so the renderer
 // has something to draw — locking the fix.

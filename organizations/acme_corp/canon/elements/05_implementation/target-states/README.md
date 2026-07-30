@@ -13,7 +13,7 @@ TYPE registry: [`notations/IDS_AND_REFERENCES.md`](../../../../../../notations/I
 Defined in [`notations/ELEMENT_PRIMITIVES.md`](../../../../../../notations/ELEMENT_PRIMITIVES.md) §7.17 over the common envelope §3:
 
 - Identity + composition: `notation: target-state`, `id`, `name`, optional `capabilities: [CAPABILITY-…]`, `processes: [PROCESS-…]`, `applications: [APPLICATION-…]`, `description`.
-- Goal satisfaction is **not** an inline field — it is a first-class `REL` kind on a separate sub-task of epic HUB-122.
+- Goal satisfaction is **not** an inline field — it is a first-class `REL` kind, delivered separately.
 - Scenarios point at target states (a `SCENARIO.target_state` reference on the scenario side); there is no `scenarios:` back-reference here.
 - Admission record ([`CONTRACT.md`](../../../../../../notations/CONTRACT.md) §6) and primitive lifecycle ([`CONTRACT.md`](../../../../../../notations/CONTRACT.md) §7).
 

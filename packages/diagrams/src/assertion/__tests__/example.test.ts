@@ -1,6 +1,6 @@
 // Conformance test for the shipped ASSERTION worked examples — the acme_corp
 // canon files mirrored under `tests/fixtures/notation-corpus/assertion/`. Pins the success signal of
-// HUB-84 Phase 1: the library consumes the canonical example
+// Phase 1: the library consumes the canonical example
 // files without error.
 
 import { describe, it, expect } from 'vitest';

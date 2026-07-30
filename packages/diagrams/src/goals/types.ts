@@ -60,7 +60,7 @@ export interface LayoutOptions {
   nodeSep?: number;
   hideCollapsed?: number[];
   viewDepth?: number | null;
-  /** Trim the tree to a level cap or a subtree root (HUB-77). Defaults to 'all'. */
+  /** Trim the tree to a level cap or a subtree root. Defaults to 'all'. */
   scope?: Scope;
 }
 

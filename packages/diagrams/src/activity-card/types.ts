@@ -1,7 +1,7 @@
 // Activity Card notation — single-project narrative view.
 //
 // Spec: transitrix/methodology `notations/views/18-activity-card.md` (v0.1).
-// Epic HUB-97, Studio track #134.
+// Studio track #134.
 //
 // The Activity Card is the first MULTI-DOCUMENT Studio notation. The card
 // YAML itself holds only `id`, `project` (an Activity ID), `description`,

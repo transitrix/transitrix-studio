@@ -52,7 +52,7 @@ jobs:
           HYGIENE_BLOCKLIST_3: ${{ secrets.HYGIENE_BLOCKLIST_3 }}
         run: node scripts/ci-hygiene-tree.mjs
 
-      - name: Reject bare hash-number references to hub work
+      - name: Work-item references
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
           PR_BODY: ${{ github.event.pull_request.body }}

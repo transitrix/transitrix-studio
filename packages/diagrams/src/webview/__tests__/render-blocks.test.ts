@@ -268,7 +268,7 @@ describe('renderGridSvg — matrix subset', () => {
   });
 });
 
-// Regression for HUB-853: the grid preview rendered as a solid black
+// Regression: the grid preview rendered as a solid black
 // rectangle in the VS Code webview (CLI validation and `nested_blocks`
 // preview were unaffected). Root cause: the full-bounds border rect —
 // the last, topmost element emitted — carried a CSS class

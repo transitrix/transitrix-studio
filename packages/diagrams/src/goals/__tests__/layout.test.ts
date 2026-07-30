@@ -64,7 +64,7 @@ describe('layoutGoalTree', () => {
     expect(layout.nodes[0].height).toBe(60);
   });
 
-  // HUB-75 — configurable spacing. The preview maps
+  // Configurable spacing. The preview maps
   // horizontalGap → rankSep and verticalGap → nodeSep.
   it('larger rankSep widens the column step', () => {
     const tight = layoutGoalTree(TREE, { rankSep: 80 });
@@ -145,7 +145,7 @@ describe('layoutGoalTree', () => {
     expect(() => layoutGoalTree(cyclic)).not.toThrow();
   });
 
-  // HUB-77 — scope filtering.
+  // Scope filtering.
   describe('scope', () => {
     const ids = (l: ReturnType<typeof layoutGoalTree>) => l.nodes.map(n => n.id).sort((a, b) => a - b);
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Compliance-impact matrix renderer — CV-1 view-config wiring
- * (HUB-84, builds on #166 interim renderer).
+ * (builds on the interim renderer).
  *
  * Materialises the subject × obligation × status matrix per the render
  * contract in methodology/notations/views/21-compliance-impact.md §5.

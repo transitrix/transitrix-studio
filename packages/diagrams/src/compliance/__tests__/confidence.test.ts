@@ -1,5 +1,5 @@
 // Bridge from the compliance index projections to the DQ-1 confidence module
-// (HUB-162 — DQ-2). Pins that:
+// (DQ-2). Pins that:
 //   • element TYPEs lift to REQUIREMENT / ASSERTION (decay lookup keys),
 //   • admitted_at flows through to the freshness curve,
 //   • the §11.6 header line matches the spec example shape,

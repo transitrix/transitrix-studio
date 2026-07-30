@@ -15,7 +15,7 @@
  * mapped to internal sequential numbers, `parent: GOAL-X` becomes
  * `parent_id: <numeric>`, `parent_id: 0` denotes a root.
  *
- * HUB-63: this lives at the input boundary so the library's
+ * This lives at the input boundary so the library's
  * internal types (numeric IDs) stay where they are. Convergence on
  * canonical typed-string IDs across all sister modules is a follow-up
  * task.

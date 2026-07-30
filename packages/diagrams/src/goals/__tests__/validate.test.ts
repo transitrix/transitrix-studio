@@ -128,7 +128,7 @@ describe('validateGoalTree', () => {
   });
 
   // GOALS-012 / GOALS-013 — N+1 parent/child hierarchy keyed on goal_types[]
-  // (decision in HUB-66; spec in transitrix/methodology
+  // (spec in transitrix/methodology
   // notations/04-goals.md §6).
   it('GOALS-012/013: accepts a contiguous goal_types + N+1 parent/child tree', () => {
     const r = validateGoalTree(VALID_TREE);

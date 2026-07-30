@@ -2,7 +2,7 @@
 // callers (Studio previews, DSM React) pass already-resolved element inputs
 // and a `today` reference; this module returns the per-element scores and
 // the view composite. Lives in @transitrix/diagrams so Studio and DSM share
-// one implementation (see HUB-159 — DQ-1).
+// one implementation (DQ-1).
 
 import type {
   ConfidenceBand,

@@ -11,7 +11,7 @@ function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-// Single-law tree (HUB-84 Phase 3). Triggered from a codex file
+// Single-law tree (Phase 3). Triggered from a codex file
 // (LAW / REGULATION / POLICY / INTERNAL_STANDARD) in the editor-title bar.
 // Shows the law → the requirements that derive from it → the assertions
 // targeting each, with status badges. Read-only, script-less; click-to-open via

@@ -112,7 +112,7 @@ for (const dep of RUNTIME_DEPS_EXTERNAL) {
   }
 }
 
-// @resvg/resvg-js (PNG export, HUB-32) is a NATIVE module: its
+// @resvg/resvg-js (PNG export) is a NATIVE module: its
 // platform `.node` binary ships as a per-OS optional dependency, so `npm
 // install` lays down only the binary matching the build machine. That is
 // exactly right for per-platform VSIX packaging (`vsce package --target`),

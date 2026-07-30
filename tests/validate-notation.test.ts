@@ -15,7 +15,7 @@ import {
   inferNotationFromFilename,
 } from '../src/validate-notation.js';
 // Imported directly to prove the CLI dispatch mirrors the validator the VS Code
-// preview uses — same findings, no drift (HUB-258).
+// preview uses — same findings, no drift.
 import { parseCanonicalGoals } from '../packages/diagrams/src/goals/parse-canonical.js';
 import { validateApplicationsCatalogue } from '../packages/diagrams/src/applications/validate.js';
 import { validateCapabilityMap } from '../packages/diagrams/src/capability-map/validate.js';

@@ -5,7 +5,7 @@
  * module owns the editor-facing parts: the save dialog, file write, and the
  * OS-specific clipboard path.
  *
- * Clipboard scope (HUB-32): `vscode.env.clipboard` is
+ * Clipboard scope: `vscode.env.clipboard` is
  * text-only, so an image copy needs an OS-specific path. Windows ships here;
  * macOS (`osascript`) and Linux (`xclip` / `wl-copy`) are a documented
  * follow-up — `copyPngToClipboard` degrades to a clear notice there.
@@ -92,9 +92,9 @@ async function copyPngToClipboard(png: Buffer): Promise<void> {
     }
     return;
   }
-  // macOS / Linux: not yet wired (Windows-first, HUB-32).
+  // macOS / Linux: not yet wired (Windows-first).
   vscode.window.showWarningMessage(
-    'Copy as PNG is not yet available on macOS/Linux — use “Save .png” instead. (Tracked in HUB-32.)',
+    'Copy as PNG is not yet available on macOS/Linux — use “Save .png” instead.',
   );
 }
 

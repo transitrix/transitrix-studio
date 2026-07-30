@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import yaml from 'js-yaml';
 import { emptyCanon, ingestComplianceDoc, type ComplianceCanon } from '@transitrix/diagrams/compliance';
 
-// Workspace scanner for the compliance views (HUB-84). The
+// Workspace scanner for the compliance views. The
 // compliance matrix (Phase 2), the single-law / single-product views (Phase 3)
 // and the gap dashboard (Phase 4) all need the same repo-wide sweep of the
 // canon artefacts. Classification lives in the shared `ingestComplianceDoc`
