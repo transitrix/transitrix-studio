@@ -17,7 +17,7 @@
  * historically but the layout code only uses IDs as opaque keys, so
  * string IDs work fine.
  *
- * Strategy hub #63: this lives at the input boundary so the library's
+ * HUB-63: this lives at the input boundary so the library's
  * internal types (currently using DSM-API form — numeric IDs and
  * singular cross-refs) can stay where they are. A follow-up task can
  * unify the internal types with the canonical form across all sister

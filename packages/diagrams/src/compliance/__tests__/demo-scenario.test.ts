@@ -1,5 +1,5 @@
 // Conformance test for the NorthBay Retail EU compliance demo scenario
-// (strategy hub #178). Validates that the demo data files load without errors,
+// (HUB-178). Validates that the demo data files load without errors,
 // produce the expected matrix shape, and exercise all four compliance statuses.
 
 import { describe, it, expect } from 'vitest';

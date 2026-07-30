@@ -247,7 +247,7 @@ export function renderGridBody(layout: GridLayout, ox: number, oy: number): stri
   // Explicit fill="none" alongside the class: this rect covers the full grid
   // bounds and is the last (topmost) element emitted, so if `.blocks-grid-border`
   // is ever missing from a host's CSS (as it was in the VS Code webview path —
-  // see hub #853), it must not fall back to SVG's default opaque black fill.
+  // see HUB-853), it must not fall back to SVG's default opaque black fill.
   parts.push(
     `<rect class="blocks-grid-border" fill="none" x="${ox}" y="${oy}" width="${tw}" height="${th}"/>`,
   );

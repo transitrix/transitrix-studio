@@ -97,6 +97,6 @@ export interface MatrixFilter {
   statuses?: AssertionStatus[];
   /** Keep only requirement columns whose resolved jurisdictions intersect this
    *  set. Requirements with no resolved jurisdiction are filtered out when this
-   *  is non-empty (F16, epic #84). */
+   *  is non-empty (F16, HUB-84). */
   jurisdictions?: string[];
 }
