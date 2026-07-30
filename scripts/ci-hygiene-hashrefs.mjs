@@ -139,7 +139,7 @@ for (const file of files) {
 }
 
 if (problems.length === 0) {
-  console.log(`[hygiene-hashrefs] clean — ${files.length} tracked file(s), diff and PR metadata scanned.`);
+  console.log(`[hygiene-hashrefs] clean — ${files.length} tracked file(s), plus the diff, PR metadata and commit messages.`);
   process.exit(0);
 }
 
