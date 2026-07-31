@@ -7,8 +7,11 @@ name: Dependabot auto-merge
 #
 # This repo has no branch-protection rule, so GitHub's native `gh pr merge
 # --auto` would have nothing to wait on and would merge immediately. Waiting
-# on `gh pr checks --watch --fail-fast` explicitly instead keeps the gate
-# self-contained without touching repo-wide branch-protection settings.
+# on other PR checks explicitly instead keeps the gate self-contained without
+# touching repo-wide branch-protection settings.
+#
+# Important: do NOT use `gh pr checks --watch` unfiltered — it waits on this
+# job's own `auto-merge` check and deadlocks forever.
 
 on:
   pull_request:
@@ -36,5 +39,47 @@ jobs:
           PR_URL: ${{ github.event.pull_request.html_url }}
         run: |
           set -euo pipefail
-          gh pr checks "$PR_URL" --watch --fail-fast
+
+          # Poll until every check *other than this job* is terminal.
+          # Exclude name "auto-merge" (this workflow) so we cannot wait on ourselves.
+          deadline=$((SECONDS + 3600))
+          while (( SECONDS < deadline )); do
+            json="$(gh pr checks "$PR_URL" --json name,bucket 2>/dev/null || true)"
+            if [[ -z "$json" || "$json" == "[]" ]]; then
+              echo "No checks reported yet; waiting…"
+              sleep 15
+              continue
+            fi
+
+            pending="$(printf '%s' "$json" | jq -r '
+              [.[] | select(.name != "auto-merge") | select(.bucket == "pending")] | length
+            ')"
+            failing="$(printf '%s' "$json" | jq -r '
+              [.[] | select(.name != "auto-merge") | select(.bucket == "fail" or .bucket == "cancel")]
+              | map("\(.name) (\(.bucket))") | .[]
+            ')"
+
+            if [[ -n "$failing" ]]; then
+              echo "Failing / cancelled checks:"
+              echo "$failing"
+              exit 1
+            fi
+
+            if [[ "$pending" == "0" ]]; then
+              echo "All non-self checks are terminal and green."
+              printf '%s' "$json" | jq -r '
+                .[] | select(.name != "auto-merge") | "\(.bucket)\t\(.name)"
+              '
+              break
+            fi
+
+            echo "Waiting on $pending other check(s)…"
+            sleep 15
+          done
+
+          if (( SECONDS >= deadline )); then
+            echo "Timed out waiting for checks after 1h"
+            exit 1
+          fi
+
           gh pr merge --squash --delete-branch "$PR_URL"

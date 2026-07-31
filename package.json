@@ -62,7 +62,7 @@
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
     "elkjs": "^0.9.3",
-    "js-yaml": "^4.1.0",
+    "js-yaml": "^4.3.0",
     "xmlbuilder2": "^3.1.1"
   },
   "devDependencies": {
@@ -71,12 +71,12 @@
     "@types/node": "^22.15.29",
     "@types/vscode": "^1.85.0",
     "@vscode/vsce": "^3.9.2",
-    "bpmn-js": "^18.3.2",
+    "bpmn-js": "^18.22.0",
     "bpmn-moddle": "^10.0.0",
-    "esbuild": "^0.25.12",
+    "esbuild": "^0.28.1",
     "tsx": "^4.19.4",
     "typescript": "^5.8.3",
-    "vite": "^6.3.6",
-    "vitest": "^3.2.1"
+    "vite": "^8.2.0",
+    "vitest": "^4.1.10"
   }
 }
