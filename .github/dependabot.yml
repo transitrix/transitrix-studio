@@ -1,0 +1,40 @@
+version: 2
+updates:
+  # npm workspace root — "workspaces": ["packages/*"] in the root package.json means
+  # Dependabot's native workspace detection also covers packages/cli and
+  # packages/diagrams from this one entry; listing them separately risks duplicate
+  # or conflicting PRs against the same lockfile.
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  # extension/ is not under packages/*, so it is not a workspace member — its own manifest.
+  - package-ecosystem: "npm"
+    directory: "/extension"
+    schedule:
+      interval: "weekly"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  # JetBrains plugin (Gradle/Kotlin).
+  - package-ecosystem: "gradle"
+    directory: "/intellij"
+    schedule:
+      interval: "weekly"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  # GitHub Actions workflow files — 9 in this repo, otherwise nobody reviews them.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
