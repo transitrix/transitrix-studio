@@ -70,7 +70,7 @@
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^22.15.29",
     "@types/vscode": "^1.85.0",
-    "@vscode/vsce": "^3.9.1",
+    "@vscode/vsce": "^3.9.2",
     "bpmn-js": "^18.3.2",
     "bpmn-moddle": "^10.0.0",
     "esbuild": "^0.25.12",
