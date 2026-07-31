@@ -4,6 +4,7 @@
 
 import type { AssertionStatus } from '../assertion/types.js';
 import type { VerificationMethod, VerificationOutcome } from '../verification/types.js';
+import type { ValidationMethod, ValidationOutcome } from '../validation/types.js';
 import type { ComplianceCodexDoc } from './classify.js';
 
 /** Projection of a REQUIREMENT (or CONSTRAINT) the compliance views need. */
@@ -53,6 +54,35 @@ export interface IndexRequirement {
    * Present when the author has scheduled a review; drives `REQ-STALE-001`.
    */
   next_review_at?: string;
+  /**
+   * Typed ID of the upstream `NEED` this requirement traces to
+   * (15-requirement.md §2.7; `REQ-SERVES-001`). Optional, singular. Feeds
+   * `NEED-COVERAGE-001` (ELEMENT_PRIMITIVES.md §9) on the NEED side.
+   */
+  serves?: string;
+}
+
+/** Projection of a `NEED` element (ELEMENT_PRIMITIVES.md §7.28) the compliance
+ *  views need — just enough to list an unaddressed / unvalidated need. */
+export interface IndexNeed {
+  id: string;
+  name: string;
+}
+
+/** Projection of a `VALIDATION` claim (28-validation.md §2) the compliance
+ *  views need — the validation-domain peer of `IndexVerification`, anchored
+ *  on NEED instead of REQUIREMENT. */
+export interface IndexValidation {
+  id: string;
+  /** Typed ID of the NEED this validation targets. */
+  validates: string;
+  method: ValidationMethod;
+  outcome: ValidationOutcome;
+  performed_at?: string;
+  /** Number of evidence entries — feeds the VALID-006 gap. */
+  evidenceCount?: number;
+  /** Admission date (CONTRACT §6) — feeds DQ-1 freshness decay. */
+  admitted_at?: string;
 }
 
 // ── Temporal status (CV-3) ──────────────────────────────────────────────────
@@ -144,6 +174,10 @@ export interface ComplianceIndexInput {
   assertions: IndexAssertion[];
   /** Optional — absent inputs (existing callers) simply index no verifications. */
   verifications?: IndexVerification[];
+  /** Optional — absent inputs (existing callers) simply index no needs. */
+  needs?: IndexNeed[];
+  /** Optional — absent inputs (existing callers) simply index no validations. */
+  validations?: IndexValidation[];
 }
 
 /** The reverse-index — all maps are keyed by canonical id. */
@@ -164,6 +198,14 @@ export interface ComplianceIndex {
    *  (27-verification.md §2). The engineering V&V analogue of
    *  `assertionsByRequirement` — the two catalogues are independent. */
   verificationsByRequirement: Map<string, IndexVerification[]>;
+  /** NEED id → needs, keyed by their own id (single-entry lookup convenience). */
+  needById: Map<string, IndexNeed>;
+  /** NEED id → requirements whose `serves` names it (15-requirement.md §2.7).
+   *  Feeds `NEED-COVERAGE-001`. */
+  requirementsByNeed: Map<string, IndexRequirement[]>;
+  /** NEED id → validations whose `validates` names it (28-validation.md §2).
+   *  Feeds `NEED-VALIDATION-COVERAGE-001..002`. */
+  validationsByNeed: Map<string, IndexValidation[]>;
 }
 
 // ── Single-law tree ─────────────────────────────────────────────────────────

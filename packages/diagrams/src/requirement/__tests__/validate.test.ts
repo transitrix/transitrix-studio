@@ -94,3 +94,57 @@ describe('validateRequirement — REQ-003 (derived_from TYPE)', () => {
     }
   });
 });
+
+describe('validateRequirement — REQ-005 (level closed vocabulary)', () => {
+  it('is not checked when absent', () => {
+    expect(codes(valid())).not.toContain('REQ-005');
+  });
+
+  it('accepts each permitted level value', () => {
+    for (const level of ['stakeholder', 'system', 'software']) {
+      expect(codes({ ...valid(), level })).not.toContain('REQ-005');
+    }
+  });
+
+  it('flags an out-of-enum level', () => {
+    expect(codes({ ...valid(), level: 'business' })).toContain('REQ-005');
+  });
+});
+
+describe('validateRequirement — REQ-006 (kind closed vocabulary)', () => {
+  it('is not checked when absent', () => {
+    expect(codes(valid())).not.toContain('REQ-006');
+  });
+
+  it('accepts each permitted kind value', () => {
+    for (const kind of ['functional', 'quality']) {
+      expect(codes({ ...valid(), kind })).not.toContain('REQ-006');
+    }
+  });
+
+  it('flags an out-of-enum kind', () => {
+    expect(codes({ ...valid(), kind: 'nonfunctional' })).toContain('REQ-006');
+  });
+});
+
+describe('validateRequirement — REQ-SERVES-001 (serves → NEED)', () => {
+  it('is not checked when absent', () => {
+    expect(codes(valid())).not.toContain('REQ-SERVES-001');
+  });
+
+  it('flags a serves that is not a NEED typed id', () => {
+    expect(codes({ ...valid(), serves: 'STAKEHOLDER-CUSTOMERS-1' })).toContain('REQ-SERVES-001');
+  });
+
+  it('accepts a well-formed NEED id without a catalog', () => {
+    expect(codes({ ...valid(), serves: 'NEED-DATA-SUBJECT-CONTROL-1' })).not.toContain('REQ-SERVES-001');
+  });
+
+  it('with a catalog, flags an unresolved serves and accepts a resolved one', () => {
+    const missing: CanonCatalog = { typeOf: () => undefined };
+    expect(codes({ ...valid(), serves: 'NEED-DATA-SUBJECT-CONTROL-1' }, { catalog: missing })).toContain('REQ-SERVES-001');
+
+    const present: CanonCatalog = { typeOf: (id) => (id === 'NEED-DATA-SUBJECT-CONTROL-1' ? 'NEED' : undefined) };
+    expect(codes({ ...valid(), serves: 'NEED-DATA-SUBJECT-CONTROL-1' }, { catalog: present })).not.toContain('REQ-SERVES-001');
+  });
+});

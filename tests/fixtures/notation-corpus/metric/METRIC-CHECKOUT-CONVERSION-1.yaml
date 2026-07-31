@@ -1,0 +1,31 @@
+# Worked example — managed indicator tracking a GOAL.
+# Schema: notations/ELEMENT_PRIMITIVES.md §7.27.
+
+notation: metric
+id: METRIC-CHECKOUT-CONVERSION-1
+name: "Checkout conversion rate"
+description: >
+  Share of started checkouts that complete successfully. Tracks whether
+  the checkout-simplification goal is moving the organisation's core
+  revenue lever in the intended direction.
+
+measures:
+  - GOAL-CHECKOUT-SIMPLIFICATION-1
+
+unit: percent
+target: 68
+direction_of_good: higher_is_better
+owner_role: ROLE-ECOMMERCE-LEAD-1
+
+# Admission record (CONTRACT.md §6)
+zone: canon
+admitted_at: "2026-07-30"
+admitted_by: "v.korobeinikov"
+gate_checks:
+  uniqueness: pass
+  consistency: pass
+  completeness: pass
+
+# Primitive lifecycle (CONTRACT.md §7)
+valid_from: "2026-07-30"
+valid_to: null
