@@ -356,7 +356,7 @@ const TITLE_TOGGLE_CSS = `
 `;
 
 /**
- * CSS-only discrete zoom control (orchestrator decision on issue #30):
+ * CSS-only discrete zoom control (orchestrator decision):
  * 50 / 75 / 100 (default) / 150 / 200 % through hidden radios + labels.
  * Same pattern as TX-R009 title toggle and Network/Gantt switcher — no
  * script enablement, the security backstop on previews stays intact.
@@ -515,7 +515,7 @@ export function buildDiagramFrame(opts: DiagramFrameOpts): string {
   const showTheme = Boolean(themeCommand);
   // Zoom control gates on the same signal as Save .svg — the six vector
   // previews opt in by passing a saveSvgCommand. HTML catalogues are out of
-  // scope per the orchestrator's call on issue #30.
+  // scope per the orchestrator's call.
   const showZoom = Boolean(canvasContent) && Boolean(saveSvgCommand);
   const showLegendToggle = Boolean(legendToggle);
   const legendToggleInput = showLegendToggle

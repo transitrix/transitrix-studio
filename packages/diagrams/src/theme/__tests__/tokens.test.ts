@@ -1,5 +1,5 @@
 /**
- * Brand default-theme regression tests (hub issue #548).
+ * Brand default-theme regression tests.
  *
  * Locks in the three-role brand mapping from `brand/transitrix_brand.md`:
  *   - Petrol = structure (node/edge stroke) and hierarchy depth (fill tint).

@@ -34,14 +34,14 @@
 import { execSync } from 'node:child_process';
 import { readFileSync, statSync } from 'node:fs';
 
-// Committed content: either form. PR metadata: the bare form only.
-const HASHREF = /\b(?:task|epic|hub)s?[\s:]+#\d+/gi;
-const WORKITEM = /\bHUB-\d+|\b(?:task|epic|hub)s?[\s:]+#\d+/gi;
+import { HASHREF, WORKITEM } from './hygiene-patterns.mjs';
 
 const SKIP = new Set([
   'scripts/ci-hygiene-check.mjs',
   'scripts/ci-hygiene-tree.mjs',
   'scripts/ci-hygiene-hashrefs.mjs',
+  'scripts/hygiene-patterns.mjs',
+  'tests/ci-hygiene-hashrefs.test.ts',
   '.github/workflows/public-surface-hygiene.yml',
   '.gitignore',
 ]);
