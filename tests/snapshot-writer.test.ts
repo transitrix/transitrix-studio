@@ -8,7 +8,7 @@ import {
   parseSnapshotForDisplay,
 } from '../extension/src/snapshot-writer.js';
 
-// Unit coverage for the snapshot-writer utilities (issue #303).
+// Unit coverage for the snapshot-writer utilities.
 // These functions are pure (no vscode, no fs) so they are fully testable here.
 
 describe('snapshotFilename', () => {
