@@ -8,7 +8,7 @@
         previews inside IntelliJ IDEA and the other JetBrains IDEs.</p>
 
         <p>Describe your organisation in plain YAML and Transitrix Studio renders
-        the diagram right in the editor: goals trees, FGCA / FGA chains, activity
+        the diagram right in the editor: goals trees, DGCA / DGA chains, activity
         networks, nested blocks, applications, products, process maps, scenarios,
         capability maps, process blueprints, and activity cards. These are the
         same diagrams the
@@ -35,7 +35,7 @@
         <h3>0.1.0 — Initial release</h3>
         <ul>
             <li>Live notation preview for all Transitrix YAML formats: Goals trees,
-            FGCA / FGA chains, activity networks, BPMN processes, capability maps,
+            DGCA / DGA chains, activity networks, BPMN processes, capability maps,
             process blueprints, activity cards, and more.</li>
             <li>Preview panel opens automatically on <code>*.transitrix.yaml</code> files,
             or on demand via right-click → <b>Transitrix: Preview Notation</b>.</li>
