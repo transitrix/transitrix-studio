@@ -1,5 +1,5 @@
-// `transitrix new goal` — hub epic #919 ("Authoring a first element requires
-// only its own content — the envelope is supplied"), first cut. Scaffolds a
+// `transitrix new goal` — "authoring a first element requires only its own
+// content, the envelope is supplied" — first cut. Scaffolds a
 // standalone GOAL element file (ELEMENT_PRIMITIVES.md §7.2) with the
 // admission record (CONTRACT.md §6) and primitive lifecycle (CONTRACT.md §7)
 // computed by the tool, not hand-typed by the author.
@@ -286,8 +286,7 @@ export async function handleNewCommand(argv: string[]): Promise<void> {
     console.error('usage: transitrix new goal --id <GOAL-…> --name "<label>" [options]');
     console.error('');
     console.error('  Scaffolds a standalone GOAL element (canon/elements/01_motivation/goals/)');
-    console.error('  with the admission record and lifecycle envelope computed, not hand-typed');
-    console.error('  (hub epic #919).');
+    console.error('  with the admission record and lifecycle envelope computed, not hand-typed.');
     console.error('');
     console.error('  --id <GOAL-…>        Required — canonical id (GOAL-[<middle>-]<INTEGER>).');
     console.error('  --name "<label>"     Required — human-readable name.');
