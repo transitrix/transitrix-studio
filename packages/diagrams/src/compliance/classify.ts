@@ -5,7 +5,8 @@
 
 import type { AssertionStatus } from '../assertion/types.js';
 import type { VerificationMethod, VerificationOutcome } from '../verification/types.js';
-import type { IndexAssertion, IndexRequirement, IndexVerification } from './types.js';
+import type { ValidationMethod, ValidationOutcome } from '../validation/types.js';
+import type { IndexAssertion, IndexRequirement, IndexVerification, IndexNeed, IndexValidation } from './types.js';
 
 export interface ComplianceProduct {
   id: string;
@@ -32,10 +33,26 @@ export interface ComplianceCanon {
    * `ingestComplianceDoc` for the corresponding notation values.
    */
   subjects: ComplianceProduct[];
+  /** NEED elements (ELEMENT_PRIMITIVES.md §7.28) — upstream of `requirements`.
+   *  Ingested so NEED-COVERAGE-001 / NEED-VALIDATION-COVERAGE-001..002 can
+   *  compute coverage over the full needs catalogue. */
+  needs: IndexNeed[];
+  /** VALIDATION artefacts (28-validation.md) — the validation-domain peer of
+   *  `verifications`, anchored on NEED instead of REQUIREMENT. */
+  validations: IndexValidation[];
 }
 
 export function emptyCanon(): ComplianceCanon {
-  return { products: [], requirements: [], assertions: [], verifications: [], codex: [], subjects: [] };
+  return {
+    products: [],
+    requirements: [],
+    assertions: [],
+    verifications: [],
+    codex: [],
+    subjects: [],
+    needs: [],
+    validations: [],
+  };
 }
 
 const str = (v: unknown): string | undefined => (typeof v === 'string' ? v : undefined);
@@ -82,6 +99,24 @@ export function ingestComplianceDoc(canon: ComplianceCanon, doc: unknown): strin
       element_kind: d.notation,
       description: str(d.description),
       next_review_at: str(d.next_review_at),
+      serves: str(d.serves),
+    });
+    return id;
+  }
+  if (d.notation === 'need') {
+    canon.needs.push({ id, name: str(d.name) ?? id });
+    return id;
+  }
+  if (d.notation === 'validation') {
+    const validates = str(d.validates);
+    const method = str(d.method) as ValidationMethod | undefined;
+    const outcome = str(d.outcome) as ValidationOutcome | undefined;
+    if (!validates || !method || !outcome) return null;
+    canon.validations.push({
+      id, validates, method, outcome,
+      performed_at: str(d.performed_at),
+      evidenceCount: Array.isArray(d.evidence) ? d.evidence.length : 0,
+      admitted_at: str(d.admitted_at),
     });
     return id;
   }

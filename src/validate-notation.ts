@@ -44,6 +44,10 @@ import { validateRequirement } from '@transitrix/diagrams/requirement/validate.j
 import { validateConstraint } from '@transitrix/diagrams/constraint/validate.js';
 import { validateAssertion } from '@transitrix/diagrams/assertion/validate.js';
 import { validateVerification } from '@transitrix/diagrams/verification/validate.js';
+import { validateRisk } from '@transitrix/diagrams/risk/validate.js';
+import { validateMetric } from '@transitrix/diagrams/metric/validate.js';
+import { validateNeed } from '@transitrix/diagrams/need/validate.js';
+import { validateValidation } from '@transitrix/diagrams/validation/validate.js';
 import { parseImpactViewConfig } from '@transitrix/diagrams/compliance/impact.js';
 import { parseCoverageMetricConfig } from '@transitrix/diagrams/compliance/coverage-metric.js';
 import {
@@ -96,6 +100,22 @@ function validateVerificationDoc(input: unknown, options: ValidateNotationOption
 
 function validateConstraintDoc(input: unknown, options: ValidateNotationOptions = {}): NotationValidationResult {
   return mapPackageResult(validateConstraint(input, { catalog: options.catalog }));
+}
+
+function validateRiskDoc(input: unknown, options: ValidateNotationOptions = {}): NotationValidationResult {
+  return mapPackageResult(validateRisk(input, { catalog: options.catalog }));
+}
+
+function validateMetricDoc(input: unknown, options: ValidateNotationOptions = {}): NotationValidationResult {
+  return mapPackageResult(validateMetric(input, { catalog: options.catalog }));
+}
+
+function validateNeedDoc(input: unknown, options: ValidateNotationOptions = {}): NotationValidationResult {
+  return mapPackageResult(validateNeed(input, { catalog: options.catalog }));
+}
+
+function validateValidationDoc(input: unknown, options: ValidateNotationOptions = {}): NotationValidationResult {
+  return mapPackageResult(validateValidation(input, { catalog: options.catalog }));
 }
 
 function validateBlocksDoc(input: unknown, options: ValidateNotationOptions = {}): NotationValidationResult {
@@ -183,6 +203,10 @@ const VALIDATORS: Record<string, NotationValidator> = {
   constraint: validateConstraintDoc,
   assertion: validateAssertionDoc,
   verification: validateVerificationDoc,
+  risk: validateRiskDoc,
+  metric: validateMetricDoc,
+  need: validateNeedDoc,
+  validation: validateValidationDoc,
   'compliance-impact': wrapValidator(validateComplianceImpactDoc),
   'coverage-metric': wrapValidator(validateCoverageMetricDoc),
   // Group C — codex zone (#518 Phase C2); `zone: codex`, not a notation: tag.
@@ -229,6 +253,10 @@ export function inferNotationFromFilename(filePath: string): string | undefined 
   if (base.startsWith('constraint-') && base.endsWith('.yaml')) return 'constraint';
   if (base.startsWith('assertion-') && base.endsWith('.yaml')) return 'assertion';
   if (base.startsWith('verification-') && base.endsWith('.yaml')) return 'verification';
+  if (base.startsWith('risk-') && base.endsWith('.yaml')) return 'risk';
+  if (base.startsWith('metric-') && base.endsWith('.yaml')) return 'metric';
+  if (base.startsWith('need-') && base.endsWith('.yaml')) return 'need';
+  if (base.startsWith('validation-') && base.endsWith('.yaml')) return 'validation';
   const rawBase = (filePath.replace(/\\/g, '/').split('/').pop() ?? '').replace(/\.ya?ml$/i, '');
   const idType = typeOfId(rawBase);
   if (idType && (CODEX_ARTEFACT_TYPES as readonly string[]).includes(idType)) return 'codex';

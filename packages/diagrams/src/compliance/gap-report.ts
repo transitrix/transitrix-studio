@@ -18,9 +18,10 @@
 //      still `not_yet_run` / `inconclusive` — REQ-VERIF-COVERAGE-002. Mutually
 //      exclusive with #5 by construction.
 
-import type { ComplianceIndex, IndexAssertion, IndexRequirement } from './types.js';
+import type { ComplianceIndex, IndexAssertion, IndexRequirement, IndexNeed } from './types.js';
 import { computeDeadlineStatus } from './impact.js';
 import { CLOSED_VERIFICATION_OUTCOMES } from '../verification/types.js';
+import { CLOSED_VALIDATION_OUTCOMES } from '../validation/types.js';
 
 export interface GapReport {
   /** Requirements with no assertion about them, severity-sorted then id. */
@@ -47,6 +48,24 @@ export interface GapReport {
    * `not_yet_run`/`inconclusive`. Severity-sorted then id.
    */
   requirementsWithUnresolvedVerification: IndexRequirement[];
+  /**
+   * NEED-COVERAGE-001: needs with no REQUIREMENT whose `serves` names them —
+   * the NEED-side analogue of `requirementsWithoutAssertions`, id-sorted.
+   */
+  needsWithoutRequirements: IndexNeed[];
+  /**
+   * NEED-VALIDATION-COVERAGE-001: needs with no VALIDATION targeting them,
+   * id-sorted — the validation-side analogue of
+   * `requirementsWithoutVerification`.
+   */
+  needsWithoutValidation: IndexNeed[];
+  /**
+   * NEED-VALIDATION-COVERAGE-002: needs with one or more VALIDATIONs
+   * targeting them, but none closed (`pass`/`fail`) — every one is still
+   * `not_yet_run`/`inconclusive`. Mutually exclusive with
+   * `needsWithoutValidation` by construction. Id-sorted.
+   */
+  needsWithUnresolvedValidation: IndexNeed[];
 }
 
 export interface GapReportOptions {
@@ -133,8 +152,30 @@ export function buildGapReport(index: ComplianceIndex, options: GapReportOptions
       return d !== 0 ? d : a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
     });
 
+  // NEED-COVERAGE-001 — no REQUIREMENT.serves names this need.
+  const needsWithoutRequirements = [...index.needById.values()]
+    .filter(n => (index.requirementsByNeed.get(n.id) ?? []).length === 0)
+    .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+
+  // NEED-VALIDATION-COVERAGE-001 — no VALIDATION targets the need at all.
+  const needsWithoutValidation = [...index.needById.values()]
+    .filter(n => (index.validationsByNeed.get(n.id) ?? []).length === 0)
+    .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+
+  // NEED-VALIDATION-COVERAGE-002 — has validations, but none closed (pass/fail).
+  // Mutually exclusive with -001 by construction (only needs with at least
+  // one validation are considered here).
+  const needsWithUnresolvedValidation = [...index.needById.values()]
+    .filter(n => {
+      const validations = index.validationsByNeed.get(n.id) ?? [];
+      return validations.length > 0
+        && !validations.some(v => (CLOSED_VALIDATION_OUTCOMES as readonly string[]).includes(v.outcome));
+    })
+    .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+
   return {
     requirementsWithoutAssertions, assertionsWithoutEvidence, staleAssertions, pastDeadlineRequirements,
     requirementsWithoutVerification, requirementsWithUnresolvedVerification,
+    needsWithoutRequirements, needsWithoutValidation, needsWithUnresolvedValidation,
   };
 }

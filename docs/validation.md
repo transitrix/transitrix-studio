@@ -192,6 +192,10 @@ validators the VS Code preview uses:
 | `canon/elements/**/CONSTRAINT-*.yaml` | `CONST-*` shape | `CONST-004`/`005` with scanned `CanonCatalog` |
 | `canon/assertions/ASSERTION-*.yaml` | `ASSERT-*` shape | `ASSERT-002`..`005` + `ASSERT-007`/`008` warnings |
 | `canon/verifications/VERIFICATION-*.yaml` | `VERIF-*` shape | `VERIF-002`/`005` with scanned `CanonCatalog` + `REQ-VERIF-COVERAGE-001`/`002` warnings |
+| `canon/elements/**/RISK-*.yaml` | `RISK-*` shape + `RISK-COVERAGE-001` warning | `RISK-003`/`004` with scanned `CanonCatalog` |
+| `canon/elements/**/METRIC-*.yaml` | `METRIC-*` shape | `METRIC-002`/`004` with scanned `CanonCatalog` |
+| `canon/elements/**/NEED-*.yaml` | `NEED-001` shape | `NEED-002` with scanned `CanonCatalog` + `NEED-COVERAGE-001`/`NEED-VALIDATION-COVERAGE-001`/`002` warnings |
+| `canon/validations/VALIDATION-*.yaml` | `VALID-*` shape | `VALID-002`/`005` with scanned `CanonCatalog` |
 | `codex/**` | `CODEX-*` | folder jurisdiction (`CODEX-005`) |
 | `canon/views/**.compliance-impact.*` | `COMPIMP-001` parse | `COMPIMP-REF`, `COMPIMP-009`..`011`, `buildImpactMatrix` |
 | `canon/views/**.coverage-metric.*` | `COVMET-*` parse | `COVMET-REF`, `buildCoverageMatrix` |
@@ -223,6 +227,44 @@ the **Compliance Gap Dashboard** lists every affected requirement repo-wide.
 Both re-scan on save of any `VERIFICATION-*.yaml` file. The core validator is
 the single source of the verdict — the previews render `buildGapReport`'s
 output, they never compute their own judgement.
+
+**`RISK` / `METRIC` / `NEED` / `VALIDATION` — the methodology 3.1.0 vocabulary
+follow-on** (`ELEMENT_PRIMITIVES.md` §7.26–§7.28, §9; `15-requirement.md`
+§2.5–§2.7; `28-validation.md`). `RISK-001..004`, `METRIC-001..004`, and
+`NEED-001..002` are single-file shape/resolution rules for the three new
+standalone motivation-layer elements, following the same
+`validate<Notation>(input, { catalog })` shape as `validateRequirement` /
+`validateVerification`. `VALID-001..006` is the shape/resolution suite for
+`VALIDATION` — the validation-domain claim type anchored on `NEED`, structured
+the same way as `VERIFICATION` but one layer further upstream (§28
+§1/§4). `REQUIREMENT` grew three matching fields: `level` (`REQ-005`, the
+ISO/IEC/IEEE 29148 StRS/SyRS/SRS tier), `kind` (`REQ-006`, functional vs
+quality), and `serves` (`REQ-SERVES-001`, tracing back to the upstream `NEED`
+it satisfies).
+
+`RISK-COVERAGE-001` (an untreated risk — empty/absent `treated_by`) is a
+single-file check, unlike the other `*-COVERAGE-*` rules: it reads only the
+`RISK` element's own field, no catalogue scan required. `NEED` carries the
+same cross-cutting reverse-trace shape as `REQUIREMENT`/`VERIFICATION`,
+computed the same way as `GAP-REQ-NO-ASSERT` / `REQ-VERIF-COVERAGE-*`:
+
+| ruleId | Fires when |
+|---|---|
+| `NEED-COVERAGE-001` | No admitted `REQUIREMENT` carries `serves: <this NEED id>`. |
+| `NEED-VALIDATION-COVERAGE-001` | No admitted `VALIDATION` carries `validates: <this NEED id>`. |
+| `NEED-VALIDATION-COVERAGE-002` | One or more `VALIDATION`s target the need, but every one is still `not_yet_run`/`inconclusive` — none has reached `pass`/`fail`. Mutually exclusive with `-001` by construction. |
+
+All three are `warning`-severity, same posture as `REQ-VERIF-COVERAGE-*` (a
+newly admitted `NEED` legitimately has no serving requirement or validation
+yet), surfaced in the `compliance` findings bucket. There is no dedicated
+`NEED`/`VALIDATION` IDE preview surface yet (28-validation.md §7), and the
+Compliance Gap Dashboard export/preview (`compliance/html.ts`,
+`compliance/markdown.ts`, `extension/src/gap-dashboard-preview.ts`) render
+`GapReport`'s `requirementsWith*` fields explicitly and were not extended for
+the new `needsWith*` fields in this pass — `buildGapReport` computes them
+(consumed today by `runGapDashboardWarnings` for `--scope=repo`'s
+`compliance` findings), but surfacing them in the dashboard's own sections is
+follow-up work, not yet wired.
 
 File-scope `transitrix validate <requirement.yaml>` runs shape rules only unless
 you pass a catalogue (repo-scope builds one automatically from `canon/**` +

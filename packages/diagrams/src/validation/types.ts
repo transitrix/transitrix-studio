@@ -1,0 +1,57 @@
+// VALIDATION — validation-domain claim against a NEED.
+// Schema: methodology notations/elements/28-validation.md §2.
+//
+// VALIDATION is the validation-domain counterpart to VERIFICATION (same claim
+// shape, anchored one layer further upstream on NEED instead of REQUIREMENT).
+
+import type { GateChecks } from '../requirement/types.js';
+import type { Evidence } from '../assertion/types.js';
+
+/** Validation method vocabulary (28-validation.md §3). */
+export type ValidationMethod = 'user_acceptance' | 'field_trial' | 'stakeholder_review' | 'usability_study';
+
+export const VALIDATION_METHODS: readonly ValidationMethod[] = [
+  'user_acceptance',
+  'field_trial',
+  'stakeholder_review',
+  'usability_study',
+];
+
+/** Pass/fail judgement vocabulary (28-validation.md §3). */
+export type ValidationOutcome = 'pass' | 'fail' | 'inconclusive' | 'not_yet_run';
+
+export const VALIDATION_OUTCOMES: readonly ValidationOutcome[] = [
+  'pass',
+  'fail',
+  'inconclusive',
+  'not_yet_run',
+];
+
+/** Outcomes that count as "closed" — the trace link has resolved one way or
+ *  the other, distinct from still-open (`not_yet_run` / `inconclusive`)
+ *  (28-validation.md §5, NEED-VALIDATION-COVERAGE-002). */
+export const CLOSED_VALIDATION_OUTCOMES: readonly ValidationOutcome[] = ['pass', 'fail'];
+
+export interface Validation {
+  notation: 'validation';
+  id: string;
+  /** Typed ID of the NEED this validation targets. */
+  validates: string;
+  method: ValidationMethod;
+  protocol: string;
+  result?: string;
+  outcome: ValidationOutcome;
+  evidence?: Evidence[];
+  performed_at?: string;
+  performed_by?: string;
+
+  // Admission record (CONTRACT.md §6).
+  zone: 'canon';
+  admitted_at: string;
+  admitted_by: string;
+  gate_checks: GateChecks;
+
+  // Primitive lifecycle (CONTRACT.md §7).
+  valid_from: string;
+  valid_to: string | null;
+}

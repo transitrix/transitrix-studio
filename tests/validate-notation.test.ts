@@ -51,8 +51,13 @@ const GROUP_B = [
   'process-map',
 ];
 
-// Group C — compliance suite wired in #518 Phase C1–C4.
-const GROUP_C = ['requirement', 'constraint', 'assertion', 'verification', 'compliance-impact', 'coverage-metric', 'codex'];
+// Group C — compliance suite wired in #518 Phase C1–C4, plus the
+// methodology-3.1.0 vocabulary follow-on (RISK / METRIC / NEED / VALIDATION).
+const GROUP_C = [
+  'requirement', 'constraint', 'assertion', 'verification',
+  'risk', 'metric', 'need', 'validation',
+  'compliance-impact', 'coverage-metric', 'codex',
+];
 
 const ALL_NOTATIONS = [...GROUP_A, ...GROUP_B, ...GROUP_C];
 
@@ -163,7 +168,7 @@ describe('validate-notation — the view notation corpus validates clean (#258)'
 });
 
 describe('validate-notation — element notation corpus validates clean (#518 C1)', () => {
-  for (const notation of ['requirement', 'assertion', 'verification'] as const) {
+  for (const notation of ['requirement', 'assertion', 'verification', 'risk', 'metric', 'need', 'validation'] as const) {
     for (const file of elementFixtures(notation)) {
       const name = file.slice(corpusRoot.length + 1).replace(/\\/g, '/');
       it(`${name} → valid`, () => {

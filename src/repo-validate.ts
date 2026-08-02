@@ -490,7 +490,13 @@ export function runComplianceValidate(root: string, ctx: RepoValidateContext): V
       continue;
     }
     const notation = notationOf(data);
-    if (notation !== 'requirement' && notation !== 'constraint') continue;
+    if (
+      notation !== 'requirement' &&
+      notation !== 'constraint' &&
+      notation !== 'risk' &&
+      notation !== 'metric' &&
+      notation !== 'need'
+    ) continue;
     for (const f of validateNotationDoc(notation, data, validateOpts).findings) {
       if (f.severity === 'info') continue;
       findings.push({
@@ -575,6 +581,42 @@ export function runComplianceValidate(root: string, ctx: RepoValidateContext): V
     }
   }
 
+  let validationEntries: string[] = [];
+  try {
+    validationEntries = readdirSync(path.join(root, 'canon', 'validations'), { recursive: true }) as string[];
+  } catch {
+    validationEntries = [];
+  }
+  for (const rel of validationEntries) {
+    if (typeof rel !== 'string' || !isYaml(rel) || shouldSkip(rel)) continue;
+    const fullRel = path.join('canon', 'validations', rel).replace(/\\/g, '/');
+    let data: unknown;
+    try {
+      data = loadNotationYaml(readFileSync(path.join(root, fullRel), 'utf-8'));
+    } catch (e) {
+      findings.push({
+        file: fullRel,
+        notation: '',
+        ruleId: 'YAML',
+        severity: 'error',
+        message: (e as Error).message,
+      });
+      continue;
+    }
+    const notation = notationOf(data);
+    if (notation !== 'validation') continue;
+    for (const f of validateNotationDoc('validation', data, validateOpts).findings) {
+      if (f.severity === 'info') continue;
+      findings.push({
+        file: fullRel,
+        notation: 'validation',
+        ruleId: f.ruleId,
+        severity: f.severity,
+        message: f.message,
+      });
+    }
+  }
+
   return findings;
 }
 
@@ -585,6 +627,8 @@ export function runGapDashboardWarnings(ctx: RepoValidateContext): ViewFinding[]
     requirements: ctx.complianceCanon.requirements,
     assertions: ctx.complianceCanon.assertions,
     verifications: ctx.complianceCanon.verifications,
+    needs: ctx.complianceCanon.needs,
+    validations: ctx.complianceCanon.validations,
   });
   const report = buildGapReport(index, { today: new Date().toISOString().slice(0, 10) });
 
@@ -631,6 +675,33 @@ export function runGapDashboardWarnings(ctx: RepoValidateContext): ViewFinding[]
       ruleId: 'REQ-VERIF-COVERAGE-002',
       severity: 'warning',
       message: `${req.element_kind === 'constraint' ? 'Constraint' : 'Requirement'} "${req.id}" has verification(s), but none has reached outcome pass or fail.`,
+    });
+  }
+  for (const need of report.needsWithoutRequirements) {
+    findings.push({
+      file: ctx.pathById.get(need.id) ?? need.id,
+      notation: 'need',
+      ruleId: 'NEED-COVERAGE-001',
+      severity: 'warning',
+      message: `Need "${need.id}" has no requirement serving it.`,
+    });
+  }
+  for (const need of report.needsWithoutValidation) {
+    findings.push({
+      file: ctx.pathById.get(need.id) ?? need.id,
+      notation: 'need',
+      ruleId: 'NEED-VALIDATION-COVERAGE-001',
+      severity: 'warning',
+      message: `Need "${need.id}" has no validation targeting it.`,
+    });
+  }
+  for (const need of report.needsWithUnresolvedValidation) {
+    findings.push({
+      file: ctx.pathById.get(need.id) ?? need.id,
+      notation: 'need',
+      ruleId: 'NEED-VALIDATION-COVERAGE-002',
+      severity: 'warning',
+      message: `Need "${need.id}" has validation(s), but none has reached outcome pass or fail.`,
     });
   }
 

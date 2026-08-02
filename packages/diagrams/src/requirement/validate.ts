@@ -11,7 +11,7 @@
 
 import type { ValidationError, ValidationWarning, ValidationResult } from '../validation-types.js';
 import { typeOfId, isCanonicalIdOfType, type CanonCatalog } from '../typed-id.js';
-import { REQUIREMENT_DERIVED_FROM_TYPES } from './types.js';
+import { REQUIREMENT_DERIVED_FROM_TYPES, REQUIREMENT_LEVELS, REQUIREMENT_KINDS } from './types.js';
 
 export interface RequirementValidateOptions {
   /** When provided, REQ-002 enforces that each `derived_from` id is admitted. */
@@ -85,6 +85,26 @@ export function validateRequirement(input: unknown, options: RequirementValidate
           errors.push({ code: 'REQ-002', message: `derived_from[${i}] "${String(ref)}" does not resolve to an admitted codex artefact.`, path: `derived_from[${i}]` });
         }
       });
+    }
+  }
+
+  // REQ-005 — level closed vocabulary (optional; only checked when present).
+  if (r.level !== undefined && !(REQUIREMENT_LEVELS as readonly string[]).includes(r.level as string)) {
+    errors.push({ code: 'REQ-005', message: `level "${String(r.level)}" must be one of ${REQUIREMENT_LEVELS.join(', ')}.`, path: 'level' });
+  }
+
+  // REQ-006 — kind closed vocabulary (optional; only checked when present).
+  if (r.kind !== undefined && !(REQUIREMENT_KINDS as readonly string[]).includes(r.kind as string)) {
+    errors.push({ code: 'REQ-006', message: `kind "${String(r.kind)}" must be one of ${REQUIREMENT_KINDS.join(', ')}.`, path: 'kind' });
+  }
+
+  // REQ-SERVES-001 — serves resolves to an admitted NEED (optional, singular).
+  if (r.serves !== undefined) {
+    const serves = r.serves;
+    if (typeof serves !== 'string' || serves.trim() === '' || typeOfId(serves) !== 'NEED') {
+      errors.push({ code: 'REQ-SERVES-001', message: `serves "${String(serves)}" must be a typed NEED id.`, path: 'serves' });
+    } else if (options.catalog && options.catalog.typeOf(serves) === undefined) {
+      errors.push({ code: 'REQ-SERVES-001', message: `serves "${serves}" does not resolve to an admitted NEED.`, path: 'serves' });
     }
   }
 
