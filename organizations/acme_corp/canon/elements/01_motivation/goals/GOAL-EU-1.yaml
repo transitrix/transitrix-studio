@@ -1,6 +1,6 @@
 # Worked example — GOAL element primitive.
 # Schema: notations/ELEMENT_PRIMITIVES.md §7.2 + envelope §3.
-# Shared element: defined here, referenced from the goals-tree and FGCA views.
+# Shared element: defined here, referenced from the goals-tree and DGCA views.
 # The goal's parent (GOAL-REVENUE-1) is a time-aware relation (goal_parent)
 # carried inline by the goals-tree view in v0.x; not stored on this element
 # file. See ELEMENT_PRIMITIVES.md §7.2 + notations/elements/17-relations.md §3.

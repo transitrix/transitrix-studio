@@ -1,7 +1,7 @@
 # Worked example — CHANGE element primitive (BDN Gap).
 # Schema: notations/ELEMENT_PRIMITIVES.md §7.3 + envelope §3.
 # ArchiMate Implementation & Migration layer (05_implementation).
-# Arranged by the FGCA view (canon/views/fgca/).
+# Arranged by the DGCA view (canon/views/dgca/).
 
 notation: change
 id: CHANGE-EU-CRM-1

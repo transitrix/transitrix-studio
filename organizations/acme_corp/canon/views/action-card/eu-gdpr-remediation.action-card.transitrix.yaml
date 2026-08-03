@@ -1,7 +1,7 @@
 # Single-project narrative card for the GDPR remediation programme.
 # Notation spec: notations/views/18-action-card.md. Binds to a project Action
 # and adds narrative milestones; the motivation chain and child actions are
-# pulled by reference from the FGCA and Action documents, not duplicated here.
+# pulled by reference from the DGCA and Action documents, not duplicated here.
 
 notation: action-card
 spec_version: "0.1"
