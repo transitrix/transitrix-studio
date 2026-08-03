@@ -562,6 +562,11 @@
         }
       },
       {
+        "command": "transitrixStudio.newGoalElement",
+        "title": "Transitrix: New Goal Element",
+        "category": "Transitrix"
+      },
+      {
         "command": "transitrix.exportSvg",
         "title": "Transitrix: Export as SVG",
         "category": "Transitrix",

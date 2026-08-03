@@ -40,6 +40,7 @@ import {
   VIEW_CONFIG_SECTION,
 } from './spacing-config.js';
 import { OPEN_THEME_COMMAND } from './diagram-frame.js';
+import { NEW_GOAL_ELEMENT_COMMAND, newGoalElementCommand } from './new-element-command.js';
 
 function isGoalsFile(doc: vscode.TextDocument): boolean {
   return doc.fileName.endsWith('.goals.transitrix.yaml');
@@ -355,6 +356,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   //     command since they aren't bound to a specific open file).
   context.subscriptions.push(
     vscode.commands.registerTextEditorCommand('transitrix.openPreview', openPreviewHandler),
+    vscode.commands.registerCommand(NEW_GOAL_ELEMENT_COMMAND, () => newGoalElementCommand()),
     vscode.commands.registerCommand('transitrix.exportSvg', () => notYet('SVG')),
     vscode.commands.registerCommand('transitrix.exportPng', () => preview.saveAsPng()),
     vscode.commands.registerCommand('transitrix.exportBpmn', () => notYet('.bpmn')),
