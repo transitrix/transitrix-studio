@@ -1,9 +1,9 @@
-// "Authoring a first element requires only its own content" (epic
-// vkgeorgia/strategy#919) — the editor/extension creation path. Mirrors the
-// CLI's `transitrix new goal` (`src/scaffold.ts`): the author supplies id +
-// name only, the admission record and lifecycle envelope are computed, not
-// hand-typed. Reuses the same scaffold functions the CLI calls so the two
-// paths cannot drift apart on what "computed" means.
+// Authoring a first element should require only its own content — the
+// editor/extension creation path. Mirrors the CLI's `transitrix new goal`
+// (`src/scaffold.ts`): the author supplies id + name only, the admission
+// record and lifecycle envelope are computed, not hand-typed. Reuses the
+// same scaffold functions the CLI calls so the two paths cannot drift apart
+// on what "computed" means.
 //
 // GOAL only for this first cut, matching what `transitrix new` supports on
 // `main` today — DRIVER/CONSTRAINT/REQUIREMENT scaffolding exists only on an
