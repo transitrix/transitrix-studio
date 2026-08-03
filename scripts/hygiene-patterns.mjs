@@ -20,3 +20,18 @@ export const HASHREF = /\b(?:task|epic|hub|issue)s?[\s:]+#\d+|\bhub\s+(?:task|ep
 // HASHREF plus the neutral HUB-<number> form — forbidden in committed content
 // (diff + full tree).
 export const WORKITEM = /\bHUB-\d+|\b(?:task|epic|hub|issue)s?[\s:]+#\d+|\bhub\s+(?:task|epic|issue)s?\s+#?\d+/gi;
+
+// Parses `git log --format=%H%x1f%B%x1e <range>` output into per-commit
+// records. A commit message is text a diff pass never sees — the delimiters
+// (unit/record separators) survive arbitrary commit-message content that a
+// plain newline split would not.
+export function parseCommitLog(raw) {
+  return String(raw ?? '')
+    .split('\x1e')
+    .map((entry) => entry.replace(/^\n/, '').trim())
+    .filter(Boolean)
+    .map((entry) => {
+      const sep = entry.indexOf('\x1f');
+      return { sha: entry.slice(0, sep), body: entry.slice(sep + 1) };
+    });
+}

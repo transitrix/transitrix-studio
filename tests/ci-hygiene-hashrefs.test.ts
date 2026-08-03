@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { HASHREF, WORKITEM } from '../scripts/hygiene-patterns.mjs';
+import { HASHREF, WORKITEM, parseCommitLog } from '../scripts/hygiene-patterns.mjs';
 
 // Fixed sample strings only — never a real scanned line. This file is in the
 // guard's own SKIP list (scripts/ci-hygiene-hashrefs.mjs), so these fixtures
@@ -29,5 +29,25 @@ describe('hygiene work-item reference patterns', () => {
     expect(matches(HASHREF, 'HUB-905'), 'HUB-905 via HASHREF').toBe(false);
     expect(matches(HASHREF, 'issue #7'), 'issue #7 via HASHREF').toBe(true);
     expect(matches(HASHREF, 'hub task 217'), 'hub task 217 via HASHREF').toBe(true);
+  });
+});
+
+describe('parseCommitLog', () => {
+  it('splits a `git log --format=%H%x1f%B%x1e` stream into per-commit records', () => {
+    const raw = 'aaa111\x1fSubject line\n\nBody text\x1e\nbbb222\x1fAnother subject\x1e';
+    expect(parseCommitLog(raw)).toEqual([
+      { sha: 'aaa111', body: 'Subject line\n\nBody text' },
+      { sha: 'bbb222', body: 'Another subject' },
+    ]);
+  });
+
+  it('returns an empty list for an empty range', () => {
+    expect(parseCommitLog('')).toEqual([]);
+  });
+
+  it('finds a leaked work-item reference inside a multi-line commit body', () => {
+    const raw = 'ccc333\x1fSubject\n\nFirst cut of hub epic #123 (proj:example)\x1e';
+    const [commit] = parseCommitLog(raw);
+    expect(matches(WORKITEM, commit.body)).toBe(true);
   });
 });

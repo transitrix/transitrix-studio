@@ -34,7 +34,7 @@
 import { execSync } from 'node:child_process';
 import { readFileSync, statSync } from 'node:fs';
 
-import { HASHREF, WORKITEM } from './hygiene-patterns.mjs';
+import { HASHREF, WORKITEM, parseCommitLog } from './hygiene-patterns.mjs';
 
 const SKIP = new Set([
   'scripts/ci-hygiene-check.mjs',
@@ -110,7 +110,26 @@ for (const [label, value] of [
   if (hit) problems.push(`${label} — ${hit.join(', ')}`);
 }
 
-// 3) Full tree — the diff pass cannot see what already landed.
+// 3) Commit messages over the PR's commit range — a diff pass sees added file
+// content, never the message that landed the commit.
+if (baseSha && headSha) {
+  let log = '';
+  try {
+    log = execSync(`git log --format=%H%x1f%B%x1e ${baseSha}..${headSha}`, {
+      encoding: 'utf8',
+      maxBuffer: 128 * 1024 * 1024,
+    });
+  } catch (err) {
+    console.error('[hygiene-hashrefs] failed to read commit messages:', err.message);
+    process.exit(2);
+  }
+  for (const { sha, body } of parseCommitLog(log)) {
+    const hit = tokens(body, WORKITEM);
+    if (hit) problems.push(`commit ${sha.slice(0, 12)} — ${hit.join(', ')}`);
+  }
+}
+
+// 4) Full tree — the diff pass cannot see what already landed.
 let files = [];
 try {
   files = execSync('git ls-files -z', { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })
