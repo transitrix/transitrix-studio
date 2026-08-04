@@ -1,7 +1,8 @@
 # Worked example — APPLICATION element primitive (stable fields only).
 # Schema: notations/ELEMENT_PRIMITIVES.md §7.7 + envelope §3.
-# Time-varying fields (owner_role, vendor, lifecycle_stage, maturity) are
-# sidecar-bound per CONTRACT.md §9 — not inline here.
+# Time-varying fields (owner_role, vendor, maturity) are sidecar-bound per
+# CONTRACT.md §9 — not inline here; see APPLICATION-CRM-1.history.yaml in
+# this folder.
 
 notation: application
 id: APPLICATION-CRM-1

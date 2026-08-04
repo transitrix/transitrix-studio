@@ -8,7 +8,7 @@
 #   INTEGRATION  notation: integration   folder integrations/  fields: §7.8 (view-defined/nested in v1; promotable)
 #
 # Worked examples: organizations/acme_corp/canon/elements/03_application/.
-# Time-varying fields (owner_role, vendor, lifecycle_stage, maturity) live in a
+# Time-varying fields (owner_role, vendor, maturity) live in a
 # <id>.history.yaml sidecar (CONTRACT.md §9), never inline (would trigger VERSIONED-004).
 
 notation: application                  # element TYPE short name (lowercased TYPE)

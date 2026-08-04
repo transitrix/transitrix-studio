@@ -197,19 +197,39 @@ repo-scope wiring).
 | `VERSIONED-004` | error | A field declared `time_varying` is present inline on its primitive instead of only in the sidecar. |
 | `VERSIONED-005` | error | A version entry's `valid_from` falls outside `[target.valid_from, target.valid_to]`. |
 
-**`VERSIONED-004`'s field list is deliberately narrower than CONTRACT.md
-§9.4's full candidate table.** It enforces only the fields already
-`time_varying` on methodology's *currently-merged*
-`notations/views/05-capability-map.md`: capability `current_maturity`,
-`target_maturity`, `owner_role`, `target_date` (methodology PR #425, the
-2026-08-02 maturity ADR's remaining half, merged 2026-08-04 and brought
-`target_maturity` in — `organizations/acme_corp`'s capability fixtures
-migrated their inline values to sidecar form in the same pass). Applications-
-catalogue `maturity` is on the same CONTRACT.md §9.4 candidate row but is
-**not** enforced here: `check-versioned-attributes.ts` only walks
-`elements`, and `maturity` lives on the `applications[]` list inside a
-catalogue *view* document, not on a standalone element primitive — adding it
-needs the check to walk view documents too, not just a field-list edit.
+**`VERSIONED-004`'s element-level field list (`TIME_VARYING_FIELDS` in
+`check-versioned-attributes.ts`) enforces capability's `current_maturity`,
+`target_maturity`, `owner_role`, `target_date`** — every field methodology's
+merged `notations/views/05-capability-map.md` declares `time_varying`, now
+that PR #425 (the 2026-08-02 maturity ADR's remaining half) is on `main`;
+`organizations/acme_corp`'s capability fixtures migrated their inline
+`target_maturity` values to sidecar form in the same pass.
+
+**Applications-catalogue `owner_role`/`vendor`/`maturity` are covered too,
+but by a different mechanism.** DSM's importer-parity element-file check
+above walks standalone primitives under `canon/elements/**`; an
+applications-catalogue entry has no file of its own — the time-varying
+values, per `notations/views/10-applications.md` §5/§5a, are asserted
+inline on the catalogue *view* document's `applications[].{owner_role,
+vendor,maturity}`, not on a standalone `APPLICATION-*` element file. So this
+`VERSIONED-004` instance is ported into
+`packages/diagrams/src/applications/validate.ts` (the per-file notation
+validator, same as `HDR-001/002`/`LIFECYCLE-001/004` are for capability-map
+above) rather than into `check-versioned-attributes.ts`'s element sweep. The
+sidecar itself is still co-located with the referenced `APPLICATION-*`
+element file (`canon/elements/03_application/applications/<app_id>.
+history.yaml`) and its own shape (`VERSIONED-001/002/003/005`) is validated
+generically by the existing element-sweep `checkSidecars` — only the
+inline-vs-sidecar placement check needed a second home.
+
+**Not resolved here: rendering a current value from the sidecar.** Neither
+`render-applications.ts` (`a.maturity`/`a.vendor`/`a.owner_role`) nor
+`render-capability-map.ts` (`node.current_maturity`/`target_maturity`)
+resolves a sidecar at load — both still read the field directly off the
+document they're given. `versioned-attribute/resolve.ts`
+(`resolveAttributes`/`resolveAttributeValue`, CONTRACT.md §9.2) exists and is
+exercised by the validator, but nothing wires it into either preview yet.
+Flagged rather than silently left broken or silently worked around.
 
 **Not covered here: the native `capability-map` notation's own single-file
 view-document form** (`packages/diagrams/src/capability-map/{types,

@@ -15,14 +15,14 @@ Defined in [`notations/ELEMENT_PRIMITIVES.md`](../../../../../../notations/ELEME
 - Identity + application fields: `notation: application`, `id`, `name`, `type` (`application` | `integration` | `platform` | `data_store`, required), `domain`, `description`, `capabilities: [CAPABILITY-…]`, `products: [PRODUCT-…]`.
 - Admission record ([`CONTRACT.md`](../../../../../../notations/CONTRACT.md) §6) and primitive lifecycle ([`CONTRACT.md`](../../../../../../notations/CONTRACT.md) §7).
 
-**Time-varying** fields — `owner_role`, `vendor`, `lifecycle_stage`, `maturity` — are sidecar-bound ([`CONTRACT.md`](../../../../../../notations/CONTRACT.md) §9), **not** inline (inline placement triggers `VERSIONED-004`). `INTEGRATION` is view-defined (nested under its source application in the catalogue) in v1 and promotable to a standalone `../integrations/` file — see [`ELEMENT_PRIMITIVES.md`](../../../../../../notations/ELEMENT_PRIMITIVES.md) §7.8.
+**Time-varying** fields — `owner_role`, `vendor`, `maturity` — are sidecar-bound ([`CONTRACT.md`](../../../../../../notations/CONTRACT.md) §9), **not** inline (inline placement triggers `VERSIONED-004`, enforced both here and on the catalogue view's `applications[]` entries). `INTEGRATION` is view-defined (nested under its source application in the catalogue) in v1 and promotable to a standalone `../integrations/` file — see [`ELEMENT_PRIMITIVES.md`](../../../../../../notations/ELEMENT_PRIMITIVES.md) §7.8.
 
 ## Examples in this folder
 
 | File | Notes |
 |---|---|
-| `APPLICATION-OMS-1.yaml` | Order Management System — supports `CAPABILITY-V1`, used by `PRODUCT-ECOMM-1` |
-| `APPLICATION-CRM-1.yaml` | CRM System — supports `CAPABILITY-V2` |
+| `APPLICATION-OMS-1.yaml` (+ `.history.yaml` sidecar) | Order Management System — supports `CAPABILITY-V1`, used by `PRODUCT-ECOMM-1` |
+| `APPLICATION-CRM-1.yaml` (+ `.history.yaml` sidecar) | CRM System — supports `CAPABILITY-V2` |
 
 ## See also
 

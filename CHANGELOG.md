@@ -5,6 +5,7 @@
 ### Added
 
 - **`REQUIREMENT` → `VERIFICATION` coverage surfaced as an obligation.** New `VERIFICATION` element (`canon/verifications/`, `VERIF-001..006`) — the engineering V&V analogue of `ASSERTION`. The reverse-trace completeness rules `REQ-VERIF-COVERAGE-001` (no verification targets a requirement) and `-002` (every verification against it is still unresolved) are computed cross-cuttingly and surfaced in `validate --scope=repo`'s `compliance` findings. The Requirement Trace preview renders a "Verification" section labelled "Not verified" / "Unresolved" for a gap rather than a blank section; the Compliance Gap Dashboard lists every affected requirement repo-wide (both re-scan on save of any `VERIFICATION-*.yaml` file).
+- **`VERSIONED-004` now covers the applications catalogue.** `owner_role`/`vendor`/`maturity` on an `applications[]` entry (`notations/views/10-applications.md` §5a) are rejected inline, same as capability's `current_maturity`. Unlike capability's element-file check, a catalogue entry has no file of its own to check, so this instance lives in the per-file `applications` notation validator rather than the repo-scope element sweep — see `docs/validation.md`. The `acme_corp` worked example's `eu-portfolio` catalogue and the two `APPLICATION-*` elements it references migrate their `owner_role`/`vendor`/`maturity` into `.history.yaml` sidecars; the standalone `notation-corpus` fixture (no element pairing to sidecar against) drops the fields instead. Not resolved here: neither `render-applications.ts` nor `render-capability-map.ts` reads a current value back from the sidecar at render time — both still read the field straight off the document.
 
 ### Changed
 
@@ -15,6 +16,8 @@
 
 - `@transitrix/diagrams` 1.8.21 → 1.9.0 — the V&V coverage rules; supersedes the interim 1.8.22 comment-only bump.
 - `@transitrix/cli` 2.3.0 → 2.4.0 — paired bump per `cli-diagrams-alignment`; supersedes the interim 2.3.1.
+- `@transitrix/diagrams` 1.9.4 → 1.9.5 — applications-catalogue `VERSIONED-004`.
+- `@transitrix/cli` 2.4.4 → 2.4.5 — paired bump per `cli-diagrams-alignment`.
 
 ## [3.1.3] — 2026-07-29
 

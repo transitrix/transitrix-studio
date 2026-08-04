@@ -1,0 +1,19 @@
+# Worked example — versioned-attribute sidecar.
+# Schema: notations/CONTRACT.md §9.1.
+#
+# Target: the APPLICATION-OMS-1.yaml primitive in this folder. Time-varying
+# attributes (owner_role, vendor, maturity — notations/views/10-applications.md
+# §5a) live here, not inline on the catalogue entry
+# (canon/views/applications/eu-portfolio.applications.transitrix.yaml).
+# Single-entry migration: valid_from = the primitive's own valid_from, per
+# §5a's migration note.
+
+target: APPLICATION-OMS-1
+
+attribute_versions:
+  owner_role:
+    - { valid_from: "2026-05-26", value: ROLE-TECH-1 }
+  vendor:
+    - { valid_from: "2026-05-26", value: "Internal" }
+  maturity:
+    - { valid_from: "2026-05-26", value: 3 }

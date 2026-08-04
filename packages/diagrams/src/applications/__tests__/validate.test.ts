@@ -8,7 +8,7 @@ const VALID_CATALOGUE = {
     name: 'Enterprise Applications',
     updated_at: '2026-05-14',
     applications: [
-      { app_id: 'APP-001', name: 'Order System', type: 'application', status: 'Active', maturity: 3 },
+      { app_id: 'APP-001', name: 'Order System', type: 'application', status: 'Active' },
       { app_id: 'INT-001', name: 'Event Bus', type: 'integration', status: 'Draft' },
     ],
   },
@@ -219,13 +219,47 @@ describe('validateApplicationsCatalogue', () => {
   it('accepts application with all optional fields', () => {
     const apps = [{
       app_id: 'A1', name: 'Full App', type: 'application', status: 'Active',
-      domain: 'Sales', owner_role: 'ROLE-001', vendor: 'Salesforce', maturity: 4,
+      domain: 'Sales',
       description: 'CRM system', capabilities: ['CAP-001'], products: ['PROD-001'],
       integrations: [{ target: 'A2', direction: 'outbound', protocol: 'REST', description: 'sends events' }],
     }];
     const cat = { ...VALID_CATALOGUE.applications_catalogue, applications: apps };
     const r = validateApplicationsCatalogue({ ...VALID_CATALOGUE, applications_catalogue: cat });
     expect(r.valid).toBe(true);
+  });
+
+  // VERSIONED-004 (CONTRACT.md §9.3) — owner_role/vendor/maturity are
+  // time_varying per notations/views/10-applications.md §5a; inline placement
+  // on the catalogue entry is rejected, same as CAPABILITY-*'s current_maturity.
+  it('VERSIONED-004: rejects inline owner_role', () => {
+    const apps = [{ app_id: 'A1', name: 'X', type: 'application', status: 'Active', owner_role: 'ROLE-001' }];
+    const cat = { ...VALID_CATALOGUE.applications_catalogue, applications: apps };
+    const r = validateApplicationsCatalogue({ ...VALID_CATALOGUE, applications_catalogue: cat });
+    expect(r.valid).toBe(false);
+    expect(r.errors.some(e => e.code === 'VERSIONED-004' && e.message.includes('owner_role'))).toBe(true);
+  });
+
+  it('VERSIONED-004: rejects inline vendor', () => {
+    const apps = [{ app_id: 'A1', name: 'X', type: 'application', status: 'Active', vendor: 'Salesforce' }];
+    const cat = { ...VALID_CATALOGUE.applications_catalogue, applications: apps };
+    const r = validateApplicationsCatalogue({ ...VALID_CATALOGUE, applications_catalogue: cat });
+    expect(r.valid).toBe(false);
+    expect(r.errors.some(e => e.code === 'VERSIONED-004' && e.message.includes('vendor'))).toBe(true);
+  });
+
+  it('VERSIONED-004: rejects inline maturity', () => {
+    const apps = [{ app_id: 'A1', name: 'X', type: 'application', status: 'Active', maturity: 4 }];
+    const cat = { ...VALID_CATALOGUE.applications_catalogue, applications: apps };
+    const r = validateApplicationsCatalogue({ ...VALID_CATALOGUE, applications_catalogue: cat });
+    expect(r.valid).toBe(false);
+    expect(r.errors.some(e => e.code === 'VERSIONED-004' && e.message.includes('A1.history.yaml'))).toBe(true);
+  });
+
+  it('VERSIONED-004: absent when none of owner_role/vendor/maturity is inline', () => {
+    const apps = [{ app_id: 'A1', name: 'X', type: 'application', status: 'Active', domain: 'Sales' }];
+    const cat = { ...VALID_CATALOGUE.applications_catalogue, applications: apps };
+    const r = validateApplicationsCatalogue({ ...VALID_CATALOGUE, applications_catalogue: cat });
+    expect(r.errors.some(e => e.code === 'VERSIONED-004')).toBe(false);
   });
 
   // Pre-release blocker regression (orchestrator review 2026-05-21).

@@ -12,6 +12,17 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 const IFACE_CONDITIONAL = ['protocol', 'payload_class', 'sensitivity', 'directionality'] as const;
 
+// VERSIONED-004 (CONTRACT.md §9.3) — `owner_role`, `vendor`, `maturity` are
+// declared `time_varying` by notations/views/10-applications.md §5/§5a and
+// belong in the sidecar `<app_id>.history.yaml`, not inline on the catalogue
+// entry. Unlike capability's VERSIONED-004 (packages/diagrams/src/
+// repo-validate/check-versioned-attributes.ts), which walks standalone
+// element files under canon/elements/**, an applications-catalogue entry has
+// no file of its own to check inline-vs-sidecar on — the entry lives in this
+// view document — so the check runs here, at the per-file notation
+// validator, rather than in the repo-scope element sweep.
+const TIME_VARYING_FIELDS = ['owner_role', 'vendor', 'maturity'] as const;
+
 export function validateApplicationsCatalogue(input: unknown): ValidationResult {
   const errors: ValidationError[] = [];
   const warnings: ValidationWarning[] = [];
@@ -111,6 +122,18 @@ export function validateApplicationsCatalogue(input: unknown): ValidationResult 
       const m = a['maturity'];
       if (typeof m !== 'number' || !Number.isInteger(m) || m < 1 || m > 5) {
         errors.push({ code: 'APP-006', message: `${idx}: maturity must be an integer 1–5, got "${m}"` });
+      }
+    }
+
+    // VERSIONED-004: time_varying fields must live in the sidecar, not inline.
+    for (const field of TIME_VARYING_FIELDS) {
+      if (a[field] !== undefined) {
+        errors.push({
+          code: 'VERSIONED-004',
+          message:
+            `${idx}: '${field}' is time_varying (CONTRACT.md §9) and belongs in the sidecar ` +
+            `'${typeof a['app_id'] === 'string' ? a['app_id'] : idx}.history.yaml', not inline on the catalogue entry.`,
+        });
       }
     }
 

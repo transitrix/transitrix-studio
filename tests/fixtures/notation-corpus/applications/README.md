@@ -37,9 +37,9 @@ notation: applications
 | Field | Description |
 |---|---|
 | `domain` | Business domain |
-| `owner_role` | Responsible role or team |
-| `vendor` | Vendor name or `Internal` |
-| `maturity` | Integer 1–5 (CMM level, displayed as ●●●○○ dots) |
+| `owner_role` | Responsible role or team. **Time-varying** — lives in the sidecar `<app_id>.history.yaml` (CONTRACT.md §9), not inline. Inline placement triggers `VERSIONED-004`. Omitted from this corpus example, which has no `canon/elements/03_application/` pairing to sidecar against. |
+| `vendor` | Vendor name or `Internal`. **Time-varying** — same as `owner_role`. |
+| `maturity` | Integer 1–5 (CMM level, displayed as ●●●○○ dots). **Time-varying** — same as `owner_role`. |
 | `description` | Short description |
 | `capabilities` | List of capability names |
 | `products` | List of product IDs this application supports |
