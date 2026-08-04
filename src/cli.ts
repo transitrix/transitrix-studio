@@ -73,7 +73,7 @@ function printUsage(): void {
        transitrix validate --scope=repo [--root <dir>] [--json] [--include-model]
        transitrix export-compliance [--format md|pdf] [--scope law:<ID>|product:<ID>|gap] [--output <path>] [--root <dir>]
        transitrix migrate [--from X.Y] [--to X.Y] [--dry-run] [--recipes <dir>] [target-dir]
-       transitrix new goal --id <GOAL-…> --name "<label>" [--author <name>] [--root <dir>] [--dry-run]
+       transitrix new <goal|driver|constraint|requirement> --id <ID> --name "<label>" [--author <name>] [--root <dir>] [--dry-run]
 
 
   serve     — local web UI (run npm run ui:build once beforehand).
@@ -94,10 +94,12 @@ function printUsage(): void {
               the ordered recipes from the methodology repo. Reads the current
               version from transitrix.yaml (or --from X.Y); --dry-run previews
               without writing; --recipes <dir> overrides the recipe source.
-  new goal  — scaffold a standalone GOAL element with the admission record and
+  new <type> — scaffold a standalone motivation-layer element (goal, driver,
+              constraint, or requirement) with the admission record and
               lifecycle envelope computed (zone/admitted_at/admitted_by/
               gate_checks/valid_from/valid_to) rather than hand-typed.
               --author sets admitted_by (default: git config user.name).
+              Run 'transitrix new <type> --help' for type-specific options.
 
   --no-metrics  suppress quality metrics report on compile.
   --no-validate suppress validation warnings (errors always run).

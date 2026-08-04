@@ -208,40 +208,324 @@ export function writeScaffoldedElement(root: string, outcome: Extract<ScaffoldOu
   return absPath;
 }
 
-// ── CLI wiring: `transitrix new goal` ───────────────────────────────────────
+// ── DRIVER, CONSTRAINT, REQUIREMENT — same mechanism as GOAL, per-TYPE fields ──
+//
+// Same admission-record/lifecycle computation as scaffoldGoalElement above;
+// only the notation, id grammar, folder, and per-TYPE field set differ.
+// Field sets: ELEMENT_PRIMITIVES.md §7.1 (DRIVER), §7.13 (CONSTRAINT, sharing
+// RULE's §7.12 shape), elements/15-requirement.md §2 (REQUIREMENT).
 
-export interface NewGoalArgs {
-  type: 'goal' | undefined;
+const DRIVER_ELEM_ID_RE = /^DRIVER-([A-Z0-9]+-)*[0-9]+$/;
+const CONSTRAINT_ELEM_ID_RE = /^CONSTRAINT-([A-Z0-9]+-)*[0-9]+$/;
+const REQUIREMENT_ELEM_ID_RE = /^REQUIREMENT-([A-Z0-9]+-)*[0-9]+$/;
+
+function renderEnvelopeSuffix(cmd: string, today: string, admittedBy: string): string {
+  return [
+    '',
+    `# Admission record (CONTRACT.md §6) — filled by \`transitrix new ${cmd}\``,
+    'zone: canon',
+    `admitted_at: "${today}"`,
+    `admitted_by: "${admittedBy.replace(/"/g, '\\"')}"`,
+    'gate_checks:',
+    '  uniqueness: pass   # id not already present under canon/elements or canon/relations',
+    '  consistency: pass  # every cross-reference resolves to an existing canon id',
+    '  completeness: pass # required fields present',
+    '',
+    '# Primitive lifecycle (CONTRACT.md §7)',
+    `valid_from: "${today}"`,
+    'valid_to: null',
+    '',
+  ].join('\n');
+}
+
+// ── DRIVER — `01_motivation/factors/` ───────────────────────────────────────
+
+export interface NewDriverOptions {
+  root: string;
+  id: string;
+  name: string;
+  admittedBy: string;
+  today: string;
+  driverType?: string;
+  category?: string;
+  description?: string;
+  referencesConstraint?: string[];
+}
+
+function renderDriverYaml(opts: NewDriverOptions): string {
+  const lines: string[] = [];
+  lines.push('notation: driver');
+  lines.push(`id: ${opts.id}`);
+  lines.push(`name: "${opts.name.replace(/"/g, '\\"')}"`);
+  if (opts.driverType) lines.push(`type: ${opts.driverType}`);
+  if (opts.category) lines.push(`category: ${opts.category}`);
+  if (opts.description) lines.push(`description: "${opts.description.replace(/"/g, '\\"')}"`);
+  if (opts.referencesConstraint && opts.referencesConstraint.length > 0) {
+    lines.push(`references_constraint: [${opts.referencesConstraint.join(', ')}]`);
+  }
+  return lines.join('\n') + '\n' + renderEnvelopeSuffix('driver', opts.today, opts.admittedBy);
+}
+
+export function scaffoldDriverElement(opts: NewDriverOptions): ScaffoldOutcome {
+  const errors: string[] = [];
+
+  if (!DRIVER_ELEM_ID_RE.test(opts.id)) {
+    errors.push(`id '${opts.id}' does not match the canonical DRIVER-[<middle>-]<INTEGER> grammar`);
+  }
+  if (!opts.name.trim()) errors.push('name is required');
+  if (!opts.admittedBy.trim()) {
+    errors.push(
+      'no admitted_by identity available — pass --author "<name>" or set `git config user.name`',
+    );
+  }
+
+  const existingIds = collectExistingCanonIds(opts.root);
+
+  if (errors.length === 0 && existingIds.has(opts.id)) {
+    errors.push(`gate_checks.uniqueness: id '${opts.id}' already exists in canon`);
+  }
+
+  const missingConstraints = (opts.referencesConstraint ?? []).filter((c) => !existingIds.has(c));
+  if (errors.length === 0 && missingConstraints.length > 0) {
+    errors.push(`gate_checks.consistency: constraint(s) not found in canon: ${missingConstraints.join(', ')}`);
+  }
+
+  if (errors.length > 0) return { ok: false, errors };
+
+  const relPath = ['canon', 'elements', '01_motivation', 'factors', `${opts.id}.yaml`].join('/');
+  return {
+    ok: true,
+    relPath,
+    content: renderDriverYaml(opts),
+    filled: ['zone', 'admitted_at', 'admitted_by', 'gate_checks', 'valid_from', 'valid_to'],
+  };
+}
+
+// ── CONSTRAINT — `01_motivation/constraints/` ───────────────────────────────
+
+export interface NewConstraintOptions {
+  root: string;
+  id: string;
+  name: string;
+  admittedBy: string;
+  today: string;
+  statement: string;
+  /** Organisation-defined workflow state (envelope §3) — `active` | `proposed`
+   *  | `deprecated` | `retired`. Not part of the methodology's own required
+   *  set (ELEMENT_PRIMITIVES.md §7.13, §3), but this repo's own CONSTRAINT
+   *  validator (`packages/diagrams/src/constraint/validate.ts`, CONST-001)
+   *  requires it — defaulted to `active` so a scaffolded file passes
+   *  `validate` out of the box, same posture as the acme-corp worked example. */
+  status?: string;
+  appliesTo?: string[];
+  source?: string;
+  ownerRole?: string;
+  severity?: string;
+  rationale?: string;
+  nextReviewAt?: string;
+  parent?: string;
+}
+
+function renderConstraintYaml(opts: NewConstraintOptions): string {
+  const lines: string[] = [];
+  lines.push('notation: constraint');
+  lines.push(`id: ${opts.id}`);
+  lines.push(`name: "${opts.name.replace(/"/g, '\\"')}"`);
+  lines.push(`statement: "${opts.statement.replace(/"/g, '\\"')}"`);
+  lines.push(`status: ${(opts.status?.trim() || 'active')}`);
+  if (opts.appliesTo && opts.appliesTo.length > 0) lines.push(`applies_to: [${opts.appliesTo.join(', ')}]`);
+  if (opts.source) lines.push(`source: "${opts.source.replace(/"/g, '\\"')}"`);
+  if (opts.ownerRole) lines.push(`owner_role: ${opts.ownerRole}`);
+  if (opts.severity) lines.push(`severity: ${opts.severity}`);
+  if (opts.rationale) lines.push(`rationale: "${opts.rationale.replace(/"/g, '\\"')}"`);
+  if (opts.nextReviewAt) lines.push(`next_review_at: "${opts.nextReviewAt}"`);
+  if (opts.parent) lines.push(`parent: ${opts.parent}`);
+  return lines.join('\n') + '\n' + renderEnvelopeSuffix('constraint', opts.today, opts.admittedBy);
+}
+
+export function scaffoldConstraintElement(opts: NewConstraintOptions): ScaffoldOutcome {
+  const errors: string[] = [];
+
+  if (!CONSTRAINT_ELEM_ID_RE.test(opts.id)) {
+    errors.push(`id '${opts.id}' does not match the canonical CONSTRAINT-[<middle>-]<INTEGER> grammar`);
+  }
+  if (!opts.name.trim()) errors.push('name is required');
+  if (!opts.statement.trim()) errors.push('statement is required');
+  if (!opts.admittedBy.trim()) {
+    errors.push(
+      'no admitted_by identity available — pass --author "<name>" or set `git config user.name`',
+    );
+  }
+
+  const existingIds = collectExistingCanonIds(opts.root);
+
+  if (errors.length === 0 && existingIds.has(opts.id)) {
+    errors.push(`gate_checks.uniqueness: id '${opts.id}' already exists in canon`);
+  }
+
+  if (errors.length === 0 && opts.parent && !existingIds.has(opts.parent)) {
+    errors.push(`gate_checks.consistency: parent not found in canon: ${opts.parent}`);
+  }
+
+  if (errors.length > 0) return { ok: false, errors };
+
+  const relPath = ['canon', 'elements', '01_motivation', 'constraints', `${opts.id}.yaml`].join('/');
+  return {
+    ok: true,
+    relPath,
+    content: renderConstraintYaml(opts),
+    filled: ['zone', 'admitted_at', 'admitted_by', 'gate_checks', 'valid_from', 'valid_to'],
+  };
+}
+
+// ── REQUIREMENT — `01_motivation/requirements/` ─────────────────────────────
+
+export interface NewRequirementOptions {
+  root: string;
+  id: string;
+  name: string;
+  admittedBy: string;
+  today: string;
+  description: string;
+  origin?: string;
+  severity?: string;
+  level?: string;
+  kind?: string;
+  parent?: string;
+  nextReviewAt?: string;
+  serves?: string;
+  derivedFrom?: string[];
+}
+
+function renderRequirementYaml(opts: NewRequirementOptions): string {
+  const lines: string[] = [];
+  lines.push('notation: requirement');
+  lines.push(`id: ${opts.id}`);
+  lines.push(`name: "${opts.name.replace(/"/g, '\\"')}"`);
+  lines.push(`description: "${opts.description.replace(/"/g, '\\"')}"`);
+  if (opts.origin) lines.push(`origin: ${opts.origin}`);
+  if (opts.severity) lines.push(`severity: ${opts.severity}`);
+  if (opts.level) lines.push(`level: ${opts.level}`);
+  if (opts.kind) lines.push(`kind: ${opts.kind}`);
+  if (opts.parent) lines.push(`parent: ${opts.parent}`);
+  if (opts.nextReviewAt) lines.push(`next_review_at: "${opts.nextReviewAt}"`);
+  if (opts.serves) lines.push(`serves: ${opts.serves}`);
+  if (opts.derivedFrom && opts.derivedFrom.length > 0) lines.push(`derived_from: [${opts.derivedFrom.join(', ')}]`);
+  return lines.join('\n') + '\n' + renderEnvelopeSuffix('requirement', opts.today, opts.admittedBy);
+}
+
+export function scaffoldRequirementElement(opts: NewRequirementOptions): ScaffoldOutcome {
+  const errors: string[] = [];
+
+  if (!REQUIREMENT_ELEM_ID_RE.test(opts.id)) {
+    errors.push(`id '${opts.id}' does not match the canonical REQUIREMENT-[<middle>-]<INTEGER> grammar`);
+  }
+  if (!opts.name.trim()) errors.push('name is required');
+  if (!opts.description.trim()) errors.push('description is required');
+  if (!opts.admittedBy.trim()) {
+    errors.push(
+      'no admitted_by identity available — pass --author "<name>" or set `git config user.name`',
+    );
+  }
+
+  const existingIds = collectExistingCanonIds(opts.root);
+
+  if (errors.length === 0 && existingIds.has(opts.id)) {
+    errors.push(`gate_checks.uniqueness: id '${opts.id}' already exists in canon`);
+  }
+
+  const consistencyErrors: string[] = [];
+  if (opts.parent && !existingIds.has(opts.parent)) {
+    consistencyErrors.push(`parent not found in canon: ${opts.parent}`);
+  }
+  if (opts.serves && !existingIds.has(opts.serves)) {
+    consistencyErrors.push(`serves target not found in canon: ${opts.serves}`);
+  }
+  if (errors.length === 0 && consistencyErrors.length > 0) {
+    errors.push(`gate_checks.consistency: ${consistencyErrors.join('; ')}`);
+  }
+
+  if (errors.length > 0) return { ok: false, errors };
+
+  const relPath = ['canon', 'elements', '01_motivation', 'requirements', `${opts.id}.yaml`].join('/');
+  return {
+    ok: true,
+    relPath,
+    content: renderRequirementYaml(opts),
+    filled: ['zone', 'admitted_at', 'admitted_by', 'gate_checks', 'valid_from', 'valid_to'],
+  };
+}
+
+// ── CLI wiring: `transitrix new <goal|driver|constraint|requirement>` ──────
+
+export interface NewElementArgs {
+  type: 'goal' | 'driver' | 'constraint' | 'requirement' | undefined;
   id: string | undefined;
   name: string | undefined;
   author: string | undefined;
   root: string;
-  goalType: string | undefined;
+  typeValue: string | undefined;
   level: number | undefined;
+  levelRaw: string | undefined;
   parent: string | undefined;
   factors: string[] | undefined;
   description: string | undefined;
   link: string | undefined;
+  category: string | undefined;
+  referencesConstraint: string[] | undefined;
+  statement: string | undefined;
+  status: string | undefined;
+  appliesTo: string[] | undefined;
+  source: string | undefined;
+  ownerRole: string | undefined;
+  severity: string | undefined;
+  rationale: string | undefined;
+  nextReviewAt: string | undefined;
+  origin: string | undefined;
+  kind: string | undefined;
+  serves: string | undefined;
+  derivedFrom: string[] | undefined;
   dryRun: boolean;
   wantsHelp: boolean;
 }
 
-export function parseNewArgv(argv: string[]): NewGoalArgs {
-  const type = argv[0] === 'goal' ? 'goal' : undefined;
+const NEW_ELEMENT_TYPES = new Set(['goal', 'driver', 'constraint', 'requirement']);
+
+function splitList(v: string | undefined): string[] | undefined {
+  return v?.split(',').map((s) => s.trim()).filter(Boolean);
+}
+
+export function parseNewArgv(argv: string[]): NewElementArgs {
+  const type = NEW_ELEMENT_TYPES.has(argv[0]) ? (argv[0] as NewElementArgs['type']) : undefined;
   const rest = type ? argv.slice(1) : argv;
 
-  const args: NewGoalArgs = {
+  const args: NewElementArgs = {
     type,
     id: undefined,
     name: undefined,
     author: undefined,
     root: process.cwd(),
-    goalType: undefined,
+    typeValue: undefined,
     level: undefined,
+    levelRaw: undefined,
     parent: undefined,
     factors: undefined,
     description: undefined,
     link: undefined,
+    category: undefined,
+    referencesConstraint: undefined,
+    statement: undefined,
+    status: undefined,
+    appliesTo: undefined,
+    source: undefined,
+    ownerRole: undefined,
+    severity: undefined,
+    rationale: undefined,
+    nextReviewAt: undefined,
+    origin: undefined,
+    kind: undefined,
+    serves: undefined,
+    derivedFrom: undefined,
     dryRun: false,
     wantsHelp: false,
   };
@@ -258,10 +542,10 @@ export function parseNewArgv(argv: string[]): NewGoalArgs {
     if (a.startsWith('--author=')) { args.author = a.slice('--author='.length); continue; }
     if (a === '--root') { args.root = rest[++i]; continue; }
     if (a.startsWith('--root=')) { args.root = a.slice('--root='.length); continue; }
-    if (a === '--type') { args.goalType = rest[++i]; continue; }
-    if (a.startsWith('--type=')) { args.goalType = a.slice('--type='.length); continue; }
-    if (a === '--level') { args.level = Number(rest[++i]); continue; }
-    if (a.startsWith('--level=')) { args.level = Number(a.slice('--level='.length)); continue; }
+    if (a === '--type') { args.typeValue = rest[++i]; continue; }
+    if (a.startsWith('--type=')) { args.typeValue = a.slice('--type='.length); continue; }
+    if (a === '--level') { const v = rest[++i]; args.level = Number(v); args.levelRaw = v; continue; }
+    if (a.startsWith('--level=')) { const v = a.slice('--level='.length); args.level = Number(v); args.levelRaw = v; continue; }
     if (a === '--parent') { args.parent = rest[++i]; continue; }
     if (a.startsWith('--parent=')) { args.parent = a.slice('--parent='.length); continue; }
     if (a === '--factors') { args.factors = rest[++i]?.split(',').map((s) => s.trim()).filter(Boolean); continue; }
@@ -270,6 +554,34 @@ export function parseNewArgv(argv: string[]): NewGoalArgs {
     if (a.startsWith('--description=')) { args.description = a.slice('--description='.length); continue; }
     if (a === '--link') { args.link = rest[++i]; continue; }
     if (a.startsWith('--link=')) { args.link = a.slice('--link='.length); continue; }
+    if (a === '--category') { args.category = rest[++i]; continue; }
+    if (a.startsWith('--category=')) { args.category = a.slice('--category='.length); continue; }
+    if (a === '--references-constraint') { args.referencesConstraint = splitList(rest[++i]); continue; }
+    if (a.startsWith('--references-constraint=')) { args.referencesConstraint = splitList(a.slice('--references-constraint='.length)); continue; }
+    if (a === '--statement') { args.statement = rest[++i]; continue; }
+    if (a.startsWith('--statement=')) { args.statement = a.slice('--statement='.length); continue; }
+    if (a === '--status') { args.status = rest[++i]; continue; }
+    if (a.startsWith('--status=')) { args.status = a.slice('--status='.length); continue; }
+    if (a === '--applies-to') { args.appliesTo = splitList(rest[++i]); continue; }
+    if (a.startsWith('--applies-to=')) { args.appliesTo = splitList(a.slice('--applies-to='.length)); continue; }
+    if (a === '--source') { args.source = rest[++i]; continue; }
+    if (a.startsWith('--source=')) { args.source = a.slice('--source='.length); continue; }
+    if (a === '--owner-role') { args.ownerRole = rest[++i]; continue; }
+    if (a.startsWith('--owner-role=')) { args.ownerRole = a.slice('--owner-role='.length); continue; }
+    if (a === '--severity') { args.severity = rest[++i]; continue; }
+    if (a.startsWith('--severity=')) { args.severity = a.slice('--severity='.length); continue; }
+    if (a === '--rationale') { args.rationale = rest[++i]; continue; }
+    if (a.startsWith('--rationale=')) { args.rationale = a.slice('--rationale='.length); continue; }
+    if (a === '--next-review-at') { args.nextReviewAt = rest[++i]; continue; }
+    if (a.startsWith('--next-review-at=')) { args.nextReviewAt = a.slice('--next-review-at='.length); continue; }
+    if (a === '--origin') { args.origin = rest[++i]; continue; }
+    if (a.startsWith('--origin=')) { args.origin = a.slice('--origin='.length); continue; }
+    if (a === '--kind') { args.kind = rest[++i]; continue; }
+    if (a.startsWith('--kind=')) { args.kind = a.slice('--kind='.length); continue; }
+    if (a === '--serves') { args.serves = rest[++i]; continue; }
+    if (a.startsWith('--serves=')) { args.serves = a.slice('--serves='.length); continue; }
+    if (a === '--derived-from') { args.derivedFrom = splitList(rest[++i]); continue; }
+    if (a.startsWith('--derived-from=')) { args.derivedFrom = splitList(a.slice('--derived-from='.length)); continue; }
   }
 
   return args;
@@ -279,58 +591,149 @@ function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-export async function handleNewCommand(argv: string[]): Promise<void> {
-  const args = parseNewArgv(argv);
+function printGeneralUsage(): void {
+  console.error('usage: transitrix new <goal|driver|constraint|requirement> [options]');
+  console.error('');
+  console.error('  Scaffolds a standalone motivation-layer element with the admission record');
+  console.error('  and lifecycle envelope computed, not hand-typed.');
+  console.error('');
+  console.error('  transitrix new goal --id <GOAL-…> --name "<label>" [options]');
+  console.error('  transitrix new driver --id <DRIVER-…> --name "<label>" [options]');
+  console.error('  transitrix new constraint --id <CONSTRAINT-…> --name "<label>" --statement "<…>" [options]');
+  console.error('  transitrix new requirement --id <REQUIREMENT-…> --name "<label>" --description "<…>" [options]');
+  console.error('');
+  console.error('  Run `transitrix new <type> --help` for type-specific options.');
+}
 
-  if (args.wantsHelp || !args.type) {
+function printTypeUsage(type: 'goal' | 'driver' | 'constraint' | 'requirement'): void {
+  const common = [
+    '  --id <…>             Required — canonical id.',
+    '  --name "<label>"     Required — human-readable name.',
+    '  --author "<name>"    Recorded as admitted_by. Default: `git config user.name`.',
+    '  --root <dir>         Adopter repo root containing canon/ (default: cwd).',
+    '  --dry-run            Print what would be written; do not write the file.',
+  ];
+  if (type === 'goal') {
     console.error('usage: transitrix new goal --id <GOAL-…> --name "<label>" [options]');
     console.error('');
-    console.error('  Scaffolds a standalone GOAL element (canon/elements/01_motivation/goals/)');
-    console.error('  with the admission record and lifecycle envelope computed, not hand-typed.');
+    console.error('  Scaffolds a standalone GOAL element (canon/elements/01_motivation/goals/).');
     console.error('');
-    console.error('  --id <GOAL-…>        Required — canonical id (GOAL-[<middle>-]<INTEGER>).');
-    console.error('  --name "<label>"     Required — human-readable name.');
-    console.error('  --author "<name>"    Recorded as admitted_by. Default: `git config user.name`.');
-    console.error('  --root <dir>         Adopter repo root containing canon/ (default: cwd).');
+    console.error(common.join('\n'));
     console.error('  --type "<label>"     Goal-type label (e.g. "Strategic Goal").');
     console.error('  --level <n>          Hierarchical level.');
     console.error('  --parent <GOAL-…>    Parent goal id.');
     console.error('  --factors <a,b>      Comma-separated DRIVER-… ids; each must already exist in canon.');
     console.error('  --description "…"    One-paragraph elaboration.');
     console.error('  --link <url>         Supplementary documentation URL.');
-    console.error('  --dry-run            Print what would be written; do not write the file.');
+  } else if (type === 'driver') {
+    console.error('usage: transitrix new driver --id <DRIVER-…> --name "<label>" [options]');
+    console.error('');
+    console.error('  Scaffolds a standalone DRIVER element (canon/elements/01_motivation/factors/).');
+    console.error('');
+    console.error(common.join('\n'));
+    console.error('  --type <external|internal>  Driver kind.');
+    console.error('  --category <…>       PESTLE sub-classification for external drivers.');
+    console.error('  --description "…"    One-paragraph elaboration (the standing force, not a finding).');
+    console.error('  --references-constraint <a,b>  Comma-separated CONSTRAINT-… ids; each must already exist in canon.');
+  } else if (type === 'constraint') {
+    console.error('usage: transitrix new constraint --id <CONSTRAINT-…> --name "<label>" --statement "<…>" [options]');
+    console.error('');
+    console.error('  Scaffolds a standalone CONSTRAINT element (canon/elements/01_motivation/constraints/).');
+    console.error('');
+    console.error(common.join('\n'));
+    console.error('  --statement "<…>"    Required — the normative restriction sentence.');
+    console.error('  --status <…>         Workflow state (active|proposed|deprecated|retired). Default: active.');
+    console.error('  --applies-to <a,b>   Comma-separated typed ids the constraint governs.');
+    console.error('  --source "<…>"       Citation of the authority behind the constraint.');
+    console.error('  --owner-role <ROLE-…>  Accountable role.');
+    console.error('  --severity <…>       e.g. "mandatory".');
+    console.error('  --rationale "…"      Why the constraint exists.');
+    console.error('  --next-review-at <date>  Review-due date (ISO 8601).');
+    console.error('  --parent <CONSTRAINT-…>  Parent constraint id; must already exist in canon.');
+  } else {
+    console.error('usage: transitrix new requirement --id <REQUIREMENT-…> --name "<label>" --description "<…>" [options]');
+    console.error('');
+    console.error('  Scaffolds a standalone REQUIREMENT element (canon/elements/01_motivation/requirements/).');
+    console.error('');
+    console.error(common.join('\n'));
+    console.error('  --description "…"    Required — the obligation, its scope, and its conditions.');
+    console.error('  --origin <legislative|process-product|project-product>  Requirement taxonomy.');
+    console.error('  --severity <…>       Organisation-defined priority.');
+    console.error('  --level <stakeholder|system|software>  ISO/IEC/IEEE 29148 specification tier.');
+    console.error('  --kind <functional|quality>  Whether the obligation is a behaviour or a quality attribute.');
+    console.error('  --parent <REQUIREMENT-…>  Parent requirement id; must already exist in canon.');
+    console.error('  --next-review-at <date>  Review-due date (ISO 8601).');
+    console.error('  --serves <NEED-…>    Upstream NEED this requirement traces to; must already exist in canon.');
+    console.error('  --derived-from <a,b>  Comma-separated codex artefact ids.');
+  }
+}
+
+export async function handleNewCommand(argv: string[]): Promise<void> {
+  const args = parseNewArgv(argv);
+
+  if (!args.type) {
+    printGeneralUsage();
     process.exit(args.wantsHelp ? 0 : 1);
   }
 
+  if (args.wantsHelp) {
+    printTypeUsage(args.type);
+    process.exit(0);
+  }
+
   if (!args.id || !args.name) {
-    console.error('transitrix new goal: --id and --name are required.');
+    console.error(`transitrix new ${args.type}: --id and --name are required.`);
+    process.exit(1);
+  }
+  if (args.type === 'constraint' && !args.statement) {
+    console.error('transitrix new constraint: --statement is required.');
+    process.exit(1);
+  }
+  if (args.type === 'requirement' && !args.description) {
+    console.error('transitrix new requirement: --description is required.');
     process.exit(1);
   }
 
   const root = path.resolve(args.root);
   const admittedBy = args.author ?? gitUserName(root);
   if (!admittedBy) {
-    console.error('transitrix new goal: no admitted_by identity available.');
+    console.error(`transitrix new ${args.type}: no admitted_by identity available.`);
     console.error('  Pass --author "<name>" or set `git config user.name`.');
     process.exit(1);
   }
 
-  const outcome = scaffoldGoalElement({
-    root,
-    id: args.id,
-    name: args.name,
-    admittedBy,
-    today: todayIso(),
-    type: args.goalType,
-    level: args.level,
-    parent: args.parent,
-    factors: args.factors,
-    description: args.description,
-    link: args.link,
-  });
+  const today = todayIso();
+  let outcome: ScaffoldOutcome;
+  if (args.type === 'goal') {
+    outcome = scaffoldGoalElement({
+      root, id: args.id, name: args.name, admittedBy, today,
+      type: args.typeValue, level: args.level, parent: args.parent,
+      factors: args.factors, description: args.description, link: args.link,
+    });
+  } else if (args.type === 'driver') {
+    outcome = scaffoldDriverElement({
+      root, id: args.id, name: args.name, admittedBy, today,
+      driverType: args.typeValue, category: args.category,
+      description: args.description, referencesConstraint: args.referencesConstraint,
+    });
+  } else if (args.type === 'constraint') {
+    outcome = scaffoldConstraintElement({
+      root, id: args.id, name: args.name, admittedBy, today,
+      statement: args.statement as string, status: args.status, appliesTo: args.appliesTo,
+      source: args.source, ownerRole: args.ownerRole, severity: args.severity,
+      rationale: args.rationale, nextReviewAt: args.nextReviewAt, parent: args.parent,
+    });
+  } else {
+    outcome = scaffoldRequirementElement({
+      root, id: args.id, name: args.name, admittedBy, today,
+      description: args.description as string, origin: args.origin, severity: args.severity,
+      level: args.levelRaw, kind: args.kind, parent: args.parent,
+      nextReviewAt: args.nextReviewAt, serves: args.serves, derivedFrom: args.derivedFrom,
+    });
+  }
 
   if (!outcome.ok) {
-    console.error('transitrix new goal: cannot scaffold this element:');
+    console.error(`transitrix new ${args.type}: cannot scaffold this element:`);
     outcome.errors.forEach((e) => console.error(`  • ${e}`));
     process.exit(1);
   }

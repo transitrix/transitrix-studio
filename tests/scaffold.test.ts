@@ -5,7 +5,14 @@ import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
-import { collectExistingCanonIds, parseNewArgv, scaffoldGoalElement } from '../src/scaffold.js';
+import {
+  collectExistingCanonIds,
+  parseNewArgv,
+  scaffoldConstraintElement,
+  scaffoldDriverElement,
+  scaffoldGoalElement,
+  scaffoldRequirementElement,
+} from '../src/scaffold.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const cliPath = join(__dirname, '..', 'dist', 'cli.js');
@@ -52,6 +59,30 @@ describe('parseNewArgv', () => {
   it('parses --dry-run and --help', () => {
     expect(parseNewArgv(['goal', '--dry-run']).dryRun).toBe(true);
     expect(parseNewArgv(['goal', '--help']).wantsHelp).toBe(true);
+  });
+
+  it('recognises the driver, constraint, and requirement subtypes', () => {
+    expect(parseNewArgv(['driver']).type).toBe('driver');
+    expect(parseNewArgv(['constraint']).type).toBe('constraint');
+    expect(parseNewArgv(['requirement']).type).toBe('requirement');
+  });
+
+  it('parses type-specific flags for driver/constraint/requirement', () => {
+    const d = parseNewArgv(['driver', '--type', 'external', '--category', 'legal', '--references-constraint', 'CONSTRAINT-A-1, CONSTRAINT-B-2']);
+    expect(d.typeValue).toBe('external');
+    expect(d.category).toBe('legal');
+    expect(d.referencesConstraint).toEqual(['CONSTRAINT-A-1', 'CONSTRAINT-B-2']);
+
+    const c = parseNewArgv(['constraint', '--statement', 'MUST NOT', '--status', 'proposed', '--severity', 'mandatory']);
+    expect(c.statement).toBe('MUST NOT');
+    expect(c.status).toBe('proposed');
+    expect(c.severity).toBe('mandatory');
+
+    const r = parseNewArgv(['requirement', '--origin', 'process-product', '--level', 'system', '--kind', 'functional', '--serves', 'NEED-A-1']);
+    expect(r.origin).toBe('process-product');
+    expect(r.levelRaw).toBe('system');
+    expect(r.kind).toBe('functional');
+    expect(r.serves).toBe('NEED-A-1');
   });
 });
 
@@ -152,6 +183,170 @@ describe('scaffoldGoalElement', () => {
   });
 });
 
+// ── scaffoldDriverElement ────────────────────────────────────────────────
+
+describe('scaffoldDriverElement', () => {
+  it('computes the full envelope for a minimal valid driver', () => {
+    const root = makeRepo();
+    const outcome = scaffoldDriverElement({
+      root,
+      id: 'DRIVER-EU-REG-1',
+      name: 'EU regulatory window',
+      admittedBy: 'v.korobeinikov',
+      today: '2026-08-03',
+      driverType: 'external',
+      category: 'legal',
+    });
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    expect(outcome.relPath).toBe('canon/elements/01_motivation/factors/DRIVER-EU-REG-1.yaml');
+    expect(outcome.content).toContain('notation: driver');
+    expect(outcome.content).toContain('type: external');
+    expect(outcome.content).toContain('category: legal');
+    expect(outcome.content).toContain('admitted_by: "v.korobeinikov"');
+  });
+
+  it('rejects an id that does not match the DRIVER grammar', () => {
+    const root = makeRepo();
+    const outcome = scaffoldDriverElement({ root, id: 'FACTOR-1', name: 'x', admittedBy: 'a.b', today: '2026-08-03' });
+    expect(outcome.ok).toBe(false);
+    if (outcome.ok) return;
+    expect(outcome.errors.join(' ')).toMatch(/DRIVER-\[<middle>-]<INTEGER>/);
+  });
+
+  it('gate_checks.consistency fails when a referenced constraint does not exist in canon', () => {
+    const root = makeRepo();
+    const outcome = scaffoldDriverElement({
+      root, id: 'DRIVER-X-1', name: 'x', admittedBy: 'a.b', today: '2026-08-03',
+      referencesConstraint: ['CONSTRAINT-MISSING-1'],
+    });
+    expect(outcome.ok).toBe(false);
+    if (outcome.ok) return;
+    expect(outcome.errors.join(' ')).toMatch(/consistency.*CONSTRAINT-MISSING-1/);
+  });
+
+  it('gate_checks.consistency passes when the referenced constraint exists in canon', () => {
+    const root = makeRepo();
+    writeCanonElement(root, '01_motivation/constraints/CONSTRAINT-A-1.yaml', 'CONSTRAINT-A-1');
+    const outcome = scaffoldDriverElement({
+      root, id: 'DRIVER-X-1', name: 'x', admittedBy: 'a.b', today: '2026-08-03',
+      referencesConstraint: ['CONSTRAINT-A-1'],
+    });
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    expect(outcome.content).toContain('references_constraint: [CONSTRAINT-A-1]');
+  });
+});
+
+// ── scaffoldConstraintElement ────────────────────────────────────────────
+
+describe('scaffoldConstraintElement', () => {
+  it('computes the full envelope for a minimal valid constraint, defaulting status to active', () => {
+    const root = makeRepo();
+    const outcome = scaffoldConstraintElement({
+      root,
+      id: 'CONSTRAINT-GDPR-RESIDENCY-1',
+      name: 'EU data must stay in EU',
+      admittedBy: 'v.korobeinikov',
+      today: '2026-08-03',
+      statement: 'Personal data MUST NOT leave the EEA',
+    });
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    expect(outcome.relPath).toBe('canon/elements/01_motivation/constraints/CONSTRAINT-GDPR-RESIDENCY-1.yaml');
+    expect(outcome.content).toContain('notation: constraint');
+    expect(outcome.content).toContain('statement: "Personal data MUST NOT leave the EEA"');
+    expect(outcome.content).toContain('status: active');
+  });
+
+  it('honours an explicit --status value', () => {
+    const root = makeRepo();
+    const outcome = scaffoldConstraintElement({
+      root, id: 'CONSTRAINT-X-1', name: 'x', admittedBy: 'a.b', today: '2026-08-03',
+      statement: 's', status: 'proposed',
+    });
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    expect(outcome.content).toContain('status: proposed');
+  });
+
+  it('rejects a missing statement', () => {
+    const root = makeRepo();
+    const outcome = scaffoldConstraintElement({ root, id: 'CONSTRAINT-X-1', name: 'x', admittedBy: 'a.b', today: '2026-08-03', statement: '  ' });
+    expect(outcome.ok).toBe(false);
+    if (outcome.ok) return;
+    expect(outcome.errors.join(' ')).toMatch(/statement is required/);
+  });
+
+  it('gate_checks.consistency fails when parent does not exist in canon', () => {
+    const root = makeRepo();
+    const outcome = scaffoldConstraintElement({
+      root, id: 'CONSTRAINT-X-1', name: 'x', admittedBy: 'a.b', today: '2026-08-03',
+      statement: 's', parent: 'CONSTRAINT-MISSING-1',
+    });
+    expect(outcome.ok).toBe(false);
+    if (outcome.ok) return;
+    expect(outcome.errors.join(' ')).toMatch(/consistency.*CONSTRAINT-MISSING-1/);
+  });
+});
+
+// ── scaffoldRequirementElement ───────────────────────────────────────────
+
+describe('scaffoldRequirementElement', () => {
+  it('computes the full envelope for a minimal valid requirement', () => {
+    const root = makeRepo();
+    const outcome = scaffoldRequirementElement({
+      root,
+      id: 'REQUIREMENT-AUDIT-LOG-RETENTION-1',
+      name: 'Retain audit logs',
+      admittedBy: 'v.korobeinikov',
+      today: '2026-08-03',
+      description: 'Must retain logs 12 months',
+      origin: 'process-product',
+      level: 'system',
+      kind: 'functional',
+    });
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    expect(outcome.relPath).toBe('canon/elements/01_motivation/requirements/REQUIREMENT-AUDIT-LOG-RETENTION-1.yaml');
+    expect(outcome.content).toContain('notation: requirement');
+    expect(outcome.content).toContain('origin: process-product');
+    expect(outcome.content).toContain('level: system');
+    expect(outcome.content).toContain('kind: functional');
+  });
+
+  it('rejects a missing description', () => {
+    const root = makeRepo();
+    const outcome = scaffoldRequirementElement({ root, id: 'REQUIREMENT-X-1', name: 'x', admittedBy: 'a.b', today: '2026-08-03', description: '  ' });
+    expect(outcome.ok).toBe(false);
+    if (outcome.ok) return;
+    expect(outcome.errors.join(' ')).toMatch(/description is required/);
+  });
+
+  it('gate_checks.consistency fails when serves does not resolve to an existing canon id', () => {
+    const root = makeRepo();
+    const outcome = scaffoldRequirementElement({
+      root, id: 'REQUIREMENT-X-1', name: 'x', admittedBy: 'a.b', today: '2026-08-03',
+      description: 'd', serves: 'NEED-MISSING-1',
+    });
+    expect(outcome.ok).toBe(false);
+    if (outcome.ok) return;
+    expect(outcome.errors.join(' ')).toMatch(/consistency.*NEED-MISSING-1/);
+  });
+
+  it('gate_checks.consistency passes when serves resolves to an existing canon id', () => {
+    const root = makeRepo();
+    writeCanonElement(root, '01_motivation/needs/NEED-A-1.yaml', 'NEED-A-1');
+    const outcome = scaffoldRequirementElement({
+      root, id: 'REQUIREMENT-X-1', name: 'x', admittedBy: 'a.b', today: '2026-08-03',
+      description: 'd', serves: 'NEED-A-1',
+    });
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    expect(outcome.content).toContain('serves: NEED-A-1');
+  });
+});
+
 describe('collectExistingCanonIds', () => {
   it('returns an empty set when canon/ does not exist', () => {
     const root = makeRepo();
@@ -231,5 +426,69 @@ describe('transitrix new goal (CLI)', () => {
     const { status, stderr } = runCli(['new', '--help']);
     expect(status).toBe(0);
     expect(stderr).toMatch(/transitrix new goal/);
+  });
+});
+
+describe('transitrix new driver/constraint/requirement (CLI)', () => {
+  it('writes a complete DRIVER element file', () => {
+    const root = makeRepo();
+    const { status, stdout } = runCli([
+      'new', 'driver',
+      '--id', 'DRIVER-EU-REG-1',
+      '--name', 'EU regulatory window',
+      '--type', 'external',
+      '--category', 'legal',
+      '--author', 'a.b',
+      '--root', root,
+    ]);
+    expect(status).toBe(0);
+    expect(stdout).toMatch(/wrote canon\/elements\/01_motivation\/factors\/DRIVER-EU-REG-1\.yaml/);
+  });
+
+  it('writes a complete CONSTRAINT element file, defaulting status to active', () => {
+    const root = makeRepo();
+    const { status, stdout } = runCli([
+      'new', 'constraint',
+      '--id', 'CONSTRAINT-GDPR-RESIDENCY-1',
+      '--name', 'EU data must stay in EU',
+      '--statement', 'Personal data MUST NOT leave the EEA',
+      '--author', 'a.b',
+      '--root', root,
+    ]);
+    expect(status).toBe(0);
+    expect(stdout).toMatch(/wrote canon\/elements\/01_motivation\/constraints\/CONSTRAINT-GDPR-RESIDENCY-1\.yaml/);
+    const written = readFileSync(
+      join(root, 'canon', 'elements', '01_motivation', 'constraints', 'CONSTRAINT-GDPR-RESIDENCY-1.yaml'),
+      'utf-8',
+    );
+    expect(written).toContain('status: active');
+  });
+
+  it('exits 1 when constraint --statement is missing', () => {
+    const root = makeRepo();
+    const { status, stderr } = runCli(['new', 'constraint', '--id', 'CONSTRAINT-X-1', '--name', 'x', '--root', root]);
+    expect(status).toBe(1);
+    expect(stderr).toMatch(/--statement is required/);
+  });
+
+  it('writes a complete REQUIREMENT element file', () => {
+    const root = makeRepo();
+    const { status, stdout } = runCli([
+      'new', 'requirement',
+      '--id', 'REQUIREMENT-AUDIT-LOG-RETENTION-1',
+      '--name', 'Retain audit logs',
+      '--description', 'Must retain logs 12 months',
+      '--author', 'a.b',
+      '--root', root,
+    ]);
+    expect(status).toBe(0);
+    expect(stdout).toMatch(/wrote canon\/elements\/01_motivation\/requirements\/REQUIREMENT-AUDIT-LOG-RETENTION-1\.yaml/);
+  });
+
+  it('exits 1 when requirement --description is missing', () => {
+    const root = makeRepo();
+    const { status, stderr } = runCli(['new', 'requirement', '--id', 'REQUIREMENT-X-1', '--name', 'x', '--root', root]);
+    expect(status).toBe(1);
+    expect(stderr).toMatch(/--description is required/);
   });
 });
