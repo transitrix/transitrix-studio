@@ -40,7 +40,16 @@ import {
   VIEW_CONFIG_SECTION,
 } from './spacing-config.js';
 import { OPEN_THEME_COMMAND } from './diagram-frame.js';
-import { NEW_GOAL_ELEMENT_COMMAND, newGoalElementCommand } from './new-element-command.js';
+import {
+  NEW_GOAL_ELEMENT_COMMAND,
+  newGoalElementCommand,
+  NEW_DRIVER_ELEMENT_COMMAND,
+  newDriverElementCommand,
+  NEW_CONSTRAINT_ELEMENT_COMMAND,
+  newConstraintElementCommand,
+  NEW_REQUIREMENT_ELEMENT_COMMAND,
+  newRequirementElementCommand,
+} from './new-element-command.js';
 
 function isGoalsFile(doc: vscode.TextDocument): boolean {
   return doc.fileName.endsWith('.goals.transitrix.yaml');
@@ -357,6 +366,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   context.subscriptions.push(
     vscode.commands.registerTextEditorCommand('transitrix.openPreview', openPreviewHandler),
     vscode.commands.registerCommand(NEW_GOAL_ELEMENT_COMMAND, () => newGoalElementCommand()),
+    vscode.commands.registerCommand(NEW_DRIVER_ELEMENT_COMMAND, () => newDriverElementCommand()),
+    vscode.commands.registerCommand(NEW_CONSTRAINT_ELEMENT_COMMAND, () => newConstraintElementCommand()),
+    vscode.commands.registerCommand(NEW_REQUIREMENT_ELEMENT_COMMAND, () => newRequirementElementCommand()),
     vscode.commands.registerCommand('transitrix.exportSvg', () => notYet('SVG')),
     vscode.commands.registerCommand('transitrix.exportPng', () => preview.saveAsPng()),
     vscode.commands.registerCommand('transitrix.exportBpmn', () => notYet('.bpmn')),

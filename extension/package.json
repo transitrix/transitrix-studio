@@ -567,6 +567,21 @@
         "category": "Transitrix"
       },
       {
+        "command": "transitrixStudio.newDriverElement",
+        "title": "Transitrix: New Driver Element",
+        "category": "Transitrix"
+      },
+      {
+        "command": "transitrixStudio.newConstraintElement",
+        "title": "Transitrix: New Constraint Element",
+        "category": "Transitrix"
+      },
+      {
+        "command": "transitrixStudio.newRequirementElement",
+        "title": "Transitrix: New Requirement Element",
+        "category": "Transitrix"
+      },
+      {
         "command": "transitrix.exportSvg",
         "title": "Transitrix: Export as SVG",
         "category": "Transitrix",
