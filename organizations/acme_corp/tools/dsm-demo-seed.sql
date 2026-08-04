@@ -1,4 +1,4 @@
--- DSM demo seed — acme-corp FGCA example
+-- DSM demo seed — acme-corp DGCA example
 -- Populates a running DSM instance with the acme-corp Factor → Goal → Change → Activity chain.
 --
 -- Usage:

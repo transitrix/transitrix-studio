@@ -1,7 +1,7 @@
 # Worked example — DRIVER element primitive (external driver, PESTLE: legal).
 # Schema: notations/ELEMENT_PRIMITIVES.md §7.1 + envelope §3.
-# Definition home for this driver; referenced inline from the FGCA view
-# (canon/views/fgca/) which is the authoring surface.
+# Definition home for this driver; referenced inline from the DGCA view
+# (canon/views/dgca/) which is the authoring surface.
 #
 # Neutral Driver — the standing external regulatory force, not a finding about
 # its current state. Dated findings about this driver (e.g. a closing window,
