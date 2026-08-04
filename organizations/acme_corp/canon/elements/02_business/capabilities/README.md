@@ -2,7 +2,7 @@
 
 Capability element primitives — each file is one capability the organisation can perform, sitting on the ArchiMate 3.2 **business** layer. The hierarchical view over these elements (with CMM maturity overlay) lives at [`../../../views/capabilities/`](../../../views/capabilities/).
 
-Time-varying attributes (`current_maturity`, `owner_role`, `target_date`) live in a co-located sidecar (`<id>.history.yaml`) per [`notations/CONTRACT.md`](../../../../../../notations/CONTRACT.md) §9. They are **not** stored inline on the element file; inline placement triggers `VERSIONED-004`.
+Time-varying attributes (`current_maturity`, `target_maturity`, `owner_role`, `target_date`) live in a co-located sidecar (`<id>.history.yaml`) per [`notations/CONTRACT.md`](../../../../../../notations/CONTRACT.md) §9. They are **not** stored inline on the element file; inline placement triggers `VERSIONED-004`.
 
 TYPE registry: [`notations/IDS_AND_REFERENCES.md`](../../../../../../notations/IDS_AND_REFERENCES.md) §3.1 (`CAPABILITY`), §2 (V/H sub-grammar), §4 (uniqueness scope).
 
@@ -16,18 +16,19 @@ For each capability, an optional sidecar `<id>.history.yaml` carries the time-va
 
 Stable fields live on the element file. Defined in [`notations/views/05-capability-map.md`](../../../../../../notations/views/05-capability-map.md) §13 (fields table) with the inline/sidecar split annotated. Each capability element carries:
 
-- The capability-specific stable fields: `notation: capability`, `id`, `name`, `type`, `description`, optional `target_maturity`, `business_process`, `applications`, `children`.
+- The capability-specific stable fields: `notation: capability`, `id`, `name`, `type`, `description`, `business_process`, `applications`, `children`.
 - The admission record per [`CONTRACT.md`](../../../../../../notations/CONTRACT.md) §6: `zone: canon`, `admitted_at`, `admitted_by`, `gate_checks`.
 - The primitive lifecycle per [`CONTRACT.md`](../../../../../../notations/CONTRACT.md) §7: `valid_from`, `valid_to`.
 
-Time-varying fields (`current_maturity`, `owner_role`, `target_date`) live in the sidecar — not inline.
+Time-varying fields (`current_maturity`, `target_maturity`, `owner_role`, `target_date`) live in the sidecar — not inline.
 
 ## Examples in this folder
 
 | File | Notes |
 |---|---|
 | `CAPABILITY-V1.yaml` | Order Management — stable fields only; time-varying attributes in the sibling sidecar |
-| `CAPABILITY-V1.history.yaml` | Sidecar with three time-varying attributes (`current_maturity` / `owner_role` / `target_date`) demonstrating the CONTRACT.md §9 pattern, including a maturity progression over three years and an owner-role handover |
+| `CAPABILITY-V1.history.yaml` | Sidecar with four time-varying attributes (`current_maturity` / `target_maturity` / `owner_role` / `target_date`) demonstrating the CONTRACT.md §9 pattern, including a maturity progression over three years, a target revised upward, and an owner-role handover |
+| `CAPABILITY-H1.yaml`, `CAPABILITY-V1.1.yaml`, `CAPABILITY-V1.2.yaml`, `CAPABILITY-V2.yaml` | Minimal examples — each pairs with a single-entry `<id>.history.yaml` sidecar for `target_maturity`, the mechanical migration pattern (§9.4) for a value with no prior history |
 
 ## See also
 

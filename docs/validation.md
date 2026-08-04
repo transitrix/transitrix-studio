@@ -201,15 +201,15 @@ repo-scope wiring).
 §9.4's full candidate table.** It enforces only the fields already
 `time_varying` on methodology's *currently-merged*
 `notations/views/05-capability-map.md`: capability `current_maturity`,
-`owner_role`, `target_date`. `target_maturity` (capability) and `maturity`
-(application) become `time_varying` only once methodology PR #425 (the
-2026-08-02 maturity ADR's remaining half) merges — enforcing them today would
-fail `organizations/acme_corp`'s `CAPABILITY-V1.yaml`, which correctly still
-carries `target_maturity` inline under the spec merged today. Extend
-`TIME_VARYING_FIELDS` in `check-versioned-attributes.ts` once #425 lands, and
-add the applications-catalogue field list at the same time (out of scope
-here — its `maturity` field isn't declared `time_varying` at the CONTRACT.md
-level until that PR merges).
+`target_maturity`, `owner_role`, `target_date` (methodology PR #425, the
+2026-08-02 maturity ADR's remaining half, merged 2026-08-04 and brought
+`target_maturity` in — `organizations/acme_corp`'s capability fixtures
+migrated their inline values to sidecar form in the same pass). Applications-
+catalogue `maturity` is on the same CONTRACT.md §9.4 candidate row but is
+**not** enforced here: `check-versioned-attributes.ts` only walks
+`elements`, and `maturity` lives on the `applications[]` list inside a
+catalogue *view* document, not on a standalone element primitive — adding it
+needs the check to walk view documents too, not just a field-list edit.
 
 **Not covered here: the native `capability-map` notation's own single-file
 view-document form** (`packages/diagrams/src/capability-map/{types,

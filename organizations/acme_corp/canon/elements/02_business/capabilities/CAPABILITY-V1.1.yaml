@@ -2,8 +2,8 @@
 # Schema: notations/views/05-capability-map.md §13 + admission record
 # (CONTRACT.md §6) + primitive lifecycle (CONTRACT.md §7).
 #
-# Time-varying attributes live in the sidecar CAPABILITY-V1.1.history.yaml
-# per CONTRACT.md §9 (not provided for this minimal example).
+# Time-varying attributes (target_maturity) live in the sidecar
+# CAPABILITY-V1.1.history.yaml per CONTRACT.md §9 — not inline here.
 # Parent relationship lives in REL files under canon/relations/ — see
 # REL-CAP-V11-PARENT-1.yaml (initial; ended 2026-04-01) and
 # REL-CAP-V11-PARENT-2.yaml (current). The re-parenting demonstrates
@@ -17,8 +17,6 @@ description: >
   Capture and validate customer order requests across all channels.
   Sits at the very top of the order-management value chain — touches
   the customer first, then hands off to the fulfilment side.
-
-target_maturity: 4
 
 # Admission record (CONTRACT.md §6)
 zone: canon

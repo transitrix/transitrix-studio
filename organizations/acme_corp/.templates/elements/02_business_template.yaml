@@ -14,8 +14,8 @@
 #
 # Worked examples: organizations/acme_corp/canon/elements/02_business/.
 # CAPABILITY uses the V/H ID sub-grammar (IDS §2); its time-varying attributes
-# (current_maturity, owner_role, target_date) live in a <id>.history.yaml sidecar
-# (CONTRACT.md §9), never inline.
+# (current_maturity, target_maturity, owner_role, target_date) live in a
+# <id>.history.yaml sidecar (CONTRACT.md §9), never inline.
 
 notation: process                      # element TYPE short name (lowercased TYPE)
 id: PROCESS-EXAMPLE-1                   # canonical ID — IDS_AND_REFERENCES.md §1

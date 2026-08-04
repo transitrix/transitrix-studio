@@ -1,0 +1,12 @@
+# Worked example — versioned-attribute sidecar.
+# Schema: notations/CONTRACT.md §9.1.
+#
+# Target: the CAPABILITY-H1.yaml primitive in this folder. Single-entry
+# series — the migration pattern for an inline value with no prior history:
+# valid_from set to the primitive's own valid_from (CONTRACT.md §9.4).
+
+target: CAPABILITY-H1
+
+attribute_versions:
+  target_maturity:
+    - { valid_from: "2026-05-26", value: 3 }
