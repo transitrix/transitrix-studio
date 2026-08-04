@@ -181,6 +181,56 @@ per CONTRACT.md §7) are net new — this notation's own schema
 author `valid_from`/`valid_to` inline per §7 regardless, so the checks read
 them directly off the raw untyped node.
 
+### Versioned-attribute sidecar rules (`VERSIONED-00x`)
+
+CONTRACT.md §9's versioned-attribute sidecar (`<primitive_id>.history.yaml`,
+co-located under `canon/elements/**`) — `packages/diagrams/src/
+versioned-attribute/` (the parse/resolve/validate substrate, notation-agnostic)
+plus `packages/diagrams/src/repo-validate/check-versioned-attributes.ts` (the
+repo-scope wiring).
+
+| Rule | Severity | Checks |
+|---|---|---|
+| `VERSIONED-001` | error | A sidecar's `target` does not resolve to an admitted primitive in this model. |
+| `VERSIONED-002` | error | Two or more entries within one attribute's array carry the same `valid_from`. |
+| `VERSIONED-003` | warning | An attribute's array is not sorted by `valid_from` ascending. |
+| `VERSIONED-004` | error | A field declared `time_varying` is present inline on its primitive instead of only in the sidecar. |
+| `VERSIONED-005` | error | A version entry's `valid_from` falls outside `[target.valid_from, target.valid_to]`. |
+
+**`VERSIONED-004`'s field list is deliberately narrower than CONTRACT.md
+§9.4's full candidate table.** It enforces only the fields already
+`time_varying` on methodology's *currently-merged*
+`notations/views/05-capability-map.md`: capability `current_maturity`,
+`owner_role`, `target_date`. `target_maturity` (capability) and `maturity`
+(application) become `time_varying` only once methodology PR #425 (the
+2026-08-02 maturity ADR's remaining half) merges — enforcing them today would
+fail `organizations/acme_corp`'s `CAPABILITY-V1.yaml`, which correctly still
+carries `target_maturity` inline under the spec merged today. Extend
+`TIME_VARYING_FIELDS` in `check-versioned-attributes.ts` once #425 lands, and
+add the applications-catalogue field list at the same time (out of scope
+here — its `maturity` field isn't declared `time_varying` at the CONTRACT.md
+level until that PR merges).
+
+**Not covered here: the native `capability-map` notation's own single-file
+view-document form** (`packages/diagrams/src/capability-map/{types,
+validate}.ts`, the `--scope=file`/VS Code "cards"/"tree" preview). Its worked
+examples (`organizations/acme_corp/canon/views/capabilities/
+compliance-domain.capability-map.transitrix.yaml`, `.templates/
+capability-map_template.yaml`) and its `CMAP-003/005` validator all still
+require `current_maturity` inline on the view document's own capability
+nodes — which is itself inconsistent with CONTRACT.md §9's "not inline on the
+capability-map view **or** on the element file" wording, predating this
+epic. Unlike the DSM-migration `CAPABILITY-V1.yaml` + `.history.yaml` pairing
+above, this notation's inline tree carries no separate element file to hold
+a co-located sidecar, and its renderer (`render-capability-tree.ts`) reads
+`current_maturity` directly off each node for the maturity badge with no
+sidecar-resolution step. Reconciling it needs a design decision — does this
+self-contained preview format grow sidecar resolution (requiring the VS Code
+host to read `<id>.history.yaml` from elsewhere in the workspace), or does it
+stay exempt from §9 as a rendering convenience distinct from "the primitive"
+— not guessed at here. Flagged rather than silently left broken or silently
+changed.
+
 ### Compliance suite (`--scope=repo`, #518)
 
 Repo-scope validation also sweeps the compliance notation surface with the same

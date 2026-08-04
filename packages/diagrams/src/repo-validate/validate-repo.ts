@@ -29,6 +29,7 @@
 
 import { checkStrategyChainSemantics } from './check-strategy-chain.js';
 import { checkElementHygiene } from './check-element-hygiene.js';
+import { checkVersionedAttributes } from './check-versioned-attributes.js';
 import type { RepoDoc, RepoFinding, RepoModelInput } from './types.js';
 
 const PScope: RepoFinding['scope'] = 'repo';
@@ -428,5 +429,7 @@ export function validateRepoModel(input: RepoModelInput): RepoFinding[] {
   // Phase 8 — standalone-element envelope rules ported from DSM's Go
   // Validate*Element functions (GOAL-ELEM-001..003, ACTION-001/002/005).
   checkElementHygiene(input, findings);
+  // Phase 9 — versioned-attribute sidecar rules (CONTRACT.md §9, VERSIONED-001..005).
+  checkVersionedAttributes(input, findings);
   return findings;
 }
