@@ -17,10 +17,9 @@ applications_catalogue:
       name: "Order Management System"
       type: "application"
       domain: "Operations"
-      owner_role: ROLE-TECH-1
-      vendor: "Internal"
       status: "Active"
-      maturity: 3
+      # owner_role, vendor, maturity are time-varying — they live in
+      # APPLICATION-OMS-1.history.yaml (CONTRACT.md §9), not inline.
       description: "Core system for order lifecycle management; holds active-order personal data."
       capabilities: ["CAPABILITY-V1"]
       products: ["PRODUCT-ECOMM-1"]
@@ -36,10 +35,9 @@ applications_catalogue:
       name: "CRM System"
       type: "application"
       domain: "Sales"
-      owner_role: ROLE-SALES-1
-      vendor: "Salesforce"
       status: "Active"
-      maturity: 2
+      # owner_role, vendor, maturity are time-varying — they live in
+      # APPLICATION-CRM-1.history.yaml (CONTRACT.md §9), not inline.
       description: "Customer relationship and consent management; holds contact and consent personal data."
       capabilities: ["CAPABILITY-V2"]
       products: ["PRODUCT-ECOMM-1"]

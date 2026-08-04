@@ -1,3 +1,7 @@
+# owner_role/vendor/maturity are time_varying (CONTRACT.md §9, notations/
+# views/10-applications.md §5a) — sidecar-bound, not inline. This corpus
+# example is self-contained (no canon/elements/03_application/ pairing), so
+# it omits them rather than fabricating a sidecar with no real target.
 notation: applications
 spec_version: "0.1"
 title: Enterprise Applications Portfolio 2026
@@ -16,9 +20,6 @@ applications_catalogue:
       type: application
       status: Active
       domain: Operations
-      owner_role: ROLE-ENG-001
-      vendor: Internal
-      maturity: 4
       description: Core system for end-to-end order lifecycle management.
       capabilities:
         - V1.2      # Order Fulfilment — order processing
@@ -42,9 +43,6 @@ applications_catalogue:
       type: application
       status: Active
       domain: Sales
-      owner_role: ROLE-SALES-001
-      vendor: Salesforce
-      maturity: 3
       description: Customer relationship and sales pipeline management.
       capabilities:
         - V2.1    # Customer Acquisition — lead management, opportunity tracking
@@ -55,9 +53,6 @@ applications_catalogue:
       type: platform
       status: Active
       domain: Engineering
-      owner_role: ROLE-PLATFORM-001
-      vendor: Internal
-      maturity: 5
       description: Centralised Kafka-based event streaming platform for domain event distribution.
       integrations:
         - target: APPLICATION-DWH-1
@@ -70,9 +65,6 @@ applications_catalogue:
       type: data_store
       status: Active
       domain: Data & Analytics
-      owner_role: ROLE-DATA-001
-      vendor: Snowflake
-      maturity: 4
       description: Central analytical data store for BI and reporting.
       capabilities:
         - V4.1    # Analytics — real-time reporting
@@ -84,8 +76,6 @@ applications_catalogue:
       type: application
       status: Deprecated
       domain: Customer
-      vendor: Internal
-      maturity: 2
       description: Original web portal for customer self-service. Being replaced by the mobile app.
 
     - app_id: APPLICATION-ERP-LEGACY-1
@@ -93,9 +83,6 @@ applications_catalogue:
       type: application
       status: Decommissioning
       domain: Finance
-      owner_role: ROLE-FIN-001
-      vendor: SAP
-      maturity: 1
       description: On-premise ERP module being decommissioned in Q3 2026. Migration to cloud ERP in progress.
 
     - app_id: INTEGRATION-OMS-CRM-1
@@ -103,7 +90,6 @@ applications_catalogue:
       type: integration
       status: Draft
       domain: Operations
-      owner_role: ROLE-INTARCH-001
       description: Event-driven integration forwarding order state changes from OMS to CRM.
       source: APPLICATION-OMS-1
       target: APPLICATION-CRM-1

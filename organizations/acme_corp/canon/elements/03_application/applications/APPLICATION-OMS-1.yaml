@@ -2,10 +2,10 @@
 # Schema: notations/ELEMENT_PRIMITIVES.md §7.7 + envelope §3.
 # Arranged by the applications-catalogue view (canon/views/applications/).
 #
-# Time-varying fields (owner_role, vendor, lifecycle_stage, maturity) are
-# sidecar-bound per CONTRACT.md §9 — kept out of this file (inline placement
-# would trigger VERSIONED-004). No sidecar is provided for this minimal
-# example; the catalogue view shows their current values.
+# Time-varying fields (owner_role, vendor, maturity) are sidecar-bound per
+# CONTRACT.md §9 — kept out of this file (inline placement would trigger
+# VERSIONED-004) and out of the catalogue view; see
+# APPLICATION-OMS-1.history.yaml in this folder.
 
 notation: application
 id: APPLICATION-OMS-1
