@@ -8,6 +8,8 @@
 
 import { execSync } from 'node:child_process';
 
+import { parseCommitLog } from './hygiene-patterns.mjs';
+
 const blocklist = process.env.HYGIENE_BLOCKLIST;
 if (!blocklist || blocklist.trim() === '') {
   console.warn('[hygiene] HYGIENE_BLOCKLIST secret is not set — skipping check.');
@@ -115,6 +117,22 @@ for (const line of diff.split('\n')) {
   }
 }
 
+// Commit messages over the PR's commit range — a diff pass sees added file
+// content, never the message that landed the commit.
+let log = '';
+try {
+  log = execSync(`git log --format=%H%x1f%B%x1e ${baseSha}..${headSha}`, {
+    encoding: 'utf8',
+    maxBuffer: 128 * 1024 * 1024,
+  });
+} catch (err) {
+  console.error('[hygiene] failed to read commit messages:', err.message);
+  process.exit(2);
+}
+for (const { sha, body } of parseCommitLog(log)) {
+  if (pattern.test(body)) hits.push({ file: `commit ${sha.slice(0, 12)}`, line: null });
+}
+
 const titleHit = pattern.test(process.env.PR_TITLE || '');
 const bodyHit = pattern.test(process.env.PR_BODY || '');
 
@@ -128,6 +146,6 @@ console.error('[hygiene] (matched terms are intentionally not printed — repeat
 if (titleHit) console.error('  - PR title contains a match');
 if (bodyHit) console.error('  - PR body contains a match');
 for (const h of hits) {
-  console.error(`  - ${h.file}:${h.line}`);
+  console.error(`  - ${h.file}${h.line ? ':' + h.line : ''}`);
 }
 process.exit(1);
