@@ -80,6 +80,7 @@ describe('repo-scope compliance catalogue (#518 C3)', () => {
       ['canon/elements/03_application/applications/APPLICATION-CRM-1.yaml', 'APPLICATION-CRM-1', 'application'],
       ['canon/elements/02_business/processes/PROCESS-ORDER-FULFILMENT-1.yaml', 'PROCESS-ORDER-FULFILMENT-1', 'process'],
       ['canon/elements/02_business/roles/ROLE-DPO-1.yaml', 'ROLE-DPO-1', 'role'],
+      ['canon/elements/02_business/actors/ACTOR-TEST-1.yaml', 'ACTOR-TEST-1', 'actor'],
     ] as const) {
       write(
         root,
@@ -99,6 +100,25 @@ describe('repo-scope compliance catalogue (#518 C3)', () => {
         ].join('\n'),
       );
     }
+    write(
+      root,
+      'canon/elements/01_motivation/stakeholders/STAKEHOLDER-TEST-1.yaml',
+      [
+        'notation: stakeholder',
+        'id: STAKEHOLDER-TEST-1',
+        'name: STAKEHOLDER-TEST-1',
+        'type: internal',
+        'actor: ACTOR-TEST-1',
+        'zone: canon',
+        'admitted_at: "2026-06-01"',
+        'admitted_by: test',
+        'gate_checks:',
+        '  uniqueness: pass',
+        'valid_from: "2026-01-01"',
+        'valid_to: null',
+        '',
+      ].join('\n'),
+    );
     write(
       root,
       'canon/elements/01_motivation/requirements/REQUIREMENT-BAD-REF-1.yaml',
@@ -180,6 +200,15 @@ describe('repo-scope compliance catalogue (#518 C3)', () => {
     );
     // applies_to / owner_role resolve once APPLICATION-* and ROLE-DPO-1 are in the catalogue.
     expect(constraint).toEqual([]);
+  });
+
+  it('runComplianceValidate validates stakeholder elements', () => {
+    const ctx = buildRepoValidateContext(root);
+    const findings = runComplianceValidate(root, ctx);
+    const stakeholder = findings.filter(
+      (f) => f.file.endsWith('STAKEHOLDER-TEST-1.yaml') && f.severity === 'error',
+    );
+    expect(stakeholder).toEqual([]);
   });
 
   it('flags REQ-002 when derived_from codex id is missing from the catalogue', () => {
