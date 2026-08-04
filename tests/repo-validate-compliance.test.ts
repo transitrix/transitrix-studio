@@ -75,6 +75,16 @@ describe('repo-scope compliance catalogue (#518 C3)', () => {
       'canon/elements/01_motivation/constraints/CONSTRAINT-GDPR-RESIDENCY-1.yaml',
       'constraint/CONSTRAINT-GDPR-RESIDENCY-1.yaml',
     );
+    copyCorpus(
+      root,
+      'canon/elements/03_application/integrations/INTEGRATION-OMS-EVENTS-1.yaml',
+      'integration/INTEGRATION-OMS-EVENTS-1.yaml',
+    );
+    copyCorpus(
+      root,
+      'canon/elements/03_application/integrations/INTEGRATION-CRM-SYNC-1.yaml',
+      'integration/INTEGRATION-CRM-SYNC-1.yaml',
+    );
     for (const [rel, id, notation] of [
       ['canon/elements/03_application/applications/APPLICATION-OMS-1.yaml', 'APPLICATION-OMS-1', 'application'],
       ['canon/elements/03_application/applications/APPLICATION-CRM-1.yaml', 'APPLICATION-CRM-1', 'application'],
@@ -180,6 +190,15 @@ describe('repo-scope compliance catalogue (#518 C3)', () => {
     );
     // applies_to / owner_role resolve once APPLICATION-* and ROLE-DPO-1 are in the catalogue.
     expect(constraint).toEqual([]);
+  });
+
+  it('runComplianceValidate validates integration elements', () => {
+    const ctx = buildRepoValidateContext(root);
+    const findings = runComplianceValidate(root, ctx);
+    const integration = findings.filter(
+      (f) => f.file.endsWith('INTEGRATION-OMS-EVENTS-1.yaml') && f.severity === 'error',
+    );
+    expect(integration).toEqual([]);
   });
 
   it('flags REQ-002 when derived_from codex id is missing from the catalogue', () => {
