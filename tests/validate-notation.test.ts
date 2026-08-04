@@ -28,6 +28,7 @@ import { validateVerification } from '../packages/diagrams/src/verification/vali
 import { parseImpactViewConfig } from '../packages/diagrams/src/compliance/impact.js';
 import { parseCoverageMetricConfig } from '../packages/diagrams/src/compliance/coverage-metric.js';
 import { validateCodex } from '../packages/diagrams/src/codex/validate.js';
+import { validateLocation } from '../packages/diagrams/src/location/validate.js';
 
 const corpusRoot = join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'notation-corpus');
 
@@ -59,7 +60,11 @@ const GROUP_C = [
   'compliance-impact', 'coverage-metric', 'codex',
 ];
 
-const ALL_NOTATIONS = [...GROUP_A, ...GROUP_B, ...GROUP_C];
+// Group D — standalone canon/elements/** envelope validators wired in one
+// notation at a time (previously dead code, called from nowhere).
+const GROUP_D = ['location'];
+
+const ALL_NOTATIONS = [...GROUP_A, ...GROUP_B, ...GROUP_C, ...GROUP_D];
 
 function viewFixtures(notation: string): string[] {
   return readdirSync(join(corpusRoot, notation))
@@ -168,7 +173,7 @@ describe('validate-notation — the view notation corpus validates clean (#258)'
 });
 
 describe('validate-notation — element notation corpus validates clean (#518 C1)', () => {
-  for (const notation of ['requirement', 'assertion', 'verification', 'risk', 'metric', 'need', 'validation'] as const) {
+  for (const notation of ['requirement', 'assertion', 'verification', 'risk', 'metric', 'need', 'validation', 'location'] as const) {
     for (const file of elementFixtures(notation)) {
       const name = file.slice(corpusRoot.length + 1).replace(/\\/g, '/');
       it(`${name} → valid`, () => {
@@ -335,6 +340,15 @@ describe('validate-notation — parity with the preview validator (#258, #518 C1
     const report = validateNotationDoc('coverage-metric', broken);
     expect(report.isValid).toBe(false);
     expect(report.findings.filter((f) => f.severity === 'error').length).toBe(raw.errors.length);
+  });
+
+  it('location: CLI findings mirror validateLocation exactly', () => {
+    const broken = { notation: 'location' };
+    const raw = validateLocation(broken);
+    const report = validateNotationDoc('location', broken);
+    expect(report.isValid).toBe(raw.valid);
+    expect(report.findings.filter((f) => f.severity === 'error').map((f) => f.ruleId))
+      .toEqual(raw.errors.map((e) => e.code));
   });
 
   it('codex: CLI findings mirror validateCodex with folder jurisdiction', () => {
