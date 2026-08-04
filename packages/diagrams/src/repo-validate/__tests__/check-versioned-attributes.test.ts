@@ -42,9 +42,11 @@ describe('checkVersionedAttributes — VERSIONED-004 (inline time_varying field)
     expect(flagged.some((m) => m.includes('target_date'))).toBe(true);
   });
 
-  it('does not flag target_maturity — not yet time_varying on the merged spec', () => {
+  it('flags target_maturity present inline on a capability element', () => {
     const findings = validateRepoModel(model([capability({ target_maturity: 3 })]));
-    expect(findings.filter((f) => f.ruleId === 'VERSIONED-004')).toEqual([]);
+    const flagged = findings.filter((f) => f.ruleId === 'VERSIONED-004');
+    expect(flagged.length).toBe(1);
+    expect(flagged[0].message).toContain('target_maturity');
   });
 
   it('produces no findings for a capability with no inline time_varying fields', () => {
@@ -135,12 +137,16 @@ describe('checkVersionedAttributes — acme_corp-shaped worked example stays cle
   it('the CAPABILITY-V1 + sidecar pairing from organizations/acme_corp produces zero findings', () => {
     const findings = validateRepoModel(
       model([
-        capability({ target_maturity: 3, valid_from: '2024-01-01', valid_to: null }),
+        capability({ valid_from: '2024-01-01', valid_to: null }),
         sidecar({
           current_maturity: [
             { valid_from: '2024-01-01', value: 1 },
             { valid_from: '2025-06-01', value: 2 },
             { valid_from: '2026-09-15', value: 3 },
+          ],
+          target_maturity: [
+            { valid_from: '2024-01-01', value: 3 },
+            { valid_from: '2026-09-15', value: 4 },
           ],
           owner_role: [
             { valid_from: '2024-01-01', value: 'ROLE-OPS-1' },

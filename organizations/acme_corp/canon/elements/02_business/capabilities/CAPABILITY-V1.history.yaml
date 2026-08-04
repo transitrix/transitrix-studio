@@ -2,11 +2,12 @@
 # Schema: notations/CONTRACT.md §9.1.
 #
 # Target: the CAPABILITY-V1.yaml primitive in this folder. Time-varying
-# attributes (current_maturity, owner_role, target_date) live here, not
-# inline on the primitive. Three patterns demonstrated:
+# attributes (current_maturity, target_maturity, owner_role, target_date)
+# live here, not inline on the primitive. Four patterns demonstrated:
 #   1. current_maturity — monotonic progression over three years.
-#   2. owner_role       — handover from one role to another.
-#   3. target_date      — re-aiming the planning target (moved earlier).
+#   2. target_maturity  — the aspiration itself revised upward.
+#   3. owner_role       — handover from one role to another.
+#   4. target_date      — re-aiming the planning target (moved earlier).
 #
 # Current-value resolution: pick the entry with the largest
 # valid_from <= today (CONTRACT.md §9.2). Validation rules
@@ -22,6 +23,13 @@ attribute_versions:
     - { valid_from: "2024-01-01", value: 1 }
     - { valid_from: "2025-06-01", value: 2 }
     - { valid_from: "2026-09-15", value: 3 }
+
+  # Target itself revised upward once the 2024 target was reached ahead
+  # of schedule — a target is a statement made on a date, so this is a
+  # separate series from current_maturity, never merged into it.
+  target_maturity:
+    - { valid_from: "2024-01-01", value: 3 }
+    - { valid_from: "2026-09-15", value: 4 }
 
   # Owner-role handover when the Order Management team split out of
   # Operations into its own product unit.

@@ -1,6 +1,9 @@
 # Cross-cutting compliance capability — referenced by products, scenarios,
 # and the process landscape. Diagram address H1 in the capability-map view.
 # Schema: notations/views/05-capability-map.md §13 + CONTRACT.md §6–§7.
+#
+# target_maturity is time-varying — it lives in the sidecar
+# CAPABILITY-H1.history.yaml per CONTRACT.md §9, not inline.
 
 notation: capability
 id: CAPABILITY-H1
@@ -11,7 +14,6 @@ description: >
   rights, breach reporting, and data residency. Lowest current maturity —
   the focus of the 2026 remediation programme.
 
-target_maturity: 3
 business_process: PROCESS-DSR-HANDLE-1
 
 zone: canon

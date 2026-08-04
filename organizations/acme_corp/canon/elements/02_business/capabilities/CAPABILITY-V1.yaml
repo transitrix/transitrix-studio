@@ -2,9 +2,10 @@
 # Schema: notations/views/05-capability-map.md §13 + admission record
 # (CONTRACT.md §6) + primitive lifecycle (CONTRACT.md §7).
 #
-# Time-varying attributes (current_maturity, owner_role, target_date)
-# live in the sidecar CAPABILITY-V1.history.yaml per CONTRACT.md §9 —
-# NOT inline here. Inline placement would trigger VERSIONED-004.
+# Time-varying attributes (current_maturity, target_maturity, owner_role,
+# target_date) live in the sidecar CAPABILITY-V1.history.yaml per
+# CONTRACT.md §9 — NOT inline here. Inline placement would trigger
+# VERSIONED-004.
 
 notation: capability
 id: CAPABILITY-V1
@@ -14,9 +15,6 @@ description: >
   End-to-end management of customer orders, from intake through
   fulfilment. The capability spans receiving, validating, routing, and
   closing out customer purchase requests across all channels.
-
-# Stable forward-looking aspiration — not time-varying
-target_maturity: 3
 
 # Relations — stay inline in v1 (Wave 3 may promote to first-class
 # time-aware relation files)

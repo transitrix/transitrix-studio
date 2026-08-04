@@ -15,14 +15,13 @@
 //
 // `TIME_VARYING_FIELDS` is deliberately narrower than the full candidate
 // list in CONTRACT.md §9.4: it only enforces fields already `time_varying`
-// on methodology's *currently-merged* `notations/views/05-capability-map.md`
-// (`current_maturity`, `owner_role`, `target_date`). `target_maturity`
-// (capability) and `maturity` (application) become time_varying only once
-// methodology PR #425 (the other half of the 2026-08-02 maturity ADR)
-// merges — enforcing VERSIONED-004 on those now would fail the acme_corp
-// worked example (`CAPABILITY-V1.yaml` still carries `target_maturity`
-// inline, correctly, under the spec merged today) against a spec that isn't
-// canon yet. Extend this table once #425 lands.
+// on methodology's *currently-merged* notation specs. `capability` covers
+// `current_maturity`, `target_maturity`, `owner_role`, `target_date` per
+// `05-capability-map.md` §13/§14. Applications-catalogue `maturity` (and its
+// sibling `owner_role`/`vendor`) is on the same 2026-08-02 maturity ADR but
+// is not enforced here yet — it lives on the `applications[]` list inside a
+// catalogue view document, not on a standalone element primitive, and this
+// check only walks `elements`.
 
 import { parseSidecar, validateSidecar } from '../versioned-attribute/index.js';
 import { docId } from './validate-repo.js';
@@ -31,7 +30,7 @@ import type { RepoDoc, RepoFinding, RepoModelInput } from './types.js';
 const PScope: RepoFinding['scope'] = 'repo';
 
 const TIME_VARYING_FIELDS: Record<string, string[]> = {
-  capability: ['current_maturity', 'owner_role', 'target_date'],
+  capability: ['current_maturity', 'target_maturity', 'owner_role', 'target_date'],
 };
 
 function readString(data: Record<string, unknown>, key: string): string | undefined {
