@@ -36,8 +36,8 @@ export function validateFactor(input: unknown, options: FactorValidateOptions = 
   const f = input as Record<string, unknown>;
 
   // FACTOR-001 — id grammar + notation tag + envelope.
-  if (!isCanonicalIdOfType(f.id, 'FACTOR')) {
-    errors.push({ code: 'FACTOR-001', message: `id "${String(f.id)}" must match FACTOR-[<middle>-]<INTEGER>.`, path: 'id' });
+  if (!isCanonicalIdOfType(f.id, 'DRIVER')) {
+    errors.push({ code: 'FACTOR-001', message: `id "${String(f.id)}" must match DRIVER-[<middle>-]<INTEGER>.`, path: 'id' });
   }
   if (f.notation !== 'driver') {
     errors.push({ code: 'FACTOR-001', message: 'notation must be the fixed value "driver".', path: 'notation' });
