@@ -62,6 +62,9 @@ export type ParseValidateArgvResult =
       scope: ValidateScope;
       root: string | undefined;
       template: string | undefined;
+      fix: boolean;
+      author: string | undefined;
+      dryRun: boolean;
       positional: string[];
       extList: string[];
       wantsHelp: boolean;
@@ -73,21 +76,28 @@ export type ParseValidateArgvResult =
         | '--scope_requires_value'
         | '--root_requires_value'
         | '--template_requires_value'
+        | '--author_requires_value'
         | 'bad_scope';
       scope?: ValidateScope;
     };
 
 /**
  * Parse `validate` argv (#141). Recognises `--scope=file|repo` (and the spaced
- * `--scope repo` form), `--root <dir>` for repo-scope, and `--template <name>`
- * (matrix-subset `blocks` documents, §6a — e.g. `raci`) for file scope;
- * everything else is delegated to {@link parseCliFileArgv}. Default scope is
- * `file`, preserving the existing per-file `validate <input.yaml>` behaviour.
+ * `--scope repo` form), `--root <dir>` for repo-scope, `--template <name>`
+ * (matrix-subset `blocks` documents, §6a — e.g. `raci`) for file scope, and
+ * `--fix` (file scope only — completes missing envelope fields; `--author`
+ * overrides `git config user.name` for `admitted_by`, `--dry-run` previews
+ * without writing); everything else is delegated to {@link parseCliFileArgv}.
+ * Default scope is `file`, preserving the existing per-file
+ * `validate <input.yaml>` behaviour.
  */
 export function parseValidateArgv(argv: string[]): ParseValidateArgvResult {
   let scope: ValidateScope = 'file';
   let root: string | undefined;
   let template: string | undefined;
+  let fix = false;
+  let author: string | undefined;
+  let dryRun = false;
   const rest: string[] = [];
 
   for (let i = 0; i < argv.length; i++) {
@@ -125,6 +135,24 @@ export function parseValidateArgv(argv: string[]): ParseValidateArgvResult {
       template = a.slice('--template='.length);
       continue;
     }
+    if (a === '--fix') {
+      fix = true;
+      continue;
+    }
+    if (a === '--dry-run') {
+      dryRun = true;
+      continue;
+    }
+    if (a === '--author') {
+      const v = argv[++i];
+      if (v === undefined) return { ok: false, error: '--author_requires_value' };
+      author = v;
+      continue;
+    }
+    if (a.startsWith('--author=')) {
+      author = a.slice('--author='.length);
+      continue;
+    }
     rest.push(a);
   }
 
@@ -136,6 +164,9 @@ export function parseValidateArgv(argv: string[]): ParseValidateArgvResult {
     scope,
     root,
     template,
+    fix,
+    author,
+    dryRun,
     positional: parsed.positional,
     extList: parsed.extList,
     wantsHelp: parsed.wantsHelp,
