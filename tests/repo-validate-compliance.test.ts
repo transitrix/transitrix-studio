@@ -75,6 +75,23 @@ describe('repo-scope compliance catalogue (#518 C3)', () => {
       'canon/elements/01_motivation/constraints/CONSTRAINT-GDPR-RESIDENCY-1.yaml',
       'constraint/CONSTRAINT-GDPR-RESIDENCY-1.yaml',
     );
+    write(
+      root,
+      'canon/elements/05_implementation/changes/CHANGE-TEST-1.yaml',
+      [
+        'notation: change',
+        'id: CHANGE-TEST-1',
+        'name: CHANGE-TEST-1',
+        'zone: canon',
+        'admitted_at: "2026-06-01"',
+        'admitted_by: test',
+        'gate_checks:',
+        '  uniqueness: pass',
+        'valid_from: "2026-01-01"',
+        'valid_to: null',
+        '',
+      ].join('\n'),
+    );
     copyCorpus(
       root,
       'canon/elements/01_motivation/factors/DRIVER-EU-REG-1.yaml',
@@ -190,6 +207,15 @@ describe('repo-scope compliance catalogue (#518 C3)', () => {
     );
     // applies_to / owner_role resolve once APPLICATION-* and ROLE-DPO-1 are in the catalogue.
     expect(constraint).toEqual([]);
+  });
+
+  it('runComplianceValidate validates change elements', () => {
+    const ctx = buildRepoValidateContext(root);
+    const findings = runComplianceValidate(root, ctx);
+    const change = findings.filter(
+      (f) => f.file.endsWith('CHANGE-TEST-1.yaml') && f.severity === 'error',
+    );
+    expect(change).toEqual([]);
   });
 
   it('runComplianceValidate validates driver elements with catalogue', () => {
