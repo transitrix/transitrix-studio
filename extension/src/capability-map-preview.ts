@@ -6,8 +6,15 @@ import { buildDiagramFrame, extractDiagramMeta, CATALOGUE_STYLES, type ThemeId, 
 import { coerceDatesToIsoStrings } from '@transitrix/diagrams/yaml-normalize.js';
 import { validateCapabilityMap } from '@transitrix/diagrams/capability-map/validate.js';
 import { renderCapabilityTreeSvg } from '@transitrix/diagrams/capability-map/render-capability-tree.js';
+import {
+  resolveCapabilityAttributes,
+  withResolvedCapabilityMap,
+  type ResolvedCapabilityAttributes,
+} from '@transitrix/diagrams/capability-map/resolve-maturity.js';
 import { genNonce } from './preview-controls.js';
 import { readNodeSizePreset } from './node-size-config.js';
+import { findCanonRoot, readYamlDocsUnder } from './canon-loader.js';
+import { todayIso } from './svg-title-block.js';
 
 // ── Types (local, mirroring the shared package types) ─────────────────────────
 
@@ -200,10 +207,33 @@ export class CapabilityMapPreview {
 
   private async pushDocument(doc: vscode.TextDocument): Promise<void> {
     if (!this.panel) return;
-    this.panel.webview.html = this.buildHtml(doc.getText(), path.basename(doc.fileName));
+    const resolved = await this.resolveMaturity(doc.uri);
+    this.panel.webview.html = this.buildHtml(doc.getText(), path.basename(doc.fileName), resolved);
   }
 
-  private buildHtml(yamlText: string, filename: string): string {
+  /** Sidecar-bound fields (CONTRACT.md §9.4) never live inline on an admitted
+   *  CAPABILITY-* primitive (VERSIONED-004) — a nested capability-map entry
+   *  references that same primitive by id (the 2026-08-05 packages
+   *  decision), so resolve them from canon/elements/** the same way
+   *  applications-preview.ts does. A read model only: the result is never
+   *  written anywhere. */
+  private async resolveMaturity(
+    fileUri: vscode.Uri,
+  ): Promise<{ byId: Map<string, ResolvedCapabilityAttributes>; asOf: string }> {
+    const asOf = todayIso();
+    const canonRoot = findCanonRoot(fileUri);
+    if (!canonRoot) return { byId: new Map(), asOf };
+    const rawDocs: unknown[] = [];
+    const warnings: string[] = [];
+    await readYamlDocsUnder(vscode.Uri.joinPath(canonRoot, 'elements'), rawDocs, warnings);
+    return { byId: resolveCapabilityAttributes(rawDocs, asOf), asOf };
+  }
+
+  private buildHtml(
+    yamlText: string,
+    filename: string,
+    resolved: { byId: Map<string, ResolvedCapabilityAttributes>; asOf: string },
+  ): string {
     let bodyContent = '';
     let svgContent = '';
     let errorMsg = '';
@@ -226,15 +256,21 @@ export class CapabilityMapPreview {
         errorMsg = v.errors.map(e => `${e.code}: ${e.message}`).join('\n');
       } else {
         const raw = parsed as Record<string, unknown>;
-        const map = raw['capability_map'] as CapabilityMapHeader;
+        const rawMap = raw['capability_map'] as CapabilityMapHeader;
+        const map = resolved.byId.size > 0 ? withResolvedCapabilityMap(rawMap, resolved.byId) : rawMap;
         if (!title) title = map.name;
         if (!subtitle && map.description) subtitle = map.description;
         if (!date) date = map.assessment_date;
+        const resolvedNote = resolved.byId.size > 0
+          ? `Current Maturity, Target Maturity, Owner Role, Target Date resolved as of ${resolved.asOf}`
+          : '';
 
         if (viewMode === 'tree') {
           svgContent = renderCapabilityTreeSvg(map, { collapsedIds: this.collapsedIds, nodeSizePreset: readNodeSizePreset('capabilityMap') });
+          if (resolvedNote) subtitle = subtitle ? `${subtitle} — ${resolvedNote}` : resolvedNote;
         } else {
-          bodyContent = buildCapabilityMapBody(map);
+          const noteHtml = resolvedNote ? `<div class="resolved-note">${escHtml(resolvedNote)}</div>` : '';
+          bodyContent = noteHtml + buildCapabilityMapBody(map);
         }
       }
     } catch (e) {
@@ -283,6 +319,11 @@ export class CapabilityMapPreview {
 }
 
 const CAPABILITY_MAP_STYLES = `
+  .resolved-note {
+    font-size: 11px;
+    color: var(--ts-text-muted, #64748b);
+    margin: 4px 0 10px;
+  }
   .cap-axis {
     margin-bottom: 24px;
   }

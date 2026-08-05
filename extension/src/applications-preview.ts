@@ -1,10 +1,18 @@
+import * as path from 'node:path';
 import { escHtml } from '@transitrix/diagrams/webview/render-util.js';
 import * as vscode from 'vscode';
 import yaml from 'js-yaml';
 import { buildDiagramFrame, extractDiagramMeta, CATALOGUE_STYLES, type ThemeId, OPEN_THEME_COMMAND } from './diagram-frame.js';
 import { coerceDatesToIsoStrings } from '@transitrix/diagrams/yaml-normalize.js';
 import { validateApplicationsCatalogue } from '@transitrix/diagrams/applications/validate.js';
+import {
+  resolveApplicationAttributes,
+  withResolvedAttributes,
+  type ResolvedApplicationAttributes,
+} from '@transitrix/diagrams/applications/resolve-maturity.js';
 import { StaticPreview } from './static-preview.js';
+import { findCanonRoot, readYamlDocsUnder } from './canon-loader.js';
+import { todayIso } from './svg-title-block.js';
 
 // ── Types (used by render helpers) ───────────────────────────────────────────
 
@@ -87,8 +95,12 @@ function renderIntegrations(integrations: ApplicationIntegration[] | undefined):
   return `<details><summary>Integrations (${integrations.length})</summary><ul>${items}</ul></details>`;
 }
 
-function buildApplicationsTable(catalogue: ApplicationsCatalogueHeader): string {
-  const rows = catalogue.applications.map(a => {
+function buildApplicationsTable(
+  catalogue: ApplicationsCatalogueHeader,
+  resolved: Map<string, ResolvedApplicationAttributes>,
+): string {
+  const rows = catalogue.applications.map(raw => {
+    const a = withResolvedAttributes(raw, resolved);
     const extras = [
       renderIntegrations(a.integrations),
       disclosureList('Capabilities', a.capabilities),
@@ -145,7 +157,37 @@ export class ApplicationsPreview extends StaticPreview {
   protected readonly viewType = 'applicationsPreview';
   protected readonly enableCommandUris = ['transitrixStudio.changeTheme'];
 
-  protected renderHtml(yamlText: string, filename: string): string {
+  // Overridden (rather than the base's sync `renderHtml`) because resolving
+  // owner_role/vendor/maturity means reading canon/elements/** for the
+  // catalogue's sidecars (CONTRACT.md §9.4) before the table can be built —
+  // same async-loading shape as ActionsTreePreview's canon walk.
+  protected override async pushDocument(doc: vscode.TextDocument): Promise<void> {
+    if (!this.panel) return;
+    const resolved = await this.resolveMaturity(doc.uri);
+    this.panel.webview.html = this.buildHtml(doc.getText(), path.basename(doc.fileName), resolved);
+  }
+
+  /** Sidecar-bound fields (CONTRACT.md §9.4) never live inline on an admitted
+   *  catalogue entry (VERSIONED-004) — resolve them from canon/elements/**
+   *  so the preview isn't just blank cells for a compliant document. A read
+   *  model only: the result is never written anywhere. */
+  private async resolveMaturity(
+    fileUri: vscode.Uri,
+  ): Promise<{ byAppId: Map<string, ResolvedApplicationAttributes>; asOf: string }> {
+    const asOf = todayIso();
+    const canonRoot = findCanonRoot(fileUri);
+    if (!canonRoot) return { byAppId: new Map(), asOf };
+    const rawDocs: unknown[] = [];
+    const warnings: string[] = [];
+    await readYamlDocsUnder(vscode.Uri.joinPath(canonRoot, 'elements'), rawDocs, warnings);
+    return { byAppId: resolveApplicationAttributes(rawDocs, asOf), asOf };
+  }
+
+  private buildHtml(
+    yamlText: string,
+    filename: string,
+    resolved: { byAppId: Map<string, ResolvedApplicationAttributes>; asOf: string },
+  ): string {
     let bodyContent = '';
     let errorMsg = '';
     let title: string | undefined;
@@ -167,7 +209,10 @@ export class ApplicationsPreview extends StaticPreview {
       } else {
         const raw = parsed as Record<string, unknown>;
         const catalogue = raw['applications_catalogue'] as ApplicationsCatalogueHeader;
-        bodyContent = buildApplicationsTable(catalogue);
+        const resolvedNote = resolved.byAppId.size > 0
+          ? `<div class="resolved-note">Owner Role, Vendor, Maturity resolved as of ${escHtml(resolved.asOf)}</div>`
+          : '';
+        bodyContent = resolvedNote + buildApplicationsTable(catalogue, resolved.byAppId);
         if (!title) title = catalogue.name;
         if (!subtitle && catalogue.description) subtitle = catalogue.description;
         if (!version && catalogue.version) version = catalogue.version;
@@ -199,6 +244,11 @@ export class ApplicationsPreview extends StaticPreview {
 }
 
 const APPLICATIONS_STYLES = `
+  .resolved-note {
+    font-size: 11px;
+    color: var(--ts-text-muted, #64748b);
+    margin: 4px 0 10px;
+  }
   .applications-table {
     width: 100%;
     border-collapse: collapse;
