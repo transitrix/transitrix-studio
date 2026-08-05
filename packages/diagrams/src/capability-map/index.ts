@@ -7,6 +7,13 @@ export type {
 
 export { validateCapabilityMap } from './validate.js';
 
+export type { ResolvedCapabilityAttributes } from './resolve-maturity.js';
+export {
+  resolveCapabilityAttributes,
+  withResolvedAttributes,
+  withResolvedCapabilityMap,
+} from './resolve-maturity.js';
+
 export type {
   CapabilityTreeNode,
   CapabilityTreeEdge,

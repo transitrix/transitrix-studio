@@ -1,8 +1,8 @@
 {
   "name": "@transitrix/cli",
-  "version": "2.4.8",
+  "version": "2.4.9",
   "type": "module",
-  "description": "Transitrix CLI — compile, validate, and report on Transitrix diagrams (BPMN, Goals, DGCA, …) from any shell or CI pipeline.",
+  "description": "Transitrix CLI ΓÇö compile, validate, and report on Transitrix diagrams (BPMN, Goals, DGCA, ΓÇª) from any shell or CI pipeline.",
   "license": "MIT",
   "homepage": "https://github.com/transitrix/transitrix-studio/tree/main/packages/cli#readme",
   "bugs": {
