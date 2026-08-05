@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { writeFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
+import * as path from 'node:path';
 
 import jsyaml from 'js-yaml';
 
@@ -18,7 +19,13 @@ import type { ValidationReport, ValidationFinding } from './validator-types.js';
 import { parseYamlToIr } from './parser.js';
 import { validateProcess } from './validator.js';
 import type { ProcessIr } from './ir.js';
-import { runRepoValidate, reportRepoFindings, repoScopeHasErrors, buildRepoModel } from './repo-validate.js';
+import {
+  runRepoValidate,
+  reportRepoFindings,
+  repoScopeHasErrors,
+  buildRepoModel,
+  buildRepoValidateContext,
+} from './repo-validate.js';
 import {
   isFileValidatableNotation,
   loadNotationYaml,
@@ -27,6 +34,14 @@ import {
   inferNotationFromFilename,
   resolveValidatorKey,
 } from './validate-notation.js';
+import {
+  isFixableNotation,
+  computeFixPlan,
+  applyEnvelopeFix,
+  resolveFixRoot,
+  FIXABLE_NOTATIONS,
+  type FixFieldResult,
+} from './validate-fix.js';
 import { handleExportComplianceCommand } from './export-compliance.js';
 import { transitrixPackageVersion } from './package-version.js';
 import { bundledDiagramsVersion } from './diagrams-version.js';
@@ -70,6 +85,7 @@ function printUsage(): void {
        transitrix metrics [--ext=.bpmn.transitrix.yaml] <input.yaml> [--json]
        transitrix validate <input.yaml> [--json]
        transitrix validate [--ext=.bpmn.transitrix.yaml] <input.yaml> [--json]
+       transitrix validate <input.yaml> --fix [--author <name>] [--root <dir>] [--dry-run]
        transitrix validate --scope=repo [--root <dir>] [--json] [--include-model]
        transitrix export-compliance [--format md|pdf] [--scope law:<ID>|product:<ID>|gap] [--output <path>] [--root <dir>]
        transitrix migrate [--from X.Y] [--to X.Y] [--dry-run] [--recipes <dir>] [target-dir]
@@ -86,6 +102,10 @@ function printUsage(): void {
               --scope=repo runs whole-canon checks (referential integrity,
               atomicity, id uniqueness, policy). --include-model (with --json)
               also emits the resolved element/relation records it parsed.
+              --fix (file scope only) completes missing envelope fields on an
+              already hand-authored actor/change/driver/stakeholder/
+              target-state/location/business-service/integration/node/
+              technology-service file by inserting only what it can derive.
   export-compliance — Markdown or PDF report of the compliance views (matrix by
               default; law:/product:/gap scopes). Scans --root (default cwd) for
               requirement/assertion/product/codex canon. PDF rendering requires
@@ -264,14 +284,27 @@ function probeNotation(text: string): string | undefined {
   return undefined;
 }
 
+/** Outcome of a `validate --fix` attempt — reported alongside the normal
+ *  validation report (both text and `--json`), per the epic decision that
+ *  every filled field, and every field the tool couldn't determine, is
+ *  reported. */
+interface FixSummary {
+  filled: FixFieldResult[];
+  unresolved: Array<{ field: string; reason: string }>;
+  dryRun: boolean;
+  written: boolean;
+}
+
 /** Emit a file-scope ValidationReport as JSON (for CI/agents) or coloured text.
  *  Shared by the BPMN path and the per-notation path so both speak one schema.
- *  `notation` is added to the JSON only for diagram-notation validation. */
+ *  `notation` is added to the JSON only for diagram-notation validation.
+ *  `fix` is added only when `--fix` was requested for this run. */
 function emitFileReport(
   src: string,
   report: ValidationReport,
   useJson: boolean,
   notation?: string,
+  fix?: FixSummary,
 ): void {
   if (useJson) {
     const output: Record<string, unknown> = {
@@ -286,6 +319,7 @@ function emitFileReport(
       summary: report.summary,
     };
     if (notation) output.notation = notation;
+    if (fix) output.fix = fix;
     console.log(JSON.stringify(output, null, 2));
     return;
   }
@@ -295,6 +329,127 @@ function emitFileReport(
     return;
   }
   printValidationReport(src, report, false);
+}
+
+function formatFixValue(value: unknown): string {
+  if (value === null) return 'null';
+  if (typeof value === 'object') {
+    const gc = value as { uniqueness: string; consistency: string; completeness: string };
+    return `{uniqueness: ${gc.uniqueness}, consistency: ${gc.consistency}, completeness: ${gc.completeness}}`;
+  }
+  return JSON.stringify(value);
+}
+
+function printFixSummary(src: string, summary: FixSummary): void {
+  console.log(`transitrix validate --fix: ${src}`);
+  if (summary.filled.length === 0 && summary.unresolved.length === 0) {
+    console.log('  nothing to fix — envelope already complete.');
+  }
+  for (const f of summary.filled) {
+    console.log(`  filled: ${f.field} = ${formatFixValue(f.value)}`);
+  }
+  for (const u of summary.unresolved) {
+    console.log(`  not fixed: ${u.field} — ${u.reason}`);
+  }
+  if (summary.filled.length > 0) {
+    console.log(summary.dryRun ? '  (dry run — no changes written)' : `  wrote ${src}`);
+  }
+  console.log();
+}
+
+/** Shapes a raw per-notation `ValidationResult` (the FIXABLE_NOTATIONS
+ *  functions' own return type) into the CLI's `ValidationReport` — the same
+ *  ruleId/severity/message mapping `validate-notation.ts`'s `mapPackageResult`
+ *  does, duplicated here rather than imported because this command
+ *  deliberately calls the raw validator (path-preserving) directly instead of
+ *  going through that module's dispatch (path-dropping) — see the call site. */
+function toValidationReport(result: { valid: boolean; errors: Array<{ code: string; message: string }>; warnings: Array<{ code: string; message: string }> }): ValidationReport {
+  const findings: ValidationFinding[] = [
+    ...result.errors.map((e): ValidationFinding => ({ ruleId: e.code, severity: 'error', message: e.message })),
+    ...result.warnings.map((w): ValidationFinding => ({ ruleId: w.code, severity: 'warning', message: w.message })),
+  ];
+  return {
+    isValid: result.valid,
+    findings,
+    summary: {
+      errorCount: findings.filter((f) => f.severity === 'error').length,
+      warningCount: findings.filter((f) => f.severity === 'warning').length,
+      infoCount: 0,
+    },
+  };
+}
+
+/** Runs `validate <file> --fix` end to end: computes the fix plan, applies it
+ *  (unless --dry-run), reports every field filled and every field it
+ *  couldn't determine, then re-validates via the same raw notation validator
+ *  used to compute the plan — closing the "validate → fix → validate" loop
+ *  with one real validator pass, not a second guess at what it would say.
+ *  Self-contained on purpose: it does not depend on `isFileValidatableNotation`/
+ *  `validateNotationDoc` (`validate-notation.ts`'s dispatch), which for these
+ *  ten notations may not be wired yet — the sibling PRs doing that wiring are
+ *  a separate, independent slice of the same epic. Exits 1 directly for an
+ *  unsupported notation or an unlocatable insertion anchor, per the epic
+ *  decision to fail rather than guess a position. */
+async function runValidateFixCommand(
+  src: string,
+  validatorKey: string,
+  data: unknown,
+  fileText: string,
+  parsed: Extract<ReturnType<typeof parseValidateArgv>, { ok: true }>,
+  useJson: boolean,
+): Promise<{ report: ValidationReport; fix?: FixSummary }> {
+  if (!isFixableNotation(validatorKey)) {
+    const message = `transitrix validate --fix: notation "${validatorKey}" is not yet supported by --fix.`;
+    if (useJson) {
+      console.log(JSON.stringify({ valid: false, message }, null, 2));
+    } else {
+      console.error(message);
+    }
+    process.exit(1);
+  }
+
+  let workingData = data;
+  let fix: FixSummary | undefined;
+
+  if (workingData !== null && typeof workingData === 'object' && !Array.isArray(workingData)) {
+    const root = resolveFixRoot(parsed.root);
+    const ctx = buildRepoValidateContext(root);
+    const absFilePath = path.resolve(src);
+    const plan = computeFixPlan(validatorKey, workingData as Record<string, unknown>, {
+      root,
+      absFilePath,
+      author: parsed.author,
+      catalog: ctx.catalog,
+    });
+
+    if (plan.filled.length === 0) {
+      fix = { filled: [], unresolved: plan.unresolved, dryRun: parsed.dryRun, written: false };
+      if (!useJson) printFixSummary(src, fix);
+    } else {
+      const applied = applyEnvelopeFix(fileText, plan.filled);
+      if (!applied.ok) {
+        const message = `transitrix validate --fix: ${applied.error}`;
+        if (useJson) {
+          console.log(JSON.stringify({ valid: false, message }, null, 2));
+        } else {
+          console.error(message);
+        }
+        process.exit(1);
+      }
+
+      if (!parsed.dryRun) {
+        writeFileSync(src, applied.text, 'utf-8');
+      }
+      fix = { filled: plan.filled, unresolved: plan.unresolved, dryRun: parsed.dryRun, written: !parsed.dryRun };
+      if (!useJson) printFixSummary(src, fix);
+      workingData = loadNotationYaml(applied.text);
+    }
+  }
+  // Not a mapping — no envelope fields to insert into; the report below
+  // surfaces the real structural error the validator itself reports.
+
+  const rawResult = FIXABLE_NOTATIONS[validatorKey](workingData);
+  return { report: toValidationReport(rawResult), fix };
 }
 
 async function handleValidateCommand(argv: string[]): Promise<void> {
@@ -308,13 +463,20 @@ async function handleValidateCommand(argv: string[]): Promise<void> {
       console.error('transitrix validate: --root requires a directory path.');
     } else if (parsed.error === '--template_requires_value') {
       console.error('transitrix validate: --template requires a value (e.g. raci).');
+    } else if (parsed.error === '--author_requires_value') {
+      console.error('transitrix validate: --author requires a value.');
     } else {
       console.error('transitrix: --ext requires a comma-separated list of suffixes.');
     }
     process.exit(1);
   }
 
-  const { scope, root, template, positional, extList, wantsHelp } = parsed;
+  const { scope, root, template, fix, positional, extList, wantsHelp } = parsed;
+
+  if (fix && scope === 'repo') {
+    console.error('transitrix validate: --fix is only supported for file scope (a single file), not --scope=repo.');
+    process.exit(1);
+  }
   // Default extension list for validate: BPMN + all canonical notation extensions.
   // Notation files are already routed by their notation: field before the extension
   // gate, so this expanded default mainly prevents a confusing error message when a
@@ -327,7 +489,7 @@ async function handleValidateCommand(argv: string[]): Promise<void> {
   const useJson = argv.includes('--json');
 
   if (wantsHelp) {
-    console.error(`usage: transitrix validate <input.yaml> [--json] [--template <name>] (file scope, default)`);
+    console.error(`usage: transitrix validate <input.yaml> [--json] [--template <name>] [--fix [--author <name>] [--root <dir>] [--dry-run]] (file scope, default)`);
     console.error(`       transitrix validate --scope=repo [--root <dir>] [--json] [--include-model]`);
     console.error('');
     console.error('file scope — single-file structural/semantic validation (default).');
@@ -340,6 +502,15 @@ async function handleValidateCommand(argv: string[]): Promise<void> {
     console.error('             --template <name> (blocks matrix-subset grid: root only, §6a) — e.g.');
     console.error('             "raci" — additionally enforces that template\'s own invariant');
     console.error('             (RACI-001: exactly one "A" per row) on top of the base BL-02x rules.');
+    console.error('             --fix completes missing envelope fields (CONTRACT.md §6/§7 — zone,');
+    console.error('             admitted_at, admitted_by, gate_checks, valid_from, valid_to) on an');
+    console.error('             already hand-authored actor/change/driver/stakeholder/target-state/');
+    console.error('             location/business-service/integration/node/technology-service file');
+    console.error('             by inserting only what it can derive — never a value it cannot');
+    console.error('             determine, never a correction to a value already present.');
+    console.error('             --author "<name>" overrides `git config user.name` for admitted_by;');
+    console.error('             --root <dir> is the adopter repo root for the canon scan (default cwd);');
+    console.error('             --dry-run previews the fix without writing.');
     console.error('repo scope — whole-canon checks (referential integrity, atomicity,');
     console.error('             id uniqueness, policy) over <root> (default: cwd).');
     console.error('             --include-model (with --json) also emits the resolved');
@@ -416,6 +587,22 @@ async function handleValidateCommand(argv: string[]): Promise<void> {
 
   const validatorKey = resolveValidatorKey(data) ?? inferNotationFromFilename(src);
   if (validatorKey && validatorKey !== 'bpmn') {
+    // --fix is handled independently of isFileValidatableNotation()/the
+    // validate-notation.ts VALIDATORS map below: it goes through this
+    // module's own FIXABLE_NOTATIONS registry of raw per-notation
+    // validators (kept separate so the `path` field they set survives —
+    // validateNotationDoc()'s mapping to ValidationFinding drops it). That
+    // also means --fix doesn't need to wait on a notation's separate
+    // file-scope-dispatch wiring to land first.
+    if (parsed.fix) {
+      const fixOutcome = await runValidateFixCommand(src, validatorKey, data, fileText, parsed, useJson);
+      emitFileReport(src, fixOutcome.report, useJson, validatorKey, fixOutcome.fix);
+      if (!fixOutcome.report.isValid) {
+        process.exit(1);
+      }
+      return;
+    }
+
     // Canon-projection form: view_config present, no inline element data.
     // Single-file scope has no canon/elements/** to resolve against (unlike
     // --scope=repo, which does) — surface a clear notice instead of a
