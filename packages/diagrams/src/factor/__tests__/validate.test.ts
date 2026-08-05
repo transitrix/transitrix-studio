@@ -5,7 +5,7 @@ import type { CanonCatalog } from '../../typed-id.js';
 function validExternal(): Record<string, unknown> {
   return {
     notation: 'driver',
-    id: 'FACTOR-EU-REG-1',
+    id: 'DRIVER-EU-REG-1',
     name: 'EU regulatory window',
     type: 'external',
     category: 'legal',
@@ -23,7 +23,7 @@ function validExternal(): Record<string, unknown> {
 function validInternal(): Record<string, unknown> {
   return {
     notation: 'driver',
-    id: 'FACTOR-COMP-1',
+    id: 'DRIVER-COMP-1',
     name: 'Support response time',
     type: 'internal',
     description: 'Standing internal driver.',
@@ -65,9 +65,13 @@ describe('validateFactor — FACTOR-001 (shape / id grammar)', () => {
   });
 
   it('flags an id that violates the grammar', () => {
-    expect(codes({ ...validExternal(), id: 'FACTOR-EU-REG-001' })).toContain('FACTOR-001');
-    expect(codes({ ...validExternal(), id: 'FAC-1' })).toContain('FACTOR-001');
-    expect(codes({ ...validExternal(), id: 'factor-1' })).toContain('FACTOR-001');
+    expect(codes({ ...validExternal(), id: 'DRIVER-EU-REG-001' })).toContain('FACTOR-001');
+    expect(codes({ ...validExternal(), id: 'DRV-1' })).toContain('FACTOR-001');
+    expect(codes({ ...validExternal(), id: 'driver-1' })).toContain('FACTOR-001');
+  });
+
+  it('rejects the legacy FACTOR- id prefix (DRIVER is canonical post-rename)', () => {
+    expect(codes({ ...validExternal(), id: 'FACTOR-EU-REG-1' })).toContain('FACTOR-001');
   });
 
   it('flags a wrong notation tag and a non-canon zone', () => {

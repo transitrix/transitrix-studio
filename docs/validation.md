@@ -222,34 +222,42 @@ history.yaml`) and its own shape (`VERSIONED-001/002/003/005`) is validated
 generically by the existing element-sweep `checkSidecars` — only the
 inline-vs-sidecar placement check needed a second home.
 
-**Not resolved here: rendering a current value from the sidecar.** Neither
-`render-applications.ts` (`a.maturity`/`a.vendor`/`a.owner_role`) nor
-`render-capability-map.ts` (`node.current_maturity`/`target_maturity`)
-resolves a sidecar at load — both still read the field directly off the
-document they're given. `versioned-attribute/resolve.ts`
-(`resolveAttributes`/`resolveAttributeValue`, CONTRACT.md §9.2) exists and is
-exercised by the validator, but nothing wires it into either preview yet.
-Flagged rather than silently left broken or silently worked around.
+**Rendering a current value from the sidecar — resolved for capability-map,
+still open for applications.** `render-applications.ts`
+(`a.maturity`/`a.vendor`/`a.owner_role`) still reads the field directly off
+the document it's given — no sidecar resolution wired in yet.
+`render-capability-map.ts` and `capability-map/resolve-maturity.ts` (new)
+now resolve `current_maturity`/`target_maturity`/`owner_role`/`target_date`
+from the referenced `CAPABILITY-*` primitive's `.history.yaml` sidecar at a
+date, via `versioned-attribute/resolve.ts`
+(`resolveAttributes`/`resolveAttributeValue`, CONTRACT.md §9.2) — a display
+fallback only: an inline value on the document always wins, nothing here
+writes the resolved value back anywhere. The host-neutral
+`renderCapabilityMapHtml`/`renderCapabilityTreeSvg` path takes an optional
+resolution the caller supplies (mirrors `entry.ts`'s single-parsed-document
+shape — no folder access there, so nothing is resolved on that path); the
+VS Code extension host (`extension/src/capability-map-preview.ts`) is the
+one place with `canon/elements/**` access, so it's the one that actually
+reads sidecars and resolves, the same posture applications-catalogue's
+render-time resolution will need once it lands.
 
 **Not covered here: the native `capability-map` notation's own single-file
-view-document form** (`packages/diagrams/src/capability-map/{types,
-validate}.ts`, the `--scope=file`/VS Code "cards"/"tree" preview). Its worked
+view-document form still requiring `current_maturity` inline.** Its worked
 examples (`organizations/acme_corp/canon/views/capabilities/
 compliance-domain.capability-map.transitrix.yaml`, `.templates/
 capability-map_template.yaml`) and its `CMAP-003/005` validator all still
 require `current_maturity` inline on the view document's own capability
 nodes — which is itself inconsistent with CONTRACT.md §9's "not inline on the
 capability-map view **or** on the element file" wording, predating this
-epic. Unlike the DSM-migration `CAPABILITY-V1.yaml` + `.history.yaml` pairing
-above, this notation's inline tree carries no separate element file to hold
-a co-located sidecar, and its renderer (`render-capability-tree.ts`) reads
-`current_maturity` directly off each node for the maturity badge with no
-sidecar-resolution step. Reconciling it needs a design decision — does this
-self-contained preview format grow sidecar resolution (requiring the VS Code
-host to read `<id>.history.yaml` from elsewhere in the workspace), or does it
-stay exempt from §9 as a rendering convenience distinct from "the primitive"
-— not guessed at here. Flagged rather than silently left broken or silently
-changed.
+epic. **The render-time question this raised is settled** (the 2026-08-05
+packages decision): a nested capability-map entry references the
+`CAPABILITY-*` primitive by `id`, so maturity resolves through that
+primitive's own sidecar — no new per-nested-entry sidecar convention, same
+shape as the DSM-migration `CAPABILITY-V1.yaml` + `.history.yaml` pairing,
+and what the resolution above now implements. What remains open is only
+whether `CMAP-003` should stop *requiring* `current_maturity` inline (a
+validator-tightening question, not a render-pipeline one) — not guessed at
+here.
 
 ### Compliance suite (`--scope=repo`, #518)
 
