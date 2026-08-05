@@ -4,6 +4,8 @@
  * HTML fragment for the JCEF host (Step 4 of ADR 0001).
  */
 import type { CapabilityMapHeader, CapabilityNode } from '../capability-map/types.js';
+import type { ResolvedCapabilityAttributes } from '../capability-map/resolve-maturity.js';
+import { withResolvedCapabilityMap } from '../capability-map/resolve-maturity.js';
 import { escHtml } from './render-util.js';
 
 const MATURITY_LABEL: Record<number, string> = {
@@ -62,7 +64,26 @@ function renderCapabilityCard(node: CapabilityNode, depth: number): string {
 </div>`;
 }
 
-export function renderCapabilityMapHtml(map: CapabilityMapHeader): string {
+/**
+ * Resolved values for current_maturity/target_maturity/owner_role/
+ * target_date — sidecar-bound (CONTRACT.md §9.4) on the standalone
+ * CAPABILITY-* primitive a nested entry references (settled per the
+ * 2026-08-05 hub decision on proposal #1022 / #1028). The host resolves
+ * these upstream (see `capability-map/resolve-maturity.ts`) and passes the
+ * result in; this function stays a pure renderer of whatever it's given —
+ * no I/O, no write-back. `asOf` is the date the resolution ran at, shown so
+ * the view never states an undated value.
+ */
+export interface CapabilityMapMaturityResolution {
+  asOf: string;
+  byId: Map<string, ResolvedCapabilityAttributes>;
+}
+
+export function renderCapabilityMapHtml(
+  rawMap: CapabilityMapHeader,
+  resolution?: CapabilityMapMaturityResolution,
+): string {
+  const map = resolution ? withResolvedCapabilityMap(rawMap, resolution.byId) : rawMap;
   const header = `<header class="catalogue-header">
     <div class="catalogue-title">${escHtml(map.name)}</div>
     <div class="catalogue-meta">
@@ -70,6 +91,7 @@ export function renderCapabilityMapHtml(map: CapabilityMapHeader): string {
       <span class="catalogue-updated">Assessed ${escHtml(map.assessment_date)}</span>
     </div>
     ${map.description ? `<div class="catalogue-subtitle">${escHtml(map.description)}</div>` : ''}
+    ${resolution ? `<div class="catalogue-resolved-note">Current Maturity, Target Maturity, Owner Role, Target Date resolved as of ${escHtml(resolution.asOf)}</div>` : ''}
   </header>`;
   if (map.capabilities.length === 0) {
     return `<section class="tx-catalogue tx-capability-map">
