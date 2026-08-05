@@ -1,0 +1,25 @@
+# Worked example — NODE element primitive, cloud compute substrate.
+# Schema: notations/elements/25-nodes.md §2.
+
+notation: node
+id: NODE-KAFKA-HOST-1
+name: "Kafka Cluster Host"
+type: cloud_instance
+provider: "AWS"
+region: "eu-central-1"
+description: >
+  AWS EC2 auto-scaling group hosting the Kafka broker cluster for
+  asynchronous event streaming between platform services.
+
+# Admission record (CONTRACT.md §6)
+zone: canon
+admitted_at: "2026-06-28"
+admitted_by: "v.korobeinikov"
+gate_checks:
+  uniqueness: pass
+  consistency: pass
+  completeness: pass
+
+# Primitive lifecycle (CONTRACT.md §7)
+valid_from: "2024-01-01"
+valid_to: null

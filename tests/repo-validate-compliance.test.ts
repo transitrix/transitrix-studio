@@ -75,6 +75,11 @@ describe('repo-scope compliance catalogue (#518 C3)', () => {
       'canon/elements/01_motivation/constraints/CONSTRAINT-GDPR-RESIDENCY-1.yaml',
       'constraint/CONSTRAINT-GDPR-RESIDENCY-1.yaml',
     );
+    copyCorpus(
+      root,
+      'canon/elements/04_technology/nodes/NODE-KAFKA-HOST-1.yaml',
+      'node/NODE-KAFKA-HOST-1.yaml',
+    );
     for (const [rel, id, notation] of [
       ['canon/elements/03_application/applications/APPLICATION-OMS-1.yaml', 'APPLICATION-OMS-1', 'application'],
       ['canon/elements/03_application/applications/APPLICATION-CRM-1.yaml', 'APPLICATION-CRM-1', 'application'],
@@ -180,6 +185,15 @@ describe('repo-scope compliance catalogue (#518 C3)', () => {
     );
     // applies_to / owner_role resolve once APPLICATION-* and ROLE-DPO-1 are in the catalogue.
     expect(constraint).toEqual([]);
+  });
+
+  it('runComplianceValidate validates node elements', () => {
+    const ctx = buildRepoValidateContext(root);
+    const findings = runComplianceValidate(root, ctx);
+    const node = findings.filter(
+      (f) => f.file.endsWith('NODE-KAFKA-HOST-1.yaml') && f.severity === 'error',
+    );
+    expect(node).toEqual([]);
   });
 
   it('flags REQ-002 when derived_from codex id is missing from the catalogue', () => {

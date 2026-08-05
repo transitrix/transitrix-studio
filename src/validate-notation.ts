@@ -48,6 +48,7 @@ import { validateRisk } from '@transitrix/diagrams/risk/validate.js';
 import { validateMetric } from '@transitrix/diagrams/metric/validate.js';
 import { validateNeed } from '@transitrix/diagrams/need/validate.js';
 import { validateValidation } from '@transitrix/diagrams/validation/validate.js';
+import { validateNode } from '@transitrix/diagrams/node/validate.js';
 import { parseImpactViewConfig } from '@transitrix/diagrams/compliance/impact.js';
 import { parseCoverageMetricConfig } from '@transitrix/diagrams/compliance/coverage-metric.js';
 import {
@@ -211,6 +212,10 @@ const VALIDATORS: Record<string, NotationValidator> = {
   'coverage-metric': wrapValidator(validateCoverageMetricDoc),
   // Group C — codex zone (#518 Phase C2); `zone: codex`, not a notation: tag.
   codex: validateCodexDoc,
+  // Group D — standalone element-envelope validators under canon/elements/**
+  // that existed in the shared package but were never wired into repo-scope
+  // validate; wired in one notation at a time.
+  node: wrapValidator(validateNode),
 };
 
 /** Notation field values the CLI can validate per file. */
