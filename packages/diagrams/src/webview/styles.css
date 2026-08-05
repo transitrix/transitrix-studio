@@ -140,6 +140,12 @@ body {
   color: var(--tx-fg);
 }
 
+.catalogue-resolved-note {
+  margin-top: 6px;
+  color: var(--tx-muted);
+  font-size: 11px;
+}
+
 .catalogue-table {
   width: 100%;
   border-collapse: collapse;
