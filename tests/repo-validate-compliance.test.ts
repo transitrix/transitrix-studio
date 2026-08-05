@@ -77,6 +77,11 @@ describe('repo-scope compliance catalogue (#518 C3)', () => {
     );
     copyCorpus(
       root,
+      'canon/elements/01_motivation/factors/DRIVER-EU-REG-1.yaml',
+      'driver/DRIVER-EU-REG-1.yaml',
+    );
+    copyCorpus(
+      root,
       'canon/elements/02_business/actors/ACTOR-OPS-1.yaml',
       'actor/ACTOR-OPS-1.yaml',
     );
@@ -185,6 +190,16 @@ describe('repo-scope compliance catalogue (#518 C3)', () => {
     );
     // applies_to / owner_role resolve once APPLICATION-* and ROLE-DPO-1 are in the catalogue.
     expect(constraint).toEqual([]);
+  });
+
+  it('runComplianceValidate validates driver elements with catalogue', () => {
+    const ctx = buildRepoValidateContext(root);
+    const findings = runComplianceValidate(root, ctx);
+    const driver = findings.filter(
+      (f) => f.file.endsWith('DRIVER-EU-REG-1.yaml') && f.severity === 'error',
+    );
+    // references_constraint resolves against CONSTRAINT-GDPR-RESIDENCY-1, already in the catalogue.
+    expect(driver).toEqual([]);
   });
 
   it('runComplianceValidate validates actor elements', () => {
