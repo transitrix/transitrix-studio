@@ -92,6 +92,11 @@ describe('repo-scope compliance catalogue (#518 C3)', () => {
         '',
       ].join('\n'),
     );
+    copyCorpus(
+      root,
+      'canon/elements/01_motivation/factors/DRIVER-EU-REG-1.yaml',
+      'driver/DRIVER-EU-REG-1.yaml',
+    );
     for (const [rel, id, notation] of [
       ['canon/elements/03_application/applications/APPLICATION-OMS-1.yaml', 'APPLICATION-OMS-1', 'application'],
       ['canon/elements/03_application/applications/APPLICATION-CRM-1.yaml', 'APPLICATION-CRM-1', 'application'],
@@ -206,6 +211,16 @@ describe('repo-scope compliance catalogue (#518 C3)', () => {
       (f) => f.file.endsWith('CHANGE-TEST-1.yaml') && f.severity === 'error',
     );
     expect(change).toEqual([]);
+  });
+
+  it('runComplianceValidate validates driver elements with catalogue', () => {
+    const ctx = buildRepoValidateContext(root);
+    const findings = runComplianceValidate(root, ctx);
+    const driver = findings.filter(
+      (f) => f.file.endsWith('DRIVER-EU-REG-1.yaml') && f.severity === 'error',
+    );
+    // references_constraint resolves against CONSTRAINT-GDPR-RESIDENCY-1, already in the catalogue.
+    expect(driver).toEqual([]);
   });
 
   it('flags REQ-002 when derived_from codex id is missing from the catalogue', () => {
