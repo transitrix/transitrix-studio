@@ -465,7 +465,7 @@ export function runCodexValidate(root: string): ViewFinding[] {
  *  under `canon/assertions/**` with the repo catalogue (#518 Phase C3). Also
  *  sweeps other standalone element notations under `canon/elements/**` whose
  *  package validator is catalogue-aware and gets wired in here one notation
- *  at a time (STAKEHOLDER). */
+ *  at a time (DRIVER, ACTOR, CHANGE, STAKEHOLDER). */
 export function runComplianceValidate(root: string, ctx: RepoValidateContext): ViewFinding[] {
   const findings: ViewFinding[] = [];
   const validateOpts = { catalog: ctx.catalog };
@@ -499,6 +499,9 @@ export function runComplianceValidate(root: string, ctx: RepoValidateContext): V
       notation !== 'risk' &&
       notation !== 'metric' &&
       notation !== 'need' &&
+      notation !== 'driver' &&
+      notation !== 'actor' &&
+      notation !== 'change' &&
       notation !== 'stakeholder'
     ) continue;
     for (const f of validateNotationDoc(notation, data, validateOpts).findings) {

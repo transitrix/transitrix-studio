@@ -48,6 +48,9 @@ import { validateRisk } from '@transitrix/diagrams/risk/validate.js';
 import { validateMetric } from '@transitrix/diagrams/metric/validate.js';
 import { validateNeed } from '@transitrix/diagrams/need/validate.js';
 import { validateValidation } from '@transitrix/diagrams/validation/validate.js';
+import { validateFactor } from '@transitrix/diagrams/factor/validate.js';
+import { validateActor } from '@transitrix/diagrams/actor/validate.js';
+import { validateChange } from '@transitrix/diagrams/change/validate.js';
 import { validateStakeholder } from '@transitrix/diagrams/stakeholder/validate.js';
 import { parseImpactViewConfig } from '@transitrix/diagrams/compliance/impact.js';
 import { parseCoverageMetricConfig } from '@transitrix/diagrams/compliance/coverage-metric.js';
@@ -119,8 +122,16 @@ function validateValidationDoc(input: unknown, options: ValidateNotationOptions 
   return mapPackageResult(validateValidation(input, { catalog: options.catalog }));
 }
 
+function validateChangeDoc(input: unknown, options: ValidateNotationOptions = {}): NotationValidationResult {
+  return mapPackageResult(validateChange(input, { catalog: options.catalog }));
+}
+
 function validateStakeholderDoc(input: unknown, options: ValidateNotationOptions = {}): NotationValidationResult {
   return mapPackageResult(validateStakeholder(input, { catalog: options.catalog }));
+}
+
+function validateFactorDoc(input: unknown, options: ValidateNotationOptions = {}): NotationValidationResult {
+  return mapPackageResult(validateFactor(input, { catalog: options.catalog }));
 }
 
 function validateBlocksDoc(input: unknown, options: ValidateNotationOptions = {}): NotationValidationResult {
@@ -219,6 +230,9 @@ const VALIDATORS: Record<string, NotationValidator> = {
   // Group D — standalone element-envelope validators under canon/elements/**
   // that existed in the shared package but were never wired into repo-scope
   // validate; wired in one notation at a time.
+  change: validateChangeDoc,
+  driver: validateFactorDoc,
+  actor: wrapValidator(validateActor),
   stakeholder: validateStakeholderDoc,
 };
 
