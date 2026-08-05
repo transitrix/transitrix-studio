@@ -49,8 +49,12 @@ function shouldSkip(rel: string): boolean {
  *  references. Deliberately minimal (id only, no full RepoDoc/RepoFinding
  *  machinery): this is a pre-write existence check, not a validation pass,
  *  and an unreadable file is skipped rather than surfaced — a broken
- *  neighbour file must not block scaffolding a new one. */
-export function collectExistingCanonIds(root: string): Set<string> {
+ *  neighbour file must not block scaffolding a new one.
+ *
+ *  `excludeAbsPath`, when given, skips that one file — so a caller checking
+ *  an *existing* canon file's own id (e.g. `validate --fix` computing
+ *  `gate_checks.uniqueness`) doesn't trivially find itself. */
+export function collectExistingCanonIds(root: string, excludeAbsPath?: string): Set<string> {
   const ids = new Set<string>();
   for (const zone of ['elements', 'relations']) {
     let entries: string[] = [];
@@ -61,8 +65,10 @@ export function collectExistingCanonIds(root: string): Set<string> {
     }
     for (const rel of entries) {
       if (typeof rel !== 'string' || !isYaml(rel) || shouldSkip(rel)) continue;
+      const absPath = path.join(root, 'canon', zone, rel);
+      if (excludeAbsPath && path.resolve(absPath) === excludeAbsPath) continue;
       try {
-        const data = yaml.load(readFileSync(path.join(root, 'canon', zone, rel), 'utf-8'));
+        const data = yaml.load(readFileSync(absPath, 'utf-8'));
         if (data && typeof data === 'object' && !Array.isArray(data)) {
           const id = (data as Record<string, unknown>).id;
           if (typeof id === 'string' && id) ids.add(id);
