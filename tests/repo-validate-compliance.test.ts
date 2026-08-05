@@ -75,6 +75,52 @@ describe('repo-scope compliance catalogue (#518 C3)', () => {
       'canon/elements/01_motivation/constraints/CONSTRAINT-GDPR-RESIDENCY-1.yaml',
       'constraint/CONSTRAINT-GDPR-RESIDENCY-1.yaml',
     );
+    write(
+      root,
+      'canon/elements/05_implementation/changes/CHANGE-TEST-1.yaml',
+      [
+        'notation: change',
+        'id: CHANGE-TEST-1',
+        'name: CHANGE-TEST-1',
+        'zone: canon',
+        'admitted_at: "2026-06-01"',
+        'admitted_by: test',
+        'gate_checks:',
+        '  uniqueness: pass',
+        'valid_from: "2026-01-01"',
+        'valid_to: null',
+        '',
+      ].join('\n'),
+    );
+    copyCorpus(
+      root,
+      'canon/elements/01_motivation/factors/DRIVER-EU-REG-1.yaml',
+      'driver/DRIVER-EU-REG-1.yaml',
+    );
+    copyCorpus(
+      root,
+      'canon/elements/02_business/actors/ACTOR-OPS-1.yaml',
+      'actor/ACTOR-OPS-1.yaml',
+    );
+    write(
+      root,
+      'canon/elements/01_motivation/stakeholders/STAKEHOLDER-TEST-1.yaml',
+      [
+        'notation: stakeholder',
+        'id: STAKEHOLDER-TEST-1',
+        'name: STAKEHOLDER-TEST-1',
+        'type: internal',
+        'actor: ACTOR-OPS-1',
+        'zone: canon',
+        'admitted_at: "2026-06-01"',
+        'admitted_by: test',
+        'gate_checks:',
+        '  uniqueness: pass',
+        'valid_from: "2026-01-01"',
+        'valid_to: null',
+        '',
+      ].join('\n'),
+    );
     copyCorpus(
       root,
       'canon/elements/04_technology/services/TECHNOLOGY_SERVICE-ORDER-API-GW-1.yaml',
@@ -185,6 +231,43 @@ describe('repo-scope compliance catalogue (#518 C3)', () => {
     );
     // applies_to / owner_role resolve once APPLICATION-* and ROLE-DPO-1 are in the catalogue.
     expect(constraint).toEqual([]);
+  });
+
+  it('runComplianceValidate validates change elements', () => {
+    const ctx = buildRepoValidateContext(root);
+    const findings = runComplianceValidate(root, ctx);
+    const change = findings.filter(
+      (f) => f.file.endsWith('CHANGE-TEST-1.yaml') && f.severity === 'error',
+    );
+    expect(change).toEqual([]);
+  });
+
+  it('runComplianceValidate validates driver elements with catalogue', () => {
+    const ctx = buildRepoValidateContext(root);
+    const findings = runComplianceValidate(root, ctx);
+    const driver = findings.filter(
+      (f) => f.file.endsWith('DRIVER-EU-REG-1.yaml') && f.severity === 'error',
+    );
+    // references_constraint resolves against CONSTRAINT-GDPR-RESIDENCY-1, already in the catalogue.
+    expect(driver).toEqual([]);
+  });
+
+  it('runComplianceValidate validates actor elements', () => {
+    const ctx = buildRepoValidateContext(root);
+    const findings = runComplianceValidate(root, ctx);
+    const actor = findings.filter(
+      (f) => f.file.endsWith('ACTOR-OPS-1.yaml') && f.severity === 'error',
+    );
+    expect(actor).toEqual([]);
+  });
+
+  it('runComplianceValidate validates stakeholder elements', () => {
+    const ctx = buildRepoValidateContext(root);
+    const findings = runComplianceValidate(root, ctx);
+    const stakeholder = findings.filter(
+      (f) => f.file.endsWith('STAKEHOLDER-TEST-1.yaml') && f.severity === 'error',
+    );
+    expect(stakeholder).toEqual([]);
   });
 
   it('runComplianceValidate validates technology-service elements', () => {
