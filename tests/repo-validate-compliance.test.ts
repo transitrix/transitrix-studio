@@ -102,6 +102,25 @@ describe('repo-scope compliance catalogue (#518 C3)', () => {
       'canon/elements/02_business/actors/ACTOR-OPS-1.yaml',
       'actor/ACTOR-OPS-1.yaml',
     );
+    write(
+      root,
+      'canon/elements/01_motivation/stakeholders/STAKEHOLDER-TEST-1.yaml',
+      [
+        'notation: stakeholder',
+        'id: STAKEHOLDER-TEST-1',
+        'name: STAKEHOLDER-TEST-1',
+        'type: internal',
+        'actor: ACTOR-OPS-1',
+        'zone: canon',
+        'admitted_at: "2026-06-01"',
+        'admitted_by: test',
+        'gate_checks:',
+        '  uniqueness: pass',
+        'valid_from: "2026-01-01"',
+        'valid_to: null',
+        '',
+      ].join('\n'),
+    );
     for (const [rel, id, notation] of [
       ['canon/elements/03_application/applications/APPLICATION-OMS-1.yaml', 'APPLICATION-OMS-1', 'application'],
       ['canon/elements/03_application/applications/APPLICATION-CRM-1.yaml', 'APPLICATION-CRM-1', 'application'],
@@ -235,6 +254,15 @@ describe('repo-scope compliance catalogue (#518 C3)', () => {
       (f) => f.file.endsWith('ACTOR-OPS-1.yaml') && f.severity === 'error',
     );
     expect(actor).toEqual([]);
+  });
+
+  it('runComplianceValidate validates stakeholder elements', () => {
+    const ctx = buildRepoValidateContext(root);
+    const findings = runComplianceValidate(root, ctx);
+    const stakeholder = findings.filter(
+      (f) => f.file.endsWith('STAKEHOLDER-TEST-1.yaml') && f.severity === 'error',
+    );
+    expect(stakeholder).toEqual([]);
   });
 
   it('flags REQ-002 when derived_from codex id is missing from the catalogue', () => {

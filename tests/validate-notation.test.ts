@@ -31,6 +31,7 @@ import { validateCodex } from '../packages/diagrams/src/codex/validate.js';
 import { validateFactor } from '../packages/diagrams/src/factor/validate.js';
 import { validateActor } from '../packages/diagrams/src/actor/validate.js';
 import { validateChange } from '../packages/diagrams/src/change/validate.js';
+import { validateStakeholder } from '../packages/diagrams/src/stakeholder/validate.js';
 
 const corpusRoot = join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'notation-corpus');
 
@@ -64,7 +65,7 @@ const GROUP_C = [
 
 // Group D — standalone canon/elements/** envelope validators wired in one
 // notation at a time (previously dead code, called from nowhere).
-const GROUP_D = ['driver', 'actor', 'change'];
+const GROUP_D = ['driver', 'actor', 'change', 'stakeholder'];
 
 const ALL_NOTATIONS = [...GROUP_A, ...GROUP_B, ...GROUP_C, ...GROUP_D];
 
@@ -175,7 +176,7 @@ describe('validate-notation — the view notation corpus validates clean (#258)'
 });
 
 describe('validate-notation — element notation corpus validates clean (#518 C1)', () => {
-  for (const notation of ['requirement', 'assertion', 'verification', 'risk', 'metric', 'need', 'validation', 'driver', 'actor', 'change'] as const) {
+  for (const notation of ['requirement', 'assertion', 'verification', 'risk', 'metric', 'need', 'validation', 'driver', 'actor', 'change', 'stakeholder'] as const) {
     for (const file of elementFixtures(notation)) {
       const name = file.slice(corpusRoot.length + 1).replace(/\\/g, '/');
       it(`${name} → valid`, () => {
@@ -347,6 +348,15 @@ describe('validate-notation — parity with the preview validator (#258, #518 C1
     const broken = { notation: 'change' };
     const raw = validateChange(broken);
     const report = validateNotationDoc('change', broken);
+    expect(report.isValid).toBe(raw.valid);
+    expect(report.findings.filter((f) => f.severity === 'error').map((f) => f.ruleId))
+      .toEqual(raw.errors.map((e) => e.code));
+  });
+
+  it('stakeholder: CLI findings mirror validateStakeholder exactly', () => {
+    const broken = { notation: 'stakeholder' };
+    const raw = validateStakeholder(broken);
+    const report = validateNotationDoc('stakeholder', broken);
     expect(report.isValid).toBe(raw.valid);
     expect(report.findings.filter((f) => f.severity === 'error').map((f) => f.ruleId))
       .toEqual(raw.errors.map((e) => e.code));
