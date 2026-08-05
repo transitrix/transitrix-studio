@@ -104,5 +104,17 @@ describe('parseValidateArgv (#141 — validate scope)', () => {
   it('signals --template without a value', () => {
     expect(parseValidateArgv(['--template'])).toEqual({ ok: false, error: '--template_requires_value' });
   });
+
+  it('parses --fix, --dry-run, and --author (both separate and = forms)', () => {
+    expect(parseValidateArgv(['model.yaml'])).toMatchObject({ ok: true, fix: false, dryRun: false, author: undefined });
+    expect(parseValidateArgv(['model.yaml', '--fix'])).toMatchObject({ ok: true, fix: true });
+    expect(parseValidateArgv(['model.yaml', '--fix', '--dry-run'])).toMatchObject({ ok: true, fix: true, dryRun: true });
+    expect(parseValidateArgv(['model.yaml', '--fix', '--author', 'a.b'])).toMatchObject({ ok: true, author: 'a.b' });
+    expect(parseValidateArgv(['model.yaml', '--fix', '--author=a.b'])).toMatchObject({ ok: true, author: 'a.b' });
+  });
+
+  it('signals --author without a value', () => {
+    expect(parseValidateArgv(['--author'])).toEqual({ ok: false, error: '--author_requires_value' });
+  });
 });
 

@@ -71,10 +71,17 @@ if (!baseSha || !headSha) {
   process.exit(2);
 }
 
+// Ensure base is present. Never use `--depth=1` here: on a full checkout
+// (fetch-depth: 0) it converts the clone to shallow and breaks `base..head`
+// ancestry, so merge commits list unrelated history already on main.
 try {
-  execSync(`git fetch --no-tags --depth=1 origin ${baseSha}`, { stdio: 'pipe' });
+  execSync(`git cat-file -e ${baseSha}^{commit}`, { stdio: 'pipe' });
 } catch {
-  // Fallback: rely on existing fetch depth from checkout step.
+  try {
+    execSync(`git fetch --no-tags origin ${baseSha}`, { stdio: 'pipe' });
+  } catch {
+    // Fallback: rely on existing fetch from the checkout step.
+  }
 }
 
 let diff;

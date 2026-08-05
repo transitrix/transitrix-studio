@@ -25,11 +25,12 @@ import { validateProcessMap } from '../packages/diagrams/src/process-map/validat
 import { validateRequirement } from '../packages/diagrams/src/requirement/validate.js';
 import { validateAssertion } from '../packages/diagrams/src/assertion/validate.js';
 import { validateVerification } from '../packages/diagrams/src/verification/validate.js';
-import { validateChange } from '../packages/diagrams/src/change/validate.js';
 import { parseImpactViewConfig } from '../packages/diagrams/src/compliance/impact.js';
 import { parseCoverageMetricConfig } from '../packages/diagrams/src/compliance/coverage-metric.js';
 import { validateCodex } from '../packages/diagrams/src/codex/validate.js';
 import { validateFactor } from '../packages/diagrams/src/factor/validate.js';
+import { validateActor } from '../packages/diagrams/src/actor/validate.js';
+import { validateChange } from '../packages/diagrams/src/change/validate.js';
 
 const corpusRoot = join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'notation-corpus');
 
@@ -63,7 +64,7 @@ const GROUP_C = [
 
 // Group D — standalone canon/elements/** envelope validators wired in one
 // notation at a time (previously dead code, called from nowhere).
-const GROUP_D = ['change', 'driver'];
+const GROUP_D = ['driver', 'actor', 'change'];
 
 const ALL_NOTATIONS = [...GROUP_A, ...GROUP_B, ...GROUP_C, ...GROUP_D];
 
@@ -174,7 +175,7 @@ describe('validate-notation — the view notation corpus validates clean (#258)'
 });
 
 describe('validate-notation — element notation corpus validates clean (#518 C1)', () => {
-  for (const notation of ['requirement', 'assertion', 'verification', 'risk', 'metric', 'need', 'validation', 'change', 'driver'] as const) {
+const GROUP_D = ['driver', 'actor', 'change'];
     for (const file of elementFixtures(notation)) {
       const name = file.slice(corpusRoot.length + 1).replace(/\\/g, '/');
       it(`${name} → valid`, () => {
@@ -309,6 +310,15 @@ describe('validate-notation — parity with the preview validator (#258, #518 C1
     const broken = { notation: 'driver' };
     const raw = validateFactor(broken);
     const report = validateNotationDoc('driver', broken);
+    expect(report.isValid).toBe(raw.valid);
+    expect(report.findings.filter((f) => f.severity === 'error').map((f) => f.ruleId))
+      .toEqual(raw.errors.map((e) => e.code));
+  });
+
+  it('actor: CLI findings mirror validateActor exactly', () => {
+    const broken = { notation: 'actor' };
+    const raw = validateActor(broken);
+    const report = validateNotationDoc('actor', broken);
     expect(report.isValid).toBe(raw.valid);
     expect(report.findings.filter((f) => f.severity === 'error').map((f) => f.ruleId))
       .toEqual(raw.errors.map((e) => e.code));
