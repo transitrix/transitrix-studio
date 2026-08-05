@@ -3,19 +3,19 @@
 // target_date — 05-capability-map.md §13/§14, CONTRACT.md §9.4).
 // check-versioned-attributes.ts's VERSIONED-004 already rejects these inline
 // on the standalone CAPABILITY-*.yaml primitive; a nested capability-map
-// entry references that same primitive by id (settled per the 2026-08-05
-// hub decision on proposal #1022 / #1028 — Option 2, no separate
-// per-nested-entry sidecar convention), so this resolves the same way
-// applications/resolve-maturity.ts does for the applications catalogue.
+// entry references that same primitive by id (the 2026-08-05 packages
+// decision — no separate per-nested-entry sidecar convention), so this
+// resolves the same way applications/resolve-maturity.ts does for the
+// applications catalogue.
 //
 // Pure: no I/O, no repo walk. The host (VS Code extension, IntelliJ/JCEF,
 // CLI) already owns loading canon/elements/** — this module only knows how
 // to pick sidecars out of that pool and resolve them at a date.
 //
-// Per the 2026-08-05 hub decision (proposal #1022): this is a read model,
-// never storage. Callers render an augmented, ephemeral copy of the
-// capability tree and must never serialise it back — the sidecar stays the
-// only place these fields are written.
+// Per the 2026-08-05 packages decision: this is a read model, never
+// storage. Callers render an augmented, ephemeral copy of the capability
+// tree and must never serialise it back — the sidecar stays the only place
+// these fields are written.
 
 import { parseSidecar, resolveAttributes } from '../versioned-attribute/index.js';
 import type { CapabilityMapHeader, CapabilityNode } from './types.js';

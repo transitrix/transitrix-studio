@@ -12,6 +12,8 @@ import type {
   ApplicationIntegration,
   ApplicationsCatalogueHeader,
 } from '../applications/types.js';
+import type { ResolvedApplicationAttributes } from '../applications/resolve-maturity.js';
+import { withResolvedAttributes } from '../applications/resolve-maturity.js';
 import { escHtml } from './render-util.js';
 
 const TYPE_LABEL: Record<string, string> = {
@@ -86,8 +88,28 @@ function renderRow(a: Application): string {
 </tr>`;
 }
 
-export function renderApplicationsHtml(catalogue: ApplicationsCatalogueHeader): string {
-  const rows = catalogue.applications.map(renderRow).join('\n');
+/**
+ * Resolved values for owner_role/vendor/maturity — sidecar-bound
+ * (CONTRACT.md §9.4) and never inline on an admitted catalogue entry
+ * (VERSIONED-004). The host resolves these upstream (see
+ * `applications/resolve-maturity.ts`) and passes the result in; this
+ * function stays a pure renderer of whatever it's given — no I/O, no
+ * write-back. `asOf` is the date the resolution ran at, shown so the view
+ * never states an undated value.
+ */
+export interface ApplicationsMaturityResolution {
+  asOf: string;
+  byAppId: Map<string, ResolvedApplicationAttributes>;
+}
+
+export function renderApplicationsHtml(
+  catalogue: ApplicationsCatalogueHeader,
+  resolution?: ApplicationsMaturityResolution,
+): string {
+  const applications = resolution
+    ? catalogue.applications.map((a) => withResolvedAttributes(a, resolution.byAppId))
+    : catalogue.applications;
+  const rows = applications.map(renderRow).join('\n');
   const emptyRow = catalogue.applications.length === 0
     ? `<tr><td colspan="7" class="empty-catalogue">No applications defined.</td></tr>`
     : '';
@@ -99,6 +121,7 @@ export function renderApplicationsHtml(catalogue: ApplicationsCatalogueHeader): 
       ${catalogue.version ? `<span class="catalogue-version">v${escHtml(catalogue.version)}</span>` : ''}
     </div>
     ${catalogue.description ? `<div class="catalogue-subtitle">${escHtml(catalogue.description)}</div>` : ''}
+    ${resolution ? `<div class="catalogue-resolved-note">Owner Role, Vendor, Maturity resolved as of ${escHtml(resolution.asOf)}</div>` : ''}
   </header>`;
   return `<section class="tx-catalogue tx-applications">
 ${header}

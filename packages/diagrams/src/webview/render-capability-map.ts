@@ -67,8 +67,8 @@ function renderCapabilityCard(node: CapabilityNode, depth: number): string {
 /**
  * Resolved values for current_maturity/target_maturity/owner_role/
  * target_date — sidecar-bound (CONTRACT.md §9.4) on the standalone
- * CAPABILITY-* primitive a nested entry references (settled per the
- * 2026-08-05 hub decision on proposal #1022 / #1028). The host resolves
+ * CAPABILITY-* primitive a nested entry references (the 2026-08-05
+ * packages decision). The host resolves
  * these upstream (see `capability-map/resolve-maturity.ts`) and passes the
  * result in; this function stays a pure renderer of whatever it's given —
  * no I/O, no write-back. `asOf` is the date the resolution ran at, shown so

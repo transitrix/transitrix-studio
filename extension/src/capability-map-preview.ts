@@ -213,10 +213,10 @@ export class CapabilityMapPreview {
 
   /** Sidecar-bound fields (CONTRACT.md §9.4) never live inline on an admitted
    *  CAPABILITY-* primitive (VERSIONED-004) — a nested capability-map entry
-   *  references that same primitive by id (settled per the 2026-08-05 hub
-   *  decision on proposal #1022 / #1028), so resolve them from
-   *  canon/elements/** the same way applications-preview.ts does. A read
-   *  model only: the result is never written anywhere. */
+   *  references that same primitive by id (the 2026-08-05 packages
+   *  decision), so resolve them from canon/elements/** the same way
+   *  applications-preview.ts does. A read model only: the result is never
+   *  written anywhere. */
   private async resolveMaturity(
     fileUri: vscode.Uri,
   ): Promise<{ byId: Map<string, ResolvedCapabilityAttributes>; asOf: string }> {

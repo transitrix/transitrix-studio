@@ -249,15 +249,15 @@ capability-map_template.yaml`) and its `CMAP-003/005` validator all still
 require `current_maturity` inline on the view document's own capability
 nodes — which is itself inconsistent with CONTRACT.md §9's "not inline on the
 capability-map view **or** on the element file" wording, predating this
-epic. **The render-time question this raised is settled** (2026-08-05 hub
-decision on proposal #1022/#1028, option 2): a nested capability-map entry
-references the `CAPABILITY-*` primitive by `id`, so maturity resolves
-through that primitive's own sidecar — no new per-nested-entry sidecar
-convention, same shape as the DSM-migration `CAPABILITY-V1.yaml` +
-`.history.yaml` pairing, and what the resolution above now implements. What
-remains open is only whether `CMAP-003` should stop *requiring*
-`current_maturity` inline (a validator-tightening question, not a
-render-pipeline one) — not guessed at here.
+epic. **The render-time question this raised is settled** (the 2026-08-05
+packages decision): a nested capability-map entry references the
+`CAPABILITY-*` primitive by `id`, so maturity resolves through that
+primitive's own sidecar — no new per-nested-entry sidecar convention, same
+shape as the DSM-migration `CAPABILITY-V1.yaml` + `.history.yaml` pairing,
+and what the resolution above now implements. What remains open is only
+whether `CMAP-003` should stop *requiring* `current_maturity` inline (a
+validator-tightening question, not a render-pipeline one) — not guessed at
+here.
 
 ### Compliance suite (`--scope=repo`, #518)
 
