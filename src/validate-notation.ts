@@ -49,6 +49,7 @@ import { validateMetric } from '@transitrix/diagrams/metric/validate.js';
 import { validateNeed } from '@transitrix/diagrams/need/validate.js';
 import { validateValidation } from '@transitrix/diagrams/validation/validate.js';
 import { validateFactor } from '@transitrix/diagrams/factor/validate.js';
+import { validateActor } from '@transitrix/diagrams/actor/validate.js';
 import { parseImpactViewConfig } from '@transitrix/diagrams/compliance/impact.js';
 import { parseCoverageMetricConfig } from '@transitrix/diagrams/compliance/coverage-metric.js';
 import {
@@ -220,6 +221,7 @@ const VALIDATORS: Record<string, NotationValidator> = {
   // that existed in the shared package but were never wired into repo-scope
   // validate; wired in one notation at a time.
   driver: validateFactorDoc,
+  actor: wrapValidator(validateActor),
 };
 
 /** Notation field values the CLI can validate per file. */
