@@ -1,0 +1,24 @@
+# Worked example — TECHNOLOGY_SERVICE element primitive, database service.
+# Schema: notations/elements/26-technology-services.md §2.
+
+notation: technology-service
+id: TECHNOLOGY_SERVICE-OMS-DATABASE-1
+name: "Order Management Database Service"
+type: database
+node: NODE-DB-PRIMARY-1
+description: >
+  PostgreSQL database service exposed by the primary database host to
+  the order-management application.
+
+# Admission record (CONTRACT.md §6)
+zone: canon
+admitted_at: "2026-06-28"
+admitted_by: "v.korobeinikov"
+gate_checks:
+  uniqueness: pass
+  consistency: pass
+  completeness: pass
+
+# Primitive lifecycle (CONTRACT.md §7)
+valid_from: "2023-09-01"
+valid_to: null
