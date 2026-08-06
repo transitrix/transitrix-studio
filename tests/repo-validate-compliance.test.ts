@@ -121,6 +121,33 @@ describe('repo-scope compliance catalogue (#518 C3)', () => {
         '',
       ].join('\n'),
     );
+    write(
+      root,
+      'canon/elements/04_technology/target-states/TARGET_STATE-TEST-1.yaml',
+      [
+        'notation: target-state',
+        'id: TARGET_STATE-TEST-1',
+        'name: TARGET_STATE-TEST-1',
+        'zone: canon',
+        'admitted_at: "2026-06-01"',
+        'admitted_by: test',
+        'gate_checks:',
+        '  uniqueness: pass',
+        'valid_from: "2026-01-01"',
+        'valid_to: null',
+        '',
+      ].join('\n'),
+    );
+    copyCorpus(
+      root,
+      'canon/elements/02_business/locations/LOCATION-GE-1.yaml',
+      'location/LOCATION-GE-1.yaml',
+    );
+    copyCorpus(
+      root,
+      'canon/elements/02_business/locations/LOCATION-TBILISI-1.yaml',
+      'location/LOCATION-TBILISI-1.yaml',
+    );
     copyCorpus(
       root,
       'canon/elements/04_technology/services/TECHNOLOGY_SERVICE-ORDER-API-GW-1.yaml',
@@ -268,6 +295,24 @@ describe('repo-scope compliance catalogue (#518 C3)', () => {
       (f) => f.file.endsWith('STAKEHOLDER-TEST-1.yaml') && f.severity === 'error',
     );
     expect(stakeholder).toEqual([]);
+  });
+
+  it('runComplianceValidate validates target-state elements', () => {
+    const ctx = buildRepoValidateContext(root);
+    const findings = runComplianceValidate(root, ctx);
+    const targetState = findings.filter(
+      (f) => f.file.endsWith('TARGET_STATE-TEST-1.yaml') && f.severity === 'error',
+    );
+    expect(targetState).toEqual([]);
+  });
+
+  it('runComplianceValidate validates location elements', () => {
+    const ctx = buildRepoValidateContext(root);
+    const findings = runComplianceValidate(root, ctx);
+    const location = findings.filter(
+      (f) => f.file.endsWith('LOCATION-TBILISI-1.yaml') && f.severity === 'error',
+    );
+    expect(location).toEqual([]);
   });
 
   it('runComplianceValidate validates technology-service elements', () => {

@@ -25,6 +25,7 @@ import { validateProcessMap } from '../packages/diagrams/src/process-map/validat
 import { validateRequirement } from '../packages/diagrams/src/requirement/validate.js';
 import { validateAssertion } from '../packages/diagrams/src/assertion/validate.js';
 import { validateVerification } from '../packages/diagrams/src/verification/validate.js';
+import { validateTargetState } from '../packages/diagrams/src/target-state/validate.js';
 import { parseImpactViewConfig } from '../packages/diagrams/src/compliance/impact.js';
 import { parseCoverageMetricConfig } from '../packages/diagrams/src/compliance/coverage-metric.js';
 import { validateCodex } from '../packages/diagrams/src/codex/validate.js';
@@ -32,6 +33,7 @@ import { validateFactor } from '../packages/diagrams/src/factor/validate.js';
 import { validateActor } from '../packages/diagrams/src/actor/validate.js';
 import { validateChange } from '../packages/diagrams/src/change/validate.js';
 import { validateStakeholder } from '../packages/diagrams/src/stakeholder/validate.js';
+import { validateLocation } from '../packages/diagrams/src/location/validate.js';
 import { validateTechnologyService } from '../packages/diagrams/src/technology-service/validate.js';
 
 const corpusRoot = join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'notation-corpus');
@@ -66,7 +68,7 @@ const GROUP_C = [
 
 // Group D — standalone canon/elements/** envelope validators wired in one
 // notation at a time (previously dead code, called from nowhere).
-const GROUP_D = ['driver', 'actor', 'change', 'stakeholder', 'technology-service'];
+const GROUP_D = ['driver', 'actor', 'change', 'stakeholder', 'target-state', 'location', 'technology-service'];
 
 const ALL_NOTATIONS = [...GROUP_A, ...GROUP_B, ...GROUP_C, ...GROUP_D];
 
@@ -177,7 +179,7 @@ describe('validate-notation — the view notation corpus validates clean (#258)'
 });
 
 describe('validate-notation — element notation corpus validates clean (#518 C1)', () => {
-  for (const notation of ['requirement', 'assertion', 'verification', 'risk', 'metric', 'need', 'validation', 'driver', 'actor', 'change', 'stakeholder', 'technology-service'] as const) {
+  for (const notation of ['requirement', 'assertion', 'verification', 'risk', 'metric', 'need', 'validation', 'driver', 'actor', 'change', 'stakeholder', 'target-state', 'location', 'technology-service'] as const) {
     for (const file of elementFixtures(notation)) {
       const name = file.slice(corpusRoot.length + 1).replace(/\\/g, '/');
       it(`${name} → valid`, () => {
@@ -363,6 +365,15 @@ describe('validate-notation — parity with the preview validator (#258, #518 C1
       .toEqual(raw.errors.map((e) => e.code));
   });
 
+  it('target-state: CLI findings mirror validateTargetState exactly', () => {
+    const broken = { notation: 'target-state' };
+    const raw = validateTargetState(broken);
+    const report = validateNotationDoc('target-state', broken);
+    expect(report.isValid).toBe(raw.valid);
+    expect(report.findings.filter((f) => f.severity === 'error').map((f) => f.ruleId))
+      .toEqual(raw.errors.map((e) => e.code));
+  });
+
   it('compliance-impact: structural errors map to COMPIMP-001', () => {
     const broken = { notation: 'compliance-impact', view: { name: 'X' } };
     const raw = parseImpactViewConfig(broken);
@@ -380,6 +391,15 @@ describe('validate-notation — parity with the preview validator (#258, #518 C1
     const report = validateNotationDoc('coverage-metric', broken);
     expect(report.isValid).toBe(false);
     expect(report.findings.filter((f) => f.severity === 'error').length).toBe(raw.errors.length);
+  });
+
+  it('location: CLI findings mirror validateLocation exactly', () => {
+    const broken = { notation: 'location' };
+    const raw = validateLocation(broken);
+    const report = validateNotationDoc('location', broken);
+    expect(report.isValid).toBe(raw.valid);
+    expect(report.findings.filter((f) => f.severity === 'error').map((f) => f.ruleId))
+      .toEqual(raw.errors.map((e) => e.code));
   });
 
   it('technology-service: CLI findings mirror validateTechnologyService exactly', () => {

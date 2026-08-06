@@ -1,0 +1,25 @@
+# Worked example — LOCATION element primitive (office, with parent).
+# Schema: notations/elements/21-locations.md + ELEMENT_PRIMITIVES.md §3.
+
+notation: location
+id: LOCATION-TBILISI-1
+name: "Tbilisi Office"
+type: office                            # country | region | city | site | office | virtual
+address: "14 Rustaveli Ave, Tbilisi 0108, Georgia"
+country_code: "GE"
+timezone: "Asia/Tbilisi"
+parent: LOCATION-GE-1
+description: "Main office in Tbilisi, Rustaveli Avenue."
+
+# Admission record (CONTRACT.md §6)
+zone: canon
+admitted_at: "2026-06-26"
+admitted_by: "v.korobeinikov"
+gate_checks:
+  uniqueness: pass
+  consistency: pass
+  completeness: pass
+
+# Primitive lifecycle (CONTRACT.md §7)
+valid_from: "2024-01-01"
+valid_to: null
