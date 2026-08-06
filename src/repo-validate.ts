@@ -50,6 +50,7 @@ import {
   resolveValidatorKey,
   loadNotationYaml,
 } from './validate-notation.js';
+import { VALIDATOR_REGISTRATIONS, type ComplianceSweepDir } from './notation-registry.js';
 import { parseYamlToIr } from './parser.js';
 import { validateProcess } from './validator.js';
 
@@ -461,24 +462,42 @@ export function runCodexValidate(root: string): ViewFinding[] {
   return findings;
 }
 
-/** Validate REQUIREMENT elements under `canon/elements/**` and ASSERTION files
- *  under `canon/assertions/**` with the repo catalogue (#518 Phase C3). Also
- *  sweeps other standalone element notations under `canon/elements/**` whose
- *  package validator is catalogue-aware and gets wired in here one notation
- *  at a time (DRIVER, ACTOR, CHANGE, STAKEHOLDER, TARGET_STATE, LOCATION). */
-export function runComplianceValidate(root: string, ctx: RepoValidateContext): ViewFinding[] {
-  const findings: ViewFinding[] = [];
-  const validateOpts = { catalog: ctx.catalog };
-
-  let elementEntries: string[] = [];
-  try {
-    elementEntries = readdirSync(path.join(root, 'canon', 'elements'), { recursive: true }) as string[];
-  } catch {
-    elementEntries = [];
+/** The subdirectory under `canon/` each `ComplianceSweepDir` maps to, and the
+ *  set of notations swept from it — derived from the registry, never
+ *  hardcoded, so a new notation opting into a sweep is a `src/validators/`
+ *  file change only. */
+function complianceSweepPlan(): Map<ComplianceSweepDir, Set<string>> {
+  const plan = new Map<ComplianceSweepDir, Set<string>>();
+  for (const reg of VALIDATOR_REGISTRATIONS) {
+    if (!reg.complianceSweepDir) continue;
+    let notations = plan.get(reg.complianceSweepDir);
+    if (!notations) {
+      notations = new Set();
+      plan.set(reg.complianceSweepDir, notations);
+    }
+    notations.add(reg.notation);
   }
-  for (const rel of elementEntries) {
+  return plan;
+}
+
+/** Validate every standalone element file under `canon/<dir>/**` whose
+ *  `notation:` is in `notations`, with the repo catalogue (#518 Phase C3). */
+function sweepComplianceDir(
+  root: string,
+  dir: string,
+  notations: Set<string>,
+  validateOpts: { catalog: RepoValidateContext['catalog'] },
+  findings: ViewFinding[],
+): void {
+  let entries: string[] = [];
+  try {
+    entries = readdirSync(path.join(root, 'canon', dir), { recursive: true }) as string[];
+  } catch {
+    entries = [];
+  }
+  for (const rel of entries) {
     if (typeof rel !== 'string' || !isYaml(rel) || shouldSkip(rel)) continue;
-    const fullRel = path.join('canon', 'elements', rel).replace(/\\/g, '/');
+    const fullRel = path.join('canon', dir, rel).replace(/\\/g, '/');
     let data: unknown;
     try {
       data = loadNotationYaml(readFileSync(path.join(root, fullRel), 'utf-8'));
@@ -493,19 +512,7 @@ export function runComplianceValidate(root: string, ctx: RepoValidateContext): V
       continue;
     }
     const notation = notationOf(data);
-    if (
-      notation !== 'requirement' &&
-      notation !== 'constraint' &&
-      notation !== 'risk' &&
-      notation !== 'metric' &&
-      notation !== 'need' &&
-      notation !== 'driver' &&
-      notation !== 'actor' &&
-      notation !== 'change' &&
-      notation !== 'stakeholder' &&
-      notation !== 'target-state' &&
-      notation !== 'location'
-    ) continue;
+    if (!notation || !notations.has(notation)) continue;
     for (const f of validateNotationDoc(notation, data, validateOpts).findings) {
       if (f.severity === 'info') continue;
       findings.push({
@@ -517,115 +524,20 @@ export function runComplianceValidate(root: string, ctx: RepoValidateContext): V
       });
     }
   }
+}
 
-  let assertionEntries: string[] = [];
-  try {
-    assertionEntries = readdirSync(path.join(root, 'canon', 'assertions'), { recursive: true }) as string[];
-  } catch {
-    assertionEntries = [];
+/** Sweep every notation registered with a `complianceSweepDir` — standalone
+ *  element files under `canon/elements/**`, `canon/assertions/**`,
+ *  `canon/verifications/**`, and `canon/validations/**` — with the repo
+ *  catalogue (#518 Phase C3). Which notations get swept from which directory
+ *  is discovered from the registry (HUB-1044 / vkgeorgia/strategy#1052), not
+ *  hardcoded here. */
+export function runComplianceValidate(root: string, ctx: RepoValidateContext): ViewFinding[] {
+  const findings: ViewFinding[] = [];
+  const validateOpts = { catalog: ctx.catalog };
+  for (const [dir, notations] of complianceSweepPlan()) {
+    sweepComplianceDir(root, dir, notations, validateOpts, findings);
   }
-  for (const rel of assertionEntries) {
-    if (typeof rel !== 'string' || !isYaml(rel) || shouldSkip(rel)) continue;
-    const fullRel = path.join('canon', 'assertions', rel).replace(/\\/g, '/');
-    let data: unknown;
-    try {
-      data = loadNotationYaml(readFileSync(path.join(root, fullRel), 'utf-8'));
-    } catch (e) {
-      findings.push({
-        file: fullRel,
-        notation: '',
-        ruleId: 'YAML',
-        severity: 'error',
-        message: (e as Error).message,
-      });
-      continue;
-    }
-    const notation = notationOf(data);
-    if (notation !== 'assertion') continue;
-    for (const f of validateNotationDoc('assertion', data, validateOpts).findings) {
-      if (f.severity === 'info') continue;
-      findings.push({
-        file: fullRel,
-        notation: 'assertion',
-        ruleId: f.ruleId,
-        severity: f.severity,
-        message: f.message,
-      });
-    }
-  }
-
-  let verificationEntries: string[] = [];
-  try {
-    verificationEntries = readdirSync(path.join(root, 'canon', 'verifications'), { recursive: true }) as string[];
-  } catch {
-    verificationEntries = [];
-  }
-  for (const rel of verificationEntries) {
-    if (typeof rel !== 'string' || !isYaml(rel) || shouldSkip(rel)) continue;
-    const fullRel = path.join('canon', 'verifications', rel).replace(/\\/g, '/');
-    let data: unknown;
-    try {
-      data = loadNotationYaml(readFileSync(path.join(root, fullRel), 'utf-8'));
-    } catch (e) {
-      findings.push({
-        file: fullRel,
-        notation: '',
-        ruleId: 'YAML',
-        severity: 'error',
-        message: (e as Error).message,
-      });
-      continue;
-    }
-    const notation = notationOf(data);
-    if (notation !== 'verification') continue;
-    for (const f of validateNotationDoc('verification', data, validateOpts).findings) {
-      if (f.severity === 'info') continue;
-      findings.push({
-        file: fullRel,
-        notation: 'verification',
-        ruleId: f.ruleId,
-        severity: f.severity,
-        message: f.message,
-      });
-    }
-  }
-
-  let validationEntries: string[] = [];
-  try {
-    validationEntries = readdirSync(path.join(root, 'canon', 'validations'), { recursive: true }) as string[];
-  } catch {
-    validationEntries = [];
-  }
-  for (const rel of validationEntries) {
-    if (typeof rel !== 'string' || !isYaml(rel) || shouldSkip(rel)) continue;
-    const fullRel = path.join('canon', 'validations', rel).replace(/\\/g, '/');
-    let data: unknown;
-    try {
-      data = loadNotationYaml(readFileSync(path.join(root, fullRel), 'utf-8'));
-    } catch (e) {
-      findings.push({
-        file: fullRel,
-        notation: '',
-        ruleId: 'YAML',
-        severity: 'error',
-        message: (e as Error).message,
-      });
-      continue;
-    }
-    const notation = notationOf(data);
-    if (notation !== 'validation') continue;
-    for (const f of validateNotationDoc('validation', data, validateOpts).findings) {
-      if (f.severity === 'info') continue;
-      findings.push({
-        file: fullRel,
-        notation: 'validation',
-        ruleId: f.ruleId,
-        severity: f.severity,
-        message: f.message,
-      });
-    }
-  }
-
   return findings;
 }
 
