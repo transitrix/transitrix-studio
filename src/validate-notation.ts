@@ -53,6 +53,7 @@ import { validateActor } from '@transitrix/diagrams/actor/validate.js';
 import { validateChange } from '@transitrix/diagrams/change/validate.js';
 import { validateStakeholder } from '@transitrix/diagrams/stakeholder/validate.js';
 import { validateTargetState } from '@transitrix/diagrams/target-state/validate.js';
+import { validateLocation } from '@transitrix/diagrams/location/validate.js';
 import { parseImpactViewConfig } from '@transitrix/diagrams/compliance/impact.js';
 import { parseCoverageMetricConfig } from '@transitrix/diagrams/compliance/coverage-metric.js';
 import {
@@ -240,6 +241,7 @@ const VALIDATORS: Record<string, NotationValidator> = {
   actor: wrapValidator(validateActor),
   stakeholder: validateStakeholderDoc,
   'target-state': validateTargetStateDoc,
+  location: wrapValidator(validateLocation),
 };
 
 /** Notation field values the CLI can validate per file. */
