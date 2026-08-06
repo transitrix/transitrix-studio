@@ -53,6 +53,7 @@ import { validateActor } from '@transitrix/diagrams/actor/validate.js';
 import { validateChange } from '@transitrix/diagrams/change/validate.js';
 import { validateStakeholder } from '@transitrix/diagrams/stakeholder/validate.js';
 import { validateIntegration } from '@transitrix/diagrams/integration/validate.js';
+import { validateTargetState } from '@transitrix/diagrams/target-state/validate.js';
 import { parseImpactViewConfig } from '@transitrix/diagrams/compliance/impact.js';
 import { parseCoverageMetricConfig } from '@transitrix/diagrams/compliance/coverage-metric.js';
 import {
@@ -133,6 +134,10 @@ function validateStakeholderDoc(input: unknown, options: ValidateNotationOptions
 
 function validateFactorDoc(input: unknown, options: ValidateNotationOptions = {}): NotationValidationResult {
   return mapPackageResult(validateFactor(input, { catalog: options.catalog }));
+}
+
+function validateTargetStateDoc(input: unknown, options: ValidateNotationOptions = {}): NotationValidationResult {
+  return mapPackageResult(validateTargetState(input, { catalog: options.catalog }));
 }
 
 function validateBlocksDoc(input: unknown, options: ValidateNotationOptions = {}): NotationValidationResult {
@@ -236,6 +241,7 @@ const VALIDATORS: Record<string, NotationValidator> = {
   actor: wrapValidator(validateActor),
   stakeholder: validateStakeholderDoc,
   integration: wrapValidator(validateIntegration),
+  'target-state': validateTargetStateDoc,
 };
 
 /** Notation field values the CLI can validate per file. */

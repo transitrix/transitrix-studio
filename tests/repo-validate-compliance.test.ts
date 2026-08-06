@@ -131,6 +131,23 @@ describe('repo-scope compliance catalogue (#518 C3)', () => {
       'canon/elements/03_application/integrations/INTEGRATION-CRM-SYNC-1.yaml',
       'integration/INTEGRATION-CRM-SYNC-1.yaml',
     );
+    write(
+      root,
+      'canon/elements/04_technology/target-states/TARGET_STATE-TEST-1.yaml',
+      [
+        'notation: target-state',
+        'id: TARGET_STATE-TEST-1',
+        'name: TARGET_STATE-TEST-1',
+        'zone: canon',
+        'admitted_at: "2026-06-01"',
+        'admitted_by: test',
+        'gate_checks:',
+        '  uniqueness: pass',
+        'valid_from: "2026-01-01"',
+        'valid_to: null',
+        '',
+      ].join('\n'),
+    );
     for (const [rel, id, notation] of [
       ['canon/elements/03_application/applications/APPLICATION-OMS-1.yaml', 'APPLICATION-OMS-1', 'application'],
       ['canon/elements/03_application/applications/APPLICATION-CRM-1.yaml', 'APPLICATION-CRM-1', 'application'],
@@ -282,6 +299,15 @@ describe('repo-scope compliance catalogue (#518 C3)', () => {
       (f) => f.file.endsWith('INTEGRATION-OMS-EVENTS-1.yaml') && f.severity === 'error',
     );
     expect(integration).toEqual([]);
+  });
+
+  it('runComplianceValidate validates target-state elements', () => {
+    const ctx = buildRepoValidateContext(root);
+    const findings = runComplianceValidate(root, ctx);
+    const targetState = findings.filter(
+      (f) => f.file.endsWith('TARGET_STATE-TEST-1.yaml') && f.severity === 'error',
+    );
+    expect(targetState).toEqual([]);
   });
 
   it('flags REQ-002 when derived_from codex id is missing from the catalogue', () => {

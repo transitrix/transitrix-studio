@@ -25,6 +25,7 @@ import { validateProcessMap } from '../packages/diagrams/src/process-map/validat
 import { validateRequirement } from '../packages/diagrams/src/requirement/validate.js';
 import { validateAssertion } from '../packages/diagrams/src/assertion/validate.js';
 import { validateVerification } from '../packages/diagrams/src/verification/validate.js';
+import { validateTargetState } from '../packages/diagrams/src/target-state/validate.js';
 import { parseImpactViewConfig } from '../packages/diagrams/src/compliance/impact.js';
 import { parseCoverageMetricConfig } from '../packages/diagrams/src/compliance/coverage-metric.js';
 import { validateCodex } from '../packages/diagrams/src/codex/validate.js';
@@ -66,7 +67,7 @@ const GROUP_C = [
 
 // Group D — standalone canon/elements/** envelope validators wired in one
 // notation at a time (previously dead code, called from nowhere).
-const GROUP_D = ['driver', 'actor', 'change', 'stakeholder', 'integration'];
+const GROUP_D = ['driver', 'actor', 'change', 'stakeholder', 'integration', 'target-state'];
 
 const ALL_NOTATIONS = [...GROUP_A, ...GROUP_B, ...GROUP_C, ...GROUP_D];
 
@@ -177,7 +178,7 @@ describe('validate-notation — the view notation corpus validates clean (#258)'
 });
 
 describe('validate-notation — element notation corpus validates clean (#518 C1)', () => {
-  for (const notation of ['requirement', 'assertion', 'verification', 'risk', 'metric', 'need', 'validation', 'driver', 'actor', 'change', 'stakeholder', 'integration'] as const) {
+  for (const notation of ['requirement', 'assertion', 'verification', 'risk', 'metric', 'need', 'validation', 'driver', 'actor', 'change', 'stakeholder', 'integration', 'target-state'] as const) {
     for (const file of elementFixtures(notation)) {
       const name = file.slice(corpusRoot.length + 1).replace(/\\/g, '/');
       it(`${name} → valid`, () => {
@@ -358,6 +359,15 @@ describe('validate-notation — parity with the preview validator (#258, #518 C1
     const broken = { notation: 'stakeholder' };
     const raw = validateStakeholder(broken);
     const report = validateNotationDoc('stakeholder', broken);
+    expect(report.isValid).toBe(raw.valid);
+    expect(report.findings.filter((f) => f.severity === 'error').map((f) => f.ruleId))
+      .toEqual(raw.errors.map((e) => e.code));
+  });
+
+  it('target-state: CLI findings mirror validateTargetState exactly', () => {
+    const broken = { notation: 'target-state' };
+    const raw = validateTargetState(broken);
+    const report = validateNotationDoc('target-state', broken);
     expect(report.isValid).toBe(raw.valid);
     expect(report.findings.filter((f) => f.severity === 'error').map((f) => f.ruleId))
       .toEqual(raw.errors.map((e) => e.code));
