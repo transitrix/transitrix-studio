@@ -28,6 +28,7 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import * as path from 'node:path';
 import yaml from 'js-yaml';
+import type { AgreementValue } from '@transitrix/diagrams/agreement.js';
 
 const SKIP_SEGMENTS = new Set(['node_modules', '.templates', '.validators']);
 const GOAL_ELEM_ID_RE = /^GOAL-([A-Z0-9]+-)*[0-9]+$/;
@@ -225,9 +226,54 @@ const DRIVER_ELEM_ID_RE = /^DRIVER-([A-Z0-9]+-)*[0-9]+$/;
 const CONSTRAINT_ELEM_ID_RE = /^CONSTRAINT-([A-Z0-9]+-)*[0-9]+$/;
 const REQUIREMENT_ELEM_ID_RE = /^REQUIREMENT-([A-Z0-9]+-)*[0-9]+$/;
 
-function renderEnvelopeSuffix(cmd: string, today: string, admittedBy: string): string {
+/** Agreement-axis fields (CONTRACT.md §6.3), when requested — REQUIREMENT /
+ *  CONSTRAINT / NEED only. `draft` / `disputed` render as-is; `agreed` is
+ *  refused before this is ever reached ({@link refuseWriteAgreed}), since
+ *  the axis is worth having only because a *human* commits it (AGREE-002) —
+ *  the tool writing the file must never be the one that sets it. */
+export interface AgreementOptions {
+  agreement?: AgreementValue;
+  agreedBy?: string;
+  agreedAt?: string;
+}
+
+/** AGREE-002 (CONTRACT.md §6.3.1): a tool must never write `agreement:
+ *  agreed`. Every `transitrix new` command — CLI flag or the VS Code
+ *  quick-input flow — is a tool; unlike the validator's `looksLikeTool`
+ *  heuristic on `agreed_by` (which only catches an *obviously* tool-shaped
+ *  handle), this refusal is unconditional: it does not matter whose name
+ *  would go in `agreed_by`, because the write is coming from the tool
+ *  either way. Returns a refusal message, or undefined when the request is
+ *  fine to render. */
+export function refuseWriteAgreed(opts: AgreementOptions): string | undefined {
+  if (opts.agreement !== 'agreed') return undefined;
+  return (
+    'agreement: agreed cannot be scaffolded — a tool must never write "agreed" (AGREE-002). ' +
+    'Use --agreement draft or --agreement disputed, or have a human set agreement: agreed by ' +
+    'hand once they have actually committed to the statement.'
+  );
+}
+
+function renderAgreementLines(opts: AgreementOptions): string[] {
+  if (!opts.agreement) return [];
+  const lines = [`agreement: ${opts.agreement}`];
+  if (opts.agreedBy) lines.push(`agreed_by: "${opts.agreedBy.replace(/"/g, '\\"')}"`);
+  if (opts.agreedAt) lines.push(`agreed_at: "${opts.agreedAt}"`);
+  return lines;
+}
+
+function renderEnvelopeSuffix(
+  cmd: string,
+  today: string,
+  admittedBy: string,
+  agreement: AgreementOptions = {},
+): string {
+  const agreementLines = renderAgreementLines(agreement);
   return [
     '',
+    ...(agreementLines.length > 0
+      ? ['# Agreement axis (CONTRACT.md §6.3) — has the accountable party committed?', ...agreementLines, '']
+      : []),
     `# Admission record (CONTRACT.md §6) — filled by \`transitrix new ${cmd}\``,
     'zone: canon',
     `admitted_at: "${today}"`,
@@ -330,6 +376,9 @@ export interface NewConstraintOptions {
   rationale?: string;
   nextReviewAt?: string;
   parent?: string;
+  agreement?: AgreementValue;
+  agreedBy?: string;
+  agreedAt?: string;
 }
 
 function renderConstraintYaml(opts: NewConstraintOptions): string {
@@ -346,11 +395,20 @@ function renderConstraintYaml(opts: NewConstraintOptions): string {
   if (opts.rationale) lines.push(`rationale: "${opts.rationale.replace(/"/g, '\\"')}"`);
   if (opts.nextReviewAt) lines.push(`next_review_at: "${opts.nextReviewAt}"`);
   if (opts.parent) lines.push(`parent: ${opts.parent}`);
-  return lines.join('\n') + '\n' + renderEnvelopeSuffix('constraint', opts.today, opts.admittedBy);
+  return (
+    lines.join('\n') +
+    '\n' +
+    renderEnvelopeSuffix('constraint', opts.today, opts.admittedBy, {
+      agreement: opts.agreement, agreedBy: opts.agreedBy, agreedAt: opts.agreedAt,
+    })
+  );
 }
 
 export function scaffoldConstraintElement(opts: NewConstraintOptions): ScaffoldOutcome {
   const errors: string[] = [];
+
+  const agreedRefusal = refuseWriteAgreed(opts);
+  if (agreedRefusal) errors.push(agreedRefusal);
 
   if (!CONSTRAINT_ELEM_ID_RE.test(opts.id)) {
     errors.push(`id '${opts.id}' does not match the canonical CONSTRAINT-[<middle>-]<INTEGER> grammar`);
@@ -401,6 +459,9 @@ export interface NewRequirementOptions {
   nextReviewAt?: string;
   serves?: string;
   derivedFrom?: string[];
+  agreement?: AgreementValue;
+  agreedBy?: string;
+  agreedAt?: string;
 }
 
 function renderRequirementYaml(opts: NewRequirementOptions): string {
@@ -417,11 +478,20 @@ function renderRequirementYaml(opts: NewRequirementOptions): string {
   if (opts.nextReviewAt) lines.push(`next_review_at: "${opts.nextReviewAt}"`);
   if (opts.serves) lines.push(`serves: ${opts.serves}`);
   if (opts.derivedFrom && opts.derivedFrom.length > 0) lines.push(`derived_from: [${opts.derivedFrom.join(', ')}]`);
-  return lines.join('\n') + '\n' + renderEnvelopeSuffix('requirement', opts.today, opts.admittedBy);
+  return (
+    lines.join('\n') +
+    '\n' +
+    renderEnvelopeSuffix('requirement', opts.today, opts.admittedBy, {
+      agreement: opts.agreement, agreedBy: opts.agreedBy, agreedAt: opts.agreedAt,
+    })
+  );
 }
 
 export function scaffoldRequirementElement(opts: NewRequirementOptions): ScaffoldOutcome {
   const errors: string[] = [];
+
+  const agreedRefusal = refuseWriteAgreed(opts);
+  if (agreedRefusal) errors.push(agreedRefusal);
 
   if (!REQUIREMENT_ELEM_ID_RE.test(opts.id)) {
     errors.push(`id '${opts.id}' does not match the canonical REQUIREMENT-[<middle>-]<INTEGER> grammar`);
@@ -491,6 +561,9 @@ export interface NewElementArgs {
   kind: string | undefined;
   serves: string | undefined;
   derivedFrom: string[] | undefined;
+  agreement: string | undefined;
+  agreedBy: string | undefined;
+  agreedAt: string | undefined;
   dryRun: boolean;
   wantsHelp: boolean;
 }
@@ -532,6 +605,9 @@ export function parseNewArgv(argv: string[]): NewElementArgs {
     kind: undefined,
     serves: undefined,
     derivedFrom: undefined,
+    agreement: undefined,
+    agreedBy: undefined,
+    agreedAt: undefined,
     dryRun: false,
     wantsHelp: false,
   };
@@ -588,6 +664,12 @@ export function parseNewArgv(argv: string[]): NewElementArgs {
     if (a.startsWith('--serves=')) { args.serves = a.slice('--serves='.length); continue; }
     if (a === '--derived-from') { args.derivedFrom = splitList(rest[++i]); continue; }
     if (a.startsWith('--derived-from=')) { args.derivedFrom = splitList(a.slice('--derived-from='.length)); continue; }
+    if (a === '--agreement') { args.agreement = rest[++i]; continue; }
+    if (a.startsWith('--agreement=')) { args.agreement = a.slice('--agreement='.length); continue; }
+    if (a === '--agreed-by') { args.agreedBy = rest[++i]; continue; }
+    if (a.startsWith('--agreed-by=')) { args.agreedBy = a.slice('--agreed-by='.length); continue; }
+    if (a === '--agreed-at') { args.agreedAt = rest[++i]; continue; }
+    if (a.startsWith('--agreed-at=')) { args.agreedAt = a.slice('--agreed-at='.length); continue; }
   }
 
   return args;
@@ -656,6 +738,10 @@ function printTypeUsage(type: 'goal' | 'driver' | 'constraint' | 'requirement'):
     console.error('  --rationale "…"      Why the constraint exists.');
     console.error('  --next-review-at <date>  Review-due date (ISO 8601).');
     console.error('  --parent <CONSTRAINT-…>  Parent constraint id; must already exist in canon.');
+    console.error('  --agreement <draft|disputed>  Agreement axis (CONTRACT.md §6.3). "agreed" is refused —');
+    console.error('                       a tool must never write it (AGREE-002); set it by hand instead.');
+    console.error('  --agreed-by "<name>"  Accountable party recorded alongside --agreement.');
+    console.error('  --agreed-at <date>   Commitment date (ISO 8601).');
   } else {
     console.error('usage: transitrix new requirement --id <REQUIREMENT-…> --name "<label>" --description "<…>" [options]');
     console.error('');
@@ -671,6 +757,10 @@ function printTypeUsage(type: 'goal' | 'driver' | 'constraint' | 'requirement'):
     console.error('  --next-review-at <date>  Review-due date (ISO 8601).');
     console.error('  --serves <NEED-…>    Upstream NEED this requirement traces to; must already exist in canon.');
     console.error('  --derived-from <a,b>  Comma-separated codex artefact ids.');
+    console.error('  --agreement <draft|disputed>  Agreement axis (CONTRACT.md §6.3). "agreed" is refused —');
+    console.error('                       a tool must never write it (AGREE-002); set it by hand instead.');
+    console.error('  --agreed-by "<name>"  Accountable party recorded alongside --agreement.');
+    console.error('  --agreed-at <date>   Commitment date (ISO 8601).');
   }
 }
 
@@ -728,6 +818,7 @@ export async function handleNewCommand(argv: string[]): Promise<void> {
       statement: args.statement as string, status: args.status, appliesTo: args.appliesTo,
       source: args.source, ownerRole: args.ownerRole, severity: args.severity,
       rationale: args.rationale, nextReviewAt: args.nextReviewAt, parent: args.parent,
+      agreement: args.agreement as AgreementValue | undefined, agreedBy: args.agreedBy, agreedAt: args.agreedAt,
     });
   } else {
     outcome = scaffoldRequirementElement({
@@ -735,6 +826,7 @@ export async function handleNewCommand(argv: string[]): Promise<void> {
       description: args.description as string, origin: args.origin, severity: args.severity,
       level: args.levelRaw, kind: args.kind, parent: args.parent,
       nextReviewAt: args.nextReviewAt, serves: args.serves, derivedFrom: args.derivedFrom,
+      agreement: args.agreement as AgreementValue | undefined, agreedBy: args.agreedBy, agreedAt: args.agreedAt,
     });
   }
 
