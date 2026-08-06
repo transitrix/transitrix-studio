@@ -491,4 +491,34 @@ describe('transitrix new driver/constraint/requirement (CLI)', () => {
     expect(status).toBe(1);
     expect(stderr).toMatch(/--description is required/);
   });
+
+  it('exits 1 and refuses --agreement agreed — a tool must never write it (AGREE-002)', () => {
+    const root = makeRepo();
+    const { status, stderr } = runCli([
+      'new', 'requirement',
+      '--id', 'REQUIREMENT-X-1', '--name', 'x', '--description', 'd',
+      '--agreement', 'agreed', '--agreed-by', 'v.korobeinikov',
+      '--author', 'a.b', '--root', root,
+    ]);
+    expect(status).toBe(1);
+    expect(stderr).toMatch(/AGREE-002/);
+    expect(existsSync(join(root, 'canon', 'elements', '01_motivation', 'requirements', 'REQUIREMENT-X-1.yaml'))).toBe(false);
+  });
+
+  it('writes a REQUIREMENT with agreement: draft via --agreement', () => {
+    const root = makeRepo();
+    const { status } = runCli([
+      'new', 'requirement',
+      '--id', 'REQUIREMENT-X-1', '--name', 'x', '--description', 'd',
+      '--agreement', 'draft', '--agreed-by', 'v.korobeinikov',
+      '--author', 'a.b', '--root', root,
+    ]);
+    expect(status).toBe(0);
+    const written = readFileSync(
+      join(root, 'canon', 'elements', '01_motivation', 'requirements', 'REQUIREMENT-X-1.yaml'),
+      'utf-8',
+    );
+    expect(written).toContain('agreement: draft');
+    expect(written).toContain('agreed_by: "v.korobeinikov"');
+  });
 });
