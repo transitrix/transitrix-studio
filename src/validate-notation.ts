@@ -52,6 +52,7 @@ import { validateFactor } from '@transitrix/diagrams/factor/validate.js';
 import { validateActor } from '@transitrix/diagrams/actor/validate.js';
 import { validateChange } from '@transitrix/diagrams/change/validate.js';
 import { validateStakeholder } from '@transitrix/diagrams/stakeholder/validate.js';
+import { validateTargetState } from '@transitrix/diagrams/target-state/validate.js';
 import { validateBusinessService } from '@transitrix/diagrams/business-service/validate.js';
 import { parseImpactViewConfig } from '@transitrix/diagrams/compliance/impact.js';
 import { parseCoverageMetricConfig } from '@transitrix/diagrams/compliance/coverage-metric.js';
@@ -133,6 +134,10 @@ function validateStakeholderDoc(input: unknown, options: ValidateNotationOptions
 
 function validateFactorDoc(input: unknown, options: ValidateNotationOptions = {}): NotationValidationResult {
   return mapPackageResult(validateFactor(input, { catalog: options.catalog }));
+}
+
+function validateTargetStateDoc(input: unknown, options: ValidateNotationOptions = {}): NotationValidationResult {
+  return mapPackageResult(validateTargetState(input, { catalog: options.catalog }));
 }
 
 function validateBlocksDoc(input: unknown, options: ValidateNotationOptions = {}): NotationValidationResult {
@@ -235,6 +240,7 @@ const VALIDATORS: Record<string, NotationValidator> = {
   driver: validateFactorDoc,
   actor: wrapValidator(validateActor),
   stakeholder: validateStakeholderDoc,
+  'target-state': validateTargetStateDoc,
   'business-service': wrapValidator(validateBusinessService),
 };
 
