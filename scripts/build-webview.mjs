@@ -34,4 +34,11 @@ await fs.cp(
   path.join(mediaDir, 'transitrix-icon-mono.svg'),
 );
 
+// File-icon for the .ttrs language contribution — same tracked-source /
+// gitignored-build-output split as the mark above.
+await fs.cp(
+  path.join(extensionAssets, 'ttrs-icon-mono.svg'),
+  path.join(mediaDir, 'ttrs-icon-mono.svg'),
+);
+
 console.log('Webview bundled to extension/media');

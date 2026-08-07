@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Added
+
+- **`.ttrs` document templates are now a recognized language** — file-icon, `.ttrs` extension association, and syntax highlighting for the whole directive language: references (including the `CAPABILITY-V1.2.3` dotted-id form and field paths), figures (`view`, `figure`, `figref`), `each` blocks with their `where` / `order by` clauses and row references, `trace`, and `instruct` blocks whose body stays opaque. A `.trs` file (the one-keystroke-off near-miss) is not misidentified as `.ttrs`.
+
 ## 3.1.3 — 2026-07-29
 
 The CLI npm package now ships the same diagrams behavior as the extension (fixes false `BL-006` rejections on current element types), and internal legacy identifiers have been cleaned up.

@@ -30,9 +30,14 @@ releases that bump only one package (or neither) stay green.
 One PR against `main` — the pattern of the 2.8.0 (#339) and 2.9.0 (#344)
 notes PRs:
 
-- `CHANGELOG.md`: retitle `[Unreleased]` to `[X.Y.Z] — <date>`; make sure
-  every PR merged since the previous notes PR has an entry (fixes merged
-  after the notes PR are the usual gap).
+- `CHANGELOG.md`: first run `node scripts/assemble-changelog.mjs` to fold
+  every `changelog/fragments/*.md` file accumulated since the previous
+  release into `## Unreleased` (it deletes the fragments it consumes — see
+  [`changelog/fragments/README.md`](../../changelog/fragments/README.md)).
+  Then retitle `## Unreleased` to `## [X.Y.Z] — <date>`; make sure every PR
+  merged since the previous notes PR has an entry (a PR that predates the
+  fragment mechanism, or whose author forgot to add one, is the usual gap —
+  add it by hand).
 - Versions:
   - root `package.json` + `extension/package.json` — bump together via
     `node scripts/bump-extension-version.mjs minor|patch|major`;

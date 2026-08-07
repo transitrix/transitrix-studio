@@ -23,7 +23,7 @@
   ],
   "type": "module",
   "transitrix": {
-    "methodologyVersion": "0.5.0"
+    "methodologyVersion": "3.1.0"
   },
   "engines": {
     "node": ">=20"
