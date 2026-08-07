@@ -787,7 +787,7 @@ if (subcommand === '--help' || subcommand === '-h' || subcommand === 'help') {
 // Top-level version: reports both the CLI's own version and the
 // @transitrix/diagrams version bundled into it (BL-006 TYPE-registry drift
 // between the two is exactly what let a stale npm publish go unnoticed —
-// see scripts/check-cli-diagrams-alignment.mjs).
+// see scripts/check-release-versions.mjs).
 if (subcommand === '--version' || subcommand === '-v') {
   printVersion();
   process.exit(0);

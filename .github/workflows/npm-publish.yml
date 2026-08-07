@@ -17,7 +17,8 @@ name: npm — publish packages
 #
 # Package versions come from each workspace's package.json and are versioned
 # independently from the VS Code extension. Bump them in the release PR when
-# the corresponding sources changed.
+# the corresponding sources changed — the version-guards job below gates the
+# publish on those bumps actually covering what the release contains.
 
 on:
   release:
@@ -28,9 +29,32 @@ permissions:
   contents: read
 
 jobs:
+  version-guards:
+    name: package versions cover this release
+    runs-on: ubuntu-latest
+
+    steps:
+      # Full history + tags: the guard compares this release against the
+      # previous release tag.
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Check release package versions
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: node scripts/check-release-versions.mjs
+
   publish:
     name: Publish npm packages
     runs-on: ubuntu-latest
+    needs: version-guards
 
     steps:
       - name: Checkout
