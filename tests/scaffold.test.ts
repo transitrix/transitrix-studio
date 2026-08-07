@@ -47,6 +47,12 @@ describe('parseNewArgv', () => {
     expect(r.author).toBe('a.b');
   });
 
+  it('parses --valid-from both as separate and = forms', () => {
+    expect(parseNewArgv(['goal', '--valid-from', '2026-01-01']).validFrom).toBe('2026-01-01');
+    expect(parseNewArgv(['goal', '--valid-from=2026-01-01']).validFrom).toBe('2026-01-01');
+    expect(parseNewArgv(['goal']).validFrom).toBeUndefined();
+  });
+
   it('parses --factors as a comma-split list', () => {
     const r = parseNewArgv(['goal', '--factors', 'DRIVER-A-1, DRIVER-B-2']);
     expect(r.factors).toEqual(['DRIVER-A-1', 'DRIVER-B-2']);
@@ -110,6 +116,23 @@ describe('scaffoldGoalElement', () => {
     expect(outcome.filled).toEqual(
       expect.arrayContaining(['zone', 'admitted_at', 'admitted_by', 'gate_checks', 'valid_from', 'valid_to']),
     );
+  });
+
+  it('honours a validFrom override without moving admitted_at', () => {
+    const root = makeRepo();
+    const outcome = scaffoldGoalElement({
+      root,
+      id: 'GOAL-REVENUE-1',
+      name: 'Grow revenue',
+      admittedBy: 'v.korobeinikov',
+      today: '2026-08-02',
+      validFrom: '2026-01-01',
+    });
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    expect(outcome.content).toContain('valid_from: "2026-01-01"');
+    // admitted_at records when admission happened; the override must not reach it.
+    expect(outcome.content).toContain('admitted_at: "2026-08-02"');
   });
 
   it('rejects an id that does not match the GOAL grammar', () => {
@@ -204,6 +227,24 @@ describe('scaffoldDriverElement', () => {
     expect(outcome.content).toContain('type: external');
     expect(outcome.content).toContain('category: legal');
     expect(outcome.content).toContain('admitted_by: "v.korobeinikov"');
+  });
+
+  it('honours a validFrom override on the shared envelope suffix', () => {
+    const root = makeRepo();
+    // driver/constraint/requirement all render through renderEnvelopeSuffix,
+    // so one case covers the override reaching that shared path.
+    const outcome = scaffoldDriverElement({
+      root,
+      id: 'DRIVER-EU-REG-1',
+      name: 'EU regulatory window',
+      admittedBy: 'v.korobeinikov',
+      today: '2026-08-03',
+      validFrom: '2025-11-15',
+    });
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    expect(outcome.content).toContain('valid_from: "2025-11-15"');
+    expect(outcome.content).toContain('admitted_at: "2026-08-03"');
   });
 
   it('rejects an id that does not match the DRIVER grammar', () => {
@@ -462,6 +503,43 @@ describe('transitrix new goal (CLI)', () => {
     expect(status).toBe(0);
     expect(stdout).toMatch(/Would write/);
     expect(existsSync(join(root, 'canon', 'elements', '01_motivation', 'goals', 'GOAL-PREVIEW-1.yaml'))).toBe(false);
+  });
+
+  it('--valid-from is written through to the file, leaving admitted_at at today', () => {
+    const root = makeRepo();
+    const { status } = runCli([
+      'new', 'goal',
+      '--id', 'GOAL-BACKDATED-1',
+      '--name', 'True before it was written down',
+      '--author', 'a.b',
+      '--valid-from', '2026-01-01',
+      '--root', root,
+    ]);
+    expect(status).toBe(0);
+    const written = readFileSync(
+      join(root, 'canon', 'elements', '01_motivation', 'goals', 'GOAL-BACKDATED-1.yaml'),
+      'utf-8',
+    );
+    expect(written).toContain('valid_from: "2026-01-01"');
+    expect(written).toMatch(/admitted_at: "\d{4}-\d{2}-\d{2}"/);
+    expect(written).not.toContain('admitted_at: "2026-01-01"');
+  });
+
+  it('exits 1 on a --valid-from that is not a calendar date, without writing', () => {
+    const root = makeRepo();
+    for (const bad of ['01/01/2026', '2026-1-1', '2026-02-31', 'yesterday']) {
+      const { status, stderr } = runCli([
+        'new', 'goal',
+        '--id', 'GOAL-BADDATE-1',
+        '--name', 'Bad date',
+        '--author', 'a.b',
+        '--valid-from', bad,
+        '--root', root,
+      ]);
+      expect(status, bad).toBe(1);
+      expect(stderr, bad).toMatch(/--valid-from/);
+    }
+    expect(existsSync(join(root, 'canon', 'elements', '01_motivation', 'goals', 'GOAL-BADDATE-1.yaml'))).toBe(false);
   });
 
   it('exits 1 and reports gate-check failures without writing', () => {

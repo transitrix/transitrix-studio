@@ -12,6 +12,20 @@ After changes that touch compilation or layout, run **`npm test`**.
 
 Skim **[`docs/repo-layout.md`](docs/repo-layout.md)** for a directory-level map of the repository. Adopter-facing docs: [`docs/README.md`](docs/README.md). Maintainer runbooks: [`docs/internal/README.md`](docs/internal/README.md).
 
+## Changelog entries — add a fragment, don't edit `CHANGELOG.md`
+
+If a change is user-visible enough to note, add a fragment file instead of
+editing `CHANGELOG.md`'s `## Unreleased` section directly:
+
+```bash
+node scripts/new-changelog-fragment.mjs Added your-change-slug
+```
+
+See **[`changelog/fragments/README.md`](changelog/fragments/README.md)** for
+the format. Fragments are folded into `CHANGELOG.md` as a release-prep step,
+not per PR — two PRs that each add their own fragment file never collide,
+even from the same base commit.
+
 ## Web UI vs "mandatory chrome" (`roadmap`: RD-043)
 
 The file-prep web app under **`ui/`** (served by `transitrix serve`) is intentionally minimal: a header with actions, an optional layout drawer, a YAML pane, a BPMN preview, and a single **status** line in the footer. It does not implement a full status bar with user/DB/AI blocks, LED-style indicators, or dedicated system log. The footer is the only system feedback channel for compile/export state.

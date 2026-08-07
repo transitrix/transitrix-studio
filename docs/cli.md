@@ -72,7 +72,9 @@ transitrix <input.yaml> <output.bpmn> [--no-metrics] [--no-validate]
 transitrix serve [--port 8765] [--host 127.0.0.1]
 transitrix metrics <input.yaml> [--json]
 transitrix validate <input.yaml> [--json] [--template <name>]
+transitrix validate <input.yaml> --fix [--author <name>] [--valid-from <YYYY-MM-DD>] [--root <dir>] [--dry-run]
 transitrix validate --scope=repo [--root <dir>] [--json] [--include-model]
+transitrix new <goal|driver|constraint|requirement> --id <ID> --name "<label>" [options]
 transitrix export-compliance [--format md|pdf] [--scope law:<ID>|product:<ID>|gap] [--output <path>] [--root <dir>]
 ```
 
@@ -82,6 +84,7 @@ transitrix export-compliance [--format md|pdf] [--scope law:<ID>|product:<ID>|ga
 | `serve` | Local web UI (run `npm run ui:build` once beforehand). |
 | `metrics` | Layout-quality metrics only (`--json` for CI). |
 | `validate` | Validation only, no XML output (`--json` for CI). Exit 1 on errors. Default scope is a single file; `--scope=repo` runs whole-`canon/` checks (referential integrity, atomicity, id uniqueness, policy) over `--root` (default cwd) — see [validation.md](validation.md#validation-scope-file-vs-repo). `--include-model` (with `--json`) also emits the resolved `canon/elements/**`/`canon/relations/**` records it parsed — see [validation.md](validation.md#resolved-model-output---include-model). `--template <name>` (file scope, `blocks` matrix-subset `grid:` documents only — e.g. `raci`) additionally enforces that template's own cell-value invariant (e.g. `RACI-001`) on top of the base `BL-02x` rules; the base notation does not fix a cell-value vocabulary, so this is opt-in per template. |
+| `new <type>` | Scaffolds a standalone motivation-layer element (`goal`, `driver`, `constraint`, `requirement`) with the admission record and lifecycle envelope computed rather than hand-typed — see [Envelope defaults](#envelope-defaults). `--dry-run` previews without writing. Run `transitrix new <type> --help` for the per-type fields. |
 | `export-compliance` | Markdown or PDF report of the compliance views (matrix by default; `law:` / `product:` / `gap` scopes). Scans `--root` (default cwd). PDF needs WeasyPrint on PATH (`pipx install weasyprint`). |
 
 Flags: `--no-metrics` suppresses the metrics report on compile; `--no-validate`
@@ -99,6 +102,59 @@ transitrix metrics order.bpmn.transitrix.yaml --json
 transitrix export-compliance --format md --scope gap --output gaps.md
 transitrix serve --port 9000
 ```
+
+## Envelope defaults
+
+Authoring an element requires only the fields that carry its own meaning:
+`notation`, `id`, `name`, and the per-TYPE fields. The rest of the canonical
+envelope — the admission record (`CONTRACT.md` §6) and the primitive lifecycle
+(`CONTRACT.md` §7) — is produced by whichever path creates the file.
+
+Two commands supply it:
+
+- **`transitrix new <type>`** — writes a brand-new element file with the
+  envelope already complete.
+- **`transitrix validate <file> --fix`** — completes the envelope on a file
+  that was hand-authored without one, inserting only what it can derive and
+  leaving every value already present untouched.
+
+The VS Code extension's **New … Element** commands take the third path and use
+the same defaults; see [`extension/README.md`](../extension/README.md).
+
+### The defaults, and how to override them
+
+| Field | Default | Override |
+|---|---|---|
+| `zone` | `canon` | — (the creation paths write into `canon/`) |
+| `admitted_at` | today | **none, by design** — see below |
+| `admitted_by` | `git config user.name` | `--author "<name>"` |
+| `gate_checks` | the result of the checks that actually ran | — (never a constant `pass`) |
+| `valid_from` | today | `--valid-from <YYYY-MM-DD>` |
+| `valid_to` | `null` (open-ended) | — (close a primitive by editing the file) |
+
+```bash
+# an element whose subject has been true since before it was written down
+transitrix new goal --id GOAL-042 --name "Reduce audit lead time" --valid-from 2026-01-01
+
+# same override when completing a hand-authored file
+transitrix validate canon/elements/01_motivation/goals/GOAL-042.yaml --fix --valid-from 2026-01-01
+```
+
+Dates are quoted `YYYY-MM-DD` (`CONTRACT.md` §4). A `--valid-from` that is not
+a calendar date in that form is rejected — the command fails rather than
+falling back to today, so a mistyped date can never be recorded silently.
+
+**Why `admitted_at` has no override.** `admitted_at` records when admission
+actually happened, so a caller-supplied value would falsify the admission
+record — the same reason `gate_checks` is never written as a constant `pass`.
+`valid_from` is different in kind: it is a statement about the subject, not
+about the tooling, and an author may legitimately know it to be earlier or
+later than the day they run the command.
+
+**What `--fix` will not do.** It fills only what it can derive. A field it
+cannot determine — most commonly `admitted_by`, when neither `--author` nor
+`git config user.name` supplies an identity — is reported as unresolved and
+the file still fails validation. `--fix` completes; it does not invent.
 
 ## Project config
 
