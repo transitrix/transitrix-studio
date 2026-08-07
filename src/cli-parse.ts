@@ -12,6 +12,18 @@ export function normalizeExt(s: string): string {
   return t.startsWith('.') ? t : `.${t}`;
 }
 
+/** CONTRACT.md §4 — every date-typed field is a quoted `YYYY-MM-DD` string.
+ *  A caller-supplied date is checked against this before it can reach a
+ *  written file: an unparseable override is a hard failure, never a silent
+ *  fall back to today, which would record a lifecycle date nobody asked for.
+ *  The shape alone would accept `2026-02-31`, so the round-trip through `Date`
+ *  is what rejects a well-formed non-day. */
+export function isIsoDate(v: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
+  const d = new Date(`${v}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === v;
+}
+
 export type ParseCliFileArgvResult =
   | { ok: true; positional: string[]; extList: string[]; wantsHelp: boolean }
   | { ok: false; error: '--ext_requires_value' };
@@ -64,6 +76,7 @@ export type ParseValidateArgvResult =
       template: string | undefined;
       fix: boolean;
       author: string | undefined;
+      validFrom: string | undefined;
       dryRun: boolean;
       positional: string[];
       extList: string[];
@@ -77,6 +90,8 @@ export type ParseValidateArgvResult =
         | '--root_requires_value'
         | '--template_requires_value'
         | '--author_requires_value'
+        | '--valid-from_requires_value'
+        | 'bad_valid_from'
         | 'bad_scope';
       scope?: ValidateScope;
     };
@@ -86,8 +101,9 @@ export type ParseValidateArgvResult =
  * `--scope repo` form), `--root <dir>` for repo-scope, `--template <name>`
  * (matrix-subset `blocks` documents, §6a — e.g. `raci`) for file scope, and
  * `--fix` (file scope only — completes missing envelope fields; `--author`
- * overrides `git config user.name` for `admitted_by`, `--dry-run` previews
- * without writing); everything else is delegated to {@link parseCliFileArgv}.
+ * overrides `git config user.name` for `admitted_by`, `--valid-from`
+ * overrides today for `valid_from`, `--dry-run` previews without writing);
+ * everything else is delegated to {@link parseCliFileArgv}.
  * Default scope is `file`, preserving the existing per-file
  * `validate <input.yaml>` behaviour.
  */
@@ -97,6 +113,7 @@ export function parseValidateArgv(argv: string[]): ParseValidateArgvResult {
   let template: string | undefined;
   let fix = false;
   let author: string | undefined;
+  let validFrom: string | undefined;
   let dryRun = false;
   const rest: string[] = [];
 
@@ -153,6 +170,19 @@ export function parseValidateArgv(argv: string[]): ParseValidateArgvResult {
       author = a.slice('--author='.length);
       continue;
     }
+    if (a === '--valid-from') {
+      const v = argv[++i];
+      if (v === undefined) return { ok: false, error: '--valid-from_requires_value' };
+      if (!isIsoDate(v)) return { ok: false, error: 'bad_valid_from' };
+      validFrom = v;
+      continue;
+    }
+    if (a.startsWith('--valid-from=')) {
+      const v = a.slice('--valid-from='.length);
+      if (!isIsoDate(v)) return { ok: false, error: 'bad_valid_from' };
+      validFrom = v;
+      continue;
+    }
     rest.push(a);
   }
 
@@ -166,6 +196,7 @@ export function parseValidateArgv(argv: string[]): ParseValidateArgvResult {
     template,
     fix,
     author,
+    validFrom,
     dryRun,
     positional: parsed.positional,
     extList: parsed.extList,
