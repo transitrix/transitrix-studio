@@ -4,13 +4,16 @@
  *
  * Source of truth: the methodology `methodology_version`, declared in an adopter
  * repository's `transitrix.yaml` per the methodology `notations/MANIFEST.md`
- * (single source of truth for a repo's conformance). The current methodology
- * release is **0.5.0**.
+ * (single source of truth for a repo's conformance).
+ *
+ * This is the release this build *targets*, not the newest release that exists —
+ * the methodology may be ahead. Raise it only together with the vocabulary and
+ * rule coverage that release requires, so the two never disagree. Individual
+ * hardcoded vocabulary literals may still lag the declared release; the
+ * per-module drift check is what makes such a gap visible, not this constant.
  *
  * This constant is kept in lockstep with the project manifest's
  * `transitrix.methodologyVersion` (`package.json`); the
- * `tests/schema-version.test.ts` unit test asserts the two are equal. A CI guard
- * that additionally asserts both equal the methodology's published SoT lands
- * separately (SV-1 PR2) — do not bundle it here.
+ * `tests/schema-version.test.ts` unit test asserts the two are equal.
  */
-export const SCHEMA_VERSION = '0.5.0';
+export const SCHEMA_VERSION = '3.1.0';
