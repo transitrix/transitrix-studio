@@ -1,0 +1,30 @@
+# Worked example — INTEGRATION element primitive, Application Interface semantics.
+# Schema: ELEMENT_PRIMITIVES.md §7.8 / §7.8.1.
+
+notation: integration
+id: INTEGRATION-OMS-EVENTS-1
+name: "OMS Order-Events Kafka Interface"
+source: APPLICATION-OMS-1
+target: APPLICATION-CRM-1
+protocol: "Kafka"
+direction: outbound
+interface_semantics: true
+payload_class: "domain_event"
+sensitivity: internal
+directionality: producer
+description: >
+  Kafka producer interface exposing order-state change events from the
+  Order Management System. Consumers subscribe to the oms.orders.v1 topic.
+
+# Admission record (CONTRACT.md §6)
+zone: canon
+admitted_at: "2026-06-28"
+admitted_by: "v.korobeinikov"
+gate_checks:
+  uniqueness: pass
+  consistency: pass
+  completeness: pass
+
+# Primitive lifecycle (CONTRACT.md §7)
+valid_from: "2024-03-01"
+valid_to: null
