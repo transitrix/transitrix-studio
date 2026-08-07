@@ -1,0 +1,20 @@
+---
+document: Market Requirements Document
+kind: mrd
+template_id: product.mrd
+template_version: "1.0"
+---
+
+# Market Requirements Document
+
+Every requirement below is a projection of an admitted element; this template
+adds no fact of its own.
+
+The addressable need this document is written against is {{ NEED-1 }}, and the
+design input written to satisfy it is {{ REQ-14.text }}.
+
+{{# instruct market-size }}
+question: How large is the addressable market, and how fast is it growing?
+inputs: NEED-1, REQ-14
+sufficient: A market size with a currency and a year, a growth rate, and the method for both.
+{{/ instruct }}
