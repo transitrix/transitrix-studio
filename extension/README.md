@@ -65,6 +65,32 @@ Every notation in the table above follows the same pattern: `*.<notation>.transi
 
 > **Editors:** the extension ships to the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=transitrix.transitrix-studio) (VS Code) and to the [Open VSX Registry](https://open-vsx.org/extension/transitrix/transitrix-studio) (Cursor, VSCodium, Windsurf). The artefact is identical; pick whichever Extensions panel ships with your editor. **JetBrains IDEs** (IntelliJ IDEA and the rest) have a companion **Transitrix Studio** plugin — install it from **Settings → Plugins → Marketplace** and search for *Transitrix Studio*.
 
+## Creating a new element
+
+In a repository that follows the Transitrix methodology, the Command Palette
+carries **Transitrix: New Goal Element** and the matching **Driver**,
+**Constraint** and **Requirement** commands. Each asks only for what carries
+the element's own meaning — its id, its name, the one field its type requires —
+and writes the file into the folder that type belongs in.
+
+Everything else the file needs is computed rather than typed: the zone, the
+admission record (who admitted it, when, and the result of the checks that
+actually ran), and the lifecycle dates. Two of those values are yours to set
+rather than accept:
+
+| Prompt | Default | Notes |
+|---|---|---|
+| `admitted_by` | `git config user.name` | Asked only when git has no name configured. |
+| `valid_from` | today | Pre-filled — press Enter to accept, or type the date the element starts being true (`YYYY-MM-DD`). |
+
+The command refuses to write a file whose id already exists, or whose
+references do not resolve, rather than recording a check as passed when it
+did not.
+
+The same defaults, and the equivalent `--author` / `--valid-from` flags, are
+available from the CLI's `transitrix new` and `transitrix validate --fix` —
+see [`docs/cli.md`](../docs/cli.md#envelope-defaults).
+
 ## Settings
 
 Configure under **Settings → Transitrix Studio**. The canonical keys are `transitrix.*`.

@@ -62,6 +62,37 @@ describe('computeFixPlan', () => {
     expect(byField.gate_checks).toEqual({ uniqueness: 'pass', consistency: 'pass', completeness: 'pass' });
   });
 
+  it('fills valid_from from the override, leaving admitted_at at today', () => {
+    const root = makeRepo();
+    const absFilePath = join(root, 'ACTOR-OPS-1.yaml');
+    const data = { notation: 'actor', id: 'ACTOR-OPS-1', name: 'Ops', type: 'system' };
+
+    const plan = computeFixPlan('actor', data, {
+      root, absFilePath, author: 'a.b', validFrom: '2026-01-01',
+    });
+
+    const byField = Object.fromEntries(plan.filled.map((f) => [f.field, f.value]));
+    expect(byField.valid_from).toBe('2026-01-01');
+    // admitted_at records when admission happened — the override must not reach it.
+    expect(byField.admitted_at).not.toBe('2026-01-01');
+    expect(byField.admitted_at).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  it('does not touch a valid_from already present, override or not', () => {
+    const root = makeRepo();
+    const absFilePath = join(root, 'ACTOR-OPS-1.yaml');
+    const data = {
+      notation: 'actor', id: 'ACTOR-OPS-1', name: 'Ops', type: 'system',
+      valid_from: '2026-07-04',
+    };
+
+    const plan = computeFixPlan('actor', data, {
+      root, absFilePath, author: 'a.b', validFrom: '2026-01-01',
+    });
+
+    expect(plan.filled.map((f) => f.field)).not.toContain('valid_from');
+  });
+
   it('leaves admitted_by unresolved (and gate_checks uncertified) with no --author and no git identity', () => {
     const root = makeRepo();
     const absFilePath = join(root, 'ACTOR-OPS-1.yaml');

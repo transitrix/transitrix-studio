@@ -50,12 +50,28 @@ import {
   resolveValidatorKey,
   loadNotationYaml,
 } from './validate-notation.js';
+import {
+  isDocumentSourcePath,
+  validateDocumentSource,
+} from './validate-document-source.js';
 import { parseYamlToIr } from './parser.js';
 import { validateProcess } from './validator.js';
 
 /** Directory segments that are tooling/scaffolding, never canon content.
  *  Mirrors lint.py, which skips `.templates/` and `.validators/`. */
 const SKIP_SEGMENTS = new Set(['node_modules', '.templates', '.validators']);
+
+/** Where the document-source walk looks: the three zone folders, plus the
+ *  repository's own top level (`null`). Wide enough that a `.ttrs` file put
+ *  somewhere other than its registered folder is still found — that is the whole
+ *  point of the placement check — and narrow enough that a repository's test
+ *  fixtures and documentation are not mistaken for model content. */
+const DOCUMENT_SOURCE_SEARCH_ROOTS: ReadonlyArray<string | null> = [
+  null,
+  'canon',
+  'field',
+  'codex',
+];
 
 function segments(rel: string): string[] {
   return rel.split(/[\\/]/);
@@ -218,6 +234,61 @@ function loadViewDocs(root: string): Array<{ path: string; text: string }> {
     docs.push({ path: fullRel.replace(/\\/g, '/'), text });
   }
   return docs;
+}
+
+/** Collect every document source (and its `.trs` near-miss) across the model
+ *  zones. Deliberately not scoped to `canon/views/documents/**`: a `.ttrs` file
+ *  in the wrong folder is precisely what the placement half of the check exists
+ *  to catch, and a walk scoped to the right folder would never see one. */
+function loadDocumentSources(root: string): Array<{ path: string; text: string }> {
+  const docs: Array<{ path: string; text: string }> = [];
+  const seen = new Set<string>();
+  for (const zone of DOCUMENT_SOURCE_SEARCH_ROOTS) {
+    let entries: string[] = [];
+    try {
+      // The repository's own top level is read shallowly: its subdirectories
+      // are either a zone this loop covers in its own right, or not model
+      // content at all.
+      entries = readdirSync(zone === null ? root : path.join(root, zone), {
+        recursive: zone !== null,
+      }) as string[];
+    } catch {
+      continue;
+    }
+    for (const rel of entries) {
+      if (typeof rel !== 'string' || !isDocumentSourcePath(rel) || shouldSkip(rel)) continue;
+      const fullRel = (zone === null ? rel : path.join(zone, rel)).replace(/\\/g, '/');
+      if (seen.has(fullRel)) continue;
+      seen.add(fullRel);
+      let text: string;
+      try {
+        text = readFileSync(path.join(root, fullRel), 'utf-8');
+      } catch {
+        continue;
+      }
+      docs.push({ path: fullRel, text });
+    }
+  }
+  return docs;
+}
+
+/** Check every `.ttrs` document source under `root` for extension, placement
+ *  and filename/header kind agreement (CONTRACT.md §3 — `HDR-003`, `TTRS-013`).
+ *
+ *  Separate from `runViewValidate`: a document source is prose with directives,
+ *  not a YAML mapping, so it carries no `notation:` field to dispatch on and
+ *  never reaches the per-notation validators. Its findings still belong in the
+ *  views channel — it is a view document. */
+export function runDocumentSourceValidate(root: string): ViewFinding[] {
+  const findings: ViewFinding[] = [];
+  for (const doc of loadDocumentSources(root)) {
+    for (const f of validateDocumentSource(doc.path, doc.text)) {
+      // A document source has no `notation:` field of its own — kinds are not
+      // notations. The view class it belongs to is what identifies it here.
+      findings.push({ ...f, notation: 'documents' });
+    }
+  }
+  return findings;
 }
 
 /** Validate every Group A notation file under canon/views/** with the same
@@ -726,7 +797,8 @@ export function runRepoValidate(root: string): RepoScopeResult {
   const ctx = buildRepoValidateContext(root);
   const model = loadRepoModel(root);
   const canon = validateRepoModel(model);
-  const { findings: views, skipped } = runViewValidate(root, ctx, model);
+  const { findings: viewNotations, skipped } = runViewValidate(root, ctx, model);
+  const views = [...viewNotations, ...runDocumentSourceValidate(root)];
   const codex = runCodexValidate(root);
   const compliance = [
     ...runComplianceValidate(root, ctx),
