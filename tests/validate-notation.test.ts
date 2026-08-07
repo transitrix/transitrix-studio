@@ -35,6 +35,7 @@ import { validateChange } from '../packages/diagrams/src/change/validate.js';
 import { validateStakeholder } from '../packages/diagrams/src/stakeholder/validate.js';
 import { validateLocation } from '../packages/diagrams/src/location/validate.js';
 import { validateBusinessService } from '../packages/diagrams/src/business-service/validate.js';
+import { validateIntegration } from '../packages/diagrams/src/integration/validate.js';
 
 const corpusRoot = join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'notation-corpus');
 
@@ -398,6 +399,15 @@ describe('validate-notation — parity with the preview validator (#258, #518 C1
     const broken = { notation: 'business-service' };
     const raw = validateBusinessService(broken);
     const report = validateNotationDoc('business-service', broken);
+    expect(report.isValid).toBe(raw.valid);
+    expect(report.findings.filter((f) => f.severity === 'error').map((f) => f.ruleId))
+      .toEqual(raw.errors.map((e) => e.code));
+  });
+
+  it('integration: CLI findings mirror validateIntegration exactly', () => {
+    const broken = { notation: 'integration', interface_semantics: true };
+    const raw = validateIntegration(broken);
+    const report = validateNotationDoc('integration', broken);
     expect(report.isValid).toBe(raw.valid);
     expect(report.findings.filter((f) => f.severity === 'error').map((f) => f.ruleId))
       .toEqual(raw.errors.map((e) => e.code));

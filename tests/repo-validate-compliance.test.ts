@@ -131,6 +131,16 @@ describe('repo-scope compliance catalogue (#518 C3)', () => {
         '',
       ].join('\n'),
     );
+    copyCorpus(
+      root,
+      'canon/elements/03_application/integrations/INTEGRATION-OMS-EVENTS-1.yaml',
+      'integration/INTEGRATION-OMS-EVENTS-1.yaml',
+    );
+    copyCorpus(
+      root,
+      'canon/elements/03_application/integrations/INTEGRATION-CRM-SYNC-1.yaml',
+      'integration/INTEGRATION-CRM-SYNC-1.yaml',
+    );
     write(
       root,
       'canon/elements/04_technology/target-states/TARGET_STATE-TEST-1.yaml',
@@ -309,6 +319,15 @@ describe('repo-scope compliance catalogue (#518 C3)', () => {
       (f) => f.file.endsWith('STAKEHOLDER-TEST-1.yaml') && f.severity === 'error',
     );
     expect(stakeholder).toEqual([]);
+  });
+
+  it('runComplianceValidate validates integration elements', () => {
+    const ctx = buildRepoValidateContext(root);
+    const findings = runComplianceValidate(root, ctx);
+    const integration = findings.filter(
+      (f) => f.file.endsWith('INTEGRATION-OMS-EVENTS-1.yaml') && f.severity === 'error',
+    );
+    expect(integration).toEqual([]);
   });
 
   it('runComplianceValidate validates target-state elements', () => {
