@@ -35,6 +35,7 @@ import { validateChange } from '../packages/diagrams/src/change/validate.js';
 import { validateStakeholder } from '../packages/diagrams/src/stakeholder/validate.js';
 import { validateLocation } from '../packages/diagrams/src/location/validate.js';
 import { validateBusinessService } from '../packages/diagrams/src/business-service/validate.js';
+import { validateIntegration } from '../packages/diagrams/src/integration/validate.js';
 import { validateTechnologyService } from '../packages/diagrams/src/technology-service/validate.js';
 
 const corpusRoot = join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'notation-corpus');
@@ -69,7 +70,7 @@ const GROUP_C = [
 
 // Group D — standalone canon/elements/** envelope validators wired in one
 // notation at a time (previously dead code, called from nowhere).
-const GROUP_D = ['driver', 'actor', 'change', 'stakeholder', 'target-state', 'location', 'business-service', 'technology-service'];
+const GROUP_D = ['driver', 'actor', 'change', 'stakeholder', 'target-state', 'location', 'business-service', 'integration', 'technology-service'];
 
 const ALL_NOTATIONS = [...GROUP_A, ...GROUP_B, ...GROUP_C, ...GROUP_D];
 
@@ -180,7 +181,7 @@ describe('validate-notation — the view notation corpus validates clean (#258)'
 });
 
 describe('validate-notation — element notation corpus validates clean (#518 C1)', () => {
-  for (const notation of ['requirement', 'assertion', 'verification', 'risk', 'metric', 'need', 'validation', 'driver', 'actor', 'change', 'stakeholder', 'target-state', 'location', 'business-service', 'technology-service'] as const) {
+  for (const notation of ['requirement', 'assertion', 'verification', 'risk', 'metric', 'need', 'validation', 'driver', 'actor', 'change', 'stakeholder', 'target-state', 'location', 'business-service', 'integration', 'technology-service'] as const) {
     for (const file of elementFixtures(notation)) {
       const name = file.slice(corpusRoot.length + 1).replace(/\\/g, '/');
       it(`${name} → valid`, () => {
@@ -407,6 +408,15 @@ describe('validate-notation — parity with the preview validator (#258, #518 C1
     const broken = { notation: 'business-service' };
     const raw = validateBusinessService(broken);
     const report = validateNotationDoc('business-service', broken);
+    expect(report.isValid).toBe(raw.valid);
+    expect(report.findings.filter((f) => f.severity === 'error').map((f) => f.ruleId))
+      .toEqual(raw.errors.map((e) => e.code));
+  });
+
+  it('integration: CLI findings mirror validateIntegration exactly', () => {
+    const broken = { notation: 'integration', interface_semantics: true };
+    const raw = validateIntegration(broken);
+    const report = validateNotationDoc('integration', broken);
     expect(report.isValid).toBe(raw.valid);
     expect(report.findings.filter((f) => f.severity === 'error').map((f) => f.ruleId))
       .toEqual(raw.errors.map((e) => e.code));
