@@ -10,10 +10,16 @@
 // The filesystem walk lives here (IO); the checks live in the pure
 // `validateRepoModel` so they stay testable and shared.
 
+import { execFileSync } from 'node:child_process';
 import { readdirSync, readFileSync } from 'node:fs';
 import * as path from 'node:path';
 import yaml from 'js-yaml';
 import { coerceDatesToIsoStrings } from '@transitrix/diagrams/yaml-normalize.js';
+import {
+  checkSuspicion,
+  parseMigrationManifest,
+  type MigrationManifest,
+} from '@transitrix/diagrams/link-suspicion.js';
 import {
   validateRepoModel,
   resolveRepoModel,
@@ -107,6 +113,25 @@ function readDoc(root: string, rel: string): RepoDoc {
   }
 }
 
+/** Collect parsed YAML docs under `<root>/<zoneRelDir>/**` — used for the
+ *  endpoint zones (`canon/assertions`, `canon/verifications`,
+ *  `canon/validations`) that `RepoModelInput` doesn't carry (it only
+ *  partitions `elements`/`relations`, per lint.py parity above). */
+function loadZoneDocs(root: string, zoneRelDir: string): RepoDoc[] {
+  const docs: RepoDoc[] = [];
+  let entries: string[] = [];
+  try {
+    entries = readdirSync(path.join(root, zoneRelDir), { recursive: true }) as string[];
+  } catch {
+    return docs;
+  }
+  for (const rel of entries) {
+    if (typeof rel !== 'string' || !isYaml(rel) || shouldSkip(rel)) continue;
+    docs.push(readDoc(root, path.join(zoneRelDir, rel)));
+  }
+  return docs;
+}
+
 /** Collect canon docs under `<root>/canon/<zone>/**` exactly as lint.py globs
  *  them: elements from `canon/elements/**`, relations from `canon/relations/**`.
  *  Partitioning by zone (not by `notation`) keeps parity with the reference
@@ -169,6 +194,9 @@ export interface RepoScopeResult {
   codex: ViewFinding[];
   /** REQUIREMENT / ASSERTION element files validated with the repo catalogue (#518 C3). */
   compliance: ViewFinding[];
+  /** Link suspicion + agreement lapse (CONTRACT.md §16) — always `severity:
+   *  'warning'`, informational only; never affects `repoScopeHasErrors`. */
+  linkSuspicion: ViewFinding[];
   skipped: Array<{ file: string; notation: string }>;
 }
 
@@ -699,6 +727,231 @@ export function runGapDashboardWarnings(ctx: RepoValidateContext): ViewFinding[]
   return findings;
 }
 
+// ── Link suspicion (CONTRACT.md §16) ─────────────────────────────────────
+//
+// Git plumbing lives here (IO); the content-identity normalisation and the
+// suspicion verdict itself are the pure `checkSuspicion` from
+// `@transitrix/diagrams/link-suspicion.js`, ported from methodology's
+// `scripts/check-link-suspicion.mjs`. Informational only — CONTRACT.md
+// §16.2 "reports, never filters": every finding here is `severity:
+// 'warning'` and never blocks a run.
+
+/** One `git log --name-only` walk over the whole history, once per run,
+ *  instead of a `git log -1 -- <path>` spawn per record/target — a
+ *  meaningful cost difference on Windows, where process creation is
+ *  expensive and a real repo can carry dozens of relations/assertions.
+ *  `lastCommit` maps every path ever touched to the most recent commit that
+ *  touched it (first-seen wins, since the walk is newest-first);
+ *  `order` maps every commit hash to its recency rank (0 = HEAD, larger =
+ *  older) so two commits can be compared without a further spawn. Swallows
+ *  a missing/unreadable repo the same way the rest of this module swallows
+ *  a missing directory. */
+function buildPathHistoryIndex(root: string): { lastCommit: Map<string, string>; order: Map<string, number> } {
+  const lastCommit = new Map<string, string>();
+  const order = new Map<string, number>();
+  let out: string;
+  try {
+    out = execFileSync('git', ['log', '--format=%x01%H', '--name-only'], {
+      cwd: root,
+      encoding: 'utf-8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+      maxBuffer: 1024 * 1024 * 64,
+    });
+  } catch {
+    return { lastCommit, order };
+  }
+  let idx = 0;
+  let currentHash: string | undefined;
+  for (const line of out.split('\n')) {
+    if (line.startsWith('\x01')) {
+      currentHash = line.slice(1).trim();
+      if (currentHash && !order.has(currentHash)) order.set(currentHash, idx++);
+      continue;
+    }
+    const p = line.trim();
+    if (!p || !currentHash) continue;
+    if (!lastCommit.has(p)) lastCommit.set(p, currentHash);
+  }
+  return { lastCommit, order };
+}
+
+/** The last commit whose diff added/removed a line matching `pattern`
+ *  (git's pickaxe, `-G`) in `relPath` — used to anchor "agreement lapse" on
+ *  the commit that actually set the agreement fields, not the file's last
+ *  edit for any reason. Unlike the no-pattern case, this cannot be answered
+ *  from {@link buildPathHistoryIndex}'s single walk (the pattern is
+ *  per-target), so it stays a per-file spawn — bounded by the number of
+ *  `agreement: agreed` elements, which is small in practice. */
+function gitLastCommitMatching(root: string, relPath: string, pattern: string): string | undefined {
+  try {
+    const out = execFileSync(
+      'git',
+      ['log', '-1', '--format=%H', `-G${pattern}`, '--', relPath],
+      { cwd: root, encoding: 'utf-8', stdio: ['ignore', 'pipe', 'ignore'] },
+    );
+    return out.trim() || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function gitShowAt(root: string, ref: string, relPath: string): string | undefined {
+  try {
+    return execFileSync('git', ['show', `${ref}:${relPath}`], {
+      cwd: root,
+      encoding: 'utf-8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
+  } catch {
+    return undefined;
+  }
+}
+
+/** Every `migrations/<slug>/TRANSFORM.yaml` manifest under `root` (§16.3). */
+function loadMigrationManifests(root: string): MigrationManifest[] {
+  const manifests: MigrationManifest[] = [];
+  let entries;
+  try {
+    entries = readdirSync(path.join(root, 'migrations'), { withFileTypes: true });
+  } catch {
+    return manifests;
+  }
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    let text: string;
+    try {
+      text = readFileSync(path.join(root, 'migrations', entry.name, 'TRANSFORM.yaml'), 'utf-8');
+    } catch {
+      continue;
+    }
+    manifests.push({ slug: entry.name, ...parseMigrationManifest(text) });
+  }
+  return manifests;
+}
+
+/** Fetch the target's content at the anchor commit and now, and run the pure
+ *  §16.2 verdict. No anchor means nothing to compare — not suspicious
+ *  (mirrors the reference script's `no-anchor` case).
+ *
+ *  Before paying for either `git show`: if the target's own last-touched
+ *  commit (from {@link buildPathHistoryIndex}) is at or before the anchor —
+ *  i.e. the target has not changed since the record last looked at it — the
+ *  verdict is `not suspicious` without any further git IO. Only a target
+ *  that changed *more recently* than the anchor needs the actual content
+ *  comparison, since that change might have been envelope-only (exempt) or
+ *  hatch-explained. An unresolvable ordering (either commit missing from
+ *  the index — the log walk failed, or one of the paths predates the
+ *  history it covers) falls back to the full content check rather than
+ *  silently skipping it. */
+function checkTargetSuspicion(
+  root: string,
+  anchor: string | undefined,
+  targetRelPath: string,
+  manifests: MigrationManifest[],
+  historyIndex: { lastCommit: Map<string, string>; order: Map<string, number> },
+): ReturnType<typeof checkSuspicion> {
+  if (!anchor) return { suspicious: false };
+
+  const targetLastCommit = historyIndex.lastCommit.get(targetRelPath);
+  const anchorOrder = historyIndex.order.get(anchor);
+  const targetOrder = targetLastCommit ? historyIndex.order.get(targetLastCommit) : undefined;
+  if (anchorOrder !== undefined && targetOrder !== undefined && targetOrder >= anchorOrder) {
+    // Target's last change is the anchor commit itself, or older — nothing
+    // to have drifted since the record looked at it.
+    return { suspicious: false };
+  }
+
+  const beforeText = gitShowAt(root, anchor, targetRelPath);
+  let afterText: string | undefined;
+  try {
+    afterText = readFileSync(path.join(root, ...targetRelPath.split('/')), 'utf-8');
+  } catch {
+    afterText = undefined;
+  }
+  const applicable = manifests.filter((m) => m.appliesTo.includes(targetRelPath));
+  return checkSuspicion(beforeText, afterText, applicable);
+}
+
+function buildIdIndex(model: RepoModelInput): Map<string, string> {
+  const index = new Map<string, string>();
+  for (const doc of model.elements) {
+    const id = doc.data?.id;
+    if (typeof id === 'string' && id) index.set(id, doc.path);
+  }
+  return index;
+}
+
+/** Endpoint-carrying zones and the field(s) on each record that name a link
+ *  target — CONTRACT.md §16.2's "suspicion on a relation" application. */
+const LINK_FOLDERS: Array<{ dir: string; endpointFields: string[] }> = [
+  { dir: 'canon/relations', endpointFields: ['from', 'to'] },
+  { dir: 'canon/assertions', endpointFields: ['about'] },
+  { dir: 'canon/verifications', endpointFields: ['verifies'] },
+  { dir: 'canon/validations', endpointFields: ['validates'] },
+];
+
+/** Link suspicion + agreement lapse (CONTRACT.md §16) over a loaded repo
+ *  model: every REL/ASSERTION/VERIFICATION/VALIDATION endpoint, and every
+ *  `agreement: agreed` element, checked against the content the record last
+ *  looked at. Findings are informational (`severity: 'warning'`) — never
+ *  block a run and never exclude anything from any other check. */
+export function runLinkSuspicionCheck(root: string, model: RepoModelInput): ViewFinding[] {
+  const findings: ViewFinding[] = [];
+  const manifests = loadMigrationManifests(root);
+  const index = buildIdIndex(model);
+  const historyIndex = buildPathHistoryIndex(root);
+
+  for (const { dir, endpointFields } of LINK_FOLDERS) {
+    const docs = dir === 'canon/relations' ? model.relations : loadZoneDocs(root, dir);
+    for (const doc of docs) {
+      if (!doc.data) continue;
+      const recordId = typeof doc.data.id === 'string' ? doc.data.id : '';
+      const anchor = historyIndex.lastCommit.get(doc.path);
+      for (const ef of endpointFields) {
+        const targetId = doc.data[ef];
+        if (typeof targetId !== 'string') continue;
+        const targetPath = index.get(targetId);
+        if (!targetPath) continue; // unresolved — a referential-integrity finding's concern, not this one
+        const result = checkTargetSuspicion(root, anchor, targetPath, manifests, historyIndex);
+        if (result.suspicious) {
+          findings.push({
+            file: doc.path,
+            notation: notationOf(doc.data) || '',
+            ruleId: 'LINK-SUSPECT-001',
+            severity: 'warning',
+            message:
+              `Link${recordId ? ` "${recordId}"` : ''} to "${targetId}" (${targetPath}) may be stale — its ` +
+              `content has changed since this record last looked at it` +
+              `${result.hatchRefused ? ' (a declared migration did not fully explain the change — MECH-001)' : ''}.`,
+          });
+        }
+      }
+    }
+  }
+
+  // Agreement lapse — a REQUIREMENT/CONSTRAINT/NEED with agreement: agreed
+  // whose statement changed since the agreement fields were last set.
+  for (const doc of model.elements) {
+    if (!doc.data || doc.data.agreement !== 'agreed') continue;
+    const id = typeof doc.data.id === 'string' ? doc.data.id : '';
+    const anchor = gitLastCommitMatching(root, doc.path, '^(agreement|agreed_by|agreed_at):');
+    const result = checkTargetSuspicion(root, anchor, doc.path, manifests, historyIndex);
+    if (result.suspicious) {
+      findings.push({
+        file: doc.path,
+        notation: notationOf(doc.data) || '',
+        ruleId: 'AGREEMENT-LAPSE-001',
+        severity: 'warning',
+        message:
+          `"${id}" is agreement: agreed, but its statement has changed since the agreement was last set` +
+          `${result.hatchRefused ? ' (a declared migration did not fully explain the change — MECH-001)' : ''}.`,
+      });
+    }
+  }
+
+  return findings;
+}
+
 /** Load the canon model under `root` and run the repo-scope checks: canon
  *  cross-references plus per-file notation sweep over canon/views/** and codex/**. */
 export function runRepoValidate(root: string): RepoScopeResult {
@@ -712,7 +965,8 @@ export function runRepoValidate(root: string): RepoScopeResult {
     ...runComplianceValidate(root, ctx),
     ...runGapDashboardWarnings(ctx),
   ];
-  return { canon, views, codex, compliance, skipped };
+  const linkSuspicion = runLinkSuspicionCheck(root, model);
+  return { canon, views, codex, compliance, linkSuspicion, skipped };
 }
 
 /** Load the canon model under `root` and resolve it into the element/relation
@@ -752,7 +1006,7 @@ export function reportRepoFindings(
   useJson: boolean,
   model?: ResolvedRepoModel,
 ): void {
-  const { canon, views, codex, compliance, skipped } = result;
+  const { canon, views, codex, compliance, linkSuspicion, skipped } = result;
   const canonErrors = canon.filter(isCanonBlocking);
   const canonWarnings = canon.filter((c) => c.severity === 'warning');
   const viewErrors = views.filter((v) => v.severity === 'error');
@@ -778,6 +1032,7 @@ export function reportRepoFindings(
           views: { valid: viewErrors.length === 0, findings: views },
           codex: { valid: codexErrors.length === 0, findings: codex },
           compliance: { valid: complianceErrors.length === 0, findings: compliance },
+          linkSuspicion,
           skipped,
           ...(model ? { model } : {}),
         },
@@ -788,7 +1043,7 @@ export function reportRepoFindings(
     return;
   }
 
-  if (valid && skipped.length === 0) {
+  if (valid && skipped.length === 0 && linkSuspicion.length === 0) {
     console.log(`✓ ${root} — repo-scope validation passed`);
     if (model) {
       console.log(`  Resolved model: ${model.elements.length} element(s), ${model.relations.length} relation(s)`);
@@ -856,6 +1111,19 @@ export function reportRepoFindings(
     console.log();
   }
 
+  if (linkSuspicion.length > 0) {
+    console.log('Link suspicion (CONTRACT.md §16 — informational, never blocking):');
+    let currentFile = '';
+    for (const s of linkSuspicion) {
+      if (s.file !== currentFile) {
+        console.log(`  ${s.file} [${s.notation || 'yaml'}]`);
+        currentFile = s.file;
+      }
+      console.log(`    \x1b[33m⚠ ${s.ruleId}\x1b[0m ${s.message}`);
+    }
+    console.log();
+  }
+
   if (skipped.length > 0) {
     console.log(
       `Skipped — notation not yet validated by the CLI (check in the preview): ${skipped.length} file${skipped.length === 1 ? '' : 's'}`,
@@ -899,6 +1167,11 @@ export function reportRepoFindings(
   if (complianceWarnings.length > 0) {
     parts.push(
       `\x1b[33m${complianceWarnings.length}\x1b[0m compliance warning${complianceWarnings.length === 1 ? '' : 's'}`,
+    );
+  }
+  if (linkSuspicion.length > 0) {
+    parts.push(
+      `\x1b[33m${linkSuspicion.length}\x1b[0m link-suspicion finding${linkSuspicion.length === 1 ? '' : 's'}`,
     );
   }
   if (parts.length > 0) {

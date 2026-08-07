@@ -3,6 +3,7 @@
 
 import type { ValidationError, ValidationWarning, ValidationResult } from '../validation-types.js';
 import { typeOfId, isCanonicalIdOfType, type CanonCatalog } from '../typed-id.js';
+import { checkAgreement } from '../agreement.js';
 import { CONSTRAINT_STATUSES, CONSTRAINT_SEVERITIES } from './types.js';
 
 export interface ConstraintValidateOptions {
@@ -126,6 +127,9 @@ export function validateConstraint(
       });
     }
   }
+
+  // AGREE-001..003 — agreement axis (CONTRACT.md §6.3.1), optional; absent ⇒ agreed.
+  errors.push(...checkAgreement(c));
 
   return { valid: errors.length === 0, errors, warnings };
 }
