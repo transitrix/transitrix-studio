@@ -15,6 +15,7 @@
 - **`transitrix validate <file> --fix` completes missing envelope fields on a hand-authored `actor`/`change`/`driver`/`stakeholder`/`target-state`/`location`/`business-service`/`integration`/`node`/`technology-service` file.** Targeted text insertion immediately after the file's `id:` line — not a parse-mutate-dump round trip, since this repo has no comment-preserving YAML writer and the diff is the product. Inserts only what it can derive (`zone`, `admitted_at`, `valid_from`, `valid_to`, `admitted_by` via `--author` or `git config user.name`); never corrects a field already present, even if invalid. `gate_checks` is only filled once the id doesn't collide elsewhere in canon and the fix leaves the document with no other unresolved finding — a real check, not a constant `pass`. Reports every field filled and every field it couldn't determine; idempotent; `--dry-run` previews without writing.
 - **`TARGET_STATE` element-envelope validation wired into `validate --scope=repo`.** The `target-state` notation's per-notation validator (`TSTATE-001..003`) existed in `@transitrix/diagrams` but had no caller anywhere in the CLI or extension — a hand-authored `TARGET_STATE-*.yaml` file missing envelope fields produced zero findings. One of the ten dead per-notation envelope validators being wired in, one notation per change.
 - **`LOCATION` element-envelope validation wired into `validate --scope=repo`.** The `location` notation's per-notation validator (`LOC-001..003`) existed in `@transitrix/diagrams` but had no caller anywhere in the CLI or extension — a hand-authored `LOCATION-*.yaml` file missing envelope fields produced zero findings. One of the ten dead per-notation envelope validators being wired in, one notation per change.
+- **`INTEGRATION` element-envelope validation wired into `validate --scope=repo`.** The `integration` notation's per-notation validator (`INT-001`, `INT-002`) existed in `@transitrix/diagrams` but had no caller anywhere in the CLI or extension — a hand-authored `INTEGRATION-*.yaml` file missing envelope fields, or asserting `interface_semantics: true` without its conditionally required fields, produced zero findings. One of the ten dead per-notation envelope validators being wired in, one notation per change.
 - **`NODE` element-envelope validation wired into `validate --scope=repo`.** The `node` notation's per-notation validator (`NOD-001`, `NOD-002`) existed in `@transitrix/diagrams` but had no caller anywhere in the CLI or extension — a hand-authored `NODE-*.yaml` file missing envelope fields, or with an invalid `type`, produced zero findings. One of the ten dead per-notation envelope validators being wired in, one notation per change.
 
 ### Changed
@@ -44,8 +45,10 @@
 - `@transitrix/cli` 2.4.11 → 2.4.12 — paired bump per `cli-diagrams-alignment`.
 - `@transitrix/diagrams` 1.9.12 → 1.9.13 — `BUSINESS_SERVICE` envelope validation wired in.
 - `@transitrix/cli` 2.4.12 → 2.4.13 — paired bump per `cli-diagrams-alignment`.
-- `@transitrix/diagrams` 1.9.13 → 1.9.14 — `NODE` envelope validation wired in.
+- `@transitrix/diagrams` 1.9.13 → 1.9.14 — `INTEGRATION` envelope validation wired in.
 - `@transitrix/cli` 2.4.13 → 2.4.14 — paired bump per `cli-diagrams-alignment`.
+- `@transitrix/diagrams` 1.9.14 → 1.9.15 — `NODE` envelope validation wired in.
+- `@transitrix/cli` 2.4.14 → 2.4.15 — paired bump per `cli-diagrams-alignment`.
 
 ## [3.1.3] — 2026-07-29
 
