@@ -1,6 +1,8 @@
 // REQUIREMENT — motivation-layer positive obligation.
 // Schema: methodology notations/elements/15-requirement.md §2.
 
+import type { AgreementValue } from '../agreement.js';
+
 export type RequirementSeverity = 'high' | 'medium' | 'low';
 
 /** Standard canon admission gate checks (CONTRACT.md §6). */
@@ -38,6 +40,13 @@ export interface Requirement {
   derived_from?: string[];
   /** Typed ID of the upstream NEED this requirement traces to (§2.7, REQ-SERVES-001). Optional, singular. */
   serves?: string;
+
+  // Agreement axis (CONTRACT.md §6.3, when present) — independent of admission.
+  /** `draft` \| `agreed` \| `disputed`. Absent ⇒ `agreed` (back-compat). */
+  agreement?: AgreementValue;
+  /** Required whenever `agreement` is present (AGREE-003). Written only by a human when `agreement: agreed` (AGREE-002). */
+  agreed_by?: string;
+  agreed_at?: string;
 
   // Admission record (CONTRACT.md §6).
   zone: 'canon';

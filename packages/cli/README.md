@@ -57,11 +57,12 @@ release is `1.0.0`.
 
 `@transitrix/diagrams` source (not a runtime dependency — see "What's
 included" above) is bundled in at prepack, so a diagrams fix only reaches
-adopters once `@transitrix/cli` itself is republished. A CI guard
-(`scripts/check-cli-diagrams-alignment.mjs`) fails a PR that bumps
-`packages/diagrams/package.json` without also bumping `packages/cli/package.json`,
-so the two never drift apart. Run `transitrix --version` to see exactly which
-`@transitrix/diagrams` version is bundled into an installed CLI.
+adopters once `@transitrix/cli` itself is republished. A release-time guard
+(`scripts/check-release-versions.mjs`) fails the release when
+`@transitrix/diagrams` moved since the previous release and
+`@transitrix/cli` did not, so the two never drift apart. Run
+`transitrix --version` to see exactly which `@transitrix/diagrams` version
+is bundled into an installed CLI.
 
 ## Naming
 

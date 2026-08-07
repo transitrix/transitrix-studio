@@ -13,264 +13,41 @@
 // loaded by cli.ts via a runtime dynamic import (tsx in dev), and bundled into
 // the slim CLI package by scripts/build-cli-package.mjs.
 //
-// Group A: notations whose validator already lived in the shared package AND was
-// the one the preview called — parity by construction from Phase A.
-// Group B (applications, capability-map, products, scenarios, process-map):
-// previously kept inline copies in the extension preview files. Phase B deduped
-// them — the extension now imports the package validator — so CLI parity is
-// guaranteed for all notations listed here.
-// activity-card runs only its single-file structural stage here — cross-document
-// resolution (resolveActivityCard) needs the whole canon and belongs to repo scope.
+// The per-notation validators themselves — which package function to call, any
+// options-forwarding glue, and whether the notation has a canonical view
+// extension or a compliance-sweep directory — live one file per notation under
+// `src/validators/`, discovered by `notation-registry.ts`. This module only
+// holds the dispatch that's the same for every notation: parsing, key
+// resolution, and shaping the result.
 
 import yaml from 'js-yaml';
 import type { ValidationReport, ValidationFinding } from './validator-types.js';
 import { coerceDatesToIsoStrings } from '@transitrix/diagrams/yaml-normalize.js';
-import { parseCanonicalGoals } from '@transitrix/diagrams/goals/parse-canonical.js';
-import {
-  parseCanonicalFGCA,
-  parseCanonicalFGA,
-} from '@transitrix/diagrams/fgca/parse-canonical.js';
-import { validateActivities } from '@transitrix/diagrams/activities/validate.js';
-import { validateActivityCard } from '@transitrix/diagrams/activity-card/validate.js';
-import { validateProcessBlueprint } from '@transitrix/diagrams/process-blueprint/validate.js';
-import { validateBlocks } from '@transitrix/diagrams/blocks/validate.js';
-import { GRID_TEMPLATE_RULES } from '@transitrix/diagrams/blocks/templates/index.js';
-import { validateApplicationsCatalogue } from '@transitrix/diagrams/applications/validate.js';
-import { validateCapabilityMap } from '@transitrix/diagrams/capability-map/validate.js';
-import { validateProductsCatalogue } from '@transitrix/diagrams/products/validate.js';
-import { validateScenario } from '@transitrix/diagrams/scenarios/validate.js';
-import { validateProcessMap } from '@transitrix/diagrams/process-map/validate.js';
-import { validateRequirement } from '@transitrix/diagrams/requirement/validate.js';
-import { validateConstraint } from '@transitrix/diagrams/constraint/validate.js';
-import { validateAssertion } from '@transitrix/diagrams/assertion/validate.js';
-import { validateVerification } from '@transitrix/diagrams/verification/validate.js';
-import { validateRisk } from '@transitrix/diagrams/risk/validate.js';
-import { validateMetric } from '@transitrix/diagrams/metric/validate.js';
-import { validateNeed } from '@transitrix/diagrams/need/validate.js';
-import { validateValidation } from '@transitrix/diagrams/validation/validate.js';
-import { validateFactor } from '@transitrix/diagrams/factor/validate.js';
-import { validateActor } from '@transitrix/diagrams/actor/validate.js';
-import { validateChange } from '@transitrix/diagrams/change/validate.js';
-import { validateStakeholder } from '@transitrix/diagrams/stakeholder/validate.js';
-import { validateIntegration } from '@transitrix/diagrams/integration/validate.js';
-import { validateTargetState } from '@transitrix/diagrams/target-state/validate.js';
-import { validateLocation } from '@transitrix/diagrams/location/validate.js';
-import { validateBusinessService } from '@transitrix/diagrams/business-service/validate.js';
-import { validateTechnologyService } from '@transitrix/diagrams/technology-service/validate.js';
-import { parseImpactViewConfig } from '@transitrix/diagrams/compliance/impact.js';
-import { parseCoverageMetricConfig } from '@transitrix/diagrams/compliance/coverage-metric.js';
-import {
-  validateCodex,
-  isCodexDoc,
-  folderJurisdictionFromPath,
-} from '@transitrix/diagrams/codex/validate.js';
+import { isCodexDoc } from '@transitrix/diagrams/codex/validate.js';
 import { CODEX_ARTEFACT_TYPES } from '@transitrix/diagrams/codex/types.js';
-import { typeOfId, type CanonCatalog } from '@transitrix/diagrams/typed-id.js';
+import { typeOfId } from '@transitrix/diagrams/typed-id.js';
+import {
+  VALIDATOR_REGISTRATIONS,
+  type NotationValidator,
+  type ValidateNotationOptions,
+} from './notation-registry.js';
 
-/** The shape every notation validator returns: code/message findings split into
- *  blocking errors and advisory warnings. The concrete result types carry extra
- *  fields (parsed model, etc.) — structurally assignable to this. */
-interface NotationValidationResult {
-  valid: boolean;
-  errors: Array<{ code: string; message: string }>;
-  warnings: Array<{ code: string; message: string }>;
-}
+export type { ValidateNotationOptions } from './notation-registry.js';
 
-type NotationValidator = (input: unknown, options?: ValidateNotationOptions) => NotationValidationResult;
-
-function wrapValidator(fn: (input: unknown) => NotationValidationResult): NotationValidator {
-  return (input, _options = {}) => fn(input);
-}
-
-function mapPackageResult(result: {
-  valid: boolean;
-  errors: Array<{ code: string; message: string }>;
-  warnings: Array<{ code: string; message: string }>;
-}): NotationValidationResult {
-  return {
-    valid: result.valid,
-    errors: result.errors.map((e) => ({ code: e.code, message: e.message })),
-    warnings: result.warnings.map((w) => ({ code: w.code, message: w.message })),
-  };
-}
-
-function validateRequirementDoc(input: unknown, options: ValidateNotationOptions = {}): NotationValidationResult {
-  return mapPackageResult(validateRequirement(input, { catalog: options.catalog }));
-}
-
-function validateAssertionDoc(input: unknown, options: ValidateNotationOptions = {}): NotationValidationResult {
-  const today = new Date().toISOString().slice(0, 10);
-  return mapPackageResult(validateAssertion(input, { catalog: options.catalog, today }));
-}
-
-function validateVerificationDoc(input: unknown, options: ValidateNotationOptions = {}): NotationValidationResult {
-  return mapPackageResult(validateVerification(input, { catalog: options.catalog }));
-}
-
-function validateConstraintDoc(input: unknown, options: ValidateNotationOptions = {}): NotationValidationResult {
-  return mapPackageResult(validateConstraint(input, { catalog: options.catalog }));
-}
-
-function validateRiskDoc(input: unknown, options: ValidateNotationOptions = {}): NotationValidationResult {
-  return mapPackageResult(validateRisk(input, { catalog: options.catalog }));
-}
-
-function validateMetricDoc(input: unknown, options: ValidateNotationOptions = {}): NotationValidationResult {
-  return mapPackageResult(validateMetric(input, { catalog: options.catalog }));
-}
-
-function validateNeedDoc(input: unknown, options: ValidateNotationOptions = {}): NotationValidationResult {
-  return mapPackageResult(validateNeed(input, { catalog: options.catalog }));
-}
-
-function validateValidationDoc(input: unknown, options: ValidateNotationOptions = {}): NotationValidationResult {
-  return mapPackageResult(validateValidation(input, { catalog: options.catalog }));
-}
-
-function validateChangeDoc(input: unknown, options: ValidateNotationOptions = {}): NotationValidationResult {
-  return mapPackageResult(validateChange(input, { catalog: options.catalog }));
-}
-
-function validateStakeholderDoc(input: unknown, options: ValidateNotationOptions = {}): NotationValidationResult {
-  return mapPackageResult(validateStakeholder(input, { catalog: options.catalog }));
-}
-
-function validateFactorDoc(input: unknown, options: ValidateNotationOptions = {}): NotationValidationResult {
-  return mapPackageResult(validateFactor(input, { catalog: options.catalog }));
-}
-
-function validateTargetStateDoc(input: unknown, options: ValidateNotationOptions = {}): NotationValidationResult {
-  return mapPackageResult(validateTargetState(input, { catalog: options.catalog }));
-}
-
-function validateBlocksDoc(input: unknown, options: ValidateNotationOptions = {}): NotationValidationResult {
-  if (options.template !== undefined) {
-    const rules = GRID_TEMPLATE_RULES[options.template];
-    // An unrecognised --template name must fail loudly, not silently validate
-    // the grid without the template invariant the caller asked for — a typo
-    // (e.g. "racy") would otherwise pass a RACI file with a missing/duplicate
-    // Accountable owner with no warning at all.
-    if (!rules) {
-      const known = Object.keys(GRID_TEMPLATE_RULES);
-      return {
-        valid: false,
-        errors: [
-          {
-            code: 'BL-TEMPLATE-UNKNOWN',
-            message:
-              known.length > 0
-                ? `Unknown --template "${options.template}". Known templates: ${known.join(', ')}.`
-                : `Unknown --template "${options.template}". No grid templates are registered.`,
-          },
-        ],
-        warnings: [],
-      };
-    }
-    return mapPackageResult(validateBlocks(input, { rules }));
-  }
-  return mapPackageResult(validateBlocks(input, {}));
-}
-
-function validateComplianceImpactDoc(input: unknown): NotationValidationResult {
-  const r = parseImpactViewConfig(input);
-  if (r.ok) return { valid: true, errors: [], warnings: [] };
-  return {
-    valid: false,
-    errors: r.errors.map((message) => ({ code: 'COMPIMP-001', message })),
-    warnings: [],
-  };
-}
-
-function splitComplianceCode(message: string, fallback: string): { code: string; message: string } {
-  const m = message.match(/^([A-Z][A-Z0-9_-]+):\s*(.*)$/s);
-  if (m) return { code: m[1], message: m[2].length > 0 ? m[2] : message };
-  return { code: fallback, message };
-}
-
-function validateCoverageMetricDoc(input: unknown): NotationValidationResult {
-  const r = parseCoverageMetricConfig(input);
-  if (!r.ok) {
-    return {
-      valid: false,
-      errors: r.errors.map((message) => splitComplianceCode(message, 'COVMET-001')),
-      warnings: [],
-    };
-  }
-  const warnings = (r.config.warnings ?? []).map((message) =>
-    splitComplianceCode(message, 'COVMET-WARN'),
-  );
-  return { valid: true, errors: [], warnings };
-}
-
-function validateCodexDoc(input: unknown, _options: ValidateNotationOptions = {}): NotationValidationResult {
-  return mapPackageResult(validateCodex(input));
-}
-
-// Keyed by the document's `notation:` field value — see the corpus under
-// tests/fixtures/notation-corpus/<notation>/.
-const VALIDATORS: Record<string, NotationValidator> = {
-  // Group A — validator lives in the shared package and is the one the preview calls.
-  goals: wrapValidator(parseCanonicalGoals),
-  dgca: wrapValidator(parseCanonicalFGCA),
-  dga: wrapValidator(parseCanonicalFGA),
-  action: wrapValidator(validateActivities),
-  'action-card': wrapValidator(validateActivityCard),
-  'process-blueprint': wrapValidator(validateProcessBlueprint),
-  blocks: validateBlocksDoc,
-  // Group B — deduped from inline preview copies in Phase B; package is now canonical.
-  applications: wrapValidator(validateApplicationsCatalogue),
-  'capability-map': wrapValidator(validateCapabilityMap),
-  products: wrapValidator(validateProductsCatalogue),
-  scenarios: wrapValidator(validateScenario),
-  'process-map': wrapValidator(validateProcessMap),
-  // Group C — compliance suite (#518 Phase C1–C4).
-  requirement: validateRequirementDoc,
-  constraint: validateConstraintDoc,
-  assertion: validateAssertionDoc,
-  verification: validateVerificationDoc,
-  risk: validateRiskDoc,
-  metric: validateMetricDoc,
-  need: validateNeedDoc,
-  validation: validateValidationDoc,
-  'compliance-impact': wrapValidator(validateComplianceImpactDoc),
-  'coverage-metric': wrapValidator(validateCoverageMetricDoc),
-  // Group C — codex zone (#518 Phase C2); `zone: codex`, not a notation: tag.
-  codex: validateCodexDoc,
-  // Group D — standalone element-envelope validators under canon/elements/**
-  // that existed in the shared package but were never wired into repo-scope
-  // validate; wired in one notation at a time.
-  change: validateChangeDoc,
-  driver: validateFactorDoc,
-  actor: wrapValidator(validateActor),
-  stakeholder: validateStakeholderDoc,
-  integration: wrapValidator(validateIntegration),
-  'target-state': validateTargetStateDoc,
-  location: wrapValidator(validateLocation),
-  'business-service': wrapValidator(validateBusinessService),
-  'technology-service': wrapValidator(validateTechnologyService),
-};
+const VALIDATORS: Record<string, NotationValidator> = Object.fromEntries(
+  VALIDATOR_REGISTRATIONS.map((r) => [r.notation, r.validator]),
+);
 
 /** Notation field values the CLI can validate per file. */
-export const FILE_VALIDATABLE_NOTATIONS = Object.keys(VALIDATORS);
+export const FILE_VALIDATABLE_NOTATIONS: readonly string[] = VALIDATOR_REGISTRATIONS.map(
+  (r) => r.notation,
+);
 
 /** View notations whose on-disk suffix is `.<notation>.transitrix.yaml`.
  *  Element notations (requirement, constraint, assertion) use typed-id filenames instead. */
-export const NOTATIONS_WITH_CANONICAL_VIEW_EXTENSION: readonly string[] = [
-  'goals',
-  'dgca',
-  'dga',
-  'action',
-  'action-card',
-  'process-blueprint',
-  'blocks',
-  'applications',
-  'capability-map',
-  'products',
-  'scenarios',
-  'process-map',
-  'compliance-impact',
-  'coverage-metric',
-];
+export const NOTATIONS_WITH_CANONICAL_VIEW_EXTENSION: readonly string[] = VALIDATOR_REGISTRATIONS
+  .filter((r) => r.canonicalViewExtension)
+  .map((r) => r.notation);
 
 /** Canonical file extensions the validate command accepts without `--ext`. */
 export const CANONICAL_NOTATION_FILE_EXTENSIONS: readonly string[] =
@@ -324,16 +101,6 @@ export function resolveValidatorKey(data: unknown): string | undefined {
   return notation;
 }
 
-export interface ValidateNotationOptions {
-  /** Repo-relative or absolute path — used for codex folder-jurisdiction checks. */
-  filePath?: string;
-  /** Admitted canon catalogue — enables REQ-002 and ASSERT-002..005 (#518 C3). */
-  catalog?: CanonCatalog;
-  /** Grid-template name (matrix subset, §6a) — e.g. "raci" — opts into that
-   *  template's extra GridRule checks on top of the base BL-02x rules. */
-  template?: string;
-}
-
 /** Parse + date-coerce a YAML string exactly as the previews do, so validator
  *  input — and therefore findings — match the preview. Throws on a YAML syntax
  *  error (the caller maps that to a parse-error report). */
@@ -349,16 +116,7 @@ export function validateNotationDoc(
   data: unknown,
   options: ValidateNotationOptions = {},
 ): ValidationReport {
-  const result =
-    notation === 'codex'
-      ? mapPackageResult(
-          validateCodex(data, {
-            folderJurisdiction: options.filePath
-              ? folderJurisdictionFromPath(options.filePath)
-              : undefined,
-          }),
-        )
-      : VALIDATORS[notation](data, options);
+  const result = VALIDATORS[notation](data, options);
   const findings: ValidationFinding[] = [
     ...result.errors.map(
       (e): ValidationFinding => ({ ruleId: e.code, severity: 'error', message: e.message }),

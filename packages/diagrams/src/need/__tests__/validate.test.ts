@@ -71,3 +71,18 @@ describe('validateNeed — NEED-002 (stakeholder → STAKEHOLDER)', () => {
     expect(codes(valid(), { catalog: present })).not.toContain('NEED-002');
   });
 });
+
+describe('validateNeed — AGREE-001..003 (agreement axis, CONTRACT.md §6.3.1)', () => {
+  it('is not checked when absent', () => {
+    expect(codes(valid())).not.toContain('AGREE-001');
+  });
+
+  it('flags a tool writing agreement: agreed, accepts a human', () => {
+    expect(codes({ ...valid(), agreement: 'agreed', agreed_by: 'needs-scanner' })).toContain('AGREE-002');
+    expect(validateNeed({ ...valid(), agreement: 'agreed', agreed_by: 'v.korobeinikov' }).valid).toBe(true);
+  });
+
+  it('flags missing agreed_by when agreement is present', () => {
+    expect(codes({ ...valid(), agreement: 'draft' })).toContain('AGREE-003');
+  });
+});

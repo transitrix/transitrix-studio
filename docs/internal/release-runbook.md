@@ -23,6 +23,21 @@ The npm publish steps are idempotent: each compares the workspace version
 with the registry and skips when that version is already published, so
 releases that bump only one package (or neither) stay green.
 
+`npm-publish.yml` gates both publish steps on a `version-guards` job
+(`scripts/check-release-versions.mjs`). It compares the release commit with
+the previous `v*` tag and fails the release, naming the package, when either:
+
+- `packages/diagrams/src` changed over that span but
+  `@transitrix/diagrams` is releasing under the same version — the change
+  would reach the registry under a version that doesn't carry it; or
+- `@transitrix/diagrams` moved but `@transitrix/cli` did not — `cli` bundles
+  the diagrams source at prepack, so the idempotent publish step would skip
+  it and ship a stale bundled copy.
+
+Because those two invariants are checked here, a pull request never has to
+bump either version field, and two PRs touching `packages/diagrams/src` no
+longer collide on one.
+
 ## Release procedure
 
 ### 1. Release PR (agent-preparable)

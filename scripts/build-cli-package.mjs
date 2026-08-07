@@ -87,6 +87,23 @@ await esbuild.build({
   outdir: distOut,
 });
 
+// `notation-registry.ts` (bundled into repo-validate.js / validate-notation.js
+// above) discovers its per-notation validators at runtime from a `validators/`
+// directory next to its own bundle — each one bundled here as its own esbuild
+// entry, discovered from `src/validators/` rather than listed, so a new
+// notation validator (one new file under src/validators/) needs no edit here.
+const validatorsSrcDir = resolve(root, 'src', 'validators');
+const validatorEntryPoints = Object.fromEntries(
+  (await fs.readdir(validatorsSrcDir))
+    .filter((name) => name.endsWith('.ts'))
+    .map((name) => [`validators/${name.replace(/\.ts$/, '')}`, resolve(validatorsSrcDir, name)]),
+);
+await esbuild.build({
+  ...sharedBuildOptions,
+  entryPoints: validatorEntryPoints,
+  outdir: distOut,
+});
+
 // Restore the shebang on the CLI entry — esbuild strips it from non-IIFE
 // bundles. Without it, `npm i -g` installs a bin that can't be executed
 // directly on POSIX (Windows uses the shim that npm writes either way).
