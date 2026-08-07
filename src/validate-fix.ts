@@ -88,6 +88,16 @@ export interface ComputeFixPlanOptions {
   absFilePath: string;
   /** `--author`, else `git config user.name` (never invented). */
   author?: string;
+  /** `--valid-from` — overrides the `valid_from` fill (CONTRACT.md §7, the
+   *  date the primitive starts being true). Defaults to today.
+   *
+   *  `admitted_at` has no counterpart override on purpose: it records when
+   *  admission actually happened, so a caller-set value would falsify the
+   *  admission record — the same posture that keeps `gate_checks` from ever
+   *  being written as a constant `pass`. Callers validate the format before
+   *  passing it; an already-present `valid_from` is never touched, override
+   *  or not. */
+  validFrom?: string;
   /** Repo-wide catalogue, so the catalogue-aware notations (change,
    *  stakeholder, target-state) can actually resolve cross-references when
    *  deciding whether `gate_checks.consistency` truly holds. */
@@ -130,7 +140,7 @@ export function computeFixPlan(
     filled.push({ field: 'admitted_at', value: v });
   }
   if (missingSimple.has('valid_from')) {
-    const v = todayIso();
+    const v = opts.validFrom ?? todayIso();
     candidate.valid_from = v;
     filled.push({ field: 'valid_from', value: v });
   }

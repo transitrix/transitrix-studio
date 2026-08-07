@@ -1,0 +1,11 @@
+---
+document: Software Requirements Specification
+kind: srs
+template_id: platform.srs
+template_version: "1.0"
+---
+
+# Kind disagreement
+
+The filename's kind segment says `mrd`; the header above says `srs`. Exactly one
+of the two is wrong, and the validator says so rather than guessing which.

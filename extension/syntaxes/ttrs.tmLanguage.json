@@ -1,0 +1,202 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Transitrix Document Template",
+  "scopeName": "text.ttrs",
+  "fileTypes": ["ttrs"],
+  "patterns": [
+    { "include": "#frontmatter" },
+    { "include": "#escape" },
+    { "include": "#instruction-slot" },
+    { "include": "#each-block" },
+    { "include": "#trace" },
+    { "include": "#capability-reference" },
+    { "include": "#figure-view" },
+    { "include": "#figure-supplied" },
+    { "include": "#figure-reference" },
+    { "include": "#model-object-reference" }
+  ],
+  "repository": {
+    "frontmatter": {
+      "begin": "\\A(---)\\s*$",
+      "beginCaptures": {
+        "1": { "name": "punctuation.definition.frontmatter.begin.ttrs" }
+      },
+      "end": "^(---)\\s*$",
+      "endCaptures": {
+        "1": { "name": "punctuation.definition.frontmatter.end.ttrs" }
+      },
+      "name": "meta.frontmatter.ttrs",
+      "patterns": [{ "include": "source.yaml" }]
+    },
+    "escape": {
+      "match": "\\\\\\{\\{",
+      "name": "constant.character.escape.ttrs"
+    },
+    "instruction-slot": {
+      "begin": "(\\{\\{#)\\s*(instruct)\\s+([a-z0-9][a-z0-9-]*)\\s*(\\}\\})",
+      "beginCaptures": {
+        "1": { "name": "punctuation.definition.tag.begin.ttrs" },
+        "2": { "name": "keyword.control.instruct.ttrs" },
+        "3": { "name": "entity.name.tag.slot-id.ttrs" },
+        "4": { "name": "punctuation.definition.tag.end.ttrs" }
+      },
+      "end": "(\\{\\{/)\\s*(instruct)\\s*(\\}\\})",
+      "endCaptures": {
+        "1": { "name": "punctuation.definition.tag.begin.ttrs" },
+        "2": { "name": "keyword.control.instruct.ttrs" },
+        "3": { "name": "punctuation.definition.tag.end.ttrs" }
+      },
+      "name": "meta.instruction-slot.ttrs",
+      "patterns": [{ "include": "#instruction-slot-body" }]
+    },
+    "instruction-slot-body": {
+      "patterns": [
+        {
+          "match": "^\\s*(question|inputs|sufficient)\\s*(:)",
+          "captures": {
+            "1": { "name": "keyword.other.instruction-key.ttrs" },
+            "2": { "name": "punctuation.separator.key-value.ttrs" }
+          }
+        },
+        { "match": "[^\\n]+", "name": "string.unquoted.instruction-body.ttrs" }
+      ]
+    },
+    "each-block": {
+      "begin": "(\\{\\{#)\\s*(each)\\s+([A-Z][A-Z0-9_]*)([^}]*)(\\}\\})",
+      "beginCaptures": {
+        "1": { "name": "punctuation.definition.tag.begin.ttrs" },
+        "2": { "name": "keyword.control.each.ttrs" },
+        "3": { "name": "entity.name.type.element-type.ttrs" },
+        "4": { "patterns": [{ "include": "#each-clauses" }] },
+        "5": { "name": "punctuation.definition.tag.end.ttrs" }
+      },
+      "end": "(\\{\\{/)\\s*(each)\\s*(\\}\\})",
+      "endCaptures": {
+        "1": { "name": "punctuation.definition.tag.begin.ttrs" },
+        "2": { "name": "keyword.control.each.ttrs" },
+        "3": { "name": "punctuation.definition.tag.end.ttrs" }
+      },
+      "name": "meta.block.each.ttrs",
+      "patterns": [{ "include": "#each-body" }]
+    },
+    "each-clauses": {
+      "patterns": [
+        {
+          "match": "\\b(order)\\s+(by)\\b",
+          "captures": {
+            "1": { "name": "keyword.control.each.ttrs" },
+            "2": { "name": "keyword.control.each.ttrs" }
+          }
+        },
+        { "match": "\\b(where|and)\\b", "name": "keyword.control.each.ttrs" },
+        {
+          "match": "(!=|=)\\s*(\"(?:\\\\.|[^\"\\\\])*\"|[A-Za-z0-9_.-]+)",
+          "captures": {
+            "1": { "name": "keyword.operator.comparison.ttrs" },
+            "2": { "name": "string.unquoted.literal.ttrs" }
+          }
+        },
+        { "match": "[A-Za-z_][A-Za-z0-9_.-]*", "name": "variable.other.field.ttrs" }
+      ]
+    },
+    "each-body": {
+      "patterns": [
+        { "include": "#escape" },
+        { "include": "#instruction-slot" },
+        { "include": "#trace" },
+        { "include": "#capability-reference" },
+        { "include": "#figure-view" },
+        { "include": "#figure-supplied" },
+        { "include": "#figure-reference" },
+        { "include": "#row-reference" },
+        { "include": "#model-object-reference" }
+      ]
+    },
+    "row-reference": {
+      "match": "(\\{\\{)\\s*(\\.[A-Za-z_][A-Za-z0-9_]*)\\s*(\\}\\})",
+      "captures": {
+        "1": { "name": "punctuation.definition.tag.begin.ttrs" },
+        "2": { "name": "variable.other.row-field.ttrs" },
+        "3": { "name": "punctuation.definition.tag.end.ttrs" }
+      },
+      "name": "meta.row-reference.ttrs"
+    },
+    "trace": {
+      "match": "(\\{\\{)\\s*(trace)\\s+([^}]*)(\\}\\})",
+      "captures": {
+        "1": { "name": "punctuation.definition.tag.begin.ttrs" },
+        "2": { "name": "keyword.control.trace.ttrs" },
+        "3": { "patterns": [{ "include": "#trace-attributes" }] },
+        "4": { "name": "punctuation.definition.tag.end.ttrs" }
+      },
+      "name": "meta.trace.ttrs"
+    },
+    "trace-attributes": {
+      "patterns": [
+        { "match": "\\b(from|to|via)\\b(?=\\s*=)", "name": "variable.parameter.ttrs" },
+        { "match": "=", "name": "keyword.operator.assignment.ttrs" },
+        { "match": "[A-Za-z_][A-Za-z0-9_]*", "name": "entity.name.type.element-type.ttrs" }
+      ]
+    },
+    "capability-reference": {
+      "match": "(\\{\\{)\\s*(CAPABILITY-[VH][1-9][0-9]*(?:\\.[1-9][0-9]*){0,2})\\s*(\\}\\})",
+      "captures": {
+        "1": { "name": "punctuation.definition.tag.begin.ttrs" },
+        "2": { "name": "variable.other.model-reference.ttrs" },
+        "3": { "name": "punctuation.definition.tag.end.ttrs" }
+      },
+      "name": "meta.model-object-reference.ttrs"
+    },
+    "model-object-reference": {
+      "match": "(\\{\\{)\\s*([A-Z][A-Z0-9_]*(?:-[A-Za-z0-9]+)*-[1-9][0-9]*)((?:\\.[A-Za-z_][A-Za-z0-9_]*){0,3})\\s*(\\}\\})",
+      "captures": {
+        "1": { "name": "punctuation.definition.tag.begin.ttrs" },
+        "2": { "name": "variable.other.model-reference.ttrs" },
+        "3": { "name": "variable.other.field-path.ttrs" },
+        "4": { "name": "punctuation.definition.tag.end.ttrs" }
+      },
+      "name": "meta.model-object-reference.ttrs"
+    },
+    "figure-view": {
+      "match": "(\\{\\{)\\s*(view)\\s+(\\S+)([^}]*)(\\}\\})",
+      "captures": {
+        "1": { "name": "punctuation.definition.tag.begin.ttrs" },
+        "2": { "name": "keyword.control.figure.ttrs" },
+        "3": { "name": "string.unquoted.path.ttrs" },
+        "4": { "patterns": [{ "include": "#figure-attributes" }] },
+        "5": { "name": "punctuation.definition.tag.end.ttrs" }
+      },
+      "name": "meta.figure.derived.ttrs"
+    },
+    "figure-supplied": {
+      "match": "(\\{\\{)\\s*(figure)\\s+(\\S+)([^}]*)(\\}\\})",
+      "captures": {
+        "1": { "name": "punctuation.definition.tag.begin.ttrs" },
+        "2": { "name": "keyword.control.figure.ttrs" },
+        "3": { "name": "string.unquoted.path.ttrs" },
+        "4": { "patterns": [{ "include": "#figure-attributes" }] },
+        "5": { "name": "punctuation.definition.tag.end.ttrs" }
+      },
+      "name": "meta.figure.supplied.ttrs"
+    },
+    "figure-reference": {
+      "match": "(\\{\\{)\\s*(figref)\\s+([A-Za-z_][A-Za-z0-9_-]*)\\s*(\\}\\})",
+      "captures": {
+        "1": { "name": "punctuation.definition.tag.begin.ttrs" },
+        "2": { "name": "keyword.control.figure.ttrs" },
+        "3": { "name": "variable.other.figure-name.ttrs" },
+        "4": { "name": "punctuation.definition.tag.end.ttrs" }
+      },
+      "name": "meta.figure.reference.ttrs"
+    },
+    "figure-attributes": {
+      "patterns": [
+        { "match": "\\b(as|fit|caption)\\b(?=\\s*=)", "name": "variable.parameter.ttrs" },
+        { "match": "=", "name": "keyword.operator.assignment.ttrs" },
+        { "match": "\"(?:\\\\.|[^\"\\\\])*\"", "name": "string.quoted.double.ttrs" },
+        { "match": "\\b(width|page|none)\\b", "name": "constant.language.ttrs" },
+        { "match": "[A-Za-z0-9_-]+", "name": "string.unquoted.ttrs" }
+      ]
+    }
+  }
+}

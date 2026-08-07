@@ -74,7 +74,8 @@
     "workspaceContains:**/REQUIREMENT-*.yaml",
     "workspaceContains:**/CONSTRAINT-*.yaml",
     "workspaceContains:**/*.puml",
-    "workspaceContains:**/*.plantuml"
+    "workspaceContains:**/*.plantuml",
+    "workspaceContains:**/*.ttrs"
   ],
   "contributes": {
     "configuration": {
@@ -549,6 +550,28 @@
           ".puml",
           ".plantuml"
         ]
+      },
+      {
+        "id": "transitrix-ttrs",
+        "aliases": [
+          "Transitrix Document Template",
+          "TTRS"
+        ],
+        "extensions": [
+          ".ttrs"
+        ],
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "media/ttrs-icon-mono.svg",
+          "dark": "media/ttrs-icon-mono.svg"
+        }
+      }
+    ],
+    "grammars": [
+      {
+        "language": "transitrix-ttrs",
+        "scopeName": "text.ttrs",
+        "path": "./syntaxes/ttrs.tmLanguage.json"
       }
     ],
     "commands": [
