@@ -62,8 +62,8 @@
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
     "elkjs": "^0.9.3",
-    "js-yaml": "^4.3.0",
-    "xmlbuilder2": "^3.1.1"
+    "js-yaml": "^4.3.1",
+    "xmlbuilder2": "^4.0.3"
   },
   "devDependencies": {
     "@plantuml/core": "^1.2026.6",

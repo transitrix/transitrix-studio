@@ -1,0 +1,22 @@
+# Worked example — BUSINESS_SERVICE element primitive (external, offering_unit is a ROLE, no capability).
+# Schema: notations/elements/25-business-services.md + ELEMENT_PRIMITIVES.md §3.
+
+notation: business-service
+id: BUSINESS_SERVICE-SUPPORT-1
+name: "Customer Support Service"
+type: external                          # internal | external | shared
+description: "Front-line customer support offered to external customers."
+offering_unit: ROLE-SUPPORT-LEAD-1
+
+# Admission record (CONTRACT.md §6)
+zone: canon
+admitted_at: "2026-06-28"
+admitted_by: "v.korobeinikov"
+gate_checks:
+  uniqueness: pass
+  consistency: pass
+  completeness: pass
+
+# Primitive lifecycle (CONTRACT.md §7)
+valid_from: "2024-01-01"
+valid_to: null
