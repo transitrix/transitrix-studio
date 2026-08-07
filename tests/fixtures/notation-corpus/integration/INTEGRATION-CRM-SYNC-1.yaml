@@ -1,0 +1,26 @@
+# Worked example — INTEGRATION element primitive, plain data pipe (no interface semantics).
+# Schema: ELEMENT_PRIMITIVES.md §7.8.
+
+notation: integration
+id: INTEGRATION-CRM-SYNC-1
+name: "CRM Nightly Contact Sync"
+source: APPLICATION-CRM-1
+target: APPLICATION-OMS-1
+protocol: "SFTP batch"
+direction: bidirectional
+description: >
+  Nightly batch reconciliation of contact records between CRM and OMS.
+  No named contract — point-to-point data copy, not a governed interface.
+
+# Admission record (CONTRACT.md §6)
+zone: canon
+admitted_at: "2026-06-28"
+admitted_by: "v.korobeinikov"
+gate_checks:
+  uniqueness: pass
+  consistency: pass
+  completeness: pass
+
+# Primitive lifecycle (CONTRACT.md §7)
+valid_from: "2024-01-01"
+valid_to: null

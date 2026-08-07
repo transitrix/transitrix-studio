@@ -52,6 +52,7 @@ import { validateFactor } from '@transitrix/diagrams/factor/validate.js';
 import { validateActor } from '@transitrix/diagrams/actor/validate.js';
 import { validateChange } from '@transitrix/diagrams/change/validate.js';
 import { validateStakeholder } from '@transitrix/diagrams/stakeholder/validate.js';
+import { validateIntegration } from '@transitrix/diagrams/integration/validate.js';
 import { validateTargetState } from '@transitrix/diagrams/target-state/validate.js';
 import { validateLocation } from '@transitrix/diagrams/location/validate.js';
 import { validateBusinessService } from '@transitrix/diagrams/business-service/validate.js';
@@ -241,6 +242,7 @@ const VALIDATORS: Record<string, NotationValidator> = {
   driver: validateFactorDoc,
   actor: wrapValidator(validateActor),
   stakeholder: validateStakeholderDoc,
+  integration: wrapValidator(validateIntegration),
   'target-state': validateTargetStateDoc,
   location: wrapValidator(validateLocation),
   'business-service': wrapValidator(validateBusinessService),
