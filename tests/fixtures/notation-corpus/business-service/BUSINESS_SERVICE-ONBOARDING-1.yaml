@@ -1,0 +1,23 @@
+# Worked example — BUSINESS_SERVICE element primitive (internal, offering_unit + capability).
+# Schema: notations/elements/25-business-services.md + ELEMENT_PRIMITIVES.md §3.
+
+notation: business-service
+id: BUSINESS_SERVICE-ONBOARDING-1
+name: "Employee Onboarding Service"
+type: internal                          # internal | external | shared
+description: "HR-provided onboarding service for new hires."
+offering_unit: ACTOR-HR-1
+capability: CAPABILITY-ONBOARDING-1
+
+# Admission record (CONTRACT.md §6)
+zone: canon
+admitted_at: "2026-06-28"
+admitted_by: "v.korobeinikov"
+gate_checks:
+  uniqueness: pass
+  consistency: pass
+  completeness: pass
+
+# Primitive lifecycle (CONTRACT.md §7)
+valid_from: "2024-01-01"
+valid_to: null

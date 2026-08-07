@@ -1,6 +1,6 @@
 {
   "name": "@transitrix/cli",
-  "version": "2.4.13",
+  "version": "2.4.14",
   "type": "module",
   "description": "Transitrix CLI ΓÇö compile, validate, and report on Transitrix diagrams (BPMN, Goals, DGCA, ΓÇª) from any shell or CI pipeline.",
   "license": "MIT",
@@ -41,7 +41,7 @@
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
     "bpmn-moddle": "^10.0.0",
-    "js-yaml": "^4.3.0",
-    "xmlbuilder2": "^3.1.1"
+    "js-yaml": "^4.3.1",
+    "xmlbuilder2": "^4.0.3"
   }
 }
