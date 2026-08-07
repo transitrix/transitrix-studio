@@ -187,6 +187,38 @@ in.
 | `FGCA-001`..`007` | `dgca` | Document shape, per-layer entry grammar, cross-reference array grammar. |
 | `FGCA-015` | `dgca` | `factors[].references_constraint` is an array of valid ids. |
 
+### Document sources (`.ttrs`) — extension, placement, kind (`HDR-003` / `TTRS-013`)
+
+A **document source** is a `.ttrs` file: prose with `{{ … }}` directives rather
+than a YAML mapping, so it carries no `notation:` field and never reaches the
+per-notation dispatch above. The rules it still shares with every other notation
+are the file-level ones — one notation has exactly one extension, and that
+notation's files live in that notation's folder (`CONTRACT.md` §3, rule
+`HDR-003`). `runDocumentSourceValidate` (`src/validate-document-source.ts`,
+walked from `src/repo-validate.ts`) checks those from the path and the YAML front
+matter alone, with no template parse. Its findings land in the same **`views`**
+array, carrying `notation: "documents"` — the view class, since a document source
+has no notation value of its own.
+
+| Rule | Case | Message names |
+|---|---|---|
+| `HDR-003` | A file ends `.trs` | The near-miss, in words, plus the `.ttrs` filename it was probably meant to be. `.trs` is a different, widely used format one keystroke away, so it is never reported as a generic unknown file. |
+| `HDR-003` | Filename is not `<basename>.<kind>.ttrs` | The expected shape. A doubled extension (`.transitrix.yaml.ttrs`) lands here — `.ttrs` replaces the YAML form in full and is never appended to it. |
+| `HDR-003` | The file is outside `canon/views/documents/` | Where it belongs, and where it was found. |
+| `TTRS-001` | No YAML front matter, or no string `kind:` in it | That the header must declare the kind as well as the filename. |
+| `TTRS-013` | The header's `kind:` disagrees with the filename's kind segment | Both values. Kept under its own code so a kind disagreement never reads as a wrong extension — the two have different fixes. |
+
+**Kinds are not notations.** `mrd`, `srs`, `sdd`, … are the middle segment of the
+filename — one notation, one extension, one folder, with the kind as a value
+inside it. The kind check is therefore that the filename and the header *agree*,
+not that the kind is drawn from a registry; this repo deliberately keeps no
+closed kind list to fall out of step with the methodology's.
+
+**Scope of the walk.** The three zone folders (`canon/`, `field/`, `codex/`) plus
+the repository's own top level — wide enough that a misplaced `.ttrs` is still
+found (a walk scoped to the right folder could never see one), narrow enough that
+a repository's own test fixtures and documentation are not read as model content.
+
 **Deliberately NOT ported: `ACT-020` and `DGCA-DEPR`.** DSM's Go importer
 still accepts the pre-2026-06-25 `activities` notation/root-key alias (for
 `action` docs) and the `activities` root key (for `dgca`/`fgca` docs) as a
