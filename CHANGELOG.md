@@ -21,6 +21,7 @@
 
 - **Work-item references use the neutral `HUB-NNN` form** across comments, READMEs and docstrings (54 files). Not the hash form — a bare `#84` auto-links to this repository's own issue 84, rendering as a working link to an unrelated item.
 - **Public-surface hygiene gains a pattern slot and a full-tree pass** (`scripts/ci-hygiene-tree.mjs`). The diff check only sees what a PR adds, so anything already committed was invisible to it; the tree pass reads every tracked text file. Scoped to the new slot alone so it fails on the change under review, not on pre-existing content. Patterns stay in repository secrets; output is `file:line` only.
+- **The declared methodology version now names the release this build actually targets.** `transitrix.methodologyVersion` (`package.json`) and the `SCHEMA_VERSION` constant it is pinned to both read `0.5.0` — a release this repository moved past long ago, left behind because nothing but their own lockstep test read either value. Both now read `3.1.0`: the notation vocabulary and rule coverage on this branch implement that release's additions in full (`RISK-001..004`, `METRIC-001..004`, `NEED-001..002`, `VALID-001..006`, `REQ-005`/`REQ-006`) and none of the additions from the release after it. The accompanying comments no longer restate "the current methodology release" as a literal — that was the fact that went stale, and the constant does not track it. Two hardcoded vocabulary literals are known to lag `3.1.0` and are deliberately not changed here: `target-state/types.ts` carries no `type: base | target` field, and the cross-reference id grammar in `blocks/validate.ts` diverges from the one in `typed-id.ts` — its terminal `\d+` admits the leading-zero ids that `IDS_AND_REFERENCES.md` §1 rejects, and its uppercase-only middle segments miss the mixed-case ids that do occur in canon. Correcting the declaration is what makes those two visible as drift rather than as a wrong baseline.
 
 ### Packages
 
@@ -46,6 +47,8 @@
 - `@transitrix/cli` 2.4.12 → 2.4.13 — paired bump per `cli-diagrams-alignment`.
 - `@transitrix/diagrams` 1.9.13 → 1.9.14 — `INTEGRATION` envelope validation wired in.
 - `@transitrix/cli` 2.4.13 → 2.4.14 — paired bump per `cli-diagrams-alignment`.
+- `@transitrix/diagrams` 1.9.14 → 1.9.15 — `SCHEMA_VERSION` corrected to the targeted methodology release.
+- `@transitrix/cli` 2.4.14 → 2.4.15 — paired bump per `cli-diagrams-alignment`.
 
 ## [3.1.3] — 2026-07-29
 

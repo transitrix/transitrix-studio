@@ -8,7 +8,8 @@ import { SCHEMA_VERSION } from '../packages/diagrams/src/schema-version.js';
 // SV-1: the @transitrix/diagrams SCHEMA_VERSION constant and the project
 // manifest's `transitrix.methodologyVersion` must stay in lockstep — both pin the
 // methodology release this build conforms to (SoT: methodology
-// notations/MANIFEST.md `methodology_version`, currently 0.5.0).
+// notations/MANIFEST.md `methodology_version`). The pinned release is the one
+// this build targets; the methodology itself may be further ahead.
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const pkg = JSON.parse(readFileSync(path.join(repoRoot, 'package.json'), 'utf-8')) as {
   transitrix?: { methodologyVersion?: string };
