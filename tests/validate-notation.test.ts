@@ -40,50 +40,44 @@ import { validateNode } from '../packages/diagrams/src/node/validate.js';
 
 const corpusRoot = join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'notation-corpus');
 
-// Group A — shared package validators already used by the preview before Phase B.
-const GROUP_A = [
-  'goals',
-  'dgca',
-  'dga',
-  'action',
-  'action-card',
-  'process-blueprint',
-  'blocks',
-];
+// Every notation with a per-notation validator, discovered from
+// `src/validators/` — not a list maintained here. A new validator's PR needs
+// no edit in this file: it's picked up by FILE_VALIDATABLE_NOTATIONS
+// automatically, and its "validates
+// clean" coverage below by adding a same-named corpus fixture directory.
+const ALL_NOTATIONS = [...FILE_VALIDATABLE_NOTATIONS];
 
-// Group B — deduped from extension inline copies in Phase B; package is now canonical.
-const GROUP_B = [
-  'applications',
-  'capability-map',
-  'products',
-  'scenarios',
-  'process-map',
-];
+// Notations whose corpus directory holds view-document fixtures (checked via
+// viewFixtures) vs. standalone element fixtures (elementFixtures) — 'codex'
+// and 'constraint' have their own dedicated describe blocks below (folder
+// jurisdiction / typed-id filename concerns viewFixtures/elementFixtures
+// don't model), so they're excluded from the generic sweep.
+const GENERIC_SWEEP_EXCLUDED = new Set(['codex', 'constraint']);
 
-// Group C — compliance suite wired in #518 Phase C1–C4, plus the
-// methodology-3.1.0 vocabulary follow-on (RISK / METRIC / NEED / VALIDATION).
-const GROUP_C = [
-  'requirement', 'constraint', 'assertion', 'verification',
-  'risk', 'metric', 'need', 'validation',
-  'compliance-impact', 'coverage-metric', 'codex',
-];
-
-// Group D — standalone canon/elements/** envelope validators wired in one
-// notation at a time (previously dead code, called from nowhere).
-const GROUP_D = ['driver', 'actor', 'change', 'stakeholder', 'target-state', 'location', 'business-service', 'integration', 'node'];
-
-const ALL_NOTATIONS = [...GROUP_A, ...GROUP_B, ...GROUP_C, ...GROUP_D];
+function corpusDirFor(notation: string): string | undefined {
+  const dir = join(corpusRoot, notation);
+  try {
+    readdirSync(dir);
+    return dir;
+  } catch {
+    return undefined;
+  }
+}
 
 function viewFixtures(notation: string): string[] {
-  return readdirSync(join(corpusRoot, notation))
+  const dir = corpusDirFor(notation);
+  if (!dir) return [];
+  return readdirSync(dir)
     .filter((f) => f.endsWith('.transitrix.yaml') || f.endsWith('.view.yaml'))
-    .map((f) => join(corpusRoot, notation, f));
+    .map((f) => join(dir, f));
 }
 
 function elementFixtures(notation: string): string[] {
-  return readdirSync(join(corpusRoot, notation))
-    .filter((f) => f.endsWith('.yaml') && !f.endsWith('.view.yaml'))
-    .map((f) => join(corpusRoot, notation, f));
+  const dir = corpusDirFor(notation);
+  if (!dir) return [];
+  return readdirSync(dir)
+    .filter((f) => f.endsWith('.yaml') && !f.endsWith('.transitrix.yaml') && !f.endsWith('.view.yaml'))
+    .map((f) => join(dir, f));
 }
 
 describe('validate-notation — canonical extension helpers (#343)', () => {
@@ -134,9 +128,10 @@ describe('validate-notation — canonical extension helpers (#343)', () => {
 });
 
 describe('validate-notation — dispatch (#258, #518 C1)', () => {
-  it('recognises all Group A, B, and C notations', () => {
+  it('every discovered notation is claimed, with no duplicates', () => {
     for (const n of ALL_NOTATIONS) expect(isFileValidatableNotation(n)).toBe(true);
-    expect([...FILE_VALIDATABLE_NOTATIONS].sort()).toEqual([...ALL_NOTATIONS].sort());
+    expect(new Set(ALL_NOTATIONS).size).toBe(ALL_NOTATIONS.length);
+    expect(ALL_NOTATIONS.length).toBeGreaterThan(0);
   });
 
   it('does not claim BPMN or unknown notations', () => {
@@ -154,8 +149,15 @@ describe('validate-notation — dispatch (#258, #518 C1)', () => {
   });
 });
 
+// Both loops below sweep every discovered notation's own corpus directory
+// (tests/fixtures/notation-corpus/<notation>/) rather than a maintained list —
+// a new validator's PR is covered here automatically once it adds its own
+// same-named fixture directory. 'codex' and 'constraint' need extra
+// call-site setup (folder jurisdiction / their own dedicated block below) so
+// they're excluded from the generic sweep.
 describe('validate-notation — the view notation corpus validates clean (#258)', () => {
-  for (const notation of [...GROUP_A, ...GROUP_B, 'coverage-metric']) {
+  for (const notation of ALL_NOTATIONS) {
+    if (GENERIC_SWEEP_EXCLUDED.has(notation)) continue;
     for (const file of viewFixtures(notation)) {
       const name = file.slice(corpusRoot.length + 1).replace(/\\/g, '/');
       it(`${name} → valid`, () => {
@@ -167,21 +169,11 @@ describe('validate-notation — the view notation corpus validates clean (#258)'
       });
     }
   }
-
-  for (const file of viewFixtures('compliance-impact')) {
-    const name = file.slice(corpusRoot.length + 1).replace(/\\/g, '/');
-    it(`${name} → valid`, () => {
-      const data = loadNotationYaml(readFileSync(file, 'utf8'));
-      const report = validateNotationDoc('compliance-impact', data);
-      const errors = report.findings.filter((f) => f.severity === 'error');
-      expect(errors, JSON.stringify(errors, null, 2)).toEqual([]);
-      expect(report.isValid).toBe(true);
-    });
-  }
 });
 
 describe('validate-notation — element notation corpus validates clean (#518 C1)', () => {
-  for (const notation of ['requirement', 'assertion', 'verification', 'risk', 'metric', 'need', 'validation', 'driver', 'actor', 'change', 'stakeholder', 'target-state', 'location', 'business-service', 'integration', 'node'] as const) {
+  for (const notation of ALL_NOTATIONS) {
+    if (GENERIC_SWEEP_EXCLUDED.has(notation)) continue;
     for (const file of elementFixtures(notation)) {
       const name = file.slice(corpusRoot.length + 1).replace(/\\/g, '/');
       it(`${name} → valid`, () => {

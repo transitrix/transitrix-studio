@@ -148,3 +148,32 @@ describe('validateRequirement — REQ-SERVES-001 (serves → NEED)', () => {
     expect(codes({ ...valid(), serves: 'NEED-DATA-SUBJECT-CONTROL-1' }, { catalog: present })).not.toContain('REQ-SERVES-001');
   });
 });
+
+describe('validateRequirement — AGREE-001..003 (agreement axis, CONTRACT.md §6.3.1)', () => {
+  it('is not checked when absent (back-compat — absent ⇒ agreed)', () => {
+    expect(codes(valid())).not.toContain('AGREE-001');
+    expect(codes(valid())).not.toContain('AGREE-002');
+    expect(codes(valid())).not.toContain('AGREE-003');
+  });
+
+  it('accepts a human-agreed record', () => {
+    expect(validateRequirement({ ...valid(), agreement: 'agreed', agreed_by: 'v.korobeinikov' }).valid).toBe(true);
+  });
+
+  it('flags an out-of-vocabulary agreement value', () => {
+    expect(codes({ ...valid(), agreement: 'approved', agreed_by: 'v.korobeinikov' })).toContain('AGREE-001');
+  });
+
+  it('flags a missing agreed_by when agreement is present', () => {
+    expect(codes({ ...valid(), agreement: 'draft' })).toContain('AGREE-003');
+  });
+
+  it('flags a tool writing agreement: agreed', () => {
+    expect(codes({ ...valid(), agreement: 'agreed', agreed_by: '@transitrix/ingest-cli' })).toContain('AGREE-002');
+  });
+
+  it('accepts a tool writing draft or disputed', () => {
+    expect(codes({ ...valid(), agreement: 'draft', agreed_by: 'ingest-cli' })).not.toContain('AGREE-002');
+    expect(codes({ ...valid(), agreement: 'disputed', agreed_by: 'ingest-cli' })).not.toContain('AGREE-002');
+  });
+});

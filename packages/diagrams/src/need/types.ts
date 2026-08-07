@@ -2,6 +2,7 @@
 // Upstream of REQUIREMENT — schema: methodology notations/ELEMENT_PRIMITIVES.md §7.28.
 
 import type { GateChecks } from '../requirement/types.js';
+import type { AgreementValue } from '../agreement.js';
 
 export interface Need {
   notation: 'need';
@@ -10,6 +11,13 @@ export interface Need {
   /** Typed ID of the STAKEHOLDER whose need this is. */
   stakeholder: string;
   description?: string;
+
+  // Agreement axis (CONTRACT.md §6.3, when present) — independent of admission.
+  /** `draft` \| `agreed` \| `disputed`. Absent ⇒ `agreed` (back-compat). */
+  agreement?: AgreementValue;
+  /** Required whenever `agreement` is present (AGREE-003). Written only by a human when `agreement: agreed` (AGREE-002). */
+  agreed_by?: string;
+  agreed_at?: string;
 
   // Admission record (CONTRACT.md §6).
   zone: 'canon';

@@ -329,6 +329,31 @@ describe('scaffoldConstraintElement', () => {
     if (outcome.ok) return;
     expect(outcome.errors.join(' ')).toMatch(/consistency.*CONSTRAINT-MISSING-1/);
   });
+
+  it('refuses to scaffold agreement: agreed — a tool must never write it (AGREE-002)', () => {
+    const root = makeRepo();
+    const outcome = scaffoldConstraintElement({
+      root, id: 'CONSTRAINT-X-1', name: 'x', admittedBy: 'a.b', today: '2026-08-03',
+      statement: 's', agreement: 'agreed', agreedBy: 'v.korobeinikov',
+    });
+    expect(outcome.ok).toBe(false);
+    if (outcome.ok) return;
+    expect(outcome.errors.join(' ')).toMatch(/agreement: agreed cannot be scaffolded/);
+    expect(outcome.errors.join(' ')).toMatch(/AGREE-002/);
+  });
+
+  it('renders draft/disputed agreement lines', () => {
+    const root = makeRepo();
+    const outcome = scaffoldConstraintElement({
+      root, id: 'CONSTRAINT-X-1', name: 'x', admittedBy: 'a.b', today: '2026-08-03',
+      statement: 's', agreement: 'disputed', agreedBy: 'v.korobeinikov', agreedAt: '2026-08-03',
+    });
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    expect(outcome.content).toContain('agreement: disputed');
+    expect(outcome.content).toContain('agreed_by: "v.korobeinikov"');
+    expect(outcome.content).toContain('agreed_at: "2026-08-03"');
+  });
 });
 
 // ── scaffoldRequirementElement ───────────────────────────────────────────
@@ -385,6 +410,44 @@ describe('scaffoldRequirementElement', () => {
     expect(outcome.ok).toBe(true);
     if (!outcome.ok) return;
     expect(outcome.content).toContain('serves: NEED-A-1');
+  });
+
+  it('refuses to scaffold agreement: agreed — a tool must never write it (AGREE-002)', () => {
+    const root = makeRepo();
+    const outcome = scaffoldRequirementElement({
+      root, id: 'REQUIREMENT-X-1', name: 'x', admittedBy: 'a.b', today: '2026-08-03',
+      description: 'd', agreement: 'agreed', agreedBy: 'v.korobeinikov',
+    });
+    expect(outcome.ok).toBe(false);
+    if (outcome.ok) return;
+    expect(outcome.errors.join(' ')).toMatch(/agreement: agreed cannot be scaffolded/);
+    expect(outcome.errors.join(' ')).toMatch(/AGREE-002/);
+  });
+
+  it('refuses agreement: agreed regardless of admittedBy — the tool is the writer either way', () => {
+    const root = makeRepo();
+    // Even a plainly human admittedBy/agreedBy does not matter: the refusal
+    // is on the write path (this command), not on whether agreed_by "looks
+    // like a tool" — that heuristic is the *validator*'s AGREE-002 check,
+    // a separate and looser rule than this unconditional scaffold refusal.
+    const outcome = scaffoldRequirementElement({
+      root, id: 'REQUIREMENT-X-1', name: 'x', admittedBy: 'v.korobeinikov', today: '2026-08-03',
+      description: 'd', agreement: 'agreed', agreedBy: 'v.korobeinikov',
+    });
+    expect(outcome.ok).toBe(false);
+  });
+
+  it('renders draft agreement with no agreed_at when omitted', () => {
+    const root = makeRepo();
+    const outcome = scaffoldRequirementElement({
+      root, id: 'REQUIREMENT-X-1', name: 'x', admittedBy: 'a.b', today: '2026-08-03',
+      description: 'd', agreement: 'draft', agreedBy: 'v.korobeinikov',
+    });
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    expect(outcome.content).toContain('agreement: draft');
+    expect(outcome.content).toContain('agreed_by: "v.korobeinikov"');
+    expect(outcome.content).not.toContain('agreed_at:');
   });
 });
 
@@ -568,5 +631,35 @@ describe('transitrix new driver/constraint/requirement (CLI)', () => {
     const { status, stderr } = runCli(['new', 'requirement', '--id', 'REQUIREMENT-X-1', '--name', 'x', '--root', root]);
     expect(status).toBe(1);
     expect(stderr).toMatch(/--description is required/);
+  });
+
+  it('exits 1 and refuses --agreement agreed — a tool must never write it (AGREE-002)', () => {
+    const root = makeRepo();
+    const { status, stderr } = runCli([
+      'new', 'requirement',
+      '--id', 'REQUIREMENT-X-1', '--name', 'x', '--description', 'd',
+      '--agreement', 'agreed', '--agreed-by', 'v.korobeinikov',
+      '--author', 'a.b', '--root', root,
+    ]);
+    expect(status).toBe(1);
+    expect(stderr).toMatch(/AGREE-002/);
+    expect(existsSync(join(root, 'canon', 'elements', '01_motivation', 'requirements', 'REQUIREMENT-X-1.yaml'))).toBe(false);
+  });
+
+  it('writes a REQUIREMENT with agreement: draft via --agreement', () => {
+    const root = makeRepo();
+    const { status } = runCli([
+      'new', 'requirement',
+      '--id', 'REQUIREMENT-X-1', '--name', 'x', '--description', 'd',
+      '--agreement', 'draft', '--agreed-by', 'v.korobeinikov',
+      '--author', 'a.b', '--root', root,
+    ]);
+    expect(status).toBe(0);
+    const written = readFileSync(
+      join(root, 'canon', 'elements', '01_motivation', 'requirements', 'REQUIREMENT-X-1.yaml'),
+      'utf-8',
+    );
+    expect(written).toContain('agreement: draft');
+    expect(written).toContain('agreed_by: "v.korobeinikov"');
   });
 });

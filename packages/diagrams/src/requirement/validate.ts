@@ -11,6 +11,7 @@
 
 import type { ValidationError, ValidationWarning, ValidationResult } from '../validation-types.js';
 import { typeOfId, isCanonicalIdOfType, type CanonCatalog } from '../typed-id.js';
+import { checkAgreement } from '../agreement.js';
 import { REQUIREMENT_DERIVED_FROM_TYPES, REQUIREMENT_LEVELS, REQUIREMENT_KINDS } from './types.js';
 
 export interface RequirementValidateOptions {
@@ -107,6 +108,9 @@ export function validateRequirement(input: unknown, options: RequirementValidate
       errors.push({ code: 'REQ-SERVES-001', message: `serves "${serves}" does not resolve to an admitted NEED.`, path: 'serves' });
     }
   }
+
+  // AGREE-001..003 — agreement axis (CONTRACT.md §6.3.1), optional; absent ⇒ agreed.
+  errors.push(...checkAgreement(r));
 
   return { valid: errors.length === 0, errors, warnings };
 }
