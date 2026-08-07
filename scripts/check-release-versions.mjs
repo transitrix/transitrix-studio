@@ -101,9 +101,16 @@ if (failures.length === 0) {
   process.exit(0);
 }
 
+// A release span can touch dozens of files; list enough to identify the change
+// without burying the failure message itself.
+const MAX_DETAILS = 20;
+
 for (const failure of failures) {
   console.error(`${LABEL} FAIL (${failure.package}): ${failure.message}`);
-  for (const detail of failure.details) console.error(`${LABEL}   ${detail}`);
+  for (const detail of failure.details.slice(0, MAX_DETAILS)) console.error(`${LABEL}   ${detail}`);
+  if (failure.details.length > MAX_DETAILS) {
+    console.error(`${LABEL}   … and ${failure.details.length - MAX_DETAILS} more`);
+  }
   console.error(`::error title=${failure.package} version does not cover this release::${failure.message}`);
 }
 process.exit(1);
