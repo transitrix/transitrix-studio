@@ -4,7 +4,7 @@
 
 ### Added
 
-- **`.ttrs` document templates are now a recognized language** — file-icon, `.ttrs` extension association, and syntax highlighting for the four slot kinds (fixed text, model-object reference, figure, instruction slot). A `.trs` file (the one-keystroke-off near-miss) is not misidentified as `.ttrs`.
+- **`.ttrs` document templates are now a recognized language** — file-icon, `.ttrs` extension association, and syntax highlighting for the whole directive language: references (including the `CAPABILITY-V1.2.3` dotted-id form and field paths), figures (`view`, `figure`, `figref`), `each` blocks with their `where` / `order by` clauses and row references, `trace`, and `instruct` blocks whose body stays opaque. A `.trs` file (the one-keystroke-off near-miss) is not misidentified as `.ttrs`.
 
 ## 3.1.3 — 2026-07-29
 
