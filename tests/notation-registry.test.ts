@@ -7,9 +7,9 @@ import {
 } from '../src/notation-registry.js';
 import { FILE_VALIDATABLE_NOTATIONS } from '../src/validate-notation.js';
 
-// HUB-1044 / vkgeorgia/strategy#1052 — registering a validator is "add one
-// file to src/validators/", discovered rather than listed. These tests cover
-// the discovery mechanism itself: a well-formed module set assembles
+// Registering a validator is "add one file to src/validators/", discovered
+// rather than listed. These tests cover the discovery mechanism itself: a
+// well-formed module set assembles
 // correctly, and a deliberately broken/missing registration fails loudly
 // (assembleRegistrations throws) instead of silently narrowing what gets
 // validated — exercised directly against fabricated modules so the failure
@@ -19,7 +19,7 @@ function fn(): ValidatorRegistration['validator'] {
   return () => ({ valid: true, errors: [], warnings: [] });
 }
 
-describe('notation-registry — discovery (HUB-1044)', () => {
+describe('notation-registry — discovery', () => {
   it('every src/validators/ file registered, with no notation claimed twice', () => {
     expect(VALIDATOR_REGISTRATIONS.length).toBeGreaterThan(0);
     const notations = VALIDATOR_REGISTRATIONS.map((r) => r.notation);

@@ -1,7 +1,7 @@
 // The registry `validate-notation.ts` and `repo-validate.ts` both read to learn
 // which notations exist and how to validate them — resolved by *discovering*
 // one registration module per notation under `src/validators/`, never by an
-// edited shared list (HUB-1044 / vkgeorgia/strategy#1052).
+// edited shared list.
 //
 // Registering a new notation validator means adding one file to
 // `src/validators/` that exports a `registration: ValidatorRegistration` —

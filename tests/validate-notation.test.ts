@@ -38,9 +38,9 @@ import { validateLocation } from '../packages/diagrams/src/location/validate.js'
 const corpusRoot = join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'notation-corpus');
 
 // Every notation with a per-notation validator, discovered from
-// `src/validators/` (HUB-1044 / vkgeorgia/strategy#1052) — not a list
-// maintained here. A new validator's PR needs no edit in this file: it's
-// picked up by FILE_VALIDATABLE_NOTATIONS automatically, and its "validates
+// `src/validators/` — not a list maintained here. A new validator's PR needs
+// no edit in this file: it's picked up by FILE_VALIDATABLE_NOTATIONS
+// automatically, and its "validates
 // clean" coverage below by adding a same-named corpus fixture directory.
 const ALL_NOTATIONS = [...FILE_VALIDATABLE_NOTATIONS];
 

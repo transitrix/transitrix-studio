@@ -530,8 +530,7 @@ function sweepComplianceDir(
  *  element files under `canon/elements/**`, `canon/assertions/**`,
  *  `canon/verifications/**`, and `canon/validations/**` — with the repo
  *  catalogue (#518 Phase C3). Which notations get swept from which directory
- *  is discovered from the registry (HUB-1044 / vkgeorgia/strategy#1052), not
- *  hardcoded here. */
+ *  is discovered from the registry, not hardcoded here. */
 export function runComplianceValidate(root: string, ctx: RepoValidateContext): ViewFinding[] {
   const findings: ViewFinding[] = [];
   const validateOpts = { catalog: ctx.catalog };

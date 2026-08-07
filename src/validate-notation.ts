@@ -16,9 +16,9 @@
 // The per-notation validators themselves — which package function to call, any
 // options-forwarding glue, and whether the notation has a canonical view
 // extension or a compliance-sweep directory — live one file per notation under
-// `src/validators/`, discovered by `notation-registry.ts` (HUB-1044 /
-// vkgeorgia/strategy#1052). This module only holds the dispatch that's the same
-// for every notation: parsing, key resolution, and shaping the result.
+// `src/validators/`, discovered by `notation-registry.ts`. This module only
+// holds the dispatch that's the same for every notation: parsing, key
+// resolution, and shaping the result.
 
 import yaml from 'js-yaml';
 import type { ValidationReport, ValidationFinding } from './validator-types.js';
