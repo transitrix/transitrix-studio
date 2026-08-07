@@ -51,6 +51,10 @@ suite, see below):
   `FGCA-008`..`014`) — see below.
 - **Standalone-element envelope hygiene** (`GOAL-ELEM-002`/`003`,
   `ACTION-001`/`002`/`005`) — see below.
+- **Doc-level grammar** (`GOALS-001`..`007`, `ACT-001`..`003`/`016`,
+  `FGCA-001`..`007`/`015`) — each notation's own per-file validator, surfaced
+  under the `views` array (not `canon`) when the document lives under
+  `canon/views/**` — see below.
 
 ### Strategy-chain semantic rules (`GOALS-*` / `ACT-*` / `FGCA-*`)
 
@@ -152,6 +156,36 @@ scope a follow-up once the repo-scope model gains path-aware typing.
 **Not ported: `GOALS-007`/`ACT-004`'s duplicate-id half.** Already covered
 generically by `checkIdUniqueness` above, which spans every canon
 element/relation id, not just GOAL/ACTION.
+
+### Doc-level grammar rules (`GOALS-*` / `ACT-*` / `FGCA-*`), via the views sweep
+
+DSM's remaining `Validate*` doc-level grammar checks — id/name presence,
+required-field shape, per-layer id uniqueness, cross-reference grammar — need
+no separate port: they are already the per-notation `--scope=file` validators
+this CLI ships (`packages/diagrams/src/goals/parse-canonical.ts`,
+`packages/diagrams/src/activities/validate.ts`,
+`packages/diagrams/src/fgca/parse-canonical.ts`), using the same DSM rule
+codes already (each file's own header comment names its code range). `--scope
+=repo` runs every one of them again, once per `canon/views/**` document, via
+`runViewValidate` (`src/repo-validate.ts`) — including projection-form
+documents (`view_config` present, no inline array), which are resolved
+against `canon/elements/**` first, the same way each notation's VS Code
+preview resolves them.
+
+That sweep's findings land in the JSON output's **`views`** array, not
+`canon` — a `ViewFinding` (`{ file, notation, ruleId, severity, message }`),
+distinct from `RepoFinding`'s cross-reference shape. `--scope=repo` still
+exits non-zero on any error-severity finding regardless of which array it is
+in.
+
+| Rule range | Notation | Checks |
+|---|---|---|
+| `GOALS-001`..`006` | `goals` | Document shape, `goal_types[]`/`goals[]` entry grammar. |
+| `GOALS-007` | `goals` | Duplicate `goals[].id` within one document (distinct from the cross-document `checkIdUniqueness` above). |
+| `ACT-001`..`003` | `action` | Document/`notation` shape, activity entry id/name presence. |
+| `ACT-016` | `action` | A milestone (`duration` 0) with both `start_date`/`end_date` pinned must have them equal. |
+| `FGCA-001`..`007` | `dgca` | Document shape, per-layer entry grammar, cross-reference array grammar. |
+| `FGCA-015` | `dgca` | `factors[].references_constraint` is an array of valid ids. |
 
 **Deliberately NOT ported: `ACT-020` and `DGCA-DEPR`.** DSM's Go importer
 still accepts the pre-2026-06-25 `activities` notation/root-key alias (for
