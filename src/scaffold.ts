@@ -28,6 +28,7 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import * as path from 'node:path';
 import yaml from 'js-yaml';
+import { isIsoDate } from './cli-parse.js';
 
 const SKIP_SEGMENTS = new Set(['node_modules', '.templates', '.validators']);
 const GOAL_ELEM_ID_RE = /^GOAL-([A-Z0-9]+-)*[0-9]+$/;
@@ -102,10 +103,21 @@ export interface NewGoalOptions {
    *  handle here, never a tool id, keeps `admission_state`/`reviewer_authority`
    *  at their human-authored defaults: absent ⇒ active ⇒ expert_confirmed). */
   admittedBy: string;
-  /** ISO 8601 date (CONTRACT.md §4) used for `admitted_at` and `valid_from`.
+  /** ISO 8601 date (CONTRACT.md §4) used for `admitted_at`, and for
+   *  `valid_from` when {@link NewGoalOptions.validFrom} is absent.
    *  Caller-supplied rather than computed here so the function stays pure
    *  and testable without mocking the clock. */
   today: string;
+  /** Overrides `valid_from` (CONTRACT.md §7 — the date the primitive starts
+   *  being true). Defaults to `today`.
+   *
+   *  `admitted_at` has deliberately no counterpart override: it records when
+   *  admission actually happened, so a caller-set value would falsify the
+   *  admission record — the same reason `gate_checks` is never written as a
+   *  constant `pass`. `valid_from` is a modelling statement about the subject,
+   *  which the author may legitimately know to be earlier or later than the
+   *  day they type the command. */
+  validFrom?: string;
   type?: string;
   level?: number;
   parent?: string;
@@ -146,7 +158,7 @@ function renderGoalYaml(opts: NewGoalOptions): string {
   lines.push('  completeness: pass # required fields present');
   lines.push('');
   lines.push('# Primitive lifecycle (CONTRACT.md §7)');
-  lines.push(`valid_from: "${opts.today}"`);
+  lines.push(`valid_from: "${opts.validFrom ?? opts.today}"`);
   lines.push('valid_to: null');
   lines.push('');
   return lines.join('\n');
@@ -225,7 +237,12 @@ const DRIVER_ELEM_ID_RE = /^DRIVER-([A-Z0-9]+-)*[0-9]+$/;
 const CONSTRAINT_ELEM_ID_RE = /^CONSTRAINT-([A-Z0-9]+-)*[0-9]+$/;
 const REQUIREMENT_ELEM_ID_RE = /^REQUIREMENT-([A-Z0-9]+-)*[0-9]+$/;
 
-function renderEnvelopeSuffix(cmd: string, today: string, admittedBy: string): string {
+function renderEnvelopeSuffix(
+  cmd: string,
+  today: string,
+  admittedBy: string,
+  validFrom?: string,
+): string {
   return [
     '',
     `# Admission record (CONTRACT.md §6) — filled by \`transitrix new ${cmd}\``,
@@ -238,7 +255,7 @@ function renderEnvelopeSuffix(cmd: string, today: string, admittedBy: string): s
     '  completeness: pass # required fields present',
     '',
     '# Primitive lifecycle (CONTRACT.md §7)',
-    `valid_from: "${today}"`,
+    `valid_from: "${validFrom ?? today}"`,
     'valid_to: null',
     '',
   ].join('\n');
@@ -252,6 +269,8 @@ export interface NewDriverOptions {
   name: string;
   admittedBy: string;
   today: string;
+  /** Overrides `valid_from`; see {@link NewGoalOptions.validFrom}. */
+  validFrom?: string;
   driverType?: string;
   category?: string;
   description?: string;
@@ -269,7 +288,7 @@ function renderDriverYaml(opts: NewDriverOptions): string {
   if (opts.referencesConstraint && opts.referencesConstraint.length > 0) {
     lines.push(`references_constraint: [${opts.referencesConstraint.join(', ')}]`);
   }
-  return lines.join('\n') + '\n' + renderEnvelopeSuffix('driver', opts.today, opts.admittedBy);
+  return lines.join('\n') + '\n' + renderEnvelopeSuffix('driver', opts.today, opts.admittedBy, opts.validFrom);
 }
 
 export function scaffoldDriverElement(opts: NewDriverOptions): ScaffoldOutcome {
@@ -315,6 +334,8 @@ export interface NewConstraintOptions {
   name: string;
   admittedBy: string;
   today: string;
+  /** Overrides `valid_from`; see {@link NewGoalOptions.validFrom}. */
+  validFrom?: string;
   statement: string;
   /** Organisation-defined workflow state (envelope §3) — `active` | `proposed`
    *  | `deprecated` | `retired`. Not part of the methodology's own required
@@ -346,7 +367,7 @@ function renderConstraintYaml(opts: NewConstraintOptions): string {
   if (opts.rationale) lines.push(`rationale: "${opts.rationale.replace(/"/g, '\\"')}"`);
   if (opts.nextReviewAt) lines.push(`next_review_at: "${opts.nextReviewAt}"`);
   if (opts.parent) lines.push(`parent: ${opts.parent}`);
-  return lines.join('\n') + '\n' + renderEnvelopeSuffix('constraint', opts.today, opts.admittedBy);
+  return lines.join('\n') + '\n' + renderEnvelopeSuffix('constraint', opts.today, opts.admittedBy, opts.validFrom);
 }
 
 export function scaffoldConstraintElement(opts: NewConstraintOptions): ScaffoldOutcome {
@@ -392,6 +413,8 @@ export interface NewRequirementOptions {
   name: string;
   admittedBy: string;
   today: string;
+  /** Overrides `valid_from`; see {@link NewGoalOptions.validFrom}. */
+  validFrom?: string;
   description: string;
   origin?: string;
   severity?: string;
@@ -417,7 +440,7 @@ function renderRequirementYaml(opts: NewRequirementOptions): string {
   if (opts.nextReviewAt) lines.push(`next_review_at: "${opts.nextReviewAt}"`);
   if (opts.serves) lines.push(`serves: ${opts.serves}`);
   if (opts.derivedFrom && opts.derivedFrom.length > 0) lines.push(`derived_from: [${opts.derivedFrom.join(', ')}]`);
-  return lines.join('\n') + '\n' + renderEnvelopeSuffix('requirement', opts.today, opts.admittedBy);
+  return lines.join('\n') + '\n' + renderEnvelopeSuffix('requirement', opts.today, opts.admittedBy, opts.validFrom);
 }
 
 export function scaffoldRequirementElement(opts: NewRequirementOptions): ScaffoldOutcome {
@@ -469,6 +492,9 @@ export interface NewElementArgs {
   id: string | undefined;
   name: string | undefined;
   author: string | undefined;
+  /** `--valid-from` — raw, unvalidated; {@link handleNewCommand} rejects a
+   *  non-`YYYY-MM-DD` value rather than falling back to today. */
+  validFrom: string | undefined;
   root: string;
   typeValue: string | undefined;
   level: number | undefined;
@@ -510,6 +536,7 @@ export function parseNewArgv(argv: string[]): NewElementArgs {
     id: undefined,
     name: undefined,
     author: undefined,
+    validFrom: undefined,
     root: process.cwd(),
     typeValue: undefined,
     level: undefined,
@@ -546,6 +573,8 @@ export function parseNewArgv(argv: string[]): NewElementArgs {
     if (a.startsWith('--name=')) { args.name = a.slice('--name='.length); continue; }
     if (a === '--author') { args.author = rest[++i]; continue; }
     if (a.startsWith('--author=')) { args.author = a.slice('--author='.length); continue; }
+    if (a === '--valid-from') { args.validFrom = rest[++i]; continue; }
+    if (a.startsWith('--valid-from=')) { args.validFrom = a.slice('--valid-from='.length); continue; }
     if (a === '--root') { args.root = rest[++i]; continue; }
     if (a.startsWith('--root=')) { args.root = a.slice('--root='.length); continue; }
     if (a === '--type') { args.typeValue = rest[++i]; continue; }
@@ -616,6 +645,7 @@ function printTypeUsage(type: 'goal' | 'driver' | 'constraint' | 'requirement'):
     '  --id <…>             Required — canonical id.',
     '  --name "<label>"     Required — human-readable name.',
     '  --author "<name>"    Recorded as admitted_by. Default: `git config user.name`.',
+    '  --valid-from <date>  Recorded as valid_from (YYYY-MM-DD). Default: today.',
     '  --root <dir>         Adopter repo root containing canon/ (default: cwd).',
     '  --dry-run            Print what would be written; do not write the file.',
   ];
@@ -700,6 +730,13 @@ export async function handleNewCommand(argv: string[]): Promise<void> {
     process.exit(1);
   }
 
+  if (args.validFrom !== undefined && !isIsoDate(args.validFrom)) {
+    console.error(
+      `transitrix new ${args.type}: --valid-from "${args.validFrom}" is not a calendar date in YYYY-MM-DD form (CONTRACT.md §4).`,
+    );
+    process.exit(1);
+  }
+
   const root = path.resolve(args.root);
   const admittedBy = args.author ?? gitUserName(root);
   if (!admittedBy) {
@@ -709,29 +746,30 @@ export async function handleNewCommand(argv: string[]): Promise<void> {
   }
 
   const today = todayIso();
+  const validFrom = args.validFrom;
   let outcome: ScaffoldOutcome;
   if (args.type === 'goal') {
     outcome = scaffoldGoalElement({
-      root, id: args.id, name: args.name, admittedBy, today,
+      root, id: args.id, name: args.name, admittedBy, today, validFrom,
       type: args.typeValue, level: args.level, parent: args.parent,
       factors: args.factors, description: args.description, link: args.link,
     });
   } else if (args.type === 'driver') {
     outcome = scaffoldDriverElement({
-      root, id: args.id, name: args.name, admittedBy, today,
+      root, id: args.id, name: args.name, admittedBy, today, validFrom,
       driverType: args.typeValue, category: args.category,
       description: args.description, referencesConstraint: args.referencesConstraint,
     });
   } else if (args.type === 'constraint') {
     outcome = scaffoldConstraintElement({
-      root, id: args.id, name: args.name, admittedBy, today,
+      root, id: args.id, name: args.name, admittedBy, today, validFrom,
       statement: args.statement as string, status: args.status, appliesTo: args.appliesTo,
       source: args.source, ownerRole: args.ownerRole, severity: args.severity,
       rationale: args.rationale, nextReviewAt: args.nextReviewAt, parent: args.parent,
     });
   } else {
     outcome = scaffoldRequirementElement({
-      root, id: args.id, name: args.name, admittedBy, today,
+      root, id: args.id, name: args.name, admittedBy, today, validFrom,
       description: args.description as string, origin: args.origin, severity: args.severity,
       level: args.levelRaw, kind: args.kind, parent: args.parent,
       nextReviewAt: args.nextReviewAt, serves: args.serves, derivedFrom: args.derivedFrom,

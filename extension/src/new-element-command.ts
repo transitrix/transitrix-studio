@@ -8,6 +8,7 @@
 
 import * as vscode from 'vscode';
 import * as path from 'node:path';
+import { isIsoDate } from '../../src/cli-parse.js';
 import {
   gitUserName,
   scaffoldConstraintElement,
@@ -39,16 +40,24 @@ function resolveRoot(): string | undefined {
   return folder.uri.fsPath;
 }
 
-/** Prompts for id, name, and admitted_by — the fields every element type
- *  requires, in the same order and with the same fallback-to-`git config
+/** Prompts for id, name, admitted_by and valid_from — the fields every element
+ *  type requires, in the same order and with the same fallback-to-`git config
  *  user.name` behaviour. Returns undefined if the author cancelled or no
- *  admitted_by identity is available. */
+ *  admitted_by identity is available.
+ *
+ *  `valid_from` is prompted pre-filled with today rather than filled silently:
+ *  it is the one envelope date an author may legitimately know to be earlier or
+ *  later than the day they create the file, and a pre-filled box is how they
+ *  find that out without reading the contract. Accepting it is one keypress.
+ *  `admitted_at` is deliberately not offered — it records when admission
+ *  actually happened, so an author-set value would falsify the admission
+ *  record; the CLI takes the same split. */
 async function promptCommonFields(
   root: string,
   label: string,
   idPrompt: string,
   idPlaceholder: string,
-): Promise<{ id: string; name: string; admittedBy: string } | undefined> {
+): Promise<{ id: string; name: string; admittedBy: string; validFrom: string } | undefined> {
   const id = await vscode.window.showInputBox({
     title: `New ${label} — id`,
     prompt: idPrompt,
@@ -78,7 +87,17 @@ async function promptCommonFields(
     return undefined;
   }
 
-  return { id: id.trim(), name: name.trim(), admittedBy };
+  const validFrom = await vscode.window.showInputBox({
+    title: `New ${label} — valid_from`,
+    prompt: 'Date the element starts being true (CONTRACT.md §7). Defaults to today.',
+    value: todayIso(),
+    ignoreFocusOut: true,
+    validateInput: (v) =>
+      isIsoDate(v.trim()) ? undefined : 'Enter a calendar date in YYYY-MM-DD form (CONTRACT.md §4).',
+  });
+  if (!validFrom) return undefined;
+
+  return { id: id.trim(), name: name.trim(), admittedBy, validFrom: validFrom.trim() };
 }
 
 /** Writes a successful scaffold outcome and opens it, or reports the

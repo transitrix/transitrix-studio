@@ -85,11 +85,11 @@ function printUsage(): void {
        transitrix metrics [--ext=.bpmn.transitrix.yaml] <input.yaml> [--json]
        transitrix validate <input.yaml> [--json]
        transitrix validate [--ext=.bpmn.transitrix.yaml] <input.yaml> [--json]
-       transitrix validate <input.yaml> --fix [--author <name>] [--root <dir>] [--dry-run]
+       transitrix validate <input.yaml> --fix [--author <name>] [--valid-from <YYYY-MM-DD>] [--root <dir>] [--dry-run]
        transitrix validate --scope=repo [--root <dir>] [--json] [--include-model]
        transitrix export-compliance [--format md|pdf] [--scope law:<ID>|product:<ID>|gap] [--output <path>] [--root <dir>]
        transitrix migrate [--from X.Y] [--to X.Y] [--dry-run] [--recipes <dir>] [target-dir]
-       transitrix new <goal|driver|constraint|requirement> --id <ID> --name "<label>" [--author <name>] [--root <dir>] [--dry-run]
+       transitrix new <goal|driver|constraint|requirement> --id <ID> --name "<label>" [--author <name>] [--valid-from <YYYY-MM-DD>] [--root <dir>] [--dry-run]
 
 
   serve     — local web UI (run npm run ui:build once beforehand).
@@ -118,7 +118,9 @@ function printUsage(): void {
               constraint, or requirement) with the admission record and
               lifecycle envelope computed (zone/admitted_at/admitted_by/
               gate_checks/valid_from/valid_to) rather than hand-typed.
-              --author sets admitted_by (default: git config user.name).
+              --author sets admitted_by (default: git config user.name);
+              --valid-from sets valid_from (default: today). admitted_at has no
+              override — it records when admission actually happened.
               Run 'transitrix new <type> --help' for type-specific options.
 
   --no-metrics  suppress quality metrics report on compile.
@@ -419,6 +421,7 @@ async function runValidateFixCommand(
       root,
       absFilePath,
       author: parsed.author,
+      validFrom: parsed.validFrom,
       catalog: ctx.catalog,
     });
 
@@ -465,6 +468,12 @@ async function handleValidateCommand(argv: string[]): Promise<void> {
       console.error('transitrix validate: --template requires a value (e.g. raci).');
     } else if (parsed.error === '--author_requires_value') {
       console.error('transitrix validate: --author requires a value.');
+    } else if (parsed.error === '--valid-from_requires_value') {
+      console.error('transitrix validate: --valid-from requires a date (YYYY-MM-DD).');
+    } else if (parsed.error === 'bad_valid_from') {
+      console.error(
+        'transitrix validate: --valid-from must be a calendar date in YYYY-MM-DD form (CONTRACT.md §4).',
+      );
     } else {
       console.error('transitrix: --ext requires a comma-separated list of suffixes.');
     }
@@ -509,6 +518,8 @@ async function handleValidateCommand(argv: string[]): Promise<void> {
     console.error('             by inserting only what it can derive — never a value it cannot');
     console.error('             determine, never a correction to a value already present.');
     console.error('             --author "<name>" overrides `git config user.name` for admitted_by;');
+    console.error('             --valid-from <YYYY-MM-DD> overrides today for valid_from (admitted_at');
+    console.error('             has no override — it records when admission actually happened);');
     console.error('             --root <dir> is the adopter repo root for the canon scan (default cwd);');
     console.error('             --dry-run previews the fix without writing.');
     console.error('repo scope — whole-canon checks (referential integrity, atomicity,');

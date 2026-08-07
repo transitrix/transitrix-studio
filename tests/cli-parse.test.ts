@@ -5,6 +5,7 @@ import {
   parseCliFileArgv,
   parseValidateArgv,
   inputMatchesExtension,
+  isIsoDate,
 } from '../src/cli-parse.js';
 
 describe('cli-parse', () => {
@@ -115,6 +116,36 @@ describe('parseValidateArgv (#141 — validate scope)', () => {
 
   it('signals --author without a value', () => {
     expect(parseValidateArgv(['--author'])).toEqual({ ok: false, error: '--author_requires_value' });
+  });
+
+  it('parses --valid-from (both separate and = forms)', () => {
+    expect(parseValidateArgv(['model.yaml'])).toMatchObject({ ok: true, validFrom: undefined });
+    expect(parseValidateArgv(['model.yaml', '--fix', '--valid-from', '2026-01-01']))
+      .toMatchObject({ ok: true, validFrom: '2026-01-01' });
+    expect(parseValidateArgv(['model.yaml', '--fix', '--valid-from=2026-01-01']))
+      .toMatchObject({ ok: true, validFrom: '2026-01-01' });
+  });
+
+  it('signals --valid-from without a value, and rejects a non-calendar date', () => {
+    expect(parseValidateArgv(['--valid-from'])).toEqual({ ok: false, error: '--valid-from_requires_value' });
+    for (const bad of ['01/01/2026', '2026-1-1', '2026-02-31', 'yesterday', '']) {
+      expect(parseValidateArgv(['model.yaml', `--valid-from=${bad}`]), bad)
+        .toEqual({ ok: false, error: 'bad_valid_from' });
+    }
+  });
+});
+
+describe('isIsoDate', () => {
+  it('accepts a canonical calendar date and rejects everything else', () => {
+    expect(isIsoDate('2026-01-01')).toBe(true);
+    expect(isIsoDate('2024-02-29')).toBe(true);   // leap day
+    expect(isIsoDate('2026-02-29')).toBe(false);  // not a leap year
+    expect(isIsoDate('2026-02-31')).toBe(false);
+    expect(isIsoDate('2026-13-01')).toBe(false);
+    expect(isIsoDate('2026-1-1')).toBe(false);
+    expect(isIsoDate('01/01/2026')).toBe(false);
+    expect(isIsoDate('2026-01-01T00:00:00Z')).toBe(false);
+    expect(isIsoDate('')).toBe(false);
   });
 });
 
