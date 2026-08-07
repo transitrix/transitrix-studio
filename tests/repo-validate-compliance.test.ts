@@ -75,6 +75,16 @@ describe('repo-scope compliance catalogue (#518 C3)', () => {
       'canon/elements/01_motivation/constraints/CONSTRAINT-GDPR-RESIDENCY-1.yaml',
       'constraint/CONSTRAINT-GDPR-RESIDENCY-1.yaml',
     );
+    copyCorpus(
+      root,
+      'canon/elements/02_business/business-services/BUSINESS_SERVICE-ONBOARDING-1.yaml',
+      'business-service/BUSINESS_SERVICE-ONBOARDING-1.yaml',
+    );
+    copyCorpus(
+      root,
+      'canon/elements/02_business/business-services/BUSINESS_SERVICE-SUPPORT-1.yaml',
+      'business-service/BUSINESS_SERVICE-SUPPORT-1.yaml',
+    );
     write(
       root,
       'canon/elements/05_implementation/changes/CHANGE-TEST-1.yaml',
@@ -258,6 +268,15 @@ describe('repo-scope compliance catalogue (#518 C3)', () => {
     );
     // applies_to / owner_role resolve once APPLICATION-* and ROLE-DPO-1 are in the catalogue.
     expect(constraint).toEqual([]);
+  });
+
+  it('runComplianceValidate validates business-service elements', () => {
+    const ctx = buildRepoValidateContext(root);
+    const findings = runComplianceValidate(root, ctx);
+    const businessService = findings.filter(
+      (f) => f.file.endsWith('BUSINESS_SERVICE-SUPPORT-1.yaml') && f.severity === 'error',
+    );
+    expect(businessService).toEqual([]);
   });
 
   it('runComplianceValidate validates change elements', () => {
