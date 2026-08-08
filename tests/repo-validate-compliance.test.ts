@@ -168,6 +168,11 @@ describe('repo-scope compliance catalogue (#518 C3)', () => {
       'canon/elements/02_business/locations/LOCATION-TBILISI-1.yaml',
       'location/LOCATION-TBILISI-1.yaml',
     );
+    copyCorpus(
+      root,
+      'canon/elements/04_technology/services/TECHNOLOGY_SERVICE-ORDER-API-GW-1.yaml',
+      'technology-service/TECHNOLOGY_SERVICE-ORDER-API-GW-1.yaml',
+    );
     for (const [rel, id, notation] of [
       ['canon/elements/03_application/applications/APPLICATION-OMS-1.yaml', 'APPLICATION-OMS-1', 'application'],
       ['canon/elements/03_application/applications/APPLICATION-CRM-1.yaml', 'APPLICATION-CRM-1', 'application'],
@@ -346,6 +351,15 @@ describe('repo-scope compliance catalogue (#518 C3)', () => {
       (f) => f.file.endsWith('LOCATION-TBILISI-1.yaml') && f.severity === 'error',
     );
     expect(location).toEqual([]);
+  });
+
+  it('runComplianceValidate validates technology-service elements', () => {
+    const ctx = buildRepoValidateContext(root);
+    const findings = runComplianceValidate(root, ctx);
+    const technologyService = findings.filter(
+      (f) => f.file.endsWith('TECHNOLOGY_SERVICE-ORDER-API-GW-1.yaml') && f.severity === 'error',
+    );
+    expect(technologyService).toEqual([]);
   });
 
   it('flags REQ-002 when derived_from codex id is missing from the catalogue', () => {
