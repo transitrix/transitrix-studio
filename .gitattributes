@@ -4,3 +4,7 @@
 # Shell scripts must keep LF line endings even when checked out on Windows
 # (otherwise bash fails to parse them on macOS/Linux).
 *.sh text eol=lf
+
+# Vendored artefacts are verbatim copies of a tagged upstream release, pinned by
+# content hash. Keep them byte-identical to the source on every platform.
+vendor/** text eol=lf
