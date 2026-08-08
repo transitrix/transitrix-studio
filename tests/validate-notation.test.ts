@@ -36,6 +36,7 @@ import { validateStakeholder } from '../packages/diagrams/src/stakeholder/valida
 import { validateLocation } from '../packages/diagrams/src/location/validate.js';
 import { validateBusinessService } from '../packages/diagrams/src/business-service/validate.js';
 import { validateIntegration } from '../packages/diagrams/src/integration/validate.js';
+import { validateNode } from '../packages/diagrams/src/node/validate.js';
 import { validateTechnologyService } from '../packages/diagrams/src/technology-service/validate.js';
 
 const corpusRoot = join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'notation-corpus');
@@ -409,6 +410,15 @@ describe('validate-notation — parity with the preview validator (#258, #518 C1
     const broken = { notation: 'integration', interface_semantics: true };
     const raw = validateIntegration(broken);
     const report = validateNotationDoc('integration', broken);
+    expect(report.isValid).toBe(raw.valid);
+    expect(report.findings.filter((f) => f.severity === 'error').map((f) => f.ruleId))
+      .toEqual(raw.errors.map((e) => e.code));
+  });
+
+  it('node: CLI findings mirror validateNode exactly', () => {
+    const broken = { notation: 'node' };
+    const raw = validateNode(broken);
+    const report = validateNotationDoc('node', broken);
     expect(report.isValid).toBe(raw.valid);
     expect(report.findings.filter((f) => f.severity === 'error').map((f) => f.ruleId))
       .toEqual(raw.errors.map((e) => e.code));

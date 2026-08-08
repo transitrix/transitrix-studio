@@ -170,6 +170,11 @@ describe('repo-scope compliance catalogue (#518 C3)', () => {
     );
     copyCorpus(
       root,
+      'canon/elements/04_technology/nodes/NODE-KAFKA-HOST-1.yaml',
+      'node/NODE-KAFKA-HOST-1.yaml',
+    );
+    copyCorpus(
+      root,
       'canon/elements/04_technology/services/TECHNOLOGY_SERVICE-ORDER-API-GW-1.yaml',
       'technology-service/TECHNOLOGY_SERVICE-ORDER-API-GW-1.yaml',
     );
@@ -342,6 +347,15 @@ describe('repo-scope compliance catalogue (#518 C3)', () => {
       (f) => f.file.endsWith('TARGET_STATE-TEST-1.yaml') && f.severity === 'error',
     );
     expect(targetState).toEqual([]);
+  });
+
+  it('runComplianceValidate validates node elements', () => {
+    const ctx = buildRepoValidateContext(root);
+    const findings = runComplianceValidate(root, ctx);
+    const node = findings.filter(
+      (f) => f.file.endsWith('NODE-KAFKA-HOST-1.yaml') && f.severity === 'error',
+    );
+    expect(node).toEqual([]);
   });
 
   it('runComplianceValidate validates location elements', () => {
