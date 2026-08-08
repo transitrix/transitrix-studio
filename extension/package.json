@@ -848,7 +848,7 @@
     "menus": {
       "editor/title": [
         {
-          "when": "resourceFilename =~ /\\.(bpmn|goals|dgca|dga|action|action-card|actions-tree|blocks|products|applications|process-map|scenarios|capability-map|process-blueprint|compliance-impact|coverage-metric)\\.transitrix\\.yaml$/ || resourceFilename =~ /\\.compliance-impact\\.view\\.yaml$/ || resourceFilename =~ /^(LAW|REGULATION|POLICY|INTERNAL_STANDARD)-.*\\.yaml$/ || resourceFilename =~ /^PRODUCT-.*\\.yaml$/ || resourceFilename =~ /^(REQUIREMENT|CONSTRAINT)-.*\\.yaml$/ || resourceFilename =~ /\\.(puml|plantuml)$/",
+          "when": "resourceFilename =~ /\\.(bpmn|goals|dgca|dga|action|action-card|actions-tree|blocks|products|applications|process-map|scenarios|capability-map|process-blueprint|compliance-impact|coverage-metric)\\.transitrix\\.yaml$/ || resourceFilename =~ /\\.compliance-impact\\.view\\.yaml$/ || resourceFilename =~ /^(LAW|REGULATION|POLICY|INTERNAL_STANDARD)-.*\\.yaml$/ || resourceFilename =~ /^PRODUCT-.*\\.yaml$/ || resourceFilename =~ /^(REQUIREMENT|CONSTRAINT)-.*\\.yaml$/ || resourceFilename =~ /\\.(puml|plantuml)$/ || resourceFilename =~ /\\.ttrs$/",
           "command": "transitrix.openPreview",
           "group": "navigation@-10"
         },
