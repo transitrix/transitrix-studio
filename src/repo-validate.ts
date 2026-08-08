@@ -242,8 +242,11 @@ export function buildRepoValidateContext(root: string): RepoValidateContext {
   };
 }
 
-/** Collect the raw text of every YAML doc under `<root>/canon/views/**`. */
-function loadViewDocs(root: string): Array<{ path: string; text: string }> {
+/** Collect the raw text of every YAML doc under `<root>/canon/views/**`.
+ *  Exported for `impact.ts` (transitrix-hq#89), which needs the same raw
+ *  per-file walk to classify each view document's resolvability without
+ *  duplicating this directory walk. */
+export function loadViewDocs(root: string): Array<{ path: string; text: string }> {
   const docs: Array<{ path: string; text: string }> = [];
   let entries: string[] = [];
   try {

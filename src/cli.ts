@@ -43,6 +43,7 @@ import {
   type FixFieldResult,
 } from './validate-fix.js';
 import { handleExportComplianceCommand } from './export-compliance.js';
+import { computeStagedImpact, reportImpact } from './impact.js';
 import { transitrixPackageVersion } from './package-version.js';
 import { bundledDiagramsVersion } from './diagrams-version.js';
 import { isActionViewDoc } from '@transitrix/diagrams/activities';
@@ -88,6 +89,7 @@ function printUsage(): void {
        transitrix validate <input.yaml> --fix [--author <name>] [--valid-from <YYYY-MM-DD>] [--root <dir>] [--dry-run]
        transitrix validate --scope=repo [--root <dir>] [--json] [--include-model]
        transitrix export-compliance [--format md|pdf] [--scope law:<ID>|product:<ID>|gap] [--output <path>] [--root <dir>]
+       transitrix impact [--root <dir>] [--json]
        transitrix migrate [--from X.Y] [--to X.Y] [--dry-run] [--recipes <dir>] [target-dir]
        transitrix new <goal|driver|constraint|requirement> --id <ID> --name "<label>" [--author <name>] [--valid-from <YYYY-MM-DD>] [--root <dir>] [--dry-run]
 
@@ -110,6 +112,14 @@ function printUsage(): void {
               default; law:/product:/gap scopes). Scans --root (default cwd) for
               requirement/assertion/product/codex canon. PDF rendering requires
               WeasyPrint on PATH (pipx install weasyprint).
+  impact    — names which canon/views/** documents a *staged* (git add, not
+              yet committed) canon/elements/** change makes stale. Silent
+              when nothing is staged, or when nothing this can resolve is
+              affected. A view this cannot yet resolve (inline-form views,
+              blocks, applications, capability-map, compliance-impact,
+              coverage-metric, bpmn) is reported as coverage not determined,
+              never as unaffected. Document (.ttrs) coverage is not yet
+              included. --root sets the repo to check (default cwd).
   migrate   — migrate an adopter repo to a newer methodology version by running
               the ordered recipes from the methodology repo. Reads the current
               version from transitrix.yaml (or --from X.Y); --dry-run previews
@@ -721,6 +731,23 @@ async function handleValidateCommand(argv: string[]): Promise<void> {
   }
 }
 
+async function handleImpactCommand(argv: string[]): Promise<void> {
+  if (argv.includes('--help') || argv.includes('-h')) {
+    console.error('usage: transitrix impact [--root <dir>] [--json]');
+    process.exit(0);
+  }
+  const rootIdx = argv.indexOf('--root');
+  if (rootIdx !== -1 && !argv[rootIdx + 1]) {
+    console.error('transitrix impact: --root requires a directory path.');
+    process.exit(1);
+  }
+  const root = rootIdx !== -1 ? argv[rootIdx + 1] : process.cwd();
+  const useJson = argv.includes('--json');
+
+  const result = computeStagedImpact(root);
+  reportImpact(result, useJson);
+}
+
 async function handleMetricsCommand(argv: string[]): Promise<void> {
   const parsed = parseCliFileArgv(argv);
   if (!parsed.ok) {
@@ -814,6 +841,8 @@ try {
     await handleValidateCommand(process.argv.slice(3));
   } else if (subcommand === 'export-compliance') {
     await handleExportComplianceCommand(process.argv.slice(3));
+  } else if (subcommand === 'impact') {
+    await handleImpactCommand(process.argv.slice(3));
   } else if (subcommand === 'migrate') {
     await handleMigrateCommand(process.argv.slice(3));
   } else if (subcommand === 'new') {

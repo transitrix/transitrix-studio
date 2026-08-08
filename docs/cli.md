@@ -76,6 +76,7 @@ transitrix validate <input.yaml> --fix [--author <name>] [--valid-from <YYYY-MM-
 transitrix validate --scope=repo [--root <dir>] [--json] [--include-model]
 transitrix new <goal|driver|constraint|requirement> --id <ID> --name "<label>" [options]
 transitrix export-compliance [--format md|pdf] [--scope law:<ID>|product:<ID>|gap] [--output <path>] [--root <dir>]
+transitrix impact [--root <dir>] [--json]
 ```
 
 | Command | Purpose |
@@ -86,6 +87,7 @@ transitrix export-compliance [--format md|pdf] [--scope law:<ID>|product:<ID>|ga
 | `validate` | Validation only, no XML output (`--json` for CI). Exit 1 on errors. Default scope is a single file; `--scope=repo` runs whole-`canon/` checks (referential integrity, atomicity, id uniqueness, policy) over `--root` (default cwd) — see [validation.md](validation.md#validation-scope-file-vs-repo). `--include-model` (with `--json`) also emits the resolved `canon/elements/**`/`canon/relations/**` records it parsed — see [validation.md](validation.md#resolved-model-output---include-model). `--template <name>` (file scope, `blocks` matrix-subset `grid:` documents only — e.g. `raci`) additionally enforces that template's own cell-value invariant (e.g. `RACI-001`) on top of the base `BL-02x` rules; the base notation does not fix a cell-value vocabulary, so this is opt-in per template. |
 | `new <type>` | Scaffolds a standalone motivation-layer element (`goal`, `driver`, `constraint`, `requirement`) with the admission record and lifecycle envelope computed rather than hand-typed — see [Envelope defaults](#envelope-defaults). `--dry-run` previews without writing. Run `transitrix new <type> --help` for the per-type fields. |
 | `export-compliance` | Markdown or PDF report of the compliance views (matrix by default; `law:` / `product:` / `gap` scopes). Scans `--root` (default cwd). PDF needs WeasyPrint on PATH (`pipx install weasyprint`). |
+| `impact` | Names which `canon/views/**` documents a *staged* (`git add`, not yet committed) `canon/elements/**` change makes stale. Silent when nothing is staged, or when nothing this can resolve is affected. Resolves the three canon-projection view notations with a static resolver (`goals`, `dgca`/`fgca`, `action`); every other view (inline-form views, `blocks`, `applications`, `capability-map`, `compliance-impact`, `coverage-metric`, `bpmn`) is reported as coverage not determined, never as unaffected. Document (`.ttrs`) coverage is not yet included. `--root` sets the repo to check (default cwd). |
 
 Flags: `--no-metrics` suppresses the metrics report on compile; `--no-validate`
 suppresses validation **warnings** (errors always run). Input files must use a
