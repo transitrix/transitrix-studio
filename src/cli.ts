@@ -112,14 +112,16 @@ function printUsage(): void {
               default; law:/product:/gap scopes). Scans --root (default cwd) for
               requirement/assertion/product/codex canon. PDF rendering requires
               WeasyPrint on PATH (pipx install weasyprint).
-  impact    — names which canon/views/** documents a *staged* (git add, not
-              yet committed) canon/elements/** change makes stale. Silent
-              when nothing is staged, or when nothing this can resolve is
-              affected. A view this cannot yet resolve (inline-form views,
-              blocks, applications, capability-map, compliance-impact,
-              coverage-metric, bpmn) is reported as coverage not determined,
-              never as unaffected. Document (.ttrs) coverage is not yet
-              included. --root sets the repo to check (default cwd).
+  impact    — names which canon/views/** documents and canon/views/documents/**
+              .ttrs sources a *staged* (git add, not yet committed)
+              canon/elements/** change makes stale. Silent when nothing is
+              staged, or when nothing this can resolve is affected. A view
+              this cannot yet resolve (inline-form views, blocks,
+              applications, capability-map, compliance-impact,
+              coverage-metric, bpmn) or a .ttrs document holding an
+              each/trace/row-field construct is reported as coverage not
+              determined, never as unaffected. --root sets the repo to check
+              (default cwd).
   migrate   — migrate an adopter repo to a newer methodology version by running
               the ordered recipes from the methodology repo. Reads the current
               version from transitrix.yaml (or --from X.Y); --dry-run previews
