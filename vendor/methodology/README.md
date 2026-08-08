@@ -36,3 +36,27 @@ The script fetches the artefact from the named tag via the GitHub API, writes bo
 files, and prints the new hash. Refreshing usually surfaces new drift — that is the
 point; resolve or re-date the affected `tests/vocabulary-drift/allowlist.ts` entries
 in the same change.
+
+## `document-renderer/`
+
+The five source files of `@transitrix/document-renderer`'s pass-1 resolver
+(`pass1.mjs` and the four modules it imports: `parse-template.mjs`,
+`repository.mjs`, `ids.mjs`, `syntax.mjs`). The package's own README states this
+is the intended integration path: "Pass 1 ships as a unit callable on its own,
+so pass 2 and Studio's preview can both depend on it as a library rather than
+on the whole renderer." Studio's `.ttrs` preview (`extension/src/ttrs-preview.ts`)
+imports `runPass1` from the vendored copy — a real library call against the
+methodology-authored resolver, not a reimplementation of its resolution logic.
+
+`VENDORED.json` records the source tag and a per-file SHA-256 (LF-normalised).
+`tests/document-renderer-vendor.test.ts` fails closed: a missing file, an
+unpinned file, or a hash mismatch is a build failure, never a pass.
+
+### Refreshing
+
+```
+node scripts/vendor-methodology-document-renderer.mjs --ref v3.4.0
+```
+
+Same fetch-from-tag contract as `vocabulary.yaml` above — never a sibling
+checkout, never a branch.

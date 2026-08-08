@@ -25,6 +25,7 @@ import { RequirementTracePreview } from './requirement-trace-preview.js';
 import { GapDashboardPreview } from './gap-dashboard-preview.js';
 import { CoverageMetricPreview } from './coverage-metric-preview.js';
 import { PlantUMLPreview, isPumlFile } from './plantuml-preview.js';
+import { TtrsPreview, isTtrsFile } from './ttrs-preview.js';
 import { openComplianceFile } from './compliance-scan.js';
 import type { LayoutMetrics, ValidationReport } from './types.js';
 import { documentMatchesTransitrixSource } from './source-files.js';
@@ -247,6 +248,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const gapDashboardPreview = new GapDashboardPreview(context.extensionUri);
   const coverageMetricPreview = new CoverageMetricPreview(context.extensionUri);
   const plantumlPreview = new PlantUMLPreview(context.extensionUri);
+  const ttrsPreview = new TtrsPreview();
 
   async function openBpmnPreviewForDocument(doc: vscode.TextDocument): Promise<void> {
     const renderer = vscode.workspace.getConfiguration('transitrix').get<string>('bpmnRenderer', 'custom');
@@ -272,6 +274,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   function resolveNotationPreview(doc: vscode.TextDocument): ResolvedPreview | undefined {
     if (isPumlFile(doc)) {
       return { id: 'puml', open: () => plantumlPreview.showOrReveal(doc), refresh: () => plantumlPreview.refreshSaved(doc) };
+    }
+    if (isTtrsFile(doc)) {
+      return { id: 'ttrs', open: () => ttrsPreview.showOrReveal(doc), refresh: () => ttrsPreview.refreshSaved(doc) };
     }
     if (isGoalsFile(doc)) {
       return { id: 'goals', open: () => goalsPreview.showOrReveal(doc), refresh: () => goalsPreview.refreshSaved(doc) };
@@ -506,6 +511,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       void capabilityMapPreview.refreshConfig();
       if (isThemeChange) {
         void plantumlPreview.refreshConfig();
+        void ttrsPreview.refreshConfig();
         void activityCardPreview.refreshConfig();
         void applicationsPreview.refreshConfig();
         void productsPreview.refreshConfig();
