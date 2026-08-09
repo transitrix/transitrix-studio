@@ -179,3 +179,123 @@ describe('computeStagedImpact (transitrix-hq#89)', () => {
     ]);
   });
 });
+
+/** A minimal, valid `.ttrs` document source — required header fields only. */
+function ttrsDoc(templateId: string, body: string): string {
+  return [
+    '---',
+    'document: "Test document"',
+    'kind: mrd',
+    `template_id: ${templateId}`,
+    'template_version: "1.0"',
+    '---',
+    '',
+    body,
+    '',
+  ].join('\n');
+}
+
+// These fixtures stage REQ-1, not GOAL-1: seedBaseline's dgca view resolves
+// every GOAL element (`filter: all`), so a staged GOAL-1 change would also
+// land in `affected` via that view and muddy what these tests are checking.
+// REQ-1 is read by nothing in the baseline view (confirmed by the "produces
+// no notice at all" test above), so it isolates the .ttrs-only behaviour.
+describe('computeStagedImpact — .ttrs document coverage (transitrix-hq#89)', () => {
+  it('names a .ttrs document whose inline reference reads a staged, changed element', () => {
+    root = initRepo();
+    seedBaseline(root);
+    write(
+      root,
+      'canon/views/documents/product.mrd.ttrs',
+      ttrsDoc('product.mrd', 'This document cites {{ REQ-1 }} directly.'),
+    );
+    commitAll(root, 'add a document source');
+    write(root, 'canon/elements/requirements/REQ-1.yaml', requirementYaml('REQ-1', 'Reworded wording'));
+    git(['add', 'canon/elements/requirements/REQ-1.yaml'], root);
+
+    const result = computeStagedImpact(root);
+    expect(result.affected).toEqual([
+      { file: 'canon/views/documents/product.mrd.ttrs', notation: 'documents' },
+    ]);
+    expect(result.notDetermined).toEqual([]);
+  });
+
+  it('names a .ttrs document whose instruction-slot inputs name a staged, changed element', () => {
+    root = initRepo();
+    seedBaseline(root);
+    write(
+      root,
+      'canon/views/documents/product.mrd.ttrs',
+      ttrsDoc(
+        'product.mrd',
+        [
+          '{{# instruct market-size }}',
+          'question: How large is the addressable market?',
+          'inputs: REQ-1, GOAL-1',
+          'sufficient: A number with a source.',
+          '{{/ instruct }}',
+        ].join('\n'),
+      ),
+    );
+    commitAll(root, 'add a document source');
+    write(root, 'canon/elements/requirements/REQ-1.yaml', requirementYaml('REQ-1', 'Reworded wording'));
+    git(['add', 'canon/elements/requirements/REQ-1.yaml'], root);
+
+    const result = computeStagedImpact(root);
+    expect(result.affected).toEqual([
+      { file: 'canon/views/documents/product.mrd.ttrs', notation: 'documents' },
+    ]);
+  });
+
+  it('produces no notice for a .ttrs document that cites none of the staged ids', () => {
+    root = initRepo();
+    seedBaseline(root);
+    write(
+      root,
+      'canon/views/documents/product.mrd.ttrs',
+      ttrsDoc('product.mrd', 'This document cites {{ GOAL-1 }} only.'),
+    );
+    commitAll(root, 'add a document source');
+    write(root, 'canon/elements/requirements/REQ-1.yaml', requirementYaml('REQ-1', 'Reworded wording'));
+    git(['add', 'canon/elements/requirements/REQ-1.yaml'], root);
+
+    const result = computeStagedImpact(root);
+    expect(result.affected).toEqual([]);
+    expect(result.notDetermined).toEqual([]);
+  });
+
+  it('reports a .ttrs document holding an unimplemented construct as coverage-not-determined, never as unaffected', () => {
+    root = initRepo();
+    seedBaseline(root);
+    write(
+      root,
+      'canon/views/documents/product.mrd.ttrs',
+      ttrsDoc(
+        'product.mrd',
+        '{{# each REQUIREMENT }}\n{{ .id }}\n{{/ each }}\n\nThis document cites {{ REQ-1 }} too.',
+      ),
+    );
+    commitAll(root, 'add a document source');
+    write(root, 'canon/elements/requirements/REQ-1.yaml', requirementYaml('REQ-1', 'Reworded wording'));
+    git(['add', 'canon/elements/requirements/REQ-1.yaml'], root);
+
+    const result = computeStagedImpact(root);
+    expect(result.affected).toEqual([]);
+    expect(result.notDetermined).toEqual([
+      { file: 'canon/views/documents/product.mrd.ttrs', notation: 'documents' },
+    ]);
+  });
+
+  it('does not check the .trs near-miss (never a parseable document)', () => {
+    root = initRepo();
+    seedBaseline(root);
+    write(root, 'canon/views/documents/product.mrd.trs', ttrsDoc('product.mrd', '{{ REQ-1 }}'));
+    commitAll(root, 'add a near-miss file');
+    write(root, 'canon/elements/requirements/REQ-1.yaml', requirementYaml('REQ-1', 'Reworded wording'));
+    git(['add', 'canon/elements/requirements/REQ-1.yaml'], root);
+
+    const result = computeStagedImpact(root);
+    expect(result.affected).toEqual([]);
+    expect(result.notDetermined).toEqual([]);
+  });
+});

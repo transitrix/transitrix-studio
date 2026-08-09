@@ -271,8 +271,11 @@ export function loadViewDocs(root: string): Array<{ path: string; text: string }
 /** Collect every document source (and its `.trs` near-miss) across the model
  *  zones. Deliberately not scoped to `canon/views/documents/**`: a `.ttrs` file
  *  in the wrong folder is precisely what the placement half of the check exists
- *  to catch, and a walk scoped to the right folder would never see one. */
-function loadDocumentSources(root: string): Array<{ path: string; text: string }> {
+ *  to catch, and a walk scoped to the right folder would never see one.
+ *  Exported for `impact.ts` (transitrix-hq#89), which needs the same walk to
+ *  find `.ttrs` sources to check for staged-change coverage — it filters out
+ *  the `.trs` near-miss itself, since that is never a parseable document. */
+export function loadDocumentSources(root: string): Array<{ path: string; text: string }> {
   const docs: Array<{ path: string; text: string }> = [];
   const seen = new Set<string>();
   for (const zone of DOCUMENT_SOURCE_SEARCH_ROOTS) {

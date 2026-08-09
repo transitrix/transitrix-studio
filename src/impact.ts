@@ -6,9 +6,20 @@
 // canon/views/** — inline-form views, blocks, applications, capability-map,
 // compliance-impact, coverage-metric, bpmn/process-blueprint — is reported as
 // "coverage not determined", never silently treated as unaffected (the
-// epic's acceptance requirement 6). Document (`.ttrs`) coverage is a
-// separate, later slice: the Pass 1 resolver it needs is not yet merged to
-// `main` (transitrix-hq#57).
+// epic's acceptance requirement 6).
+//
+// Second slice: document (`.ttrs`) coverage, unblocked now that
+// @transitrix/document-renderer is vendored on `main` (originally for the
+// `.ttrs` preview, extension/src/ttrs-preview.ts). This reads a document's
+// model-object references (`{{ ID }}` / `{{ ID.field }}` / an instruction
+// slot's `inputs:` list) directly off the parse AST rather than running Pass
+// 1's full resolution — Pass 1 needs a `renderDate` and a resolvable
+// repository index to classify a reference as ok/unresolved/etc., none of
+// which this check has any use for: it only wants *which ids a document
+// cites*, not whether they currently resolve. A document whose AST contains
+// `each`/`trace`/a row `.field` (parsed as `unimplemented` — this pass does
+// not know which ids such a construct would touch) is reported as
+// coverage-not-determined, same honesty rule as an unresolvable view.
 
 import { execFileSync } from 'node:child_process';
 import yaml from 'js-yaml';
@@ -16,8 +27,19 @@ import { coerceDatesToIsoStrings } from '@transitrix/diagrams/yaml-normalize.js'
 import { resolveGoals, isGoalsViewDoc } from '@transitrix/diagrams/goals/resolver.js';
 import { resolveFGCA, isFGCAViewDoc } from '@transitrix/diagrams/fgca';
 import { resolveAction, isActionViewDoc } from '@transitrix/diagrams/activities';
-import { loadRepoModel, loadViewDocs } from './repo-validate.js';
+import { loadRepoModel, loadViewDocs, loadDocumentSources } from './repo-validate.js';
 import { loadNotationYaml, notationOf } from './validate-notation.js';
+import { DOCUMENT_SOURCE_EXTENSION } from './validate-document-source.js';
+// Vendored from methodology — see scripts/vendor-methodology-document-renderer.mjs
+// and tests/document-renderer-vendor.test.ts for the integrity check that
+// keeps this import target trustworthy. Only the syntax half (parseTemplate)
+// is needed here; this check never resolves a reference against a repository.
+import {
+  parseTemplate,
+  type TemplateNode,
+  type TemplateReferenceNode,
+  type TemplateInstructNode,
+} from '../vendor/methodology/document-renderer/parse-template.mjs';
 
 export interface ImpactFinding {
   file: string;
@@ -182,7 +204,59 @@ export function computeStagedImpact(root: string): ImpactResult {
     }
   }
 
+  for (const doc of loadDocumentSources(root)) {
+    // The `.trs` near-miss is never a parseable document — `validate` already
+    // names it as a naming defect; it has nothing for this check to read.
+    if (!doc.path.toLowerCase().endsWith(DOCUMENT_SOURCE_EXTENSION)) continue;
+
+    const { ids: referencedIds, determined } = documentReferencedIds(doc.text);
+    if (!determined) {
+      notDetermined.push({ file: doc.path, notation: 'documents' });
+      continue;
+    }
+    if ([...changedIds].some((id) => referencedIds.has(id))) {
+      affected.push({ file: doc.path, notation: 'documents' });
+    }
+  }
+
   return { changedIds: [...changedIds], affected, notDetermined };
+}
+
+/** The model-object ids a `.ttrs` document's parsed AST cites directly —
+ *  inline references (`{{ ID }}` / `{{ ID.field }}`) and an instruction
+ *  slot's own `inputs:` list — and whether that is the *whole* story.
+ *  `determined` is false when the AST holds an `each`/`trace`/row-`.field`
+ *  node (parsed as `unimplemented`) — this check does not know which ids such
+ *  a construct would touch, so it cannot claim the document unaffected on the
+ *  strength of the plain references alone (epic acceptance requirement 6). A
+ *  parse error carries no reference information either — same fallback. */
+function isReferenceNode(node: TemplateNode): node is TemplateReferenceNode {
+  return node.type === 'reference';
+}
+
+function isInstructNode(node: TemplateNode): node is TemplateInstructNode {
+  return node.type === 'instruct';
+}
+
+function documentReferencedIds(text: string): { ids: Set<string>; determined: boolean } {
+  const ids = new Set<string>();
+  let parsed: ReturnType<typeof parseTemplate>;
+  try {
+    parsed = parseTemplate(text);
+  } catch {
+    return { ids, determined: false };
+  }
+  let determined = true;
+  for (const node of parsed.ast) {
+    if (isReferenceNode(node)) {
+      ids.add(node.id);
+    } else if (isInstructNode(node)) {
+      for (const input of node.inputs) ids.add(input);
+    } else if (node.type === 'unimplemented') {
+      determined = false;
+    }
+  }
+  return { ids, determined };
 }
 
 /** Print the result (human or JSON). Human output is silent — no lines at
