@@ -139,6 +139,14 @@ describe('renderProcessLayoutSvg — CSS', () => {
     expect(svg.toLowerCase()).not.toContain('font-style');
     expect(svg.toLowerCase()).not.toContain('italic');
   });
+
+  it('declares font-family on every BPMN text-label class, so an exported SVG renders sans-serif with no host stylesheet present', () => {
+    const svg = renderProcessLayoutSvg(makeLayout());
+    for (const cls of ['bpmn-pool-label', 'bpmn-lane-label', 'bpmn-task-name', 'bpmn-event-label', 'bpmn-gateway-label']) {
+      const rule = svg.match(new RegExp(`\\.${cls}\\s*\\{[^}]*\\}`))?.[0] ?? '';
+      expect(rule).toContain('font-family');
+    }
+  });
 });
 
 // ---------------------------------------------------------------------------
