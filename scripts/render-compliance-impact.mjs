@@ -38,12 +38,17 @@
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import yaml from 'js-yaml';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const STUDIO_ROOT = path.resolve(HERE, '..');
-const DIST_INDEX = path.join(STUDIO_ROOT, 'packages', 'diagrams', 'dist', 'index.js');
+// The `compliance` subpath, not the package root — the root barrel
+// (`dist/index.js`) also re-exports webview React components that import
+// `reactflow/dist/style.css`, which plain `node` cannot load (no bundler
+// here to strip a bare CSS import). This script never needs those exports.
+const DIST_INDEX = path.join(STUDIO_ROOT, 'packages', 'diagrams', 'dist', 'compliance', 'index.js');
 
 function parseArgs(argv) {
   const out = { view: null, registry: null, report: null, canon: null, output: null };
@@ -167,6 +172,65 @@ function logActiveDefaults(config, defaults) {
   }
 }
 
+/**
+ * `git rev-parse HEAD` at `root`, or `null` when `root` is not inside a git
+ * repository (or git itself is unavailable) — either is a normal outcome for
+ * a canon root, not an error worth failing the render over.
+ */
+function gitCommit(root) {
+  try {
+    return execFileSync('git', ['rev-parse', 'HEAD'], {
+      cwd: root,
+      encoding: 'utf-8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim();
+  } catch {
+    return null;
+  }
+}
+
+/** True when `root` has uncommitted changes — the recorded commit alone would
+ *  understate what the render actually read. `null` (not a git repo) reads as
+ *  not-dirty; `gitCommit` already carries that case. */
+function gitDirty(root) {
+  try {
+    const out = execFileSync('git', ['status', '--porcelain'], {
+      cwd: root,
+      encoding: 'utf-8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
+    return out.trim().length > 0;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Provenance stamp — source path(s), source commit, generator, generation
+ * time — embedded in the artefact itself per the cross-project derived-artefact
+ * decision (2026-08-08, amended 2026-08-09): "an artefact with no stamp is
+ * stale by definition." An HTML comment so it travels with the Markdown file
+ * without altering its rendered appearance.
+ */
+function buildProvenanceStamp({ canonRoot, viewSource, generatedAt }) {
+  const commit = gitCommit(canonRoot);
+  const sourceCommit = commit
+    ? `${commit}${gitDirty(canonRoot) ? ' (dirty — uncommitted changes present at generation time)' : ''}`
+    : 'unknown (canon root is not a git repository)';
+  return [
+    '<!--',
+    'generated-by: render-compliance-impact.mjs',
+    `canon-root: ${canonRoot}`,
+    `view-config: ${viewSource}`,
+    `source-commit: ${sourceCommit}`,
+    `generated-at: ${generatedAt}`,
+    'no stamp above means stale by definition — do not strip on regeneration.',
+    '-->',
+    '',
+    '',
+  ].join('\n');
+}
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
 
@@ -277,7 +341,14 @@ async function main() {
   }
 
   const matrix = buildImpactMatrix(canon, view, objectDetails);
-  const md = renderImpactMarkdown(matrix);
+  const stamp = buildProvenanceStamp({
+    canonRoot: path.resolve(args.canon),
+    viewSource: args.view
+      ? path.resolve(args.view)
+      : `registry:${path.resolve(args.registry)}#${args.report}`,
+    generatedAt: new Date().toISOString(),
+  });
+  const md = stamp + renderImpactMarkdown(matrix);
 
   if (args.output) {
     await fs.writeFile(args.output, md, 'utf8');
