@@ -118,6 +118,29 @@ describe('buildDiagramFrame warnings strip', () => {
   });
 });
 
+// transitrix-hq#103 — the preview renders on open/save only, never on every
+// keystroke, so an unsaved edit shows no change. The toolbar note is the
+// product-surface tell that nothing is broken.
+describe('buildDiagramFrame as-of-last-save note', () => {
+  it('shows the note for a document-bound preview (filename set)', () => {
+    const html = buildDiagramFrame({ ...base, svgContent: '<svg/>' });
+    expect(html).toContain('class="toolbar-savenote"');
+    expect(html).toContain('as of last save');
+    expect(html).toContain('demo.goals.transitrix.yaml as of its last save');
+  });
+
+  it('omits the note for a repo-wide preview with no tracked filename', () => {
+    const html = buildDiagramFrame({ ...base, filename: '', svgContent: '<svg/>' });
+    expect(html).not.toContain('class="toolbar-savenote"');
+  });
+
+  it('escapes the filename in the note tooltip', () => {
+    const html = buildDiagramFrame({ ...base, filename: '<evil>.yaml', svgContent: '<svg/>' });
+    expect(html).toContain('&lt;evil&gt;.yaml as of its last save');
+    expect(html).not.toContain('<evil>.yaml as of');
+  });
+});
+
 // The PlantUML preview needs to load its wasm rendering engine as external
 // <script> files inside the frame's strict nonce CSP, rather than
 // re-implementing a bespoke toolbar/CSP.
