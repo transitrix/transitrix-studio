@@ -62,7 +62,7 @@ process:
     - { from: receiveOrder, to: end }
 ```
 
-Open it in VS Code — the preview panel opens automatically and refreshes on every save.
+Open it in VS Code — the preview panel opens automatically and refreshes on save (not on every keystroke — see the extension README's "Get started" section for the recommended `files.autoSave` setting if you want it to feel live).
 
 ## CLI
 

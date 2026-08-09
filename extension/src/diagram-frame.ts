@@ -334,6 +334,13 @@ const TITLE_TOGGLE_CSS = `
   text-decoration: none;
 }
 .toolbar-btn:hover { color: var(--ts-text, #0f172a); background: var(--ts-bg-elevated, #f1f5f9); }
+.toolbar-savenote {
+  flex: 0 0 auto;
+  font-size: 10px;
+  color: var(--ts-text-muted, #64748b);
+  white-space: nowrap;
+  cursor: help;
+}
 .title-toggle::before { content: "\\2611\\00a0"; font-size: 12px; }
 .title-toggle:hover { color: var(--ts-text, #0f172a); background: var(--ts-bg-elevated, #f1f5f9); }
 .title-toggle-cb:focus-visible ~ #toolbar .title-toggle { outline: 1px dashed var(--ts-text-muted, #64748b); outline-offset: 2px; }
@@ -608,6 +615,15 @@ export function buildDiagramFrame(opts: DiagramFrameOpts): string {
   const toolbarLabel = filename
     ? `${escXml(notation)}: ${escXml(filename)}`
     : escXml(notation);
+  // As-of-last-save note (epic transitrix-hq#103): the preview renders
+  // doc.getText() on open and on save only, never on every keystroke — so an
+  // unsaved edit shows no change. Only meaningful for a doc-bound preview
+  // (filename set); repo-wide dashboards already carry an explicit Refresh
+  // button instead. Shown on every notation preview because it lives in this
+  // one shared frame builder, not per-preview.
+  const saveNote = filename
+    ? `<span class="toolbar-savenote" title="This preview reflects ${escXml(filename)} as of its last save. Edit and save (or enable files.autoSave) to update it.">as of last save</span>`
+    : '';
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -633,7 +649,7 @@ ${extraStyles}
   ${zoomInputs}
   ${errToggleInput}
   ${warnToggleInput}
-  <div id="toolbar"><span class="toolbar-label">${toolbarLabel}</span>${toolbarRight}</div>
+  <div id="toolbar"><span class="toolbar-label">${toolbarLabel}</span>${saveNote}${toolbarRight}</div>
   ${controlsPanel}
   ${timelineStrip}
   ${snapInfoBox}
