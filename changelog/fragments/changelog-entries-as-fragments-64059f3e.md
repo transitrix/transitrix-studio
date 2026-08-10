@@ -1,3 +1,0 @@
-### Changed
-
-- **A PR contributes its `CHANGELOG.md` entry as its own fragment file, not a hand-edit of the shared `## Unreleased` section.** Two PRs to `diagrams/src` that each edited the head of `CHANGELOG.md` collided by construction, whatever their code touched. `node scripts/new-changelog-fragment.mjs <section> <slug>` scaffolds a fragment under `changelog/fragments/`; `node scripts/assemble-changelog.mjs` — run as the first step of release prep (`docs/internal/release-runbook.md`) — folds every fragment into `## Unreleased` in the same section/order/wording convention a hand-edit would have produced, then deletes the fragments it consumed. Existing `CHANGELOG.md` history is untouched; the mechanism applies going forward only.
