@@ -66,16 +66,22 @@ notes PRs:
   - [ ] `npm test` green (root core + diagrams workspace)
   - [ ] CHANGELOG heading matches the version fields
 
-### 2. Merge + draft release (Valerii gates)
+### 2. Merge (Valerii gates)
 
 - Merge the release PR; verify `main` actually has the bump.
+
+### 3. Draft release (agent-preparable)
+
 - Create a **draft** GitHub Release: tag `vX.Y.Z`, target `main`, title
   `Transitrix Studio X.Y.Z`, body = the CHANGELOG section under a
   `## What's changed` heading. (A draft creates no tag; the tag is created
   on the then-current target when the draft is published — so always merge
-  the release PR **before** publishing.)
+  the release PR **before** drafting.) Comment on the hub task with the
+  draft's URL.
+- Valerii reviews the draft, verifies the branch/commit it targets, and
+  publishes it — see step 4.
 
-### 3. Publish the release → automation fires
+### 4. Publish the release → automation fires
 
 Publishing the release starts all four workflows. Watch them under
 Actions → filter event `release`:
@@ -95,7 +101,7 @@ Actions → filter event `release`:
 Every workflow also supports `workflow_dispatch` for re-runs (e.g. a
 transient marketplace failure) without re-publishing the release.
 
-### 4. Post-publish sanity check (optional)
+### 5. Post-publish sanity check (optional)
 
 The `@transitrix/cli` slim package is assembled by
 `scripts/build-cli-package.mjs` at `prepack`; it bundles `src/cli.ts` +
