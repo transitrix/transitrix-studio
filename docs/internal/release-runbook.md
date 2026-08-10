@@ -76,8 +76,7 @@ notes PRs:
   `Transitrix Studio X.Y.Z`, body = the CHANGELOG section under a
   `## What's changed` heading. (A draft creates no tag; the tag is created
   on the then-current target when the draft is published — so always merge
-  the release PR **before** drafting.) Comment on the hub task with the
-  draft's URL.
+  the release PR **before** drafting.)
 - Valerii reviews the draft, verifies the branch/commit it targets, and
   publishes it — see step 4.
 
