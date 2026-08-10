@@ -11,7 +11,7 @@
 import { writeFileSync, readFileSync, readdirSync, statSync, mkdtempSync, rmSync } from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
-import { spawnSync } from 'node:child_process';
+import { spawnSync, execFileSync } from 'node:child_process';
 import yaml from 'js-yaml';
 import {
   emptyCanon,
@@ -185,6 +185,58 @@ export function runWeasyPrint(
   };
 }
 
+function gitCommit(root: string): string | null {
+  try {
+    return execFileSync('git', ['rev-parse', 'HEAD'], {
+      cwd: root,
+      encoding: 'utf-8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim();
+  } catch {
+    return null;
+  }
+}
+
+/** `null` (not a git repo) reads as not-dirty; `gitCommit` already carries that case. */
+function gitDirty(root: string): boolean {
+  try {
+    const out = execFileSync('git', ['status', '--porcelain'], {
+      cwd: root,
+      encoding: 'utf-8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
+    return out.trim().length > 0;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Provenance stamp — source path(s), source commit, generator, generation
+ * time — embedded in the artefact itself per the cross-project derived-artefact
+ * decision (2026-08-08, amended 2026-08-09): "an artefact with no stamp is
+ * stale by definition." An HTML comment so it travels with the Markdown file
+ * without altering its rendered appearance. Mirrors `render-compliance-impact.mjs`'s
+ * stamp shape.
+ */
+function buildProvenanceStamp(canonRoot: string, sourceLines: Array<[string, string]>, generatedAt: string): string {
+  const commit = gitCommit(canonRoot);
+  const sourceCommit = commit
+    ? `${commit}${gitDirty(canonRoot) ? ' (dirty — uncommitted changes present at generation time)' : ''}`
+    : 'unknown (canon root is not a git repository)';
+  return [
+    '<!--',
+    'generated-by: transitrix export-compliance',
+    ...sourceLines.map(([k, v]) => `${k}: ${v}`),
+    `source-commit: ${sourceCommit}`,
+    `generated-at: ${generatedAt}`,
+    'no stamp above means stale by definition — do not strip on regeneration.',
+    '-->',
+    '',
+    '',
+  ].join('\n');
+}
+
 function defaultPdfFilename(scope: ReportScope): string {
   switch (scope.mode) {
     case 'matrix': return 'compliance-matrix.pdf';
@@ -234,8 +286,17 @@ export async function handleExportComplianceCommand(argv: string[]): Promise<voi
 
     if (format === 'md') {
       const markdown = renderImpactMarkdown(matrix);
-      if (output) { writeFileSync(output, markdown, 'utf-8'); console.error(`Wrote ${output}`); }
-      else { process.stdout.write(markdown); }
+      const stamp = buildProvenanceStamp(
+        path.resolve(root),
+        [
+          ['canon-root', path.resolve(root)],
+          ['view-config', registry ? `registry:${path.resolve(registry)}#${reportId}` : `root:${path.resolve(root)}#${reportId}`],
+        ],
+        new Date().toISOString(),
+      );
+      const stamped = stamp + markdown;
+      if (output) { writeFileSync(output, stamped, 'utf-8'); console.error(`Wrote ${output}`); }
+      else { process.stdout.write(stamped); }
       return;
     }
     // format === 'pdf'
@@ -265,11 +326,21 @@ export async function handleExportComplianceCommand(argv: string[]): Promise<voi
 
   if (format === 'md') {
     const markdown = renderComplianceMarkdown(canon, scope, { today });
+    const scopeDescriptor = scope.mode === 'matrix' || scope.mode === 'gap' ? scope.mode : `${scope.mode}:${scope.id}`;
+    const stamp = buildProvenanceStamp(
+      path.resolve(root),
+      [
+        ['canon-root', path.resolve(root)],
+        ['scope', scopeDescriptor],
+      ],
+      new Date().toISOString(),
+    );
+    const stamped = stamp + markdown;
     if (output) {
-      writeFileSync(output, markdown, 'utf-8');
+      writeFileSync(output, stamped, 'utf-8');
       console.error(`Wrote ${output}`);
     } else {
-      process.stdout.write(markdown);
+      process.stdout.write(stamped);
     }
     return;
   }
