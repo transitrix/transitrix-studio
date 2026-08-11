@@ -48,6 +48,7 @@ between runs.
 
 This step is acquisition only — no path-level inventory, no dependency-tree reconstruction, no
 third-party scan, no reproducibility check. Those are transitrix-hq#133, #134, #135, #136.
+Path-level + binary inventory (transitrix-hq#133) is now in [`inventory.md`](inventory.md).
 
 ## Constraints observed
 
