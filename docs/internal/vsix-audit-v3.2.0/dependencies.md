@@ -96,6 +96,17 @@ provenance attestation or registry signature. Full detail in
   cluster under `esp` (Evgeny Poberezkin) and `blakeembrey`, `yisi`/`qbb.sh`/`broooooklyn` for
   `@resvg/resvg-js*`. No unexpected or single-purpose-looking account.
 
+## Cross-check against GitHub Dependabot alerts
+
+The repository's own Dependabot alerts (`gh api repos/transitrix/transitrix-studio/dependabot/alerts`)
+report 4 open findings at the time of this check: `linkify-it` (high), `markdown-it` (medium),
+`form-data` (high), `tmp` (high) — all attributed to root `package-lock.json`. None of the four
+appears anywhere in the 26-package list above; they are root-workspace/tooling dependencies
+(`packages/*`, e.g. docs/markdown rendering or test tooling), not `extension/`'s runtime
+dependency tree, and therefore do not affect what ships inside the audited VSIX. Checked, not
+assumed — out of this task's scope (extension:prep's tree) but recorded so the two findings
+aren't conflated.
+
 ## Constraints observed
 
 Read-only with respect to distribution: all checks are outbound reads against public registry
