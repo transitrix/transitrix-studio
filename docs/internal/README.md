@@ -14,3 +14,4 @@ Maintainer and developer docs — release runbooks, packaging, layout/metrics sp
 | [`archive/`](archive/README.md) | Superseded historical docs |
 | [`adr/README.md`](adr/README.md) | ADR stub — history in git |
 | [`decisions/README.md`](decisions/README.md) | Decisions stub — history in git |
+| [`vsix-audit-v3.2.0/README.md`](vsix-audit-v3.2.0/README.md) | v3.2.0 VSIX provenance audit (transitrix-hq#130) |
