@@ -12,7 +12,7 @@
         networks, nested blocks, applications, products, process maps, scenarios,
         capability maps, process blueprints, and activity cards. These are the
         same diagrams the
-        <a href="https://marketplace.visualstudio.com/items?itemName=transitrix.transitrix-studio">VS Code extension</a>
+        <a href="https://github.com/transitrix/transitrix-studio">VS Code extension</a>
         produces, rendered through the shared <code>@transitrix/diagrams</code>
         engine in a JCEF webview.</p>
 
