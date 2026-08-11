@@ -1,11 +1,12 @@
-# v3.2.0 third-party scan — partial, blocked on a second independent engine
+# v3.2.0 third-party scan — two independent engines, both clean
 
 Task: transitrix-hq#135 · Epic: transitrix-hq#130. Uses the artefacts from transitrix-hq#132
 and the binary-component list from transitrix-hq#133.
 
-**This task is not complete.** One independent engine's verdicts are recorded below; the
-task's own acceptance criteria require at least two. Leaving transitrix-hq#135 open rather
-than closing on partial coverage.
+Two independent engines' verdicts are recorded below, satisfying this task's acceptance
+criteria. Engine 2 (VirusTotal) was unblocked by Valerii's 2026-08-11 decision to provide a
+free-tier API key (recorded on transitrix-hq#135) — see "Blocked: second independent engine"
+below for the prior state, kept for the record.
 
 ## What ran: Microsoft Defender (local, on-demand)
 
@@ -34,10 +35,34 @@ This covers every binary/non-plaintext component named in transitrix-hq#133 (the
 `.vsix` archives plus the fully unpacked tree containing each of the 13 components
 individually) under a single engine.
 
-## Blocked: second independent engine
+## Engine 2: VirusTotal (hash lookup, then upload where unknown)
+
+Artefacts re-fetched from the same Open VSX URLs recorded in [`README.md`](README.md); local
+SHA-256 of each re-download matched `SHA256SUMS.txt` byte-for-byte before any submission.
+
+Per the decision on transitrix-hq#135, checked each SHA-256 against VirusTotal's file report
+endpoint first, and uploaded the file only for a hash VirusTotal had no record of
+(`GET /api/v3/files/{sha256}` → 404). All four verdicts, verbatim `last_analysis_stats`:
+
+| Target | SHA-256 | Path | Verdict |
+|---|---|---|---|
+| `...@linux-x64.vsix` | `2bfc0…7ebd84d` | uploaded (hash unknown to VT) | `{"malicious":0,"suspicious":0,"undetected":60,"harmless":0,"timeout":4,"confirmed-timeout":0,"failure":3,"type-unsupported":8}` |
+| `...@linux-arm64.vsix` | `6051b…663e27b19` | uploaded (hash unknown to VT) | `{"malicious":0,"suspicious":0,"undetected":64,"harmless":0,"timeout":1,"confirmed-timeout":0,"failure":2,"type-unsupported":8}` |
+| `...@win32-x64.vsix` | `62432…1793ecef0` | uploaded (hash unknown to VT) | `{"malicious":0,"suspicious":0,"undetected":64,"harmless":0,"timeout":2,"confirmed-timeout":0,"failure":2,"type-unsupported":7}` |
+| `...@darwin-arm64.vsix` | `e939f…f9f72b405` | hash already known to VT (pre-existing report, not one we submitted) | `{"malicious":0,"suspicious":0,"undetected":63,"harmless":0,"timeout":2,"confirmed-timeout":0,"failure":2,"type-unsupported":8}` |
+
+All four: **zero malicious, zero suspicious**, across every engine VirusTotal ran (60–64
+detection engines returned a verdict per file; the rest reported timeout or
+type-unsupported for this file format, not a miss). Full permalinks:
+`https://www.virustotal.com/gui/file/<sha256>` for each hash above.
+
+This covers every binary/non-plaintext component named in transitrix-hq#133 the same way
+engine 1 did — the four `.vsix` archives, which contain all 13 named components.
+
+## Prior state — blocked, kept for the record
 
 The task names VirusTotal, Hybrid Analysis, ClamAV or an equivalent as acceptable second
-engines. Checked what's available in this unattended run:
+engines. Checked what was available before the 2026-08-11 decision:
 
 - **VirusTotal / MetaDefender / equivalent hosted multi-scanner APIs** all require an API key
   for file submission or even hash lookup (confirmed: no unauthenticated hash-lookup path).
@@ -61,6 +86,11 @@ the choice rather than picking one.
 
 ## Constraints observed
 
-Read-only with respect to distribution: scanning is local and non-mutating
-(`-DisableRemediation`); nothing was submitted to any external service, so no additional data
-about these artefacts left this host. No packaging or publishing workflow was changed.
+Engine 1 (Defender) is read-only with respect to distribution: scanning is local and
+non-mutating (`-DisableRemediation`), nothing left this host. Engine 2 (VirusTotal) does
+submit data externally by design — three of the four `.vsix` files were uploaded to
+VirusTotal (the fourth's hash was already on file there). All four artefacts are already
+public releases (live on Open VSX), so this discloses nothing beyond what anyone can already
+download; no source, credential, or non-public material was submitted. No packaging or
+publishing workflow was changed, and nothing was published, unpublished, or modified on any
+registry.
