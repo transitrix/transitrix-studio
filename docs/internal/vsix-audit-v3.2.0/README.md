@@ -50,7 +50,9 @@ This step is acquisition only — no path-level inventory, no dependency-tree re
 third-party scan, no reproducibility check. Those are transitrix-hq#133, #134, #135, #136.
 Path-level + binary inventory (transitrix-hq#133) is in [`inventory.md`](inventory.md).
 Dependency-tree reconstruction + advisory check (transitrix-hq#134) is in
-[`dependencies.md`](dependencies.md).
+[`dependencies.md`](dependencies.md). Third-party scan (transitrix-hq#135) is **partial** —
+one engine's clean verdicts recorded, a second is blocked on a credential/dependency decision
+— see [`scans.md`](scans.md).
 
 ## Constraints observed
 
