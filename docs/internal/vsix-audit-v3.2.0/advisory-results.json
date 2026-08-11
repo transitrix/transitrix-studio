@@ -1,0 +1,486 @@
+[
+  {
+    "spec": "@oozcitak/dom@1.15.10",
+    "name": "@oozcitak/dom",
+    "version": "1.15.10",
+    "osv": {},
+    "meta": {
+      "publishTime": "2021-07-29T08:35:19.240Z",
+      "maintainers": [
+        "oozcitak"
+      ],
+      "hasAttestations": false,
+      "hasSignatures": true,
+      "integrity": "sha512-0JT29/LaxVgRcGKvHmSrUTEvZ8BXvZhGl2LASRUgHqDTC1M5g1pLmVv56IYNyt3bG2CUjDkc67wnyZC14pbQrQ==",
+      "deprecated": null
+    }
+  },
+  {
+    "spec": "@oozcitak/infra@1.0.8",
+    "name": "@oozcitak/infra",
+    "version": "1.0.8",
+    "osv": {},
+    "meta": {
+      "publishTime": "2020-06-30T08:06:15.704Z",
+      "maintainers": [
+        "oozcitak"
+      ],
+      "hasAttestations": false,
+      "hasSignatures": true,
+      "integrity": "sha512-JRAUc9VR6IGHOL7OGF+yrvs0LO8SlqGnPAMqyzOuFZPSZSXI7Xf2O9+awQPSMXgIWGtgUf/dA6Hs6X6ySEaWTg==",
+      "deprecated": null
+    }
+  },
+  {
+    "spec": "@oozcitak/url@1.0.4",
+    "name": "@oozcitak/url",
+    "version": "1.0.4",
+    "osv": {},
+    "meta": {
+      "publishTime": "2020-06-30T08:07:48.040Z",
+      "maintainers": [
+        "oozcitak"
+      ],
+      "hasAttestations": false,
+      "hasSignatures": true,
+      "integrity": "sha512-kDcD8y+y3FCSOvnBI6HJgl00viO/nGbQoCINmQ0h98OhnGITrWR3bOGfwYCthgcrV8AnTJz8MzslTQbC3SOAmw==",
+      "deprecated": null
+    }
+  },
+  {
+    "spec": "@oozcitak/util@8.3.8",
+    "name": "@oozcitak/util",
+    "version": "8.3.8",
+    "osv": {},
+    "meta": {
+      "publishTime": "2020-06-30T08:02:45.247Z",
+      "maintainers": [
+        "oozcitak"
+      ],
+      "hasAttestations": false,
+      "hasSignatures": true,
+      "integrity": "sha512-T8TbSnGsxo6TDBJx/Sgv/BlVJL3tshxZP7Aq5R1mSnM5OcHY2dQaxLMu2+E8u3gN0MLOzdjurqN4ZRVuzQycOQ==",
+      "deprecated": null
+    }
+  },
+  {
+    "spec": "@resvg/resvg-js-darwin-arm64@2.6.2",
+    "name": "@resvg/resvg-js-darwin-arm64",
+    "version": "2.6.2",
+    "osv": {},
+    "meta": {
+      "publishTime": "2024-03-26T13:43:08.499Z",
+      "maintainers": [
+        "yisi",
+        "qbb.sh",
+        "broooooklyn"
+      ],
+      "hasAttestations": false,
+      "hasSignatures": true,
+      "integrity": "sha512-nmok2LnAd6nLUKI16aEB9ydMC6Lidiiq2m1nEBDR1LaaP7FGs4AJ90qDraxX+CWlVuRlvNjyYJTNv8qFjtL9+A==",
+      "deprecated": null
+    }
+  },
+  {
+    "spec": "@resvg/resvg-js-linux-arm64-gnu@2.6.2",
+    "name": "@resvg/resvg-js-linux-arm64-gnu",
+    "version": "2.6.2",
+    "osv": {},
+    "meta": {
+      "publishTime": "2024-03-26T13:42:42.239Z",
+      "maintainers": [
+        "yisi",
+        "qbb.sh",
+        "broooooklyn"
+      ],
+      "hasAttestations": false,
+      "hasSignatures": true,
+      "integrity": "sha512-zc2BlJSim7YR4FZDQ8OUoJg5holYzdiYMeobb9pJuGDidGL9KZUv7SbiD4E8oZogtYY42UZEap7dqkkYuA91pg==",
+      "deprecated": null
+    }
+  },
+  {
+    "spec": "@resvg/resvg-js-linux-x64-gnu@2.6.2",
+    "name": "@resvg/resvg-js-linux-x64-gnu",
+    "version": "2.6.2",
+    "osv": {},
+    "meta": {
+      "publishTime": "2024-03-26T13:42:16.734Z",
+      "maintainers": [
+        "yisi",
+        "qbb.sh",
+        "broooooklyn"
+      ],
+      "hasAttestations": false,
+      "hasSignatures": true,
+      "integrity": "sha512-IVUe+ckIerA7xMZ50duAZzwf1U7khQe2E0QpUxu5MBJNao5RqC0zwV/Zm965vw6D3gGFUl7j4m+oJjubBVoftw==",
+      "deprecated": null
+    }
+  },
+  {
+    "spec": "@resvg/resvg-js-win32-x64-msvc@2.6.2",
+    "name": "@resvg/resvg-js-win32-x64-msvc",
+    "version": "2.6.2",
+    "osv": {},
+    "meta": {
+      "publishTime": "2024-03-26T13:41:53.883Z",
+      "maintainers": [
+        "yisi",
+        "qbb.sh",
+        "broooooklyn"
+      ],
+      "hasAttestations": false,
+      "hasSignatures": true,
+      "integrity": "sha512-ZXtYhtUr5SSaBrUDq7DiyjOFJqBVL/dOBN7N/qmi/pO0IgiWW/f/ue3nbvu9joWE5aAKDoIzy/CxsY0suwGosQ==",
+      "deprecated": null
+    }
+  },
+  {
+    "spec": "@resvg/resvg-js@2.6.2",
+    "name": "@resvg/resvg-js",
+    "version": "2.6.2",
+    "osv": {},
+    "meta": {
+      "publishTime": "2024-03-26T13:43:37.598Z",
+      "maintainers": [
+        "yisi",
+        "qbb.sh",
+        "broooooklyn"
+      ],
+      "hasAttestations": false,
+      "hasSignatures": true,
+      "integrity": "sha512-xBaJish5OeGmniDj9cW5PRa/PtmuVU3ziqrbr5xJj901ZDN4TosrVaNZpEiLZAxdfnhAe7uQ7QFWfjPe9d9K2Q==",
+      "deprecated": null
+    }
+  },
+  {
+    "spec": "ajv-formats@3.0.1",
+    "name": "ajv-formats",
+    "version": "3.0.1",
+    "osv": {},
+    "meta": {
+      "publishTime": "2024-03-30T11:30:26.728Z",
+      "maintainers": [
+        "esp",
+        "jason-green",
+        "additiveamateur"
+      ],
+      "hasAttestations": false,
+      "hasSignatures": true,
+      "integrity": "sha512-8iUql50EUR+uUcdRQ3HDqa6EVyo3docL8g5WJ3FNcWmu62IbkGUue/pEyLBW8VGKKucTPgqeks4fIU1DA4yowQ==",
+      "deprecated": null
+    }
+  },
+  {
+    "spec": "ajv@8.20.0",
+    "name": "ajv",
+    "version": "8.20.0",
+    "osv": {},
+    "meta": {
+      "publishTime": "2026-04-24T15:22:16.529Z",
+      "maintainers": [
+        "blakeembrey",
+        "esp"
+      ],
+      "hasAttestations": false,
+      "hasSignatures": true,
+      "integrity": "sha512-Thbli+OlOj+iMPYFBVBfJ3OmCAnaSyNn4M1vz9T6Gka5Jt9ba/HIR56joy65tY6kx/FCF5VXNB819Y7/GUrBGA==",
+      "deprecated": null
+    }
+  },
+  {
+    "spec": "argparse@2.0.1",
+    "name": "argparse",
+    "version": "2.0.1",
+    "osv": {},
+    "meta": {
+      "publishTime": "2020-08-28T21:14:26.713Z",
+      "maintainers": [
+        "vitaly"
+      ],
+      "hasAttestations": false,
+      "hasSignatures": true,
+      "integrity": "sha512-8+9WqebbFzpX9OR+Wa6O29asIogeRMzcGtAINdpMHHyAg10f05aSFVBbcEqGf/PXw1EjAZ+q2/bEBg3DvurK3Q==",
+      "deprecated": null
+    }
+  },
+  {
+    "spec": "bpmn-moddle@10.1.0",
+    "name": "bpmn-moddle",
+    "version": "10.1.0",
+    "osv": {},
+    "meta": {
+      "publishTime": "2026-07-27T15:19:35.183Z",
+      "maintainers": [
+        "bpmn-io-admin",
+        "nikku",
+        "barmac",
+        "philippfromme",
+        "maxtru",
+        "skaiir-camunda",
+        "vsgoulart",
+        "barinali",
+        "ev-camunda",
+        "jarekdanielak",
+        "alekseymanetov"
+      ],
+      "hasAttestations": false,
+      "hasSignatures": true,
+      "integrity": "sha512-k9Vl97hiFwlr4bJTQ5+pZp21bmrQwil5jnMQ30wF8vney2/WnIcJmWwYzRTAKFVoViTGowtDfbO5rGEF4viO0w==",
+      "deprecated": null
+    }
+  },
+  {
+    "spec": "elkjs@0.12.0",
+    "name": "elkjs",
+    "version": "0.12.0",
+    "osv": {},
+    "meta": {
+      "publishTime": "2026-07-17T08:07:54.693Z",
+      "maintainers": [
+        "uruuru",
+        "spoenemann",
+        "eddykasp",
+        "sdo-inf",
+        "rt-kieler"
+      ],
+      "hasAttestations": true,
+      "attestationsUrl": "https://registry.npmjs.org/-/npm/v1/attestations/elkjs@0.12.0",
+      "hasSignatures": true,
+      "integrity": "sha512-YZcKynxVxYoKIOEpywEPwCFdg+BTbxQRNf3pbwdDCvc8O3kQD8bmIwSxKU1eOTVc4Xo+VG9Te+575mlfvOrhEQ==",
+      "deprecated": null
+    }
+  },
+  {
+    "spec": "esprima@4.0.1",
+    "name": "esprima",
+    "version": "4.0.1",
+    "osv": {},
+    "meta": {
+      "publishTime": "2018-07-13T08:39:14.711Z",
+      "maintainers": [
+        "ariya"
+      ],
+      "hasAttestations": false,
+      "hasSignatures": true,
+      "integrity": "sha512-eGuFFw7Upda+g4p+QHvnW0RyTX/SVeJBDM/gCtMARO0cLuT2HcEKnTPvhjV6aGeqrCB/sbNop0Kszm0jsaWU4A==",
+      "deprecated": null
+    }
+  },
+  {
+    "spec": "fast-deep-equal@3.1.3",
+    "name": "fast-deep-equal",
+    "version": "3.1.3",
+    "osv": {},
+    "meta": {
+      "publishTime": "2020-06-08T07:27:28.474Z",
+      "maintainers": [
+        "esp"
+      ],
+      "hasAttestations": false,
+      "hasSignatures": true,
+      "integrity": "sha512-f3qQ9oQy9j2AhBe/H9VC91wLmKBCCU/gDOnKNAYG5hswO7BLKj09Hc5HYNz9cGI++xlpDCIgDaitVs03ATR84Q==",
+      "deprecated": null
+    }
+  },
+  {
+    "spec": "fast-uri@3.1.5",
+    "name": "fast-uri",
+    "version": "3.1.5",
+    "osv": {},
+    "meta": {
+      "publishTime": "2026-07-31T09:16:56.212Z",
+      "maintainers": [
+        "jsumners",
+        "delvedor",
+        "matteo.collina",
+        "eomm",
+        "metcoder95",
+        "climba03003",
+        "gurgunday",
+        "ivan-tymoshenko",
+        "fdawgs",
+        "zekth"
+      ],
+      "hasAttestations": false,
+      "hasSignatures": true,
+      "integrity": "sha512-gHwA1O9LDIcKunMKhObS/HimwtehO1nPUECKAu5TpKgaO19fcWEl4bliWe1jWxVFvIXztJjjQ4L8XQ1EU9f7Jw==",
+      "deprecated": null
+    }
+  },
+  {
+    "spec": "js-yaml@4.3.1",
+    "name": "js-yaml",
+    "version": "4.3.1",
+    "osv": {},
+    "meta": {
+      "publishTime": "2026-07-31T17:39:51.183Z",
+      "maintainers": [
+        "vitaly"
+      ],
+      "hasAttestations": false,
+      "hasSignatures": true,
+      "integrity": "sha512-CY6crGq313MX8GkwvB7tzgp99vjQxY1++5y10/BKN/GUfHqWaOGQMNZkBvqSzsZKWk/ijwHlWzzkLulsGHhjWQ==",
+      "deprecated": null
+    }
+  },
+  {
+    "spec": "json-schema-traverse@1.0.0",
+    "name": "json-schema-traverse",
+    "version": "1.0.0",
+    "osv": {},
+    "meta": {
+      "publishTime": "2020-12-13T10:56:54.719Z",
+      "maintainers": [
+        "esp"
+      ],
+      "hasAttestations": false,
+      "hasSignatures": true,
+      "integrity": "sha512-NM8/P9n3XjXhIZn1lLhkFaACTOURQXjWhV4BA/RnOv8xvgqtqpAX9IO4mRQxSx1Rlo4tqzeqb0sOlruaOy3dug==",
+      "deprecated": null
+    }
+  },
+  {
+    "spec": "min-dash@5.1.0",
+    "name": "min-dash",
+    "version": "5.1.0",
+    "osv": {},
+    "meta": {
+      "publishTime": "2026-07-13T11:08:28.266Z",
+      "maintainers": [
+        "bpmn-io-admin",
+        "nikku",
+        "barmac",
+        "philippfromme",
+        "maxtru",
+        "skaiir-camunda",
+        "vsgoulart",
+        "barinali",
+        "ev-camunda",
+        "jarekdanielak",
+        "alekseymanetov"
+      ],
+      "hasAttestations": false,
+      "hasSignatures": true,
+      "integrity": "sha512-HAvN6XzmCQj+js43G9sJRRw8kj/7DvoxN7qhoIN9Xo5ZN1NMljtpyKs/NunXmw0QSWwlgZzNv6tLeEa4xaZ0tg==",
+      "deprecated": null
+    }
+  },
+  {
+    "spec": "moddle-xml@12.1.0",
+    "name": "moddle-xml",
+    "version": "12.1.0",
+    "osv": {},
+    "meta": {
+      "publishTime": "2026-07-15T09:00:30.257Z",
+      "maintainers": [
+        "bpmn-io-admin",
+        "nikku",
+        "barmac",
+        "philippfromme",
+        "maxtru",
+        "skaiir-camunda",
+        "vsgoulart",
+        "barinali",
+        "ev-camunda",
+        "jarekdanielak",
+        "alekseymanetov"
+      ],
+      "hasAttestations": false,
+      "hasSignatures": true,
+      "integrity": "sha512-+m50j9/MFGhvWbLJoKSSjQj3uv7SYm2w5i2lfv6goWarlWW1Nd0A31NYUXmKuWnEZ8Mm/bH1RZYtuf4x8ptY7g==",
+      "deprecated": null
+    }
+  },
+  {
+    "spec": "moddle@8.2.1",
+    "name": "moddle",
+    "version": "8.2.1",
+    "osv": {},
+    "meta": {
+      "publishTime": "2026-07-27T08:29:59.993Z",
+      "maintainers": [
+        "bpmn-io-admin",
+        "nikku",
+        "barmac",
+        "philippfromme",
+        "maxtru",
+        "skaiir-camunda",
+        "vsgoulart",
+        "barinali",
+        "ev-camunda",
+        "jarekdanielak",
+        "alekseymanetov"
+      ],
+      "hasAttestations": false,
+      "hasSignatures": true,
+      "integrity": "sha512-20qzO/ZpMGO9j9gdQgXk9bfGxb9wA3JKnGth/21YZKODLrZE4RW/uVMIL5pTskYm34Z61DucBEPkq93qByNsBQ==",
+      "deprecated": null
+    }
+  },
+  {
+    "spec": "require-from-string@2.0.2",
+    "name": "require-from-string",
+    "version": "2.0.2",
+    "osv": {},
+    "meta": {
+      "publishTime": "2018-04-09T09:49:47.301Z",
+      "maintainers": [
+        "floatdrop"
+      ],
+      "hasAttestations": false,
+      "hasSignatures": true,
+      "integrity": "sha512-Xf0nWe6RseziFMu+Ap9biiUbmplq6S9/p+7w7YXP/JBHhrUDDUhwa+vANyubuqfZWTveU//DYVGsDG7RKL/vEw==",
+      "deprecated": null
+    }
+  },
+  {
+    "spec": "saxen@11.1.1",
+    "name": "saxen",
+    "version": "11.1.1",
+    "osv": {},
+    "meta": {
+      "publishTime": "2026-07-27T09:13:30.665Z",
+      "maintainers": [
+        "nikku"
+      ],
+      "hasAttestations": false,
+      "hasSignatures": true,
+      "integrity": "sha512-J4BkmJFaM7VgE7pgkFGsNEcqqM3h7+Mz80vfLWFhx7uNOCOXIu6LLjQHYWNejdst3pf/3JUaBIG9+pkk1umlow==",
+      "deprecated": null
+    }
+  },
+  {
+    "spec": "sprintf-js@1.0.3",
+    "name": "sprintf-js",
+    "version": "1.0.3",
+    "osv": {},
+    "meta": {
+      "publishTime": "2015-07-10T13:41:29.308Z",
+      "maintainers": [
+        "alexei"
+      ],
+      "hasAttestations": false,
+      "hasSignatures": true,
+      "integrity": "sha512-D9cPgkvLlV3t3IzL0D0YLvGA9Ahk4PcvVwUbN0dSGr1aP0Nrt4AEnTUbuGvquEC0mA64Gqt1fzirlRs5ibXx8g==",
+      "deprecated": null
+    }
+  },
+  {
+    "spec": "xmlbuilder2@3.1.1",
+    "name": "xmlbuilder2",
+    "version": "3.1.1",
+    "osv": {},
+    "meta": {
+      "publishTime": "2023-05-09T01:21:48.294Z",
+      "maintainers": [
+        "oozcitak",
+        "universalhandle"
+      ],
+      "hasAttestations": false,
+      "hasSignatures": true,
+      "integrity": "sha512-WCSfbfZnQDdLQLiMdGUQpMxxckeQ4oZNMNhLVkcekTu7xhD4tuUDyAPoY8CwXvBYE6LwBHd6QW2WZXlOWr1vCw==",
+      "deprecated": null
+    }
+  }
+]
