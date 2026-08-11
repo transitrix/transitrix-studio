@@ -84,14 +84,20 @@ await fs.copyFile(
   resolve(extensionRoot, 'package.json'),
   resolve(tempInstall, 'package.json'),
 );
+await fs.copyFile(
+  resolve(extensionRoot, 'package-lock.json'),
+  resolve(tempInstall, 'package-lock.json'),
+);
 
 console.log(`Installing runtime dependencies in temp dir: ${tempInstall}`);
 execSync(
+  // npm ci against the committed lockfile — exact versions, not ranges, so
+  // the resolved tree is pinned rather than whatever `^` allows on the day.
   // --legacy-peer-deps escapes the @types/react peer conflict in sibling
   // @transitrix/diagrams (which the temp-isolated install does NOT see,
   // but kept defensively so the script doesn't trip if extension/
   // package.json later lists a peer-conflicting dep on purpose).
-  'npm install --omit=dev --no-package-lock --no-audit --no-fund --legacy-peer-deps',
+  'npm ci --omit=dev --no-audit --no-fund --legacy-peer-deps',
   { cwd: tempInstall, stdio: 'inherit' },
 );
 
