@@ -74,7 +74,7 @@ Transitrix and Mermaid are **complementary, not competing**. Use **Mermaid** for
 
 Every notation in the table above follows the same pattern: `*.<notation>.transitrix.yaml` in, live diagram out. Recognised suffixes are configurable in **Settings → Transitrix Studio**.
 
-> **Editors:** the extension ships to the [Open VSX Registry](https://open-vsx.org/extension/transitrix/transitrix-studio) (Cursor, VSCodium, Windsurf) — pick whichever Extensions panel ships with your editor. For VS Code itself, see the [transitrix-studio repository](https://github.com/transitrix/transitrix-studio) for current install options. **JetBrains IDEs** (IntelliJ IDEA and the rest) have a companion **Transitrix Studio** plugin — install it from **Settings → Plugins → Marketplace** and search for *Transitrix Studio*.
+> **Editors:** the extension ships to the [Open VSX Registry](https://open-vsx.org/extension/transitrix/transitrix-studio) — the primary install route for VS Code as well as Cursor, VSCodium, and Windsurf. Install it from the Extensions panel in your editor, or search for *Transitrix Studio*. **JetBrains IDEs** (IntelliJ IDEA and the rest) have a companion **Transitrix Studio** plugin — install it from **Settings → Plugins → Marketplace** and search for *Transitrix Studio*.
 
 ## Creating a new element
 
