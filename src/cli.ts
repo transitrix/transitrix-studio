@@ -28,6 +28,7 @@ import {
 } from './repo-validate.js';
 import {
   isFileValidatableNotation,
+  isRegisteredNotation,
   loadNotationYaml,
   validateNotationDoc,
   CANONICAL_NOTATION_FILE_EXTENSIONS,
@@ -640,6 +641,26 @@ async function handleValidateCommand(argv: string[]): Promise<void> {
       }
       return;
     }
+    // HDR-002: `notation:` names no notation the methodology registers at
+    // all — not merely one this CLI hasn't wired a validator for yet. Reject
+    // it at this file rather than let it surface later as an unexplained
+    // `notation='<bogus>'` deep in another file's relation resolution.
+    if (!isUnresolvableProjection && !isRegisteredNotation(validatorKey)) {
+      const report: ValidationReport = {
+        isValid: false,
+        findings: [
+          {
+            ruleId: 'HDR-002',
+            severity: 'error',
+            message: `notation "${validatorKey}" is not a registered short name (CONTRACT.md §2) — check for a typo against the notations registry.`,
+          },
+        ],
+        summary: { errorCount: 1, warningCount: 0, infoCount: 0 },
+      };
+      emitFileReport(src, report, useJson, validatorKey);
+      process.exit(1);
+    }
+
     // Recognised notation, but no file-scope CLI validator yet — or a
     // projection-form document this single-file scope has no canon context
     // to resolve.
