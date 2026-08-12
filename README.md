@@ -14,20 +14,12 @@ Studio previews the full Transitrix notation kit — **13 diagram notations** pl
 
 ## Install
 
-**From the VS Code Marketplace (VS Code):**
-
-Search for **Transitrix Studio** in the Extensions panel, or install via CLI:
-
-```bash
-code --install-extension transitrix.transitrix-studio
-```
-
-**From the Open VSX Registry (Cursor, VSCodium, Windsurf):**
+**From the Open VSX Registry (VS Code, Cursor, VSCodium, Windsurf):**
 
 Search for **Transitrix Studio** in the Extensions panel of your editor. The
-same artefact is published to [Open VSX](https://open-vsx.org/extension/transitrix/transitrix-studio),
-which Cursor and other VS Code derivatives read by default. No
-per-editor build — the VSIX is identical to the Marketplace listing.
+[Open VSX Registry](https://open-vsx.org/extension/transitrix/transitrix-studio) is the
+primary install route for VS Code as well as its derivatives — no per-editor build, the
+VSIX is identical everywhere.
 
 **From GitHub Releases:**
 
