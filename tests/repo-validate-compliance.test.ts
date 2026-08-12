@@ -393,6 +393,85 @@ describe('repo-scope compliance catalogue (#518 C3)', () => {
   });
 });
 
+// transitrix-hq#124 — repo scope must run the same own-id grammar check
+// (REQ-001 / ASSERT-001) the file-scope `validate <file>` command already
+// runs, so a malformed id (e.g. carried in verbatim by automated ingestion
+// from a malformed codex id) can't spread through `--scope=repo` — the check
+// most adopters run routinely — undetected. Mirrors CODEX-001's own-id
+// grammar check, already covered by repo-validate-codex.test.ts.
+describe('repo-scope id-grammar checks (transitrix-hq#124)', () => {
+  let root: string;
+
+  beforeAll(() => {
+    root = mkdtempSync(join(tmpdir(), 'tx-id-grammar-'));
+    write(
+      root,
+      'canon/elements/01_motivation/requirements/REQUIREMENT-BAD-GRAMMAR.yaml',
+      [
+        'notation: requirement',
+        'id: REQUIREMENT bad grammar',
+        'name: Bad grammar',
+        'description: id does not match the canonical grammar',
+        'zone: canon',
+        'admitted_at: "2026-06-01"',
+        'admitted_by: test',
+        'gate_checks:',
+        '  uniqueness: pass',
+        'valid_from: "2026-01-01"',
+        'valid_to: null',
+        '',
+      ].join('\n'),
+    );
+    write(
+      root,
+      'canon/assertions/ASSERTION-BAD-GRAMMAR.yaml',
+      [
+        'notation: assertion',
+        'id: ASSERTION bad grammar',
+        'name: Bad grammar',
+        'subject_type: PROCESS',
+        'subject: PROCESS-X-1',
+        'status: compliant',
+        'zone: canon',
+        'admitted_at: "2026-06-01"',
+        'admitted_by: test',
+        'gate_checks:',
+        '  uniqueness: pass',
+        'valid_from: "2026-01-01"',
+        'valid_to: null',
+        '',
+      ].join('\n'),
+    );
+  });
+
+  afterAll(() => {
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it('runComplianceValidate flags REQ-001 for a malformed requirement id', () => {
+    const ctx = buildRepoValidateContext(root);
+    const findings = runComplianceValidate(root, ctx);
+    expect(
+      findings.some((f) => f.ruleId === 'REQ-001' && f.file.endsWith('REQUIREMENT-BAD-GRAMMAR.yaml')),
+    ).toBe(true);
+  });
+
+  it('runComplianceValidate flags ASSERT-001 for a malformed assertion id', () => {
+    const ctx = buildRepoValidateContext(root);
+    const findings = runComplianceValidate(root, ctx);
+    expect(
+      findings.some((f) => f.ruleId === 'ASSERT-001' && f.file.endsWith('ASSERTION-BAD-GRAMMAR.yaml')),
+    ).toBe(true);
+  });
+
+  it('runRepoValidate surfaces both id-grammar defects through --scope=repo and fails the gate', () => {
+    const result = runRepoValidate(root);
+    expect(result.compliance.some((f) => f.ruleId === 'REQ-001')).toBe(true);
+    expect(result.compliance.some((f) => f.ruleId === 'ASSERT-001')).toBe(true);
+    expect(repoScopeHasErrors(result)).toBe(true);
+  });
+});
+
 describe('repo-scope compliance-impact build-time (#518 C3)', () => {
   let root: string;
 
