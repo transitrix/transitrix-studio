@@ -50,6 +50,23 @@ function isScannableYaml(rel: string): boolean {
 }
 
 /**
+ * True for a parsed doc that is admitted canon-zone material (CONTRACT.md §5/§6):
+ * `zone: canon` with no `admission_state` or `admission_state: active`, or
+ * `zone: codex` (codex's own admission gate is `source_authority`, not
+ * `admission_state`). Everything else — `zone: field`, a `proposed`/`rejected`
+ * draft, or a file with no admission record at all — is not admitted canon and
+ * must not count toward a compliance report, which would otherwise bucket
+ * unadmitted drafts and vendored/example fixtures as if they were canon.
+ */
+function isAdmittedCanonOrCodex(doc: unknown): boolean {
+  if (doc === null || typeof doc !== 'object' || Array.isArray(doc)) return false;
+  const d = doc as Record<string, unknown>;
+  if (d.zone === 'codex') return true;
+  if (d.zone !== 'canon') return false;
+  return d.admission_state === undefined || d.admission_state === 'active';
+}
+
+/**
  * Read + parse a YAML file, skipping (with a stderr note) anything larger than
  * `maxBytes`. Returns `undefined` on a skip or any read/parse failure, so
  * callers can simply ignore it.
@@ -119,6 +136,7 @@ function scanCanonFs(root: string): ComplianceCanon {
     if (typeof rel !== 'string' || !isScannableYaml(rel)) continue;
     const parsed = readYamlBounded(path.join(root, rel));
     if (parsed === undefined) continue;
+    if (!isAdmittedCanonOrCodex(parsed)) continue;
     ingestComplianceDoc(canon, parsed);
   }
   return canon;
