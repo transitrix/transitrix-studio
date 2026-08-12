@@ -1,9 +1,11 @@
 /**
  * VS Code glue for PNG export — save-to-file and copy-to-clipboard.
  *
- * The pure rasterization lives in `raster.ts` (no `vscode` import). This
- * module owns the editor-facing parts: the save dialog, file write, and the
- * OS-specific clipboard path.
+ * Rasterization happens in the preview's own webview canvas
+ * (`webview-png-rasterizer.ts`, hold 3 / transitrix-hq#141) — no `vscode`
+ * import there, no native binary in the VSIX. This module owns the
+ * editor-facing parts: the save dialog, file write, and the OS-specific
+ * clipboard path.
  *
  * Clipboard scope: `vscode.env.clipboard` is
  * text-only, so an image copy needs an OS-specific path. Windows ships here;
@@ -17,7 +19,7 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import * as vscode from 'vscode';
 import { prepareSvgForExport, type ThemeId } from './diagram-frame.js';
-import { rasterizeSvgToPng } from './raster.js';
+import { requestPngFromWebview } from './webview-png-rasterizer.js';
 
 const execFileP = promisify(execFile);
 
@@ -27,8 +29,10 @@ export interface PngCopyTarget {
   themeId: ThemeId;
   /** Per-notation class CSS to embed — same value passed to prepareSvgForExport. */
   notationCss?: string;
-  /** Message shown when no diagram has been rendered yet. */
+  /** Message shown when no diagram has been rendered yet (also shown when the preview panel isn't open). */
   emptyMessage: string;
+  /** The open preview panel's webview — its canvas performs the rasterization. */
+  webview: vscode.Webview | undefined;
 }
 
 export interface PngSaveTarget extends PngCopyTarget {
@@ -40,8 +44,8 @@ export interface PngSaveTarget extends PngCopyTarget {
   viewSuffix?: string;
 }
 
-function rasterizeOrReport(svg: string): Promise<Buffer | undefined> {
-  return rasterizeSvgToPng(svg).catch((e: unknown) => {
+function rasterizeOrReport(webview: vscode.Webview, svg: string): Promise<Buffer | undefined> {
+  return requestPngFromWebview(webview, svg).catch((e: unknown) => {
     vscode.window.showErrorMessage(`PNG export failed: ${(e as Error).message ?? String(e)}`);
     return undefined;
   });
@@ -49,7 +53,7 @@ function rasterizeOrReport(svg: string): Promise<Buffer | undefined> {
 
 /** Save the current diagram as a `.png` via a save dialog. */
 export async function savePngFromSvg(t: PngSaveTarget): Promise<void> {
-  if (!t.rawSvg) {
+  if (!t.rawSvg || !t.webview) {
     vscode.window.showWarningMessage(t.emptyMessage);
     return;
   }
@@ -64,7 +68,7 @@ export async function savePngFromSvg(t: PngSaveTarget): Promise<void> {
   if (!target) return;
 
   const svg = prepareSvgForExport(t.rawSvg, t.themeId, t.notationCss ?? '');
-  const png = await rasterizeOrReport(svg);
+  const png = await rasterizeOrReport(t.webview, svg);
   if (!png) return;
   await vscode.workspace.fs.writeFile(target, png);
   vscode.window.showInformationMessage(`Saved: ${path.basename(target.fsPath)}`);
@@ -72,12 +76,12 @@ export async function savePngFromSvg(t: PngSaveTarget): Promise<void> {
 
 /** Copy the current diagram to the clipboard as a PNG image. */
 export async function copyPngFromSvg(t: PngCopyTarget): Promise<void> {
-  if (!t.rawSvg) {
+  if (!t.rawSvg || !t.webview) {
     vscode.window.showWarningMessage(t.emptyMessage);
     return;
   }
   const svg = prepareSvgForExport(t.rawSvg, t.themeId, t.notationCss ?? '');
-  const png = await rasterizeOrReport(svg);
+  const png = await rasterizeOrReport(t.webview, svg);
   if (!png) return;
   await copyPngToClipboard(png);
 }

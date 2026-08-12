@@ -2,7 +2,8 @@ import * as path from 'node:path';
 import { promises as fsp } from 'node:fs';
 import * as vscode from 'vscode';
 import { getBaseResetCss } from '@transitrix/diagrams/theme';
-import { rasterizeSvgToPng } from './raster.js';
+import { requestPngFromWebview, buildPngRasterizerScript } from './webview-png-rasterizer.js';
+import { genNonce } from './preview-controls.js';
 
 import type { LayoutMetrics, ValidationReport } from './types.js';
 
@@ -96,7 +97,8 @@ export class BpmnJsPreview {
   }
 
   async saveAsPng(): Promise<void> {
-    if (!this.panel) {
+    const panel = this.panel;
+    if (!panel) {
       vscode.window.showWarningMessage('Open a BPMN preview first.');
       return;
     }
@@ -106,7 +108,7 @@ export class BpmnJsPreview {
     const preparedSvg = await this.prepareBpmnSvg(svg);
     let png: Buffer;
     try {
-      png = await rasterizeSvgToPng(preparedSvg);
+      png = await requestPngFromWebview(panel.webview, preparedSvg);
     } catch (e) {
       vscode.window.showErrorMessage(`PNG export failed: ${(e as Error).message ?? String(e)}`);
       return;
@@ -175,13 +177,17 @@ export class BpmnJsPreview {
     const script = webview.asWebviewUri(vscode.Uri.joinPath(media, 'viewer.js'));
     const cssDiagram = webview.asWebviewUri(vscode.Uri.joinPath(media, 'diagram-js.css'));
     const cssBpmn = webview.asWebviewUri(vscode.Uri.joinPath(media, 'bpmn-js.css'));
+    // PNG export (hold 3, transitrix-hq#141) rasterizes on this webview's own
+    // canvas — the nonce below covers webview-png-rasterizer.ts's injected
+    // script alongside the external, already-permitted viewer.js.
+    const nonce = genNonce();
 
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta http-equiv="Content-Security-Policy"
-    content="default-src 'none'; style-src ${cspSource} 'unsafe-inline'; script-src ${cspSource}; font-src ${cspSource}; img-src ${cspSource} blob: data:; connect-src ${cspSource};">
+    content="default-src 'none'; style-src ${cspSource} 'unsafe-inline'; script-src ${cspSource} 'nonce-${nonce}'; font-src ${cspSource}; img-src ${cspSource} blob: data:; connect-src ${cspSource};">
   <link rel="stylesheet" href="${cssDiagram}" />
   <link rel="stylesheet" href="${cssBpmn}" />
   <style>
@@ -259,6 +265,7 @@ export class BpmnJsPreview {
     </div>
     <div id="canvas"></div>
   </div>
+  ${buildPngRasterizerScript(nonce)}
   <script src="${script}"></script>
 </body>
 </html>`;

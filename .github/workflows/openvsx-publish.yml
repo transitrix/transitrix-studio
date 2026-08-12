@@ -60,10 +60,8 @@ jobs:
         run: npm ci
 
       - name: Build extension bundle
-        # extension:prep installs the extension runtime deps (including the
-        # platform-specific @resvg/resvg-js-* binary) into a clean temp dir,
-        # then moves node_modules into extension/. Each runner therefore picks
-        # up the correct native binary for its OS/arch.
+        # extension:prep bundles the extension and the compiler — no runtime
+        # dependency install step (extension/package.json declares none).
         run: npm run extension:prep
 
       - name: Verify extension packaging

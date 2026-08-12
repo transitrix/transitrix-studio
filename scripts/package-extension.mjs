@@ -9,12 +9,11 @@
  *   node scripts/package-extension.mjs --target win32-x64  Targeted VSIX
  *   node scripts/package-extension.mjs --bump --target darwin-arm64
  *
- * WARNING — universal build (no --target):
- *   `vsce package` without --target produces a VSIX claiming universal
- *   compatibility but carrying only the build machine's resvg binary.
- *   PNG export will fail on any other OS/arch. Use ONLY for local install
- *   testing — NEVER publish to the Marketplace without --target.
- *   See docs/internal/packaging.md.
+ * NOTE — universal build (no --target):
+ *   `vsce package` without --target produces a genuinely universal VSIX (no
+ *   native dependency). Still avoided for Marketplace publishing only
+ *   because the per-target CI matrix hasn't been retired yet — hold 4,
+ *   transitrix-hq#142. See docs/internal/packaging.md.
  */
 import { spawn } from 'node:child_process';
 import fs from 'node:fs/promises';
@@ -41,9 +40,9 @@ Options:
   --target <value>  Build a platform-specific VSIX (required for Marketplace).
                     Supported: ${SUPPORTED_TARGETS.join(', ')}.
 
-WARNING: building without --target produces a universal VSIX carrying only the
-build machine's @resvg/resvg-js binary. Install locally only — do not publish
-to the Marketplace. See docs/internal/packaging.md.`;
+NOTE: building without --target produces a genuinely universal VSIX now (no
+native dependency) — not yet published to the Marketplace only because the
+per-target CI matrix hasn't been retired (hold 4). See docs/internal/packaging.md.`;
 
 const argv = process.argv.slice(2);
 if (argv.includes('-h') || argv.includes('--help')) {

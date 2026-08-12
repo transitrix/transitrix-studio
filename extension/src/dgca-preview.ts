@@ -455,6 +455,7 @@ export class DGCAPreview {
       rawSvg: this.lastSvg || undefined,
       themeId: vscode.workspace.getConfiguration('transitrix').get<ThemeId>('theme', 'transitrix'),
       emptyMessage: 'No diagram rendered yet. Open a *.dgca.transitrix.yaml file first.',
+      webview: this.panel?.webview,
     };
   }
 
@@ -664,6 +665,7 @@ export class DGAPreview {
       rawSvg: this.lastSvg || undefined,
       themeId: vscode.workspace.getConfiguration('transitrix').get<ThemeId>('theme', 'transitrix'),
       emptyMessage: 'No diagram rendered yet. Open a *.dga.transitrix.yaml file first.',
+      webview: this.panel?.webview,
     };
   }
 

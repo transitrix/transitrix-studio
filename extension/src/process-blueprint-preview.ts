@@ -631,7 +631,7 @@ export class ProcessBlueprintPreview {
       errorMsg = (e as Error).message ?? 'Parse error';
     }
 
-    // Store pure SVG only — HTML blocks must be stripped before passing to resvg for PNG.
+    // Store pure SVG only — HTML blocks must be stripped before rasterizing for PNG.
     this.lastSvg = svgContent.replace(CHIP_DETAIL_PANEL_HTML, '').replace(CHIP_LEGEND_HTML, '');
 
     const themeId = vscode.workspace
@@ -663,6 +663,7 @@ export class ProcessBlueprintPreview {
       themeId: vscode.workspace.getConfiguration('transitrix').get<ThemeId>('theme', 'transitrix'),
       notationCss: BLUEPRINT_CSS + CHIP_DETAIL_CSS,
       emptyMessage: 'No diagram rendered yet. Open a *.process-blueprint.transitrix.yaml file first.',
+      webview: this.panel?.webview,
     };
   }
 

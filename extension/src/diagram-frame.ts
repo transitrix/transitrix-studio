@@ -1,7 +1,8 @@
 import type { ThemeId } from '@transitrix/diagrams/theme';
 import { generateWebviewCss, generateSvgEmbedCss } from '@transitrix/diagrams/theme';
-import { CONTROLS_PANEL_CSS, SNAPSHOT_TOOLBAR_CSS } from './preview-controls.js';
+import { CONTROLS_PANEL_CSS, SNAPSHOT_TOOLBAR_CSS, genNonce } from './preview-controls.js';
 import { escXml, extractDiagramMeta } from '@transitrix/diagrams/webview/render-util.js';
+import { buildPngRasterizerScript } from './webview-png-rasterizer.js';
 
 export type { ThemeId };
 
@@ -72,7 +73,9 @@ export interface DiagramFrameOpts {
   /**
    * Command ID for the "Save .png" toolbar button. Rendered next to
    * "Save .svg" when provided and a vector diagram is on screen. PNG is
-   * rasterized in the Node host (resvg) — see `raster.ts`.
+   * rasterized in the webview's own canvas — see `webview-png-rasterizer.ts`.
+   * Injects a nonce'd script and enables scripts on this webview's CSP even
+   * when `interactive` is not otherwise set.
    */
   savePngCommand?: string;
   /**
@@ -589,20 +592,32 @@ export function buildDiagramFrame(opts: DiagramFrameOpts): string {
     : '';
 
   // Interactive previews (PR2) opt into a strict
-  // nonce-based CSP and the in-preview control panel. Static previews keep the
-  // script-less CSP unchanged — the only diff in their output is none.
+  // nonce-based CSP and the in-preview control panel. The PNG-export script
+  // (hold 3, transitrix-hq#141) needs the same nonce'd script-src even on
+  // previews with no other interactivity (e.g. Activity Card, Nested Blocks) —
+  // `needsScript` covers both cases. Static previews with neither keep the
+  // script-less CSP unchanged.
+  const needsPngScript = showSavePng || showCopyPng;
+  const needsScript = Boolean(interactive) || needsPngScript;
+  const nonce = interactive?.nonce ?? (needsScript ? genNonce() : '');
   const wasmScriptSrc = interactive?.allowWasmRendering ? " 'wasm-unsafe-eval'" : '';
-  const wasmImgSrc = interactive?.allowWasmRendering ? ' img-src data: blob:;' : '';
-  const csp = interactive
-    ? `default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${interactive.nonce}'${wasmScriptSrc};${wasmImgSrc}`
+  // `allowWasmRendering`'s `data: blob:` already covers the PNG script's
+  // `data:` need (the <img src="data:image/svg+xml,...">` step) — only one
+  // img-src directive is meaningful per CSP, so don't emit both.
+  const imgSrc = interactive?.allowWasmRendering
+    ? ' img-src data: blob:;'
+    : needsPngScript ? ' img-src data:;' : '';
+  const csp = needsScript
+    ? `default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}'${wasmScriptSrc};${imgSrc}`
     : `default-src 'none'; style-src 'unsafe-inline';`;
   const controlsCss = interactive ? CONTROLS_PANEL_CSS : '';
   const snapshotCss = snapshotUi ? SNAPSHOT_TOOLBAR_CSS : '';
   const controlsPanel = interactive ? interactive.controlsPanel : '';
   const controlsScript = interactive ? interactive.controlsScript : '';
+  const pngScript = needsPngScript ? buildPngRasterizerScript(nonce) : '';
   const extraScriptTags = interactive?.extraScripts
     ? interactive.extraScripts
-        .map(s => `<script nonce="${interactive.nonce}"${s.module ? ' type="module"' : ''} src="${escXml(s.src)}"></script>`)
+        .map(s => `<script nonce="${nonce}"${s.module ? ' type="module"' : ''} src="${escXml(s.src)}"></script>`)
         .join('\n  ')
     : '';
 
@@ -659,6 +674,7 @@ ${extraStyles}
     ${canvasContent}
   </div>
   ${controlsScript}
+  ${pngScript}
   ${extraScriptTags}
 </body>
 </html>`;

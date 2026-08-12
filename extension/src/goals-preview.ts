@@ -218,11 +218,12 @@ export class GoalsPreview {
     });
   }
 
-  private pngTarget(): { rawSvg: string | undefined; themeId: ThemeId; emptyMessage: string } {
+  private pngTarget(): { rawSvg: string | undefined; themeId: ThemeId; emptyMessage: string; webview: vscode.Webview | undefined } {
     return {
       rawSvg: this.lastSvg || undefined,
       themeId: vscode.workspace.getConfiguration('transitrix').get<ThemeId>('theme', 'transitrix'),
       emptyMessage: 'No diagram rendered yet. Open a *.goals.transitrix.yaml or *.dgca.transitrix.yaml (with notation: goals) file first.',
+      webview: this.panel?.webview,
     };
   }
 

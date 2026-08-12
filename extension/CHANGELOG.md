@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Changed
+
+- **PNG export rasterizes in the preview webview's own canvas** instead of a bundled native rasterizer — `@resvg/resvg-js` is no longer an extension dependency, and the packaged extension ships no `node_modules` at all. No user-visible change to Save .png / Copy PNG.
+
 ### Added
 
 - **`.ttrs` document templates are now a recognized language** — file-icon, `.ttrs` extension association, and syntax highlighting for the whole directive language: references (including the `CAPABILITY-V1.2.3` dotted-id form and field paths), figures (`view`, `figure`, `figref`), `each` blocks with their `where` / `order by` clauses and row references, `trace`, and `instruct` blocks whose body stays opaque. A `.trs` file (the one-keystroke-off near-miss) is not misidentified as `.ttrs`.

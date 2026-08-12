@@ -1,14 +1,16 @@
 # Packaging the VS Code extension
 
-Most of the extension is pure TypeScript/JS and packages into a single,
-platform-neutral `.vsix`. **PNG export is the exception:** it depends on
-`@resvg/resvg-js`, a native module whose rasterizer binary is shipped as a
-per-OS optional dependency (`@resvg/resvg-js-win32-x64-msvc`,
-`@resvg/resvg-js-darwin-arm64`, …). `npm install` lays down only the binary
-matching the machine doing the install.
+The extension is pure TypeScript/JS and packages into a single,
+platform-neutral `.vsix` — no native module. **PNG export used to be the
+exception:** it depended on `@resvg/resvg-js`, a native module whose
+rasterizer binary shipped as a per-OS optional dependency. That dependency is
+gone (hold 3, transitrix-hq#141): PNG export now rasterizes in the preview
+webview's own canvas, so the packaged extension has no OS/arch-specific
+content and declares no runtime `dependencies` at all.
 
-That makes the extension **platform-specific** for distribution purposes
-(per-platform VSIX was chosen over one ~10 MB fat bundle).
+The per-target packaging below is CI's current mechanism, not a correctness
+requirement anymore — dropping it is hold 4 of the same epic
+(transitrix-hq#142).
 
 ## Build a VSIX for the current platform
 
@@ -16,12 +18,8 @@ That makes the extension **platform-specific** for distribution purposes
 npm run package-extension
 ```
 
-`extension:prep` installs the runtime deps into `extension/node_modules`
-(including the resvg binary for *this* OS/arch) and bundles the extension;
-`build-compiler-bundle.mjs` fails loudly if no `@resvg/resvg-js-<platform>`
-binary landed. The resulting `.vsix` is correct **only for the OS/arch it was
-built on** — installing it elsewhere makes PNG export fail at runtime
-(SVG export and previews are unaffected).
+`extension:prep` bundles the extension and the compiler; there is no runtime
+dependency install step. The resulting `.vsix` installs on any OS/arch.
 
 ## Packaging hygiene
 
@@ -33,10 +31,9 @@ defence).
 
 ## Build per-platform VSIXs for the Marketplace
 
-Tag each VSIX with `vsce package --target <target>` so the Marketplace serves
-the right artifact per client. Because the resvg binary is fetched per OS,
-**each target must be built on a matching OS/arch** (a CI matrix is the
-clean way):
+Until hold 4 (transitrix-hq#142) lands a single universal VSIX, CI still tags
+each VSIX with `vsce package --target <target>` and builds each on a matching
+OS/arch runner (a CI matrix):
 
 ```bash
 # on a Windows x64 runner
@@ -56,10 +53,9 @@ Targets to cover the common desktop set: `win32-x64`, `win32-arm64`,
 `darwin-x64`, `darwin-arm64`, `linux-x64`, `linux-arm64`. `vsce publish`
 accepts the same `--target` flag.
 
-> A `vsce package` with **no** `--target` still works, but the produced VSIX
-> claims universal compatibility while carrying only the build machine's
-> binary — avoid it for Marketplace publishing now that a native dependency
-> is in play.
+> A `vsce package` with **no** `--target` produces a genuinely universal VSIX
+> now (no native dependency) — still avoided for Marketplace publishing only
+> because the per-target CI matrix hasn't been retired yet (hold 4).
 
 ## Publishing to the VS Code Marketplace
 

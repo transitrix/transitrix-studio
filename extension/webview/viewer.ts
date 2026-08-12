@@ -5,8 +5,15 @@ interface VsCodeApi {
 }
 
 declare function acquireVsCodeApi(): VsCodeApi;
+declare global {
+  interface Window { __txVscodeApi?: VsCodeApi; }
+}
 
-const vscode = acquireVsCodeApi();
+// `acquireVsCodeApi()` may only be called once per webview — the PNG-export
+// rasterizer script (webview-png-rasterizer.ts, injected alongside this file
+// by preview.ts's buildHtml) shares the same webview and reuses this global
+// rather than acquiring its own instance.
+const vscode = window.__txVscodeApi ?? (window.__txVscodeApi = acquireVsCodeApi());
 
 const container = document.getElementById('canvas');
 if (!container) {
