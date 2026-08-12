@@ -1,0 +1,4 @@
+2bfc05bee9b6252a3e0c8c9c8ceecc6d00ac6a680e66a11f8a6b768a47ebd84d  transitrix.transitrix-studio-3.2.0@linux-x64.vsix
+6051b7d687701e5306efd706c55ed1e2e132160c791b9e666640a6ee63e27b19  transitrix.transitrix-studio-3.2.0@linux-arm64.vsix
+62432521837f257d54ac5734955bd5609997448ee3a4a444113d1d01793ecef0  transitrix.transitrix-studio-3.2.0@win32-x64.vsix
+e939fce2768a0e28aa918d3432727d975da0fb9e7862c180d9f5bf5e9f72b405  transitrix.transitrix-studio-3.2.0@darwin-arm64.vsix
