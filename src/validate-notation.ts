@@ -83,6 +83,34 @@ export function isFileValidatableNotation(notation: string): boolean {
   return Object.prototype.hasOwnProperty.call(VALIDATORS, notation);
 }
 
+/** Notation short names the methodology registers (element TYPE short names —
+ *  `ELEMENT_PRIMITIVES.md` §4 — and native view notations — `architecture/
+ *  notations.md` §2, hub canon) that have no file-scope CLI validator wired
+ *  under `src/validators/` yet. Combined with `FILE_VALIDATABLE_NOTATIONS`
+ *  below, this is the full registered short-name list HDR-002 checks a
+ *  `notation:` value against — update it when methodology registers a new
+ *  short name with no CLI validator of its own. */
+const REGISTERED_NOT_YET_VALIDATABLE_NOTATIONS: readonly string[] = [
+  // Element TYPE short names with no standalone-file CLI validator yet.
+  'assessment', 'capability', 'process', 'product', 'role', 'rule',
+  'registry', 'application', 'release', 'business-object', 'equipment',
+  'term', 'step', 'goal', 'scenario',
+  // Native view notations with no file-scope CLI validator of their own —
+  // 'bpmn' is dispatched through the separate BPMN/IR path (cli.ts special-
+  // cases it ahead of this registry) rather than through VALIDATORS.
+  'bpmn', 'actions-tree',
+];
+
+/** True when `notation` is a value the methodology spec registers as a
+ *  notation short name — whether or not the CLI has a file-scope validator
+ *  for it yet. HDR-002 rejects any other value as unregistered. */
+export function isRegisteredNotation(notation: string): boolean {
+  return (
+    isFileValidatableNotation(notation)
+    || REGISTERED_NOT_YET_VALIDATABLE_NOTATIONS.includes(notation)
+  );
+}
+
 /** Read the `notation:` field from parsed YAML data, if present. */
 export function notationOf(data: unknown): string | undefined {
   if (data && typeof data === 'object' && !Array.isArray(data)) {

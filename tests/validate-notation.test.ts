@@ -6,6 +6,7 @@ import { describe, it, expect } from 'vitest';
 
 import {
   isFileValidatableNotation,
+  isRegisteredNotation,
   validateNotationDoc,
   loadNotationYaml,
   notationOf,
@@ -138,6 +139,23 @@ describe('validate-notation — dispatch (#258, #518 C1)', () => {
   it('does not claim BPMN or unknown notations', () => {
     for (const n of ['bpmn', 'nonsense']) {
       expect(isFileValidatableNotation(n)).toBe(false);
+    }
+  });
+
+  it('isRegisteredNotation accepts every CLI-validated notation', () => {
+    for (const n of ALL_NOTATIONS) expect(isRegisteredNotation(n)).toBe(true);
+  });
+
+  it('isRegisteredNotation accepts element short names with no CLI validator yet', () => {
+    for (const n of ['capability', 'process', 'application', 'role', 'rule', 'goal']) {
+      expect(isFileValidatableNotation(n)).toBe(false);
+      expect(isRegisteredNotation(n)).toBe(true);
+    }
+  });
+
+  it('isRegisteredNotation rejects a value no methodology short-name list carries (transitrix-hq#123)', () => {
+    for (const n of ['element', 'nonsense', 'bpmn2', '']) {
+      expect(isRegisteredNotation(n)).toBe(false);
     }
   });
 
