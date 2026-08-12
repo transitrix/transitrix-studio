@@ -1,13 +1,19 @@
 /**
  * Bundles the BPMN compiler entries (compiler.ts, metrics.ts) into ESM files
- * in extension/compiler/. Marks runtime npm dependencies as external — they
- * are installed into extension/node_modules/ as a separate step so they can
- * resolve at runtime in the installed VSIX (some have dynamic require
- * patterns that esbuild cannot fully inline).
+ * in extension/compiler/. Runtime npm dependencies (ajv, ajv-formats,
+ * bpmn-moddle, elkjs, js-yaml, xmlbuilder2 — COMPILER_RUNTIME_EXTERNALS) are
+ * bundled inline: each was verified to have no dynamic `require()` that
+ * survives esbuild bundling (a full compile + ELK layout + XML emission +
+ * ajv validation run, both success and failure paths, was exercised against
+ * the bundled output — see epic transitrix-hq#138 hold 2 / task
+ * transitrix-hq#140). Only `@resvg/resvg-js` stays external: it is a native
+ * module whose platform `.node` binary cannot be bundled by esbuild.
  *
- * Also syncs schemas/ → extension/schemas/ and installs the runtime
- * dependencies declared in extension/package.json into a clean
- * extension/node_modules/ (independent of the workspace hoisting).
+ * Also syncs schemas/ → extension/schemas/ and installs the one remaining
+ * runtime dependency declared in extension/package.json (`@resvg/resvg-js`)
+ * into a clean extension/node_modules/ (independent of workspace hoisting).
+ * This is a temporary, resvg-only carve-out — hold 3 (transitrix-hq#141)
+ * removes `@resvg/resvg-js` entirely and this install step goes with it.
  */
 import esbuild from 'esbuild';
 import fs from 'node:fs/promises';
@@ -15,7 +21,7 @@ import os from 'node:os';
 import { execSync } from 'node:child_process';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { NODE_BUILTIN_EXTERNALS, REQUIRE_BANNER, COMPILER_RUNTIME_EXTERNALS } from './esbuild-helpers.mjs';
+import { NODE_BUILTIN_EXTERNALS, REQUIRE_BANNER } from './esbuild-helpers.mjs';
 
 const root = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const compilerOut = resolve(root, 'extension', 'compiler');
@@ -26,12 +32,6 @@ const extensionRoot = resolve(root, 'extension');
 await fs.rm(compilerOut, { recursive: true, force: true });
 await fs.mkdir(compilerOut, { recursive: true });
 
-// Runtime npm deps declared in extension/package.json — kept external so the
-// installed extension can resolve them via node_modules at runtime. Some
-// (notably ajv) have dynamic require patterns that esbuild cannot inline
-// reliably; shipping the real packages avoids fighting the bundler.
-const RUNTIME_DEPS_EXTERNAL = COMPILER_RUNTIME_EXTERNALS;
-
 await esbuild.build({
   entryPoints: [
     resolve(root, 'src', 'compiler.ts'),
@@ -39,7 +39,7 @@ await esbuild.build({
   ],
   bundle: true,
   outdir: compilerOut,
-  external: ['vscode', ...NODE_BUILTIN_EXTERNALS, ...RUNTIME_DEPS_EXTERNAL],
+  external: ['vscode', ...NODE_BUILTIN_EXTERNALS],
   platform: 'node',
   format: 'esm',
   target: 'node18',
@@ -61,19 +61,21 @@ for (const name of await fs.readdir(resolve(root, 'schemas'))) {
 // prep run; clear it so the VSIX does not ship dead files.
 await fs.rm(resolve(root, 'extension', 'backends'), { recursive: true, force: true });
 
-// Install runtime deps into extension/node_modules/ — clean install, ignoring
-// the workspace at root so the result is a standalone tree (no symlinks to
-// hoisted packages, which would otherwise cause vsce's case-insensitive
-// duplicate-paths error).
+// Install the one remaining runtime dep (@resvg/resvg-js) into
+// extension/node_modules/ — clean install, ignoring the workspace at root so
+// the result is a standalone tree (no symlinks to hoisted packages, which
+// would otherwise cause vsce's case-insensitive duplicate-paths error). This
+// is a temporary, resvg-only carve-out: hold 3 (transitrix-hq#141) removes
+// @resvg/resvg-js entirely and this install step goes with it.
 const extNodeModules = resolve(extensionRoot, 'node_modules');
 await fs.rm(extNodeModules, { recursive: true, force: true });
 
-// Install runtime deps into a temp dir (fully isolated from the root npm
-// workspaces config), then move the resulting node_modules into
-// extension/. Running `npm install` directly in extension/ has been
-// unreliable — npm 11's --no-workspaces still hits workspace filter logic
-// and silently produces an empty install. The temp-dir approach is
-// workspace-blind, so it works regardless of root configuration.
+// Install into a temp dir (fully isolated from the root npm workspaces
+// config), then move the resulting node_modules into extension/. Running
+// `npm install` directly in extension/ has been unreliable — npm 11's
+// --no-workspaces still hits workspace filter logic and silently produces
+// an empty install. The temp-dir approach is workspace-blind, so it works
+// regardless of root configuration.
 //
 // Use RUNNER_TEMP when available (GitHub-hosted Windows runners put it on the
 // same drive as the workspace, avoiding EXDEV on the rename below). Falls back
@@ -89,7 +91,7 @@ await fs.copyFile(
   resolve(tempInstall, 'package-lock.json'),
 );
 
-console.log(`Installing runtime dependencies in temp dir: ${tempInstall}`);
+console.log(`Installing @resvg/resvg-js in temp dir: ${tempInstall}`);
 execSync(
   // npm ci against the committed lockfile — exact versions, not ranges, so
   // the resolved tree is pinned rather than whatever `^` allows on the day.
@@ -104,19 +106,6 @@ execSync(
 // Move the temp node_modules into the extension folder
 await fs.rename(resolve(tempInstall, 'node_modules'), extNodeModules);
 await fs.rm(tempInstall, { recursive: true, force: true });
-
-// Verify a few canonical deps actually landed — fail loudly if they didn't.
-for (const dep of RUNTIME_DEPS_EXTERNAL) {
-  const pkgJson = resolve(extNodeModules, dep, 'package.json');
-  try {
-    await fs.access(pkgJson);
-  } catch {
-    throw new Error(
-      `extension/node_modules/${dep}/package.json not found after install. ` +
-      `Check extension/package.json declares "${dep}" in dependencies.`,
-    );
-  }
-}
 
 // @resvg/resvg-js (PNG export) is a NATIVE module: its
 // platform `.node` binary ships as a per-OS optional dependency, so `npm

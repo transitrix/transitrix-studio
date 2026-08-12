@@ -944,12 +944,6 @@
     "vscode:prepublish": "cd .. && npm run extension:prep"
   },
   "dependencies": {
-    "@resvg/resvg-js": "^2.6.2",
-    "ajv": "^8.17.1",
-    "ajv-formats": "^3.0.1",
-    "bpmn-moddle": "^10.0.0",
-    "elkjs": "^0.12.0",
-    "js-yaml": "^4.1.0",
-    "xmlbuilder2": "^3.1.1"
+    "@resvg/resvg-js": "^2.6.2"
   }
 }
