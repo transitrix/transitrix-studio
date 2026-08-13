@@ -5,27 +5,19 @@ How to publish Transitrix Studio's VS Code extension to the
 so VS Code users can install it from within their editor.
 
 Publishing a GitHub Release triggers `.github/workflows/vscode-marketplace-publish.yml`,
-which runs `vsce publish` across the platform matrix in parallel. The Open VSX
-publish (for Cursor, VSCodium, Windsurf) is a separate workflow;
+which builds and publishes a single universal VSIX with `vsce publish`. The
+Open VSX publish (for Cursor, VSCodium, Windsurf) is a separate workflow;
 see [`openvsx-publish-runbook.md`](openvsx-publish-runbook.md).
 
 ## What gets published
 
-Per-platform VSIXs built on matching OS/arch runners so each carries the
-correct `@resvg/resvg-js-*` native binary. A universal (no `--target`) VSIX
-claims all-platform compatibility while carrying only one binary — do not
-publish one to the Marketplace.
-
-| Target | Runner |
-|--------|--------|
-| `win32-x64` | `windows-latest` |
-| `darwin-arm64` | `macos-latest` |
-| `linux-x64` | `ubuntu-latest` |
-| `linux-arm64` | `ubuntu-24.04-arm` |
-
-`win32-arm64` is not in the matrix (no GA GitHub-hosted Windows ARM runner).
-`darwin-x64` (Intel macOS) is not in the matrix (macos-13 Intel runner is
-chronically unschedulable on this account; Apple Silicon covers current Macs).
+One universal VSIX (`vsce package`, no `--target`) built on a single Linux
+runner. The extension declares no runtime `dependencies` and has no
+OS/arch-specific content (`@resvg/resvg-js`, its one-time native dependency,
+was removed — hold 3, transitrix-hq#141), so the same artefact installs on
+every VS Code platform, including ones no runner ever built for (Intel
+macOS, Windows ARM). Per-target packaging was retired in hold 4
+(transitrix-hq#142); see [`packaging.md`](packaging.md).
 
 ## Prerequisites (one-time, maintainer action)
 
@@ -53,8 +45,8 @@ first automated publish:
    - Value: the token copied above.
 
 The workflow's **Verify VSCE_PAT is set** step checks for the secret at
-runtime and fails all matrix jobs loudly if it is absent or empty, so a
-missing or expired token is never a silent skip.
+runtime and fails loudly if it is absent or empty, so a missing or expired
+token is never a silent skip.
 
 ## PAT rotation
 
@@ -70,39 +62,38 @@ Rotation procedure:
 ## CI path (automated)
 
 `.github/workflows/vscode-marketplace-publish.yml` runs automatically on
-every GitHub Release (`release: types: [published]`) and publishes four
-platform VSIXs in parallel. The workflow also exposes a `workflow_dispatch`
-trigger for manual re-runs without creating a new release.
+every GitHub Release (`release: types: [published]`) and publishes the
+universal VSIX from a single job. The workflow also exposes a
+`workflow_dispatch` trigger for manual re-runs without creating a new release.
 
-Each runner:
+The job:
 1. Checks out the release tag.
 2. Verifies `VSCE_PAT` is set (exits with a clear error if not).
-3. Runs `npm run extension:prep` to lay down the platform-correct
-   `@resvg/resvg-js-*` binary into `extension/node_modules`.
-4. Packages the VSIX with `vsce package --target <target>`.
+3. Runs `npm run extension:prep` to build the extension and compiler bundles
+   (no runtime dependency install — `extension/package.json` declares none).
+4. Packages the VSIX with `vsce package`.
 5. Publishes with `vsce publish --pat "$VSCE_PAT" --packagePath <vsix>`.
 
 ## Manual fallback
 
-To publish a single target by hand — for example to fill a CI gap or
-re-publish a failed job — build the VSIX on a matching machine and publish:
+To publish by hand — for example to re-publish a failed run — build and
+publish from any machine:
 
 ```bash
-# from the repo root on the matching OS/arch
 npm run extension:prep
-cd extension && npx vsce package --target win32-x64 --out ../output/
-cd .. && npx vsce publish --pat "$VSCE_PAT" --packagePath output/transitrix-studio-<version>-win32-x64.vsix
+cd extension && npx vsce package --out ../output/
+cd .. && npx vsce publish --pat "$VSCE_PAT" --packagePath output/transitrix-studio-<version>.vsix
 ```
 
-Replace `win32-x64` and the filename with the target and version being published.
+Replace the filename with the version being published.
 
-You can also trigger the full matrix manually via the **workflow_dispatch**
+You can also trigger the workflow manually via the **workflow_dispatch**
 button in the repository's Actions tab.
 
 ## Post-publish verification
 
-After each publish (CI or manual), verify via the gallery API that every
-matrix target is listed for the new version — not only `win32-x64`:
+After each publish (CI or manual), verify via the gallery API that the new
+version is listed:
 
 ```bash
 curl -s \
@@ -113,9 +104,8 @@ curl -s \
   | jq '[.results[0].extensions[0].versions[] | {version:.version, targetPlatform:.targetPlatform}]'
 ```
 
-The output should list the new version once per target platform (`win32-x64`,
-`darwin-arm64`, `linux-x64`, `linux-arm64`). If only `win32-x64` appears,
-the other runners did not publish — check the workflow run logs.
+`targetPlatform` should be empty/`universal` for the new version — a
+non-empty value would mean a `--target` build slipped back in.
 
 End-to-end install check in VS Code:
 1. Open VS Code → *Extensions* panel.

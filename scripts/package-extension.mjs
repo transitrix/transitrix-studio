@@ -1,19 +1,15 @@
 /**
  * Cross-platform replacement for build-extension.bat / build-extension.sh.
  * Runs extension:prep, optionally bumps the version, verifies packaging, and
- * invokes `vsce package` to produce a .vsix in output/.
+ * invokes `vsce package` to produce a universal .vsix in output/.
  *
  * Usage:
- *   node scripts/package-extension.mjs              Universal VSIX (local install only)
+ *   node scripts/package-extension.mjs              Build the VSIX
  *   node scripts/package-extension.mjs --bump       Patch bump, then build
- *   node scripts/package-extension.mjs --target win32-x64  Targeted VSIX
- *   node scripts/package-extension.mjs --bump --target darwin-arm64
  *
- * NOTE — universal build (no --target):
- *   `vsce package` without --target produces a genuinely universal VSIX (no
- *   native dependency). Still avoided for Marketplace publishing only
- *   because the per-target CI matrix hasn't been retired yet — hold 4,
- *   transitrix-hq#142. See docs/internal/packaging.md.
+ * The extension declares no runtime dependencies and no native/platform
+ * component, so `vsce package` (no `--target`) produces a single VSIX that
+ * installs on any OS/arch — see docs/internal/packaging.md.
  */
 import { spawn } from 'node:child_process';
 import fs from 'node:fs/promises';
@@ -24,25 +20,13 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const extensionDir = path.join(root, 'extension');
 const outputDir = path.join(root, 'output');
 
-const SUPPORTED_TARGETS = [
-  'win32-x64', 'win32-arm64',
-  'darwin-x64', 'darwin-arm64',
-  'linux-x64', 'linux-arm64',
-];
-
-const USAGE = `package-extension — build the VS Code extension .vsix.
+const USAGE = `package-extension — build the VS Code extension's universal .vsix.
 
 Usage:
-  node scripts/package-extension.mjs [--bump] [--target <target>]
+  node scripts/package-extension.mjs [--bump]
 
 Options:
-  --bump            Patch-bump the extension version before packaging.
-  --target <value>  Build a platform-specific VSIX (required for Marketplace).
-                    Supported: ${SUPPORTED_TARGETS.join(', ')}.
-
-NOTE: building without --target produces a genuinely universal VSIX now (no
-native dependency) — not yet published to the Marketplace only because the
-per-target CI matrix hasn't been retired (hold 4). See docs/internal/packaging.md.`;
+  --bump    Patch-bump the extension version before packaging.`;
 
 const argv = process.argv.slice(2);
 if (argv.includes('-h') || argv.includes('--help')) {
@@ -51,26 +35,13 @@ if (argv.includes('-h') || argv.includes('--help')) {
 }
 
 let bump = false;
-let target = '';
 
 for (let i = 0; i < argv.length; i++) {
   if (argv[i] === '--bump') {
     bump = true;
-  } else if (argv[i] === '--target') {
-    if (!argv[i + 1] || argv[i + 1].startsWith('-')) {
-      console.error('package-extension: --target requires a value (e.g. win32-x64).');
-      process.exit(2);
-    }
-    target = argv[++i];
-  } else if (argv[i].startsWith('--target=')) {
-    target = argv[i].slice('--target='.length);
-    if (!target) {
-      console.error('package-extension: --target requires a value (e.g. win32-x64).');
-      process.exit(2);
-    }
   } else {
     console.error(`package-extension: unknown argument "${argv[i]}".`);
-    console.error('Usage: node scripts/package-extension.mjs [--bump] [--target <target>]');
+    console.error('Usage: node scripts/package-extension.mjs [--bump]');
     process.exit(2);
   }
 }
@@ -117,16 +88,9 @@ await run(
   { cwd: root },
 );
 
-if (target) {
-  console.log(`\n=== [3/3] vsce package --target ${target} -> output/`);
-} else {
-  console.log('\n=== [3/3] vsce package -> output/');
-  console.log('package-extension: WARNING - no --target given; VSIX is local-install only.');
-  console.log('package-extension: see docs/internal/packaging.md before publishing to the Marketplace.');
-}
+console.log('\n=== [3/3] vsce package -> output/');
 
 const vsceArgs = ['--no-install', 'vsce', 'package'];
-if (target) vsceArgs.push('--target', target);
 // Relative output path from extensionDir avoids shell-quoting concerns on
 // paths that contain spaces (e.g. a Windows home dir with a space in the name).
 vsceArgs.push('-o', '../output');
