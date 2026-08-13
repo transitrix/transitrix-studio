@@ -74,6 +74,7 @@ roadmap.md
 **/.claude/**
 !.claude/commands/
 !.claude/commands/*.md
+!.claude/settings.json
 
 # Internal / scratch files (not for public repo)
 stakeholders.md
