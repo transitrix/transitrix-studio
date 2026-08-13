@@ -1,6 +1,6 @@
-name: VS Code Marketplace — multi-platform publish
+name: VS Code Marketplace — publish
 
-# Triggered on every GitHub Release to publish platform-specific VSIXs to the
+# Triggered on every GitHub Release to publish the universal VSIX to the
 # VS Code Marketplace via `vsce publish`.
 #
 # A workflow_dispatch trigger is available for manual re-runs or to re-publish
@@ -10,16 +10,8 @@ name: VS Code Marketplace — multi-platform publish
 #   - VSCE_PAT repo Actions secret set to an Azure DevOps personal access token
 #     for the `transitrix` publisher on the Visual Studio Marketplace.
 #   - Azure DevOps PATs expire (max 1 year). Rotate before expiry — see the
-#     runbook § PAT rotation. An expired token causes all matrix jobs to fail
-#     at the explicit PAT-check step rather than silently skipping.
-#
-# darwin-x64 (Intel macOS) is intentionally NOT in the matrix: the macos-13
-# (Intel) hosted runner is chronically unschedulable on this account, and
-# Apple Silicon (darwin-arm64) covers current Macs. Intel Mac is a shrinking
-# segment; re-add if it ever needs coverage.
-#
-# win32-arm64 is not in the matrix: no GA GitHub-hosted Windows ARM runner
-# exists at time of writing. Add it when one becomes available.
+#     runbook § PAT rotation. An expired token causes the PAT-check step to
+#     fail loudly rather than silently skipping.
 
 on:
   release:
@@ -31,20 +23,8 @@ permissions:
 
 jobs:
   publish:
-    name: Publish to Marketplace (${{ matrix.target }})
-    runs-on: ${{ matrix.runner }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - runner: ubuntu-latest
-            target: linux-x64
-          - runner: ubuntu-24.04-arm
-            target: linux-arm64
-          - runner: macos-latest
-            target: darwin-arm64
-          - runner: windows-latest
-            target: win32-x64
+    name: Publish to Marketplace
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
@@ -79,9 +59,9 @@ jobs:
       - name: Verify extension packaging
         run: npm run verify-extension-packaging
 
-      - name: Package VSIX (${{ matrix.target }})
+      - name: Package VSIX
         working-directory: extension
-        run: npx vsce package --target ${{ matrix.target }} --out ../output/
+        run: npx vsce package --out ../output/
 
       - name: Publish to VS Code Marketplace
         shell: bash

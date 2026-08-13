@@ -6,35 +6,24 @@ the Open VSX consumer set — VSCodium, Windsurf, Gitpod, etc.) can install
 it directly from within their editor.
 
 Open VSX is the Eclipse Foundation registry that Cursor reads — there is
-no separate "Cursor marketplace". Publishing the existing per-platform
-`.vsix` artefacts to Open VSX covers all these editors in one action.
+no separate "Cursor marketplace". Publishing the same universal `.vsix`
+to Open VSX covers all these editors in one action.
 
 The npm publish flow for `@transitrix/diagrams` / `@transitrix/cli` is a
 separate procedure — see [`release-runbook.md`](release-runbook.md).
-The VS Code Marketplace publish flow is the same `vsce publish` per
-target documented in [`packaging.md`](packaging.md); the steps below
-mirror it for the `ovsx` CLI.
+The VS Code Marketplace publish flow builds the same universal VSIX
+documented in [`packaging.md`](packaging.md); the steps below mirror it
+for the `ovsx` CLI.
 
 ## What gets published
 
-The **same per-platform VSIXs** the VS Code Marketplace ships. There is
-no separate "Cursor build" — the artefact is the one produced by
-`npm run package-extension` on each matching runner. The native
-`@resvg/resvg-js-*` binary makes the VSIX platform-specific, so a CI
-matrix or several local runs are required to cover the desktop set:
-
-| Target | Built on |
-|---|---|
-| `win32-x64` | Windows x64 |
-| `win32-arm64` | Windows arm64 |
-| `darwin-x64` | macOS x64 |
-| `darwin-arm64` | macOS arm64 |
-| `linux-x64` | Linux x64 |
-| `linux-arm64` | Linux arm64 |
-
-A VSIX built with **no** `--target` claims universal compatibility while
-carrying only the build machine's resvg binary — do not publish one of
-those to Open VSX for the same reason it is avoided on the Marketplace.
+The **same universal VSIX** the VS Code Marketplace ships — there is no
+separate "Cursor build". The extension declares no runtime `dependencies`
+and has no OS/arch-specific content (`@resvg/resvg-js`, its one-time
+native dependency, was removed — hold 3, transitrix-hq#141), so a single
+`vsce package` (no `--target`) run, from any machine, produces the
+artefact for every platform. Per-target packaging was retired in hold 4
+(transitrix-hq#142).
 
 ## Prerequisites (one-time, maintainer action)
 
@@ -66,8 +55,8 @@ Marketplace pre-flight has passed:
 - [ ] The VS Code Marketplace publish for this version is **done** and
       visible at <https://marketplace.visualstudio.com/items?itemName=transitrix.transitrix-studio>.
       Open VSX is the second hop, not the source of truth.
-- [ ] The per-platform VSIX files from the Marketplace step are still
-      on disk (or rebuild them per [`packaging.md`](packaging.md)).
+- [ ] The universal VSIX file from the Marketplace step is still on
+      disk (or rebuild it per [`packaging.md`](packaging.md)).
 - [ ] The `version` field in `extension/package.json` matches the
       Marketplace listing exactly.
 - [ ] `extension/README.md` and the icon (`extension/icon.png`) match
@@ -82,34 +71,20 @@ Marketplace pre-flight has passed:
 
 ## Publishing
 
-Publish each per-platform VSIX from its matching runner (the resvg
-binary is per-OS — a `linux-x64` VSIX cannot be produced on Windows).
 `ovsx publish` accepts a `.vsix` path directly; the namespace and
-version are read from the file:
+version are read from the file. One publish covers every platform:
 
 ```bash
-# on a Windows x64 runner, after `npm run package-extension`
-ovsx publish extension/transitrix-studio-<version>-win32-x64.vsix
-
-# on a macOS arm64 runner
-ovsx publish extension/transitrix-studio-<version>-darwin-arm64.vsix
-
-# on a Linux x64 runner
-ovsx publish extension/transitrix-studio-<version>-linux-x64.vsix
+npm run package-extension
+ovsx publish output/transitrix-studio-<version>.vsix
 ```
 
-Repeat for every target in the table above. `ovsx` returns a JSON blob
-containing the published download URL on success.
-
-> If only a single platform's VSIX is published, Open VSX will refuse to
-> install the extension on any other platform — there is no universal
-> fallback. Either publish the full set or accept a single-platform
-> listing knowingly.
+`ovsx` returns a JSON blob containing the published download URL on
+success.
 
 ## Verify
 
-For every published target, confirm the listing returns the expected
-version:
+Confirm the listing returns the expected version:
 
 ```bash
 ovsx get transitrix.transitrix-studio
@@ -136,32 +111,17 @@ Marketplace release.
 ### CI path (recommended)
 
 The `.github/workflows/openvsx-publish.yml` workflow runs automatically
-on every GitHub Release (`release: types: [published]`) and publishes
-five platform VSIXs in parallel:
-
-| Runner | Target |
-|--------|--------|
-| `ubuntu-latest` | `linux-x64` |
-| `ubuntu-24.04-arm` | `linux-arm64` |
-| `macos-13` | `darwin-x64` |
-| `macos-latest` | `darwin-arm64` |
-| `windows-latest` | `win32-x64` |
-
-The workflow reads `OVSX_PAT` from the repo Actions secret. Each runner
-installs the platform-specific `@resvg/resvg-js-*` native binary during
-`npm run extension:prep`, so every VSIX carries the correct binary for
-its target.
-
-`win32-arm64` is not yet in the matrix — no GA GitHub-hosted Windows
-ARM runner is available at time of writing. Add it to the matrix when
-one becomes available.
+on every GitHub Release (`release: types: [published]`) from a single
+`ubuntu-latest` job: builds the universal VSIX (`npm run extension:prep`
++ `vsce package`, no `--target`) and publishes it with `ovsx publish`.
+The workflow reads `OVSX_PAT` from the repo Actions secret.
 
 ### Manual fallback
 
-To publish a single target by hand (e.g. to fill a CI gap or re-publish
-a failed job), follow the steps in the **Publishing** section above with
-a matching local build environment. You can also trigger the full matrix
-manually via the **workflow_dispatch** button in the Actions tab.
+To publish by hand (e.g. to re-publish a failed run), follow the steps
+in the **Publishing** section above from any machine. You can also
+trigger the workflow manually via the **workflow_dispatch** button in
+the Actions tab.
 
 After every publish (CI or manual):
 
