@@ -1,0 +1,11 @@
+@startuml
+' Minimal fixture for the PlantUML preview surface (extension/src/plantuml-preview.ts).
+' Authored fresh for transitrix-hq#143 hold-6 verification — no PlantUML fixture
+' existed in the notation corpus before this. Kept intentionally small: this
+' exercises the webview-side @plantuml/core render path, not PlantUML's syntax
+' coverage.
+Alice -> Bob: Authentication Request
+Bob --> Alice: Authentication Response
+Alice -> Bob: Another authentication Request
+Alice <-- Bob: another authentication Response
+@enduml

@@ -36,6 +36,11 @@ extension/backends/
 output/*
 !output/.gitkeep
 *.vsix
+# @vscode/test-electron downloads a full VS Code binary here on first run of
+# the extension-e2e harness (extension/test-e2e/); its compiled CommonJS
+# output and PNG captures land in .test-out/. Neither is source.
+.vscode-test/
+.test-out/
 # Python bytecode
 __pycache__/
 *.pyc
