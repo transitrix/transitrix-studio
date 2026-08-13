@@ -994,6 +994,7 @@ export class ActionPreview {
       stripExt: /\.activities\.transitrix\.yaml$/,
       viewSuffix: `-${view}`,
       emptyMessage: 'No diagram rendered yet. Open a *.activities.transitrix.yaml or *.dgca.transitrix.yaml (with notation: activities) file first.',
+      webview: this.panel?.webview,
     });
   }
 
@@ -1007,6 +1008,7 @@ export class ActionPreview {
       themeId,
       notationCss: ACTIVITIES_DIAGRAM_CSS,
       emptyMessage: 'No diagram rendered yet. Open a *.activities.transitrix.yaml or *.dgca.transitrix.yaml (with notation: activities) file first.',
+      webview: this.panel?.webview,
     });
   }
 

@@ -396,8 +396,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand('transitrixStudio.saveActivitiesAsSvg', () =>
       actionPreview.saveAsSvg(),
     ),
-    // PNG export — save-to-file + copy-to-clipboard per vector notation
-    // Rasterized in the Node host via resvg.
+    // PNG export — save-to-file + copy-to-clipboard per vector notation.
+    // Rasterized in the preview webview's own canvas (hold 3, transitrix-hq#141).
     vscode.commands.registerCommand('transitrixStudio.saveBlocksAsPng', () => blocksPreview.saveAsPng()),
     vscode.commands.registerCommand('transitrixStudio.copyBlocksAsPng', () => blocksPreview.copyAsPng()),
     vscode.commands.registerCommand('transitrixStudio.saveGoalsAsPng', () => goalsPreview.saveAsPng()),

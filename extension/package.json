@@ -942,8 +942,5 @@
   },
   "scripts": {
     "vscode:prepublish": "cd .. && npm run extension:prep"
-  },
-  "dependencies": {
-    "@resvg/resvg-js": "^2.6.2"
   }
 }

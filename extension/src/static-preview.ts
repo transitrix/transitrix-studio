@@ -16,6 +16,14 @@ export abstract class StaticPreview {
   protected abstract readonly viewType: string;
   protected abstract readonly enableCommandUris: string[];
 
+  /**
+   * Scripts stay off by default (script-less CSP, minimal surface). Overridden
+   * by {@link StaticSvgPreview}: PNG export (hold 3, transitrix-hq#141)
+   * rasterizes on the webview's own canvas, which needs `enableScripts: true`
+   * at panel creation — `buildDiagramFrame` supplies the matching nonce'd CSP.
+   */
+  protected get scriptsEnabled(): boolean { return false; }
+
   isShowingDocument(uri: vscode.Uri): boolean {
     return this.panel != null && this.trackedUri === uri.toString();
   }
@@ -31,7 +39,7 @@ export abstract class StaticPreview {
         `${this.panelTitle} — ${path.basename(doc.fileName)}`,
         { viewColumn: vscode.ViewColumn.Beside, preserveFocus: false },
         {
-          enableScripts: false,
+          enableScripts: this.scriptsEnabled,
           retainContextWhenHidden: true,
           enableCommandUris: this.enableCommandUris,
         },
@@ -74,11 +82,15 @@ export abstract class StaticSvgPreview extends StaticPreview {
   protected abstract readonly stripExt: RegExp;
   protected abstract readonly emptyMessage: string;
 
-  protected pngTarget(): { rawSvg: string | undefined; themeId: ThemeId; emptyMessage: string } {
+  // PNG export needs a scripted webview to rasterize on (hold 3).
+  protected override get scriptsEnabled(): boolean { return true; }
+
+  protected pngTarget(): { rawSvg: string | undefined; themeId: ThemeId; emptyMessage: string; webview: vscode.Webview | undefined } {
     return {
       rawSvg: this.lastSvg || undefined,
       themeId: vscode.workspace.getConfiguration('transitrix').get<ThemeId>('theme', 'transitrix'),
       emptyMessage: this.emptyMessage,
+      webview: this.panel?.webview,
     };
   }
 

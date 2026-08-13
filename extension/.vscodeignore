@@ -6,23 +6,8 @@ tsconfig.json
 0. archive/**
 .archive/**
 
-# node_modules ships only the @resvg/resvg-js carve-out (its native platform
-# binary cannot be bundled by esbuild) — a temporary state until hold 3
-# (transitrix-hq#141) removes @resvg/resvg-js entirely. Every other runtime
-# dependency is bundled inline into extension/compiler/ by
-# build-compiler-bundle.mjs. Exclude noise that ships inside dep packages but
-# is not needed at runtime (only matches files DEEP inside node_modules, not
-# the extension's own README.md / CHANGELOG.md / etc. at the package root):
-node_modules/**/*.ts
-node_modules/**/*.md
-node_modules/**/CHANGELOG*
-node_modules/**/HISTORY*
-node_modules/**/AUTHORS*
-node_modules/**/CONTRIBUTORS*
-node_modules/**/test/**
-node_modules/**/tests/**
-node_modules/**/__tests__/**
-node_modules/**/example/**
-node_modules/**/examples/**
-node_modules/**/docs/**
-node_modules/**/.github/**
+# extension/package.json declares no runtime dependencies (the
+# @resvg/resvg-js carve-out was removed — hold 3, transitrix-hq#141: PNG
+# export rasterizes in the webview's own canvas). Every runtime dependency
+# is bundled inline into extension/compiler/ by build-compiler-bundle.mjs, so
+# the VSIX ships no extension/node_modules/ at all.

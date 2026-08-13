@@ -20,9 +20,6 @@ await esbuild.build({
   outfile: resolve(root, 'extension/out/extension.js'),
   external: [
     'vscode',
-    // Native module — its platform .node binary cannot be bundled; resolved
-    // at runtime from the node_modules shipped inside the VSIX.
-    '@resvg/resvg-js',
     ...NODE_BUILTIN_EXTERNALS,
   ],
   platform: 'node',

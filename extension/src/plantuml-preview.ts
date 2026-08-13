@@ -139,11 +139,12 @@ export class PlantUMLPreview {
     }
   }
 
-  private pngTarget(): { rawSvg: string | undefined; themeId: ThemeId; emptyMessage: string } {
+  private pngTarget(): { rawSvg: string | undefined; themeId: ThemeId; emptyMessage: string; webview: vscode.Webview | undefined } {
     return {
       rawSvg: this.lastSvg || undefined,
       themeId: vscode.workspace.getConfiguration('transitrix').get<ThemeId>('theme', 'transitrix'),
       emptyMessage: 'No diagram rendered yet. Open a .puml/.plantuml file with valid PlantUML source first.',
+      webview: this.panel?.webview,
     };
   }
 

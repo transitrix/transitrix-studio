@@ -340,7 +340,7 @@ export function buildControlsScript(nonce: string): string {
   // Plain ES5-ish DOM script; runs inside the webview, not the Node host.
   return `<script nonce="${nonce}">
 (function () {
-  var vscode = acquireVsCodeApi();
+  var vscode = window.__txVscodeApi || (window.__txVscodeApi = acquireVsCodeApi());
   function num(v) { var n = Number(v); return isFinite(n) ? n : 0; }
   function post(control, field, value) {
     vscode.postMessage({ type: 'transitrix:control', control: control, field: field, value: value });
