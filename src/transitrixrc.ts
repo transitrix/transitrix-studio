@@ -1,14 +1,14 @@
 import { readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
-import { createRequire } from 'node:module'
+import { Ajv } from 'ajv'
+import addFormatsImport from 'ajv-formats'
 
 import type { ValidationRule } from './validator-types.js'
 import type { TransitrixrcConfig, ConfigError } from './validator-types.js'
 
-const require = createRequire(import.meta.url)
-type AjvClass = typeof import('ajv').default
-const Ajv = require('ajv') as AjvClass
-const addFormats = require('ajv-formats') as (instance: InstanceType<AjvClass>) => void
+// ajv-formats has no NodeNext-friendly named export; its default-import type resolves to the
+// module namespace rather than the callable plugin under `moduleResolution: NodeNext`.
+const addFormats = addFormatsImport as unknown as (instance: Ajv) => void
 
 // Load schema at module initialization
 const TRANSITRIXRC_SCHEMA = {
