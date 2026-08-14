@@ -24,8 +24,12 @@ the build job's recorded hash, unpack it, and run the e2e suite against the
 unpacked `extension/` (not `extensionDevelopmentPath` pointed at source) — see
 "Packaged-VSIX wiring" below. A new `scripts/compare-png-engines.mjs` (added this
 session, CI-wired as the `png-comparison` job) supplies the old-engine side of the
-PNG comparison. Both are new as of this update and their CI results are not yet
-recorded here — see "What's still open".
+PNG comparison. Both are new as of this update.
+
+**2026-08-14 update — CI ran: 27/28 passing, one known failure, fix pending
+merge.** See "What's still open" item 1 for detail: the failure is
+`transitrix-studio#540` (unmerged, based on `main`), not a new bug. PNG
+comparison stayed unrun as a result — item 2.
 
 ## The harness
 
@@ -110,12 +114,24 @@ above.
 
 ## What's still open
 
-1. **Runs against the packaged VSIX — wired this session, not yet confirmed
-   green from CI.** See "Packaged-VSIX wiring" above. Once
-   `.github/workflows/extension-e2e.yml` runs on this change, record the
-   per-notation result here against the exercised artifact's SHA-256.
-2. **PNG comparison (old engine vs. new engine) — tooling added this session, not
-   yet run.** `scripts/compare-png-engines.mjs` rebuilds `extension/src/raster.ts`
+1. **Runs against the packaged VSIX — CI ran, 27/28 passing, 1 known failure
+   with a fix already open in a separate PR.** Artifact
+   `transitrix-studio-3.2.0.vsix`, `sha256:99a9ab97f908c1ae7521f224736105921062c60f227cadf055784efea1150e87`
+   (run [31832521049](https://github.com/transitrix/transitrix-studio/actions/runs/31832521049)).
+   26 `preview-surfaces.test.ts` cases plus the direct-command surfaces passed;
+   `bpmn (custom process renderer, default)` failed —
+   `Transitrix Studio: loadCompiler failed: Error: Cannot find module 'ajv'`. Not a
+   new regression: `compiler.js` was reached via a runtime `createRequire('ajv')`
+   call that esbuild couldn't statically bundle, invisible while the packaged VSIX
+   still shipped `node_modules` and only surfacing once transitrix-hq#141 (PR
+   transitrix-studio#526) stopped bundling it. Fixed in PR
+   transitrix-studio#540 (static `import` of `ajv`/`ajv-formats` so esbuild
+   inlines them) — that PR is based on `main`, not this branch, per this repo's
+   no-stacked-PRs rule, so this branch's e2e run stays red until #540 merges and
+   this branch picks it up via a merge from `main`. `png-comparison` was skipped
+   as a result (see item 2).
+2. **PNG comparison (old engine vs. new engine) — tooling added, not yet run.**
+   `scripts/compare-png-engines.mjs` rebuilds `extension/src/raster.ts`
    as it stood at tag v3.1.3 (`flattenCssVars` + `@resvg/resvg-js`, reproduced
    verbatim in the script) and rasterizes the exact SVG `png-export.test.ts`
    captures, then pixel-diffs against the new engine's own captured PNG. This is
@@ -124,8 +140,9 @@ above.
    Marketplace listing is gone and no GitHub release ever attached a `.vsix`
    file. Wired as a CI job (`png-comparison`, depends on `e2e`) that
    downloads the e2e job's PNG captures and runs the comparison; results land in
-   the `png-engine-comparison` build artifact. Not yet run from this branch —
-   record the outcome here once CI produces it.
+   the `png-engine-comparison` build artifact. Skipped this run because the `e2e`
+   job it depends on failed (item 1) — record the outcome here once #540 merges,
+   this branch merges `main`, and `e2e` goes green.
 3. **Old PNG-export path deletion — already done, in #526, not blocked on
    anything here.** `extension/src/raster.ts` and the `@resvg/resvg-js` runtime
    dependency were removed when the webview-canvas rasterizer landed
