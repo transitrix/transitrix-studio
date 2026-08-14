@@ -40,7 +40,7 @@
   "dependencies": {
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
-    "bpmn-moddle": "^10.0.0",
+    "bpmn-moddle": "^10.1.0",
     "js-yaml": "^4.3.1",
     "xmlbuilder2": "^4.0.3"
   }

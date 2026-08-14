@@ -77,15 +77,15 @@
     "@types/vscode": "^1.125.0",
     "@vscode/test-electron": "^3.1.0",
     "@vscode/vsce": "^3.9.2",
-    "bpmn-js": "^18.22.0",
-    "bpmn-moddle": "^10.0.0",
-    "esbuild": "^0.28.1",
+    "bpmn-js": "^18.23.0",
+    "bpmn-moddle": "^10.1.0",
+    "esbuild": "^0.28.2",
     "mocha": "^11.8.0",
     "pixelmatch": "^7.2.0",
     "pngjs": "^7.0.0",
-    "tsx": "^4.23.5",
+    "tsx": "^4.23.12",
     "typescript": "^5.8.3",
-    "vite": "^8.2.0",
+    "vite": "^8.2.1",
     "vitest": "^4.1.10"
   }
 }
