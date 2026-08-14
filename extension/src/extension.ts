@@ -183,7 +183,24 @@ function notYet(label: string): void {
   );
 }
 
-export async function activate(context: vscode.ExtensionContext): Promise<void> {
+/**
+ * Exposed only when `TX_E2E_TESTING=1` (set by extension/test-e2e/runTest.ts).
+ * The extension bundle is ESM (`format: 'esm'` in build-extension-bundle.mjs)
+ * while the test harness compiles to CommonJS (see
+ * scripts/prep-test-out-commonjs.mjs) — the test's own `require('vscode')`
+ * and this file's `import * as vscode from 'vscode'` resolve to *different*
+ * API object instances (confirmed: a monkey-patch on the test's copy of
+ * `vscode.window.createWebviewPanel` never observed panels this file's own
+ * calls genuinely created — visible instead via `vscode.window.tabGroups`).
+ * Handing the test the exact `vscode` binding this bundle uses — the same
+ * object every preview class in the bundle shares, since esbuild hoists one
+ * external import per specifier — is what lets its patches actually intercept.
+ */
+export interface E2ETestHooks {
+  vscode: typeof vscode;
+}
+
+export async function activate(context: vscode.ExtensionContext): Promise<void | E2ETestHooks> {
   // TX-R003: cache the in-flight Promise, not the resolved result. Two
   // concurrent calls during the brief window before `loadCompiler` resolves
   // would otherwise both pass the `if (!compileFn)` guard and run the loader
@@ -569,6 +586,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     if (doc.uri.scheme !== 'file') return;
     if (!vscode.workspace.getConfiguration('transitrix').get<boolean>('preview.autoOpenOnFileOpen', true)) return;
     await resolveNotationPreview(doc)?.open();
+  }
+
+  if (process.env.TX_E2E_TESTING === '1') {
+    return { vscode };
   }
 }
 

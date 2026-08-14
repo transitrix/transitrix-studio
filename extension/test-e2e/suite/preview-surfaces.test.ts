@@ -62,13 +62,26 @@ const SURFACES: Surface[] = [
   { name: 'dgca (constraint-driven)', fixture: 'dgca/constraint-driven.dgca.transitrix.yaml', expectSvg: true },
   { name: 'dga', fixture: 'dga/strategy-2026.dga.transitrix.yaml', expectSvg: true },
   { name: 'action', fixture: 'action/platform-launch.action.transitrix.yaml', expectSvg: true },
-  { name: 'action-card', fixture: 'action-card/eu-programme.action-card.transitrix.yaml', expectSvg: true },
+  {
+    name: 'action-card',
+    // Not the sibling-to-canon copy at action-card/eu-programme.…yaml — that
+    // layout only works for the package-level unit tests, which load
+    // canon/elements + canon/relations directly. This surface goes through
+    // the real ActivityCardPreview -> findCanonRoot(doc.uri) ancestor walk,
+    // which needs the view file nested inside canon/ (see the fixture's own
+    // header comment and canon-loader.test.ts's findCanonRootPath cases).
+    fixture: 'action-card/canon/views/eu-programme.action-card.transitrix.yaml',
+    expectSvg: true,
+  },
   { name: 'blocks', fixture: 'blocks/architecture.blocks.transitrix.yaml', expectSvg: true },
-  { name: 'applications', fixture: 'applications/portfolio-2026.applications.transitrix.yaml', expectSvg: true },
-  { name: 'products', fixture: 'products/portfolio-2026.products.transitrix.yaml', expectSvg: true },
-  { name: 'process-map', fixture: 'process-map/enterprise.process-map.transitrix.yaml', expectSvg: true },
-  { name: 'scenarios', fixture: 'scenarios/omnichannel-2028.scenarios.transitrix.yaml', expectSvg: true },
-  { name: 'capability-map', fixture: 'capability-map/business.capability-map.transitrix.yaml', expectSvg: true },
+  // Catalogue/table notations: rendered as an HTML table via buildDiagramFrame
+  // (see e.g. applications-preview.ts's buildApplicationsTable), never an
+  // <svg> — unlike the spatial-layout diagram notations above.
+  { name: 'applications', fixture: 'applications/portfolio-2026.applications.transitrix.yaml' },
+  { name: 'products', fixture: 'products/portfolio-2026.products.transitrix.yaml' },
+  { name: 'process-map', fixture: 'process-map/enterprise.process-map.transitrix.yaml' },
+  { name: 'scenarios', fixture: 'scenarios/omnichannel-2028.scenarios.transitrix.yaml' },
+  { name: 'capability-map', fixture: 'capability-map/business.capability-map.transitrix.yaml' },
   { name: 'process-blueprint', fixture: 'process-blueprint/order-fulfilment.process-blueprint.transitrix.yaml', expectSvg: true },
   { name: 'coverage-metric', fixture: 'coverage-metric/eu-coverage.coverage-metric.transitrix.yaml' },
   { name: 'compliance-impact', fixture: 'compliance-impact/gdpr-nis2.compliance-impact.view.yaml' },

@@ -2,18 +2,44 @@
  * Shared helpers for the extension-e2e harness (transitrix-hq#143, hold 6).
  *
  * Runs *inside* the real VS Code Extension Development Host (launched by
- * @vscode/test-electron — see ../runTest.ts). This file and the extension
- * under test both `require('vscode')` inside the same Extension Host
- * process, so they share the same `vscode` module singleton — patching
- * `vscode.window.createWebviewPanel` / `showSaveDialog` here is visible to
- * the extension's own calls to those same functions. That is the mechanism
- * this harness relies on throughout: there is no separate mock, no reach
- * into extension internals — only monkey-patching of the shared, real
- * `vscode` API surface.
+ * @vscode/test-electron — see ../runTest.ts).
+ *
+ * This file's own `require('vscode')` is NOT the same API object the
+ * extension under test uses internally — the extension bundle is ESM
+ * (`format: 'esm'`, see build-extension-bundle.mjs) while this harness
+ * compiles to CommonJS (scripts/prep-test-out-commonjs.mjs), and the two
+ * loader paths hand out distinct `vscode.window` objects. Confirmed
+ * empirically: patching this file's own `vscode.window.createWebviewPanel`
+ * never observed a single panel the extension's own calls genuinely
+ * created — those panels were real, visible via `vscode.window.tabGroups`,
+ * just invisible to a patch on the wrong object. RPC-backed surfaces
+ * (`commands.executeCommand`, `workspace.openTextDocument`, …) don't have
+ * this problem — they proxy to a single global service regardless of which
+ * `vscode` object issued the call. Only per-call-site function references
+ * (`createWebviewPanel`, `showSaveDialog`, `showErrorMessage`,
+ * `showWarningMessage`) do.
+ *
+ * The fix: `extension.ts` hands back its own `vscode` binding from
+ * `activate()` (gated on `TX_E2E_TESTING=1`, set in ../runTest.ts) — the
+ * exact object every preview class in the bundle shares, since esbuild
+ * hoists one external import per specifier. `ensureExtensionActivated`
+ * captures it below; every patch in this file targets *that* object, not
+ * this module's own `vscode` import.
  */
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
+
+/** The `vscode` binding the extension bundle actually uses — see file header. Set by `ensureExtensionActivated`. */
+let extensionVscode: typeof vscode | undefined;
+
+/** The window namespace every preview class's `createWebviewPanel`/`showSaveDialog`/etc. call resolves against. */
+function extensionWindow(): typeof vscode.window {
+  if (!extensionVscode) {
+    throw new Error('extension-e2e: extensionVscode not set — call ensureExtensionActivated() first.');
+  }
+  return extensionVscode.window;
+}
 
 export const WORKSPACE_ROOT = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
 if (!WORKSPACE_ROOT) {
@@ -47,6 +73,14 @@ export async function ensureExtensionActivated(): Promise<void> {
     throw new Error('extension-e2e: transitrix.transitrix-studio extension not found in the test host.');
   }
   if (!ext.isActive) await ext.activate();
+  const hooks = ext.exports as { vscode?: typeof vscode } | undefined;
+  if (!hooks?.vscode) {
+    throw new Error(
+      'extension-e2e: activate() did not return the E2ETestHooks.vscode binding — ' +
+        'is TX_E2E_TESTING=1 set in extensionTestsEnv (see ../runTest.ts)?',
+    );
+  }
+  extensionVscode = hooks.vscode;
 }
 
 /** Generic poll — used because several previews render asynchronously (webview round trip). */
@@ -95,11 +129,12 @@ export async function captureWebviewPanels<T>(
   // the panel down mid-open).
   const { settleMs = 15000 } = opts;
   const panels: vscode.WebviewPanel[] = [];
-  const original = vscode.window.createWebviewPanel;
+  const win = extensionWindow();
+  const original = win.createWebviewPanel;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (vscode.window as any).createWebviewPanel = (...args: unknown[]) => {
+  (win as any).createWebviewPanel = (...args: unknown[]) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const panel = (original as any).apply(vscode.window, args);
+    const panel = (original as any).apply(win, args);
     panels.push(panel);
     return panel;
   };
@@ -109,7 +144,7 @@ export async function captureWebviewPanels<T>(
     return { result, panels };
   } finally {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (vscode.window as any).createWebviewPanel = original;
+    (win as any).createWebviewPanel = original;
   }
 }
 
@@ -119,12 +154,13 @@ export async function captureWebviewPanels<T>(
  * the native save dialog in a headless run. Restores the original after.
  */
 export async function withSaveDialogTarget<T>(targetFsPath: string, fn: () => Promise<T>): Promise<T> {
-  const original = vscode.window.showSaveDialog;
-  vscode.window.showSaveDialog = (async () => vscode.Uri.file(targetFsPath)) as typeof vscode.window.showSaveDialog;
+  const win = extensionWindow();
+  const original = win.showSaveDialog;
+  win.showSaveDialog = (async () => vscode.Uri.file(targetFsPath)) as typeof win.showSaveDialog;
   try {
     return await fn();
   } finally {
-    vscode.window.showSaveDialog = original;
+    win.showSaveDialog = original;
   }
 }
 
@@ -179,24 +215,25 @@ export async function closeAllEditors(): Promise<void> {
 export async function captureNotifications<T>(fn: () => Promise<T>): Promise<{ result: T; errors: string[]; warnings: string[] }> {
   const errors: string[] = [];
   const warnings: string[] = [];
-  const origError = vscode.window.showErrorMessage;
-  const origWarn = vscode.window.showWarningMessage;
+  const win = extensionWindow();
+  const origError = win.showErrorMessage;
+  const origWarn = win.showWarningMessage;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (vscode.window as any).showErrorMessage = (msg: string, ...rest: unknown[]) => {
+  (win as any).showErrorMessage = (msg: string, ...rest: unknown[]) => {
     errors.push(msg);
-    return (origError as unknown as (...a: unknown[]) => Promise<undefined>).apply(vscode.window, [msg, ...rest]);
+    return (origError as unknown as (...a: unknown[]) => Promise<undefined>).apply(win, [msg, ...rest]);
   };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (vscode.window as any).showWarningMessage = (msg: string, ...rest: unknown[]) => {
+  (win as any).showWarningMessage = (msg: string, ...rest: unknown[]) => {
     warnings.push(msg);
-    return (origWarn as unknown as (...a: unknown[]) => Promise<undefined>).apply(vscode.window, [msg, ...rest]);
+    return (origWarn as unknown as (...a: unknown[]) => Promise<undefined>).apply(win, [msg, ...rest]);
   };
   try {
     const result = await fn();
     return { result, errors, warnings };
   } finally {
-    vscode.window.showErrorMessage = origError;
-    vscode.window.showWarningMessage = origWarn;
+    win.showErrorMessage = origError;
+    win.showWarningMessage = origWarn;
   }
 }
 

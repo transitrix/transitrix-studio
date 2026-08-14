@@ -30,6 +30,9 @@ async function main(): Promise<void> {
     extensionTestsPath,
     extensionTestsEnv: {
       TX_E2E_CAPTURE_DIR: captureDir,
+      // See extension.ts's E2ETestHooks — makes activate() hand back the
+      // exact `vscode` binding the extension bundle uses internally.
+      TX_E2E_TESTING: '1',
     },
     launchArgs: [
       workspacePath,
