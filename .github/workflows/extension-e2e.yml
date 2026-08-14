@@ -21,9 +21,22 @@ permissions:
   contents: read
 
 jobs:
+  # Builds the exact universal VSIX (build-vsix.yml) this job then verifies —
+  # per hold 6's own acceptance criterion, the artefact that gets verified
+  # has to be the artefact that ships, not a rebuild from source. No
+  # `vsce package` runs by hand here; this calls the same credential-less CI
+  # job the publish pipeline will consume.
+  build-vsix:
+    uses: ./.github/workflows/build-vsix.yml
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+
   e2e:
+    needs: build-vsix
     runs-on: ubuntu-latest
-    name: Extension Development Host e2e (xvfb)
+    name: Extension Development Host e2e (xvfb) — packaged VSIX
 
     steps:
       - name: Checkout code
@@ -38,15 +51,44 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Ensure xvfb is present
-        run: sudo apt-get update && sudo apt-get install -y xvfb
+      - name: Ensure xvfb and unzip are present
+        run: sudo apt-get update && sudo apt-get install -y xvfb unzip
 
-      # test:e2e-extension runs `extension:prep` (build) only — never
-      # `vsce package` / `package-extension`. Building a .vsix is gated to
-      # an explicit request per this repo's CLAUDE.md and is out of scope
-      # for this job.
-      - name: Run extension e2e suite against a real display
-        run: xvfb-run -a npm run test:e2e-extension
+      - name: Download universal VSIX artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.build-vsix.outputs.artifact-name }}
+          path: output
+
+      - name: Verify downloaded artifact matches the attested hash
+        run: |
+          vsix=$(ls output/*.vsix | head -n 1)
+          expected="${{ needs.build-vsix.outputs.sha256 }}"
+          actual=$(sha256sum "$vsix" | cut -d' ' -f1)
+          echo "expected sha256=$expected"
+          echo "actual   sha256=$actual"
+          if [ "$actual" != "$expected" ]; then
+            echo "::error::downloaded artifact does not match the build job's recorded SHA-256"
+            exit 1
+          fi
+          echo "VSIX_PATH=$vsix" >> "$GITHUB_ENV"
+          echo "VSIX_SHA256=$actual" >> "$GITHUB_ENV"
+
+      - name: Unpack VSIX
+        run: |
+          unpack_dir="$RUNNER_TEMP/vsix-unpacked"
+          mkdir -p "$unpack_dir"
+          unzip -q "$VSIX_PATH" -d "$unpack_dir"
+          echo "TX_E2E_EXTENSION_PATH=$unpack_dir/extension" >> "$GITHUB_ENV"
+
+      # test:e2e-extension:packaged does not run `extension:prep` — it runs
+      # the mocha suite against TX_E2E_EXTENSION_PATH (the unpacked, attested
+      # VSIX set above), not a source rebuild. Verifies the shipped artefact,
+      # by its hash (hold 6).
+      - name: Run extension e2e suite against the packaged VSIX
+        run: |
+          echo "Running against sha256=$VSIX_SHA256"
+          xvfb-run -a npm run test:e2e-extension:packaged
 
       - name: Upload PNG export captures
         if: always()
@@ -56,3 +98,45 @@ jobs:
           path: .test-out/png-capture/
           if-no-files-found: ignore
           retention-days: 7
+
+  # Old (pre-webview-canvas-rasterizer, resvg) vs new (webview canvas) PNG
+  # engine comparison, hold 6's remaining acceptance item. Old side is a
+  # rebuild of extension/src/raster.ts at tag v3.1.3
+  # (scripts/compare-png-engines.mjs) — no published pre-PR-#526 .vsix asset
+  # exists to compare against instead, see that script's header comment and
+  # docs/internal/hold6-verification.md.
+  png-comparison:
+    needs: e2e
+    runs-on: ubuntu-latest
+    name: PNG engine comparison (old vs new)
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download PNG export captures
+        uses: actions/download-artifact@v4
+        with:
+          name: e2e-png-captures
+          path: .test-out/png-capture
+
+      - name: Compare old vs new PNG engine output
+        run: npm run compare-png-engines
+
+      - name: Upload comparison report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: png-engine-comparison
+          path: .test-out/png-engine-comparison/
+          if-no-files-found: ignore
+          retention-days: 30
