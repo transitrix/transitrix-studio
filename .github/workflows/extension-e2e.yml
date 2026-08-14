@@ -1,0 +1,58 @@
+name: Extension E2E (headless)
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+    paths:
+      - "extension/**"
+      - "packages/**"
+      - "scripts/build-compiler-bundle.mjs"
+      - "scripts/build-extension-bundle.mjs"
+      - "scripts/prep-test-out-commonjs.mjs"
+      - ".github/workflows/extension-e2e.yml"
+  push:
+    branches: [main]
+    paths:
+      - "extension/**"
+      - "packages/**"
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    name: Extension Development Host e2e (xvfb)
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Ensure xvfb is present
+        run: sudo apt-get update && sudo apt-get install -y xvfb
+
+      # test:e2e-extension runs `extension:prep` (build) only — never
+      # `vsce package` / `package-extension`. Building a .vsix is gated to
+      # an explicit request per this repo's CLAUDE.md and is out of scope
+      # for this job.
+      - name: Run extension e2e suite against a real display
+        run: xvfb-run -a npm run test:e2e-extension
+
+      - name: Upload PNG export captures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-png-captures
+          path: .test-out/png-capture/
+          if-no-files-found: ignore
+          retention-days: 7
