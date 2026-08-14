@@ -6,6 +6,23 @@ universal VSIX, plus a PNG old-vs-new engine comparison before the old export pa
 is deleted. This document records what has been built and run so far, what it
 found, and what is still open — honestly, not as a green checklist.
 
+**2026-08-14 update — clean per-notation pass now exists, from CI.** The
+"disconnected session" theory below (point 2) was correct as far as it went, but
+CI's first real run on `ubuntu-latest` under `xvfb-run` (a host with a real,
+if virtual, attached display) disproved the *reason* given for the 0-panels
+symptom: even direct-command surfaces that bypass the auto-open race entirely
+reported 0 panels there too. Root cause was a loader mismatch, not a focus/session
+property: the extension bundle is ESM, the harness compiles to CommonJS, and the
+two `require('vscode')` paths handed out distinct `vscode.window` objects, so the
+harness's monkey-patch on its own copy never saw the panels the extension bundle's
+own `createWebviewPanel` calls actually created (RPC-backed surfaces were fine;
+per-call-site function references were not). Fixed by having `activate()` hand
+back its own `vscode` binding under `TX_E2E_TESTING=1` for the harness to patch
+instead. Result: **28/28 surfaces passing**, both suites, in CI
+(`Extension E2E (headless)` on transitrix-studio#535) and locally in ~29s. Items
+2 and 3 below are superseded by this — kept as a record of the ruled-out theory,
+not current status. Items 1, 4, and 5 are still open.
+
 ## The harness
 
 `extension/test-e2e/` (`npm run test:e2e-extension`) launches a real VS Code
