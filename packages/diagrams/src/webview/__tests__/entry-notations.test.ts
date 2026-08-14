@@ -61,6 +61,19 @@ describe('webview/entry — Step 4 notation coverage', () => {
     });
   }
 
+  it('renders blocks (grid form, §4a matrix subset) from its example fixture', () => {
+    const source = readFileSync(path.join(EXAMPLES, 'blocks/raci.blocks.transitrix.yaml'), 'utf8');
+    const r = render('blocks', source);
+    expect(r.notation).toBe('blocks');
+    expect(r.errors).toEqual([]);
+    expect(r.status).toBe('ok');
+    expect(r.svg.length).toBeGreaterThan(0);
+    expect(r.svg).toContain('<svg ');
+    // Grid-specific: column/row headers should be present as rendered text.
+    expect(r.svg).toContain('Product Manager');
+    expect(r.svg).toContain('Security sign-off');
+  });
+
   it('degrades malformed input to the error panel for a diagram notation', () => {
     const r = render('process-blueprint', 'process_blueprint:\n  stages: "not a list"\n');
     expect(r.status).toBe('error');
