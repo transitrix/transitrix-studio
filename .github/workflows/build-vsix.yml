@@ -1,0 +1,91 @@
+name: Build universal VSIX (attested)
+
+# One CI job produces the universal VSIX from pinned inputs, records its
+# SHA-256, attests it with actions/attest-build-provenance (no external
+# service, no key), and exposes it as a build artifact a later job can
+# download. This is the artefact every later consumer — verification, then
+# registry publish — uses instead of rebuilding, so the artefact that gets
+# verified is the one that ships.
+#
+# Packaging here is not publishing: no registry credentials are in scope,
+# and nothing leaves this workflow run. The standing rule that reserves
+# `vsce package` to Valerii's explicit request covers a command run by hand
+# on a workstation, not a credential-less CI job.
+#
+# Reusable via `workflow_call` — a verification workflow or a publish
+# workflow adds a job with `uses: ./.github/workflows/build-vsix.yml`, then
+# a dependent job downloads the `universal-vsix` artifact this produces.
+# Callers must grant at least the permissions this workflow declares below.
+# `workflow_dispatch` is also available for a standalone run.
+
+on:
+  workflow_call:
+    outputs:
+      sha256:
+        description: SHA-256 of the packaged .vsix
+        value: ${{ jobs.build.outputs.sha256 }}
+      artifact-name:
+        description: Name of the uploaded build artifact containing the .vsix and its .sha256 file
+        value: ${{ jobs.build.outputs.artifact-name }}
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Package, hash, attest
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    outputs:
+      sha256: ${{ steps.hash.outputs.sha256 }}
+      artifact-name: ${{ steps.hash.outputs.artifact-name }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Package universal VSIX
+        # extension:prep + verify-extension-packaging + `vsce package` (no
+        # --target: the extension ships no native/platform component, so one
+        # VSIX installs everywhere) -> output/*.vsix
+        run: npm run package-extension
+
+      - name: Record SHA-256
+        id: hash
+        shell: bash
+        run: |
+          vsix=$(ls output/*.vsix | head -n 1)
+          sha=$(sha256sum "$vsix" | cut -d' ' -f1)
+          echo "$sha  $(basename "$vsix")" > "$vsix.sha256"
+          echo "Packaged $vsix"
+          echo "SHA-256: $sha"
+          echo "sha256=$sha" >> "$GITHUB_OUTPUT"
+          echo "artifact-name=universal-vsix" >> "$GITHUB_OUTPUT"
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: output/*.vsix
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: universal-vsix
+          path: |
+            output/*.vsix
+            output/*.sha256
+          if-no-files-found: error
+          retention-days: 90
