@@ -71,7 +71,7 @@
     "@types/node": "^22.20.1",
     "@types/vscode": "^1.125.0",
     "@vscode/vsce": "^3.9.2",
-    "bpmn-js": "^18.22.0",
+    "bpmn-js": "^18.23.0",
     "bpmn-moddle": "^10.0.0",
     "esbuild": "^0.28.1",
     "tsx": "^4.23.5",
