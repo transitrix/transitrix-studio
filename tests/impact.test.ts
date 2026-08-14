@@ -178,6 +178,42 @@ describe('computeStagedImpact (transitrix-hq#89)', () => {
       { file: 'canon/views/portfolio/apps.applications.transitrix.yaml', notation: 'applications' },
     ]);
   });
+
+  it('never reports a self-contained inline-form goals view as coverage-not-determined (transitrix-hq#89 Strategist finding)', () => {
+    root = initRepo();
+    seedBaseline(root);
+    write(
+      root,
+      'canon/views/strategy/inline-goals.goals.transitrix.yaml',
+      [
+        'notation: goals',
+        'id: GOALS-INLINE-1',
+        'name: "Inline goals"',
+        'goal_types:',
+        '  - name: Strategic Goal',
+        '    level: 0',
+        'goals:',
+        '  - id: GOAL-RELEASE-CYCLE-1',
+        '    name: "Shorten the release cycle"',
+        '    type: Strategic Goal',
+        '    level: 0',
+        '',
+      ].join('\n'),
+    );
+    commitAll(root, 'add an inline-form goals view');
+    write(root, 'canon/elements/goals/GOAL-1.yaml', goalYaml('GOAL-1', 'Grow revenue by 20%'));
+    git(['add', 'canon/elements/goals/GOAL-1.yaml'], root);
+
+    const result = computeStagedImpact(root);
+    expect(result.affected).toEqual([
+      { file: 'canon/views/strategy/dgca.dgca.transitrix.yaml', notation: 'dgca' },
+    ]);
+    // Inline-form goals carry no canon/elements dependency by notation design
+    // (they stay inline until a second document shares them) — a staged
+    // GOAL-1 change cannot affect this document, so it must not appear in
+    // either list, not even notDetermined.
+    expect(result.notDetermined).toEqual([]);
+  });
 });
 
 /** A minimal, valid `.ttrs` document source — required header fields only. */
