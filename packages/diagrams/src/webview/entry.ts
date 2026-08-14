@@ -32,8 +32,8 @@ import { validateActivityCard } from '../activity-card/index.js';
 import type { ActivityCardDoc } from '../activity-card/index.js';
 import { validateApplicationsCatalogue } from '../applications/index.js';
 import type { ApplicationsCatalogueFile } from '../applications/index.js';
-import { validateNestedBlocks } from '../blocks/index.js';
-import type { BlocksFile } from '../blocks/index.js';
+import { validateBlocks } from '../blocks/index.js';
+import type { BlocksFile, GridFile } from '../blocks/index.js';
 import { validateCapabilityMap } from '../capability-map/validate.js';
 import type { CapabilityMapFile } from '../capability-map/types.js';
 import { parseCanonicalFGCA, parseCanonicalFGA } from '../fgca/parse-canonical.js';
@@ -51,7 +51,7 @@ import { coerceDatesToIsoStrings } from '../yaml-normalize.js';
 import { renderActivitiesSvg } from './render-activities.js';
 import { renderActivityCardSvg } from './render-activity-card.js';
 import { renderApplicationsHtml } from './render-applications.js';
-import { renderBlocksSvg } from './render-blocks.js';
+import { renderBlocksSvg, renderGridSvg } from './render-blocks.js';
 import { renderCapabilityMapHtml } from './render-capability-map.js';
 import { renderFgcaSvg } from './render-fgca.js';
 import { renderGoalsSvg } from './render-goals.js';
@@ -218,10 +218,17 @@ function dispatchValidate(kind: NotationKind, doc: unknown): RenderResult {
       return renderFromValidation('process-blueprint', validateProcessBlueprint(doc), () =>
         renderProcessBlueprintSvg(doc as ProcessBlueprintFile),
       );
-    case 'blocks':
-      return renderFromValidation('blocks', validateNestedBlocks(doc), () =>
-        renderBlocksSvg(doc as BlocksFile),
+    case 'blocks': {
+      // Two alternative root forms (08-blocks.md §4): a `nested_blocks:`
+      // containment tree, or a `grid:` matrix subset (§4a). `validateBlocks`
+      // is the shared root-form dispatcher (BL-020 on both/neither present);
+      // mirrors the VS Code path's `hasGrid` branch in `blocks-preview.ts`.
+      const raw = (doc && typeof doc === 'object' ? doc : {}) as Record<string, unknown>;
+      const hasGrid = raw['grid'] !== undefined && raw['grid'] !== null;
+      return renderFromValidation('blocks', validateBlocks(doc), () =>
+        hasGrid ? renderGridSvg(doc as GridFile) : renderBlocksSvg(doc as BlocksFile),
       );
+    }
     // Catalogue notations render an HTML fragment from the header nested under
     // their top-level wrapper key (`<thing>_catalogue` / `scenario` / …).
     case 'applications':

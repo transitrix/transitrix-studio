@@ -1,0 +1,33 @@
+notation: blocks
+spec_version: "0.1"
+name: "Release approval RACI"
+generated_at: "2026-08-14"
+
+grid:
+  columns:
+    - { id: PM, name: "Product Manager" }
+    - { id: ENG, name: "Engineering Lead" }
+    - { id: QA, name: "QA Lead" }
+    - { id: SEC, name: "Security" }
+
+  rows:
+    - id: SCOPE
+      name: "Define release scope"
+      assign:
+        PM: "A"
+        ENG: "C"
+        QA: "I"
+
+    - id: BUILD
+      name: "Build and unit-test"
+      assign:
+        PM: "I"
+        ENG: "A"
+        QA: "C"
+
+    - id: SIGNOFF
+      name: "Security sign-off"
+      assign:
+        ENG: "C"
+        QA: "C"
+        SEC: "A"

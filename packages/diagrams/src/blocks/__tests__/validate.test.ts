@@ -486,7 +486,9 @@ describe('blocks examples (regression)', () => {
     it(`validates tests/fixtures/notation-corpus/blocks/${file}`, () => {
       const text = fs.readFileSync(path.join(EXAMPLES_DIR, file), 'utf8');
       const parsed = yaml.load(text);
-      const r = validateNestedBlocks(parsed);
+      // Dispatcher, not validateNestedBlocks directly — this directory holds
+      // examples of both root forms (nested_blocks and grid, §4a).
+      const r = validateBlocks(parsed);
       expect(r.errors).toEqual([]);
       expect(r.valid).toBe(true);
     });

@@ -37,8 +37,13 @@ Recommended maximum: **5 levels** (root = level 1). Deeper nesting is permitted 
 
 The renderer assigns colour fill by nesting depth: the outermost block is the lightest, each deeper level progressively darker — drawn from the Transitrix Studio brand colour ramp. Authors do not need to set colours by hand.
 
+## Matrix subset (§4a)
+
+A document MAY instead carry a `grid:` root — a single-layer, rectangular matrix of `columns[]` × `rows[]`, with each row's `assign:` mapping column id → cell value (RACI-style matrices, coverage grids). See the methodology reference §4a for the full field/rule set (`BL-020`–`BL-025`). A document declares exactly one of `nested_blocks` or `grid`, never both.
+
 ## Examples in this folder
 
 | File | Description |
 |---|---|
-| `architecture.blocks.transitrix.yaml` | 2-tier software architecture (Application Layer + Data Layer) |
+| `architecture.blocks.transitrix.yaml` | 2-tier software architecture (Application Layer + Data Layer) — `nested_blocks:` form |
+| `raci.blocks.transitrix.yaml` | Release approval RACI matrix — `grid:` form (§4a) |
