@@ -60,6 +60,18 @@ function isYamlPath(p: string): boolean {
   return /\.ya?ml$/i.test(p);
 }
 
+/** True when `data` is a plain object carrying `key` at the top level —
+ *  used to recognize a goals/dgca/fgca/action view's *inline* form (element
+ *  data authored directly in the file, mutually exclusive with
+ *  `view_config` per each notation's spec). An inline-form document has no
+ *  `canon/elements/**` dependency by definition — it stays inline until a
+ *  second document shares it, at which point promotion moves it to
+ *  `view_config` — so it is definitively unaffected by any staged element
+ *  change, not merely undetermined. */
+function hasKey(data: unknown, key: string): boolean {
+  return typeof data === 'object' && data !== null && !Array.isArray(data) && key in (data as Record<string, unknown>);
+}
+
 /** The staged (index) content of `relPath`, or `undefined` when it has none
  *  (deleted in the index, or nothing staged). */
 function gitShowStaged(root: string, relPath: string): string | undefined {
@@ -181,19 +193,34 @@ export function computeStagedImpact(root: string): ImpactResult {
     if (!notation) continue;
 
     let resolvedIds: Set<string> | undefined;
-    if (notation === 'goals' && isGoalsViewDoc(data)) {
-      resolvedIds = idsIn(resolveGoals(data, { elements }), 'goals');
-    } else if ((notation === 'dgca' || notation === 'fgca') && isFGCAViewDoc(data)) {
-      resolvedIds = idsIn(
-        resolveFGCA(data, { elements, relations }),
-        'factors',
-        'goals',
-        'changes',
-        'actions',
-      );
-    } else if (notation === 'action' && isActionViewDoc(data)) {
-      resolvedIds = idsIn(resolveAction(data, { elements, relations }), 'actions');
+    let inlineForm = false;
+    if (notation === 'goals') {
+      if (isGoalsViewDoc(data)) {
+        resolvedIds = idsIn(resolveGoals(data, { elements }), 'goals');
+      } else {
+        inlineForm = hasKey(data, 'goals');
+      }
+    } else if (notation === 'dgca' || notation === 'fgca') {
+      if (isFGCAViewDoc(data)) {
+        resolvedIds = idsIn(
+          resolveFGCA(data, { elements, relations }),
+          'factors',
+          'goals',
+          'changes',
+          'actions',
+        );
+      } else {
+        inlineForm = hasKey(data, 'factors') || hasKey(data, 'goals');
+      }
+    } else if (notation === 'action') {
+      if (isActionViewDoc(data)) {
+        resolvedIds = idsIn(resolveAction(data, { elements, relations }), 'actions');
+      } else {
+        inlineForm = hasKey(data, 'actions');
+      }
     }
+
+    if (inlineForm) continue; // self-contained by notation design — never affected, not merely undetermined
 
     if (!resolvedIds) {
       notDetermined.push({ file: doc.path, notation });
