@@ -31,6 +31,25 @@ Only runtime assets may live under `extension/`. Before every
 non-runtime paths appear there (`extension/.vscodeignore` is a second line of
 defence).
 
+## Building in CI (attested, once)
+
+`.github/workflows/build-vsix.yml` packages the same universal VSIX in CI —
+`npm ci` from the committed lockfile, then `npm run package-extension` — and
+additionally records the artefact's SHA-256 and attests it with
+[`actions/attest-build-provenance`](https://github.com/actions/attest-build-provenance)
+(no external service, no key: GitHub's own OIDC/Sigstore integration). It
+exposes the result as a downloadable build artifact named `universal-vsix`
+(the `.vsix` plus a `.sha256` file) — nothing in this workflow publishes
+anywhere; there are no registry credentials in its scope.
+
+It is a reusable workflow (`workflow_call`), meant to be called once by a
+verification pipeline and once by the registry-publish pipeline, so both
+consume the identical built-and-attested file rather than each rebuilding
+its own copy. `workflow_dispatch` is also available for a standalone
+inspection run. Callers must grant at least `contents: read`,
+`id-token: write`, `attestations: write` for the attestation step to
+succeed.
+
 ## Publishing to the VS Code Marketplace
 
 Publishing a GitHub Release triggers `.github/workflows/vscode-marketplace-publish.yml`,
