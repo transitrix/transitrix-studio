@@ -73,7 +73,7 @@
     "@vscode/vsce": "^3.9.2",
     "bpmn-js": "^18.22.0",
     "bpmn-moddle": "^10.0.0",
-    "esbuild": "^0.28.1",
+    "esbuild": "^0.28.2",
     "tsx": "^4.23.5",
     "typescript": "^5.8.3",
     "vite": "^8.2.0",
