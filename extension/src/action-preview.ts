@@ -852,6 +852,7 @@ export class ActionPreview {
     } catch {
       // Parse errors are handled (and reported) again inside buildHtml.
     }
+    if (!this.panel) return; // panel may have been disposed while awaiting above
     this.panel.webview.html = this.buildHtml(yamlText, path.basename(doc.fileName), sources);
   }
 

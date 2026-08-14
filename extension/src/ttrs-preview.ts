@@ -127,6 +127,7 @@ export class TtrsPreview extends StaticPreview {
     }
 
     const themeId = vscode.workspace.getConfiguration('transitrix').get<ThemeId>('theme', 'transitrix');
+    if (!this.panel) return; // panel may have been disposed while awaiting above
     this.panel.webview.html = buildDiagramFrame({
       filename,
       notation: 'Document (.ttrs)',

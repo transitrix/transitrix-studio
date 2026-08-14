@@ -208,6 +208,7 @@ export class CapabilityMapPreview {
   private async pushDocument(doc: vscode.TextDocument): Promise<void> {
     if (!this.panel) return;
     const resolved = await this.resolveMaturity(doc.uri);
+    if (!this.panel) return; // panel may have been disposed while awaiting above
     this.panel.webview.html = this.buildHtml(doc.getText(), path.basename(doc.fileName), resolved);
   }
 

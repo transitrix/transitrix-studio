@@ -60,6 +60,7 @@ export class GapDashboardPreview {
     // every requirement + assertion in the repo (CONTRACT §11.6).
     this.lastConfidence = scoreComplianceView(scan.requirements, scan.assertions, today);
     const themeId = vscode.workspace.getConfiguration('transitrix').get<ThemeId>('theme', 'transitrix');
+    if (!this.panel) return; // panel may have been disposed while awaiting above
     this.panel.webview.html = this.buildHtml(this.lastReport, themeId);
   }
 

@@ -95,6 +95,7 @@ export class SingleProductPreview {
     const viewAssertions = view.requirements.map(r => r.assertion);
     const confidence = scoreComplianceView(viewRequirements, viewAssertions, todayIso());
 
+    if (!this.panel) return; // panel may have been disposed while awaiting above
     this.panel.webview.html = complianceShell({
       notation: 'Product compliance',
       title: productName,
