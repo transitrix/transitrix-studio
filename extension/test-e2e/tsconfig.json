@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "module": "CommonJS",
+    "target": "ES2022",
+    "moduleResolution": "Node",
+    "outDir": "../../.test-out/extension-e2e",
+    "rootDir": ".",
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "lib": ["ES2022"],
+    "types": ["node", "mocha", "vscode"]
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules"]
+}
