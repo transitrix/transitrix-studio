@@ -57,11 +57,12 @@ preview mid-render hits the same throw.
    `extensionDevelopmentPath` at the unpacked contents of a built `.vsix` (rather
    than `extension/` source) instead of, or in addition to, the current setup
    would close this gap; not yet done.
-2. **The suite does not run reliably in this unattended host.** Multiple runs
-   this session (before and after the panel-race fix, and with `--disable-gpu`
-   added and removed) showed the same failure shape: `captureWebviewPanels`
-   reports 0 panels for surfaces that should render. Diagnostic instrumentation
-   (since reverted) traced this to VS Code's own active-editor tracking, not the
+2. **The suite does not run reliably in this unattended host — now confirmed as
+   an environment property, not a flaky symptom.** Multiple runs this session
+   (before and after the panel-race fix, and with `--disable-gpu` added and
+   removed) showed the same failure shape: `captureWebviewPanels` reports 0
+   panels for surfaces that should render. Diagnostic instrumentation (since
+   reverted) traced this to VS Code's own active-editor tracking, not the
    extension: `onDidChangeActiveTextEditor` fires once for the opened fixture,
    then fires again moments later with `undefined` — i.e. the test-host window
    loses its active editor on its own, before the extension's auto-open listener
@@ -72,8 +73,22 @@ preview mid-render hits the same throw.
    pattern is consistent with the Electron test window never holding real
    window/focus state in this unattended session — plausible without an
    interactive desktop session — rather than with anything the extension or the
-   harness controls. Not confirmed against an interactive session or a CI runner
-   with a real display; that comparison would confirm or rule out the theory.
+   harness controls.
+
+   **Confirmed 2026-08-14, not just plausible.** `query session` on this host
+   shows the automation account's session (`Transitrix`, ID 1) in state `Disc`
+   (disconnected) while a separate console session (`Valerii`, ID 2) is the one
+   in state `Active`; `[System.Environment]::UserInteractive` from a process in
+   the automation account's session returns `False`. A disconnected Windows
+   session has no attached input desktop, so a Win32/Electron top-level window
+   created there cannot become the foreground/focused window in the way
+   `onDidChangeActiveTextEditor` depends on — this is the documented behaviour
+   of disconnected sessions, not a bug to chase further in this codebase. A
+   single-surface rerun this session (`TX_E2E_GREP=goals`) reproduced the exact
+   "0 panels" failure on the very first and only fixture opened, consistent
+   with every prior run. This closes the open question from the prior session:
+   the theory is confirmed, and the fix is a different execution environment,
+   not different code.
 3. **Per-notation results are therefore not a clean pass/fail matrix yet.** An
    early exploratory run (pre-fix) showed roughly a dozen of the 25 preview cases
    render successfully in a single pass before hitting the disposed-panel bug on
@@ -106,8 +121,16 @@ preview mid-render hits the same throw.
 
 ## Next steps
 
-- Rerun this suite from an interactive session or a CI runner with a real
-  display, to separate "genuinely flaky in any headless host" from "specific to
-  this unattended host's window/focus handling."
-- Point the harness at an unpacked packaged `.vsix` instead of source.
-- Run the old-build side of the PNG comparison.
+- **Rerun this suite from a session with an attached input desktop** — an
+  interactive console session, or a CI runner (e.g. `windows-latest` GitHub
+  Actions, which runs with a real desktop session unlike this disconnected
+  automation session) — to produce the actual per-notation pass/fail matrix.
+  No further unattended run against this host will produce a different result;
+  this is now a confirmed environment property (see above), not something to
+  keep re-diagnosing.
+- Point the harness at an unpacked packaged `.vsix` instead of source. Wiring
+  this does not itself require a working display, but verifying it works does
+  — worth doing together with the rerun above rather than separately, so the
+  one working run also closes acceptance-criterion (1).
+- Run the old-build side of the PNG comparison — also needs a working display
+  for the same reason.
