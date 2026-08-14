@@ -196,6 +196,7 @@ export class ProcessPreview {
       // that all other diagram types expose in their title header.
       const processTitle = layout.process.name || undefined;
 
+      if (!this.panel) return; // panel may have been disposed while awaiting above
       this.panel.webview.html = buildDiagramFrame({
         filename,
         notation: 'BPMN Process',

@@ -98,6 +98,7 @@ export class SingleLawPreview {
     const treeAssertions = tree.requirements.flatMap(n => n.assertions);
     const confidence = scoreComplianceView(treeRequirements, treeAssertions, todayIso());
 
+    if (!this.panel) return; // panel may have been disposed while awaiting above
     this.panel.webview.html = complianceShell({
       notation: 'Law',
       title: lawName,

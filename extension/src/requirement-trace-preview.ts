@@ -116,6 +116,7 @@ export class RequirementTracePreview {
       todayIso(),
     );
 
+    if (!this.panel) return; // panel may have been disposed while awaiting above
     const kind = elementKind ?? trace.requirement.element_kind ?? 'requirement';
     const subtitleBits = [
       elementId,
