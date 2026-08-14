@@ -22,6 +22,7 @@ import {
   captureNotifications,
   openFixture,
   closeAllEditors,
+  ensureExtensionActivated,
 } from '../helpers';
 
 const SHELL_LENGTH_FLOOR = 800;
@@ -50,7 +51,7 @@ interface Surface {
   /** If true, the panel content is expected to be a raw <svg>. */
   expectSvg?: boolean;
   /** Config to set before opening (e.g. switching bpmnRenderer). */
-  configure?: () => Promise<void> | void;
+  configure?: () => Promise<void> | Thenable<void> | void;
   /** Warnings are tolerated (not asserted absent) for this surface. */
   allowWarnings?: boolean;
 }
@@ -92,6 +93,8 @@ const SURFACES: Surface[] = [
 
 describe('preview surfaces render real content (transitrix-hq#143)', function () {
   this.timeout(60000);
+
+  before(ensureExtensionActivated);
 
   afterEach(async () => {
     await closeAllEditors();

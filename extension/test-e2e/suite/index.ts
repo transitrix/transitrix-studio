@@ -24,6 +24,9 @@ export function run(): Promise<void> {
   for (const f of files) {
     mocha.addFile(path.resolve(testsRoot, f));
   }
+  // Narrows to a single surface for local/CI diagnosis (e.g. `TX_E2E_GREP=goals`)
+  // without editing the fixed SURFACES list itself.
+  if (process.env.TX_E2E_GREP) mocha.grep(process.env.TX_E2E_GREP);
 
   return new Promise((resolve, reject) => {
     try {

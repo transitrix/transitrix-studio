@@ -24,6 +24,31 @@ export function fixturePath(...segments: string[]): string {
   return path.join(WORKSPACE_ROOT!, ...segments);
 }
 
+/**
+ * Explicitly activates the extension under test and waits for it to finish,
+ * rather than relying on its `workspaceContains:*` activation events firing
+ * (and completing) before the first test's `openFixture()` runs.
+ *
+ * `workspaceContains:*` activation is a background glob scan VS Code kicks
+ * off once the window is ready — there is no guarantee it has completed, or
+ * even started, by the time `extensionTestsPath` (this suite) begins
+ * running. Observed empirically: without this, the very first test in a
+ * fresh test-host run reliably got 0 webview panels (the extension's
+ * `onDidChangeActiveTextEditor` listener wasn't registered yet when
+ * `openFixture()`'s `showTextDocument()` fired the event), while later
+ * tests in the same run passed once activation had caught up. Calling
+ * `.activate()` directly is idempotent (VS Code resolves the same promise
+ * for an already-active/activating extension) and removes the race outright
+ * rather than papering over it with a fixed delay.
+ */
+export async function ensureExtensionActivated(): Promise<void> {
+  const ext = vscode.extensions.getExtension('transitrix.transitrix-studio');
+  if (!ext) {
+    throw new Error('extension-e2e: transitrix.transitrix-studio extension not found in the test host.');
+  }
+  if (!ext.isActive) await ext.activate();
+}
+
 /** Generic poll — used because several previews render asynchronously (webview round trip). */
 export async function waitFor(
   predicate: () => boolean,
@@ -44,8 +69,31 @@ export async function waitFor(
  * Captures every WebviewPanel created while `fn` runs, by patching
  * `vscode.window.createWebviewPanel` for the duration of the call. Restores
  * the original afterwards regardless of outcome.
+ *
+ * The patch stays installed for up to `settleMs` past `fn()` resolving, not
+ * just for the literal duration of the call: the extension's own
+ * auto-open-preview path (`autoOpenPreviewForDocument`, wired off
+ * `onDidChangeActiveTextEditor`) is invoked fire-and-forget (`void
+ * autoOpenPreviewForDocument(...)`) — `showTextDocument()` resolves before
+ * that listener has necessarily created its panel. Without this wait, every
+ * surface raced the assertion and failed with "got 0 panels" regardless of
+ * whether the preview actually rendered.
  */
-export async function captureWebviewPanels<T>(fn: () => Promise<T>): Promise<{ result: T; panels: vscode.WebviewPanel[] }> {
+export async function captureWebviewPanels<T>(
+  fn: () => Promise<T>,
+  opts: { settleMs?: number } = {},
+): Promise<{ result: T; panels: vscode.WebviewPanel[] }> {
+  // 15s, not a few hundred ms: `autoOpenPreviewForDocument` runs
+  // fire-and-forget off `onDidChangeActiveTextEditor` (see extension.ts) —
+  // `showTextDocument()` resolving does not mean that listener has even
+  // started, let alone reached its `createWebviewPanel` call. Measured
+  // empirically: with a short window here, every surface raced this wait,
+  // returned 0 panels, and the *actual* panel showed up during the next
+  // test's window instead (visible as "Cannot read properties of undefined
+  // (reading 'webview')" / "Webview is disposed" rejections logged a test
+  // or two later, once this test's own `closeAllEditors()` had already torn
+  // the panel down mid-open).
+  const { settleMs = 15000 } = opts;
   const panels: vscode.WebviewPanel[] = [];
   const original = vscode.window.createWebviewPanel;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -57,6 +105,7 @@ export async function captureWebviewPanels<T>(fn: () => Promise<T>): Promise<{ r
   };
   try {
     const result = await fn();
+    await waitFor(() => panels.length > 0, { timeoutMs: settleMs, label: 'a webview panel to be created' }).catch(() => undefined);
     return { result, panels };
   } finally {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
