@@ -113,6 +113,7 @@ export class PlantUMLPreview {
     if (!this.panel || !this.trackedUri) return;
     const doc = await vscode.workspace.openTextDocument(vscode.Uri.parse(this.trackedUri));
     const mediaDir = vscode.Uri.joinPath(this.extensionUri, 'media', 'plantuml');
+    if (!this.panel) return; // panel may have been disposed while awaiting above
     this.webviewReady = false;
     this.pendingSource = undefined;
     this.panel.webview.html = this.buildFrameHtml(this.panel.webview, mediaDir, path.basename(doc.fileName));
@@ -132,6 +133,7 @@ export class PlantUMLPreview {
     // A newer sendDocument() call ran while prepareSource() was awaiting —
     // this one is already stale, don't send it.
     if (seq !== this.renderSeq) return;
+    if (!this.panel) return; // panel may have been disposed while awaiting above
     if (this.webviewReady) {
       void this.panel.webview.postMessage({ type: 'render', source, seq });
     } else {

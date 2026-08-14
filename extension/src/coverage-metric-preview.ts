@@ -171,7 +171,9 @@ export class CoverageMetricPreview {
   private async pushDocument(doc: vscode.TextDocument): Promise<void> {
     if (!this.panel) return;
     const filename = doc.uri.path.split('/').pop() ?? '';
-    this.panel.webview.html = await this.buildHtml(doc.getText(), filename);
+    const html = await this.buildHtml(doc.getText(), filename);
+    if (!this.panel) return; // panel may have been disposed while awaiting above
+    this.panel.webview.html = html;
   }
 
   private async buildHtml(yamlText: string, filename = ''): Promise<string> {

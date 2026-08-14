@@ -160,8 +160,10 @@ export class BpmnJsPreview {
     if (!this.panel) return;
     try {
       const { xml, metrics, validation } = await this.compile(doc.getText());
+      if (!this.panel) return; // panel may have been disposed while awaiting above
       void this.panel.webview.postMessage({ type: 'update', xml, metrics, validation });
     } catch (e) {
+      if (!this.panel) return; // panel may have been disposed while awaiting above
       const err = e as Error & { errors?: string[] };
       const lines = err.errors?.length ? err.errors.join('\n') : '';
       void this.panel.webview.postMessage({

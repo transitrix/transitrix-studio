@@ -509,7 +509,9 @@ export class ProcessBlueprintPreview {
     if (!this.panel) return;
     this.lastYamlText = doc.getText();
     this.lastFilename = path.basename(doc.fileName);
-    this.panel.webview.html = await this.buildHtml(this.lastYamlText, this.lastFilename);
+    const html = await this.buildHtml(this.lastYamlText, this.lastFilename);
+    if (!this.panel) return; // panel may have been disposed while awaiting above
+    this.panel.webview.html = html;
   }
 
   private async buildHtml(yamlText: string, filename: string): Promise<string> {
