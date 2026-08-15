@@ -1,10 +1,10 @@
 name: VS Code Marketplace — publish
 
-# Triggered on every GitHub Release to publish the universal VSIX to the
-# VS Code Marketplace via `vsce publish`.
+# Publishes the universal VSIX to the VS Code Marketplace via `vsce publish`.
 #
-# A workflow_dispatch trigger is available for manual re-runs or to re-publish
-# a specific tag without creating a new release.
+# workflow_dispatch only — do not restore an automatic `release: published`
+# trigger without a maintainer decision first; see
+# docs/internal/vscode-marketplace-publish-runbook.md before changing this.
 #
 # Prerequisites (one-time maintainer setup — see docs/internal/vscode-marketplace-publish-runbook.md):
 #   - VSCE_PAT repo Actions secret set to an Azure DevOps personal access token
@@ -14,8 +14,6 @@ name: VS Code Marketplace — publish
 #     fail loudly rather than silently skipping.
 
 on:
-  release:
-    types: [published]
   workflow_dispatch: {}
 
 permissions:

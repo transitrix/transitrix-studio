@@ -3,8 +3,12 @@ name: Open VSX — publish
 # Triggered on every GitHub Release to publish the universal VSIX to the
 # Open VSX Registry (the registry Cursor, VSCodium, and Windsurf read).
 #
-# A workflow_dispatch trigger is available for manual re-runs or to publish a
-# specific branch/tag without creating a new release.
+# Publishes the exact file attach-release-vsix.yml attached to the release
+# at draft time — downloaded here, never rebuilt, so the artefact verified
+# before release is the artefact that ships.
+#
+# A workflow_dispatch trigger is available for manual re-runs; pass `tag` to
+# target a specific release without creating a new one.
 #
 # Prerequisites (one-time maintainer setup — see docs/internal/openvsx-publish-runbook.md):
 #   - OVSX_PAT repo Actions secret set to an Open VSX personal access token
@@ -13,7 +17,11 @@ name: Open VSX — publish
 on:
   release:
     types: [published]
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to publish (required for a manual run)
+        required: false
 
 permissions:
   contents: read
@@ -24,29 +32,30 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
 
-      - name: Install root dependencies
-        run: npm ci
+      - name: Download the release-attached VSIX
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          tag="${{ github.event.release.tag_name || inputs.tag }}"
+          if [ -z "$tag" ]; then
+            echo "::error::No release tag to publish — pass one via workflow_dispatch."
+            exit 1
+          fi
+          mkdir -p output
+          gh release download "$tag" --repo "${{ github.repository }}" \
+            --pattern '*.vsix' --pattern '*.sha256' --dir output
 
-      - name: Build extension bundle
-        # extension:prep bundles the extension and the compiler — no runtime
-        # dependency install step (extension/package.json declares none).
-        run: npm run extension:prep
-
-      - name: Verify extension packaging
-        run: npm run verify-extension-packaging
-
-      - name: Package VSIX
-        working-directory: extension
-        run: npx vsce package --out ../output/
+      - name: Verify the downloaded VSIX against its recorded SHA-256
+        shell: bash
+        run: |
+          cd output
+          sha256sum -c ./*.sha256
 
       - name: Publish to Open VSX
         shell: bash
@@ -55,4 +64,4 @@ jobs:
         run: |
           vsix=$(ls output/*.vsix | head -n 1)
           echo "Publishing: $vsix"
-          npx ovsx publish "$vsix" --pat "$OVSX_PAT"
+          npx --yes ovsx publish "$vsix" --pat "$OVSX_PAT"
