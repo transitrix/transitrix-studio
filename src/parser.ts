@@ -1,19 +1,16 @@
-import { createRequire } from 'node:module';
 import { readFileSync } from 'node:fs';
 import yaml from 'js-yaml';
+import { Ajv } from 'ajv';
+import addFormatsImport from 'ajv-formats';
 
 import type { AssociationIr, Bounds, ElementType, ProcessIr, SequenceFlowIr } from './ir.js';
 import { dslSchemaPath } from './schema-path.js';
 
 const SCHEMA = JSON.parse(readFileSync(dslSchemaPath(import.meta.url), 'utf8')) as object;
 
-/** TODO(esm-no-require): Prefer native ESM imports for Ajv/ajv-formats once the Node + bundler lineup no longer forces CJS bridging; upstream context: ajv-validator/ajv tracker (dual‑package exports & NodeNext). */
-const require = createRequire(import.meta.url);
-type AjvClass = typeof import('ajv').default;
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const Ajv = require('ajv') as AjvClass;
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const addFormats = require('ajv-formats') as (instance: InstanceType<AjvClass>) => void;
+// ajv-formats has no NodeNext-friendly named export; its default-import type resolves to the
+// module namespace rather than the callable plugin under `moduleResolution: NodeNext`.
+const addFormats = addFormatsImport as unknown as (instance: Ajv) => void;
 
 const ajv = new Ajv({ allErrors: true, strict: false });
 addFormats(ajv);
