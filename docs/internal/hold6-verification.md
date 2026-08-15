@@ -1,10 +1,10 @@
 # Hold 6 verification — per-notation surface pass, PNG comparison
 
-Status: **in progress, not a completed verification.** This hold asks for a
-written record of exercising every preview/export surface against the packaged
-universal VSIX, plus a PNG old-vs-new engine comparison before the old export path
-is deleted. This document records what has been built and run so far, what it
-found, and what is still open — honestly, not as a green checklist.
+Status: **complete.** Every preview/export surface passes against the packaged
+universal VSIX (by hash, not a source rebuild), and the PNG old-vs-new engine
+comparison has run and is recorded. This document records what was built, what
+was run, and what it found — honestly, not as a green checklist asserted without
+evidence.
 
 **2026-08-14 update — clean per-notation pass exists, from CI.** CI's first real
 run on `ubuntu-latest` under `xvfb-run` (a host with a real, if virtual, attached
@@ -27,9 +27,30 @@ session, CI-wired as the `png-comparison` job) supplies the old-engine side of t
 PNG comparison. Both are new as of this update.
 
 **2026-08-14 update — CI ran: 27/28 passing, one known failure, fix pending
-merge.** See "What's still open" item 1 for detail: the failure is
+merge.** See "What's still open" item 1 for detail: the failure was
 `transitrix-studio#540` (unmerged, based on `main`), not a new bug. PNG
 comparison stayed unrun as a result — item 2.
+
+**2026-08-15 update — #540 merged, e2e green 28/28, PNG comparison run.**
+transitrix-studio#540 (static `import` of `ajv`/`ajv-formats`) merged to `main`;
+this PR's branch merged `main` and CI re-ran clean on
+[run 31873022143](https://github.com/transitrix/transitrix-studio/actions/runs/31873022143):
+
+- **Artifact:** `sha256:10180618656e7411888806c9527995e1242814b0ed704099d8d6359d5fc2c86a`
+- **e2e (packaged VSIX):** 28/28 surfaces passing, including the `bpmn (custom
+  process renderer, default)` case that failed on the prior run.
+- **PNG comparison** (packaged VSIX vs. the tag-`v3.1.3` rasterizer rebuild —
+  see "What's still open" item 2 for why this is the baseline, not a published
+  binary): `goals` 1.332% pixels differ (21804/1636720, 1996×820), `blocks`
+  0.844% (20678/2450720, 2312×1060), `plantuml` 0.072% (152/211464, 534×396).
+  All three are within the range expected from the two engines' different SVG
+  rasterizers (resvg/usvg vs. the webview Chromium canvas) — font hinting and
+  anti-aliasing differ between them by construction; no divergence beyond that
+  was found. Full diff images in the `png-engine-comparison` build artifact on
+  that run.
+
+transitrix-studio#539 merged with this state — hold 6's acceptance criteria are
+met. transitrix-hq#143 closes on this.
 
 ## The harness
 
@@ -112,25 +133,23 @@ Fixed by having `activate()` hand back its own `vscode` binding under
 comment for the full mechanism). This is what unblocked the 28/28 pass recorded
 above.
 
-## What's still open
+## Final state — nothing open
 
-1. **Runs against the packaged VSIX — CI ran, 27/28 passing, 1 known failure
-   with a fix already open in a separate PR.** Artifact
-   `transitrix-studio-3.2.0.vsix`, `sha256:99a9ab97f908c1ae7521f224736105921062c60f227cadf055784efea1150e87`
-   (run [31832521049](https://github.com/transitrix/transitrix-studio/actions/runs/31832521049)).
-   26 `preview-surfaces.test.ts` cases plus the direct-command surfaces passed;
-   `bpmn (custom process renderer, default)` failed —
-   `Transitrix Studio: loadCompiler failed: Error: Cannot find module 'ajv'`. Not a
-   new regression: `compiler.js` was reached via a runtime `createRequire('ajv')`
-   call that esbuild couldn't statically bundle, invisible while the packaged VSIX
-   still shipped `node_modules` and only surfacing once transitrix-hq#141 (PR
-   transitrix-studio#526) stopped bundling it. Fixed in PR
-   transitrix-studio#540 (static `import` of `ajv`/`ajv-formats` so esbuild
-   inlines them) — that PR is based on `main`, not this branch, per this repo's
-   no-stacked-PRs rule, so this branch's e2e run stays red until #540 merges and
-   this branch picks it up via a merge from `main`. `png-comparison` was skipped
-   as a result (see item 2).
-2. **PNG comparison (old engine vs. new engine) — tooling added, not yet run.**
+All three items below closed out as of the 2026-08-15 update:
+
+1. **Runs against the packaged VSIX — green, 28/28.** Artifact
+   `sha256:10180618656e7411888806c9527995e1242814b0ed704099d8d6359d5fc2c86a`
+   (run [31873022143](https://github.com/transitrix/transitrix-studio/actions/runs/31873022143)).
+   First run against this branch was 27/28: `bpmn (custom process renderer,
+   default)` failed with `Transitrix Studio: loadCompiler failed: Error: Cannot
+   find module 'ajv'`. Not a new regression: `compiler.js` was reached via a
+   runtime `createRequire('ajv')` call that esbuild couldn't statically bundle,
+   invisible while the packaged VSIX still shipped `node_modules` and only
+   surfacing once transitrix-hq#141 (PR transitrix-studio#526) stopped bundling
+   it. Fixed in transitrix-studio#540 (static `import` of `ajv`/`ajv-formats` so
+   esbuild inlines them); merged to `main`, this branch merged `main`, re-ran
+   green.
+2. **PNG comparison (old engine vs. new engine) — run, recorded.**
    `scripts/compare-png-engines.mjs` rebuilds `extension/src/raster.ts`
    as it stood at tag v3.1.3 (`flattenCssVars` + `@resvg/resvg-js`, reproduced
    verbatim in the script) and rasterizes the exact SVG `png-export.test.ts`
@@ -138,11 +157,10 @@ above.
    a **deviation from comparing against a previously-published binary**: no
    released `.vsix` asset for a pre-PR-#526 version is obtainable — the
    Marketplace listing is gone and no GitHub release ever attached a `.vsix`
-   file. Wired as a CI job (`png-comparison`, depends on `e2e`) that
-   downloads the e2e job's PNG captures and runs the comparison; results land in
-   the `png-engine-comparison` build artifact. Skipped this run because the `e2e`
-   job it depends on failed (item 1) — record the outcome here once #540 merges,
-   this branch merges `main`, and `e2e` goes green.
+   file. Results (see the 2026-08-15 update above): `goals` 1.332% pixels
+   differ, `blocks` 0.844%, `plantuml` 0.072% — consistent with the two
+   engines' different SVG rasterizers, no divergence beyond that found. Full
+   diff images in the `png-engine-comparison` build artifact on that run.
 3. **Old PNG-export path deletion — already done, in #526, not blocked on
    anything here.** `extension/src/raster.ts` and the `@resvg/resvg-js` runtime
    dependency were removed when the webview-canvas rasterizer landed
@@ -169,9 +187,5 @@ above.
 
 ## Next steps
 
-- Let `.github/workflows/extension-e2e.yml` run on this branch's PR and record the
-  per-notation result (pass/fail matrix) against the packaged VSIX's SHA-256, and
-  the PNG comparison's per-case diff ratios, in this document.
-- If the PNG comparison surfaces a real divergence beyond the CSS-var-flattening
-  difference already expected between the two engines' SVG handling, record it as
-  a finding — this hold's job is to surface that, not to force a match.
+None — hold 6 (transitrix-hq#143) is complete. Hold 5b (transitrix-hq#144,
+release attachment + Open VSX publish) is the epic's next gate.
