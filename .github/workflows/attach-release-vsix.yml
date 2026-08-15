@@ -1,0 +1,67 @@
+name: Attach universal VSIX to release draft
+
+# Builds the universal VSIX once (build-vsix.yml) and attaches it, with its
+# recorded SHA-256, to the release as a downloadable asset — at draft
+# creation, before Valerii publishes it. Every registry-publish job
+# downstream of a published release downloads this exact asset instead of
+# repackaging, so the artefact verified before release is the one that ships.
+#
+# Runs on release *creation*, filtered to drafts: the release-runbook draft
+# step happens first, so the asset is already attached by the time
+# publishing the draft fires the registry-publish workflows.
+
+on:
+  release:
+    types: [created]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    if: github.event.release.draft == true
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    uses: ./.github/workflows/build-vsix.yml
+
+  attach:
+    needs: build
+    if: github.event.release.draft == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download universal VSIX artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.build.outputs.artifact-name }}
+          path: output
+
+      - name: Verify downloaded artifact matches the attested hash
+        shell: bash
+        run: |
+          vsix=$(ls output/*.vsix | head -n 1)
+          expected="${{ needs.build.outputs.sha256 }}"
+          actual=$(sha256sum "$vsix" | cut -d' ' -f1)
+          if [ "$actual" != "$expected" ]; then
+            echo "::error::downloaded artifact does not match the build job's recorded SHA-256"
+            exit 1
+          fi
+
+      - name: Attach VSIX and SHA-256 to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          for f in output/*.vsix output/*.sha256; do
+            name=$(basename "$f")
+            gh api \
+              --method POST \
+              -H "Accept: application/vnd.github+json" \
+              -H "Content-Type: application/octet-stream" \
+              "/repos/${{ github.repository }}/releases/${{ github.event.release.id }}/assets?name=$name" \
+              --input "$f" > /dev/null
+            echo "Attached $name"
+          done

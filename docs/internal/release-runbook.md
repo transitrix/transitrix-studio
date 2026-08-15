@@ -1,17 +1,20 @@
 # Release runbook
 
-How a Transitrix Studio release ships: **publishing the GitHub Release is
-the trigger for everything** — npm packages, both VS Code marketplaces, and
-the JetBrains plugin all publish from CI.
+How a Transitrix Studio release ships: **creating the release draft builds
+and attaches the universal VSIX; publishing the draft triggers the
+registry-publish jobs**, which consume that same attached file rather than
+rebuilding — npm packages, Open VSX, and the JetBrains plugin all publish
+from CI.
 
 ## What publishes where
 
 | Artifact | Pipeline | Trigger |
 |---|---|---|
+| Universal VSIX, attached to the release + SHA-256 recorded | `.github/workflows/attach-release-vsix.yml` | GitHub Release **created** as a draft |
 | `@transitrix/diagrams` + `@transitrix/cli` → npm | `.github/workflows/npm-publish.yml` | GitHub Release **published** (or `workflow_dispatch`) |
-| VS Code extension → VS Code Marketplace | `.github/workflows/vscode-marketplace-publish.yml` | same |
-| VS Code extension → Open VSX (Cursor / VSCodium / Windsurf) | `.github/workflows/openvsx-publish.yml` | same |
-| IntelliJ plugin → JetBrains Marketplace | `.github/workflows/jetbrains-publish.yml` | same (plugin version derived from the release tag, `v` prefix stripped) |
+| VS Code extension → VS Code Marketplace | `.github/workflows/vscode-marketplace-publish.yml` | `workflow_dispatch` only — see that workflow's header before changing this |
+| VS Code extension → Open VSX (Cursor / VSCodium / Windsurf) | `.github/workflows/openvsx-publish.yml` | GitHub Release **published** (or `workflow_dispatch`); downloads the asset `attach-release-vsix.yml` attached rather than rebuilding |
+| IntelliJ plugin → JetBrains Marketplace | `.github/workflows/jetbrains-publish.yml` | GitHub Release **published** (plugin version derived from the release tag, `v` prefix stripped) |
 
 Secrets backing the automation (repo Actions secrets): `NPM_TOKEN`
 (read-write on **both** `@transitrix/diagrams` and `@transitrix/cli`;
@@ -77,28 +80,36 @@ notes PRs:
   `## What's changed` heading. (A draft creates no tag; the tag is created
   on the then-current target when the draft is published — so always merge
   the release PR **before** drafting.)
-- Valerii reviews the draft, verifies the branch/commit it targets, and
-  publishes it — see step 4.
+- Creating the draft fires `attach-release-vsix.yml`: it builds the
+  universal VSIX once, records its SHA-256, and attaches both to the draft
+  as release assets. Confirm the assets are present before the next step —
+  a draft published without them leaves the registry-publish jobs with
+  nothing to download.
+- Valerii reviews the draft, verifies the branch/commit it targets and the
+  attached asset, and publishes it — see step 4.
 
 ### 4. Publish the release → automation fires
 
-Publishing the release starts all four workflows. Watch them under
-Actions → filter event `release`:
+Publishing the release starts the registry-publish workflows. Watch them
+under Actions → filter event `release`:
 
 - `npm — publish packages` — `@transitrix/diagrams` first, then
   `@transitrix/cli` (versions that are already on the registry are
   skipped). Verify with `npm view @transitrix/diagrams version` and
   `npm view @transitrix/cli version`.
-- `VS Code Marketplace — multi-platform publish` — per-platform VSIX build
-  (`extension:prep` installs the platform-correct `@resvg/resvg-js-*`
-  binary) + `vsce publish`.
-- `Open VSX — multi-platform publish` — same build matrix, `ovsx publish`.
+- `Open VSX — publish` — downloads the VSIX `attach-release-vsix.yml`
+  attached to this release (no rebuild) and runs `ovsx publish` on that
+  exact file.
 - `JetBrains Marketplace — publish` — sets `pluginVersion` in
   `intellij/gradle.properties` from the release tag, builds, signs,
   publishes.
 
+`VS Code Marketplace — publish` does **not** fire automatically — it is
+`workflow_dispatch` only; see that workflow's header comment before
+changing this.
+
 Every workflow also supports `workflow_dispatch` for re-runs (e.g. a
-transient marketplace failure) without re-publishing the release.
+transient registry failure) without re-publishing the release.
 
 ### 5. Post-publish sanity check (optional)
 

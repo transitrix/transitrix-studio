@@ -47,22 +47,19 @@ first Open VSX publish session:
 
 Open VSX does not require 2FA for publishes; the token gates the write.
 
-## Pre-flight checklist (run for every release)
+## Pre-flight checklist (manual publish only)
 
-Run from a clean checkout of the tag/commit being released, after the
-Marketplace pre-flight has passed:
+The CI path needs none of this — it downloads the release-attached VSIX
+directly. Run these checks only when publishing by hand from a clean
+checkout of the tag/commit being released:
 
-- [ ] The VS Code Marketplace publish for this version is **done** and
-      visible at <https://marketplace.visualstudio.com/items?itemName=transitrix.transitrix-studio>.
-      Open VSX is the second hop, not the source of truth.
-- [ ] The universal VSIX file from the Marketplace step is still on
-      disk (or rebuild it per [`packaging.md`](packaging.md)).
-- [ ] The `version` field in `extension/package.json` matches the
-      Marketplace listing exactly.
-- [ ] `extension/README.md` and the icon (`extension/icon.png`) match
-      what shipped to the Marketplace — Open VSX renders these on the
-      listing page from the VSIX itself, so there is nothing extra to
-      sync if the same artefact is used.
+- [ ] The universal VSIX to publish is on disk, either downloaded from the
+      release's assets or freshly built per [`packaging.md`](packaging.md).
+- [ ] The `version` field in `extension/package.json` matches the release
+      tag.
+- [ ] `extension/README.md` and the icon (`extension/icon.png`) are as
+      intended — Open VSX renders these on the listing page from the VSIX
+      itself, so there is nothing extra to sync.
 - [ ] `OVSX_PAT` is set in the current shell and `ovsx` is on PATH:
       ```bash
       ovsx --version
@@ -105,16 +102,18 @@ verification step needed beyond a spot check.
 
 ## Keeping Open VSX in sync on future releases
 
-The Open VSX publish is a **second hop** after every VS Code
-Marketplace release.
+The Open VSX publish runs from the GitHub Release directly — it does not
+wait on a VS Code Marketplace publish.
 
 ### CI path (recommended)
 
 The `.github/workflows/openvsx-publish.yml` workflow runs automatically
 on every GitHub Release (`release: types: [published]`) from a single
-`ubuntu-latest` job: builds the universal VSIX (`npm run extension:prep`
-+ `vsce package`, no `--target`) and publishes it with `ovsx publish`.
-The workflow reads `OVSX_PAT` from the repo Actions secret.
+`ubuntu-latest` job: downloads the universal VSIX that
+`.github/workflows/attach-release-vsix.yml` already attached to the
+release at draft time (no rebuild), verifies it against the recorded
+SHA-256, and publishes it with `ovsx publish`. The workflow reads
+`OVSX_PAT` from the repo Actions secret.
 
 ### Manual fallback
 

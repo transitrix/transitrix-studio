@@ -4,10 +4,12 @@ How to publish Transitrix Studio's VS Code extension to the
 [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=transitrix.transitrix-studio)
 so VS Code users can install it from within their editor.
 
-Publishing a GitHub Release triggers `.github/workflows/vscode-marketplace-publish.yml`,
-which builds and publishes a single universal VSIX with `vsce publish`. The
-Open VSX publish (for Cursor, VSCodium, Windsurf) is a separate workflow;
-see [`openvsx-publish-runbook.md`](openvsx-publish-runbook.md).
+`.github/workflows/vscode-marketplace-publish.yml` builds and publishes a
+single universal VSIX with `vsce publish`. It is currently
+**`workflow_dispatch` only** — publishing a GitHub Release does not trigger
+it; check with a maintainer before restoring that trigger. The Open VSX
+publish (for Cursor, VSCodium, Windsurf) is a separate workflow that does
+still run on release; see [`openvsx-publish-runbook.md`](openvsx-publish-runbook.md).
 
 ## What gets published
 
@@ -59,12 +61,11 @@ Rotation procedure:
 3. Trigger a `workflow_dispatch` run of `vscode-marketplace-publish.yml` to
    confirm the new token authenticates before the next release.
 
-## CI path (automated)
+## CI path (manual trigger)
 
-`.github/workflows/vscode-marketplace-publish.yml` runs automatically on
-every GitHub Release (`release: types: [published]`) and publishes the
-universal VSIX from a single job. The workflow also exposes a
-`workflow_dispatch` trigger for manual re-runs without creating a new release.
+`.github/workflows/vscode-marketplace-publish.yml` publishes the universal
+VSIX from a single job, run via its `workflow_dispatch` trigger in the
+Actions tab. It does not fire automatically on a GitHub Release.
 
 The job:
 1. Checks out the release tag.
