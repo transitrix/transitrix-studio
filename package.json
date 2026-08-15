@@ -55,7 +55,9 @@
     "sync-examples": "node scripts/sync-examples-from-methodology.mjs",
     "build:plantuml-assets": "node scripts/build-plantuml-assets.mjs",
     "build:test-e2e-extension": "tsc -p extension/test-e2e/tsconfig.json",
-    "test:e2e-extension": "npm run extension:prep && npm run build:test-e2e-extension && node scripts/prep-test-out-commonjs.mjs && node .test-out/extension-e2e/runTest.js"
+    "test:e2e-extension": "npm run extension:prep && npm run build:test-e2e-extension && node scripts/prep-test-out-commonjs.mjs && node .test-out/extension-e2e/runTest.js",
+    "test:e2e-extension:packaged": "npm run build:test-e2e-extension && node scripts/prep-test-out-commonjs.mjs && node .test-out/extension-e2e/runTest.js",
+    "compare-png-engines": "node scripts/compare-png-engines.mjs"
   },
   "bin": {
     "transitrix": "./dist/cli.js"
@@ -69,6 +71,7 @@
   },
   "devDependencies": {
     "@plantuml/core": "^1.2026.6",
+    "@resvg/resvg-js": "^2.6.2",
     "@types/js-yaml": "^4.0.9",
     "@types/mocha": "^10.0.10",
     "@types/node": "^22.20.1",
