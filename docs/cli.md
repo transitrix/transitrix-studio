@@ -77,6 +77,7 @@ transitrix validate --scope=repo [--root <dir>] [--json] [--include-model]
 transitrix new <goal|driver|constraint|requirement> --id <ID> --name "<label>" [options]
 transitrix export-compliance [--format md|pdf] [--scope law:<ID>|product:<ID>|gap] [--output <path>] [--root <dir>]
 transitrix impact [--root <dir>] [--json]
+transitrix render <input.ttrs> [--out <dir>] [--root <dir>] [--json]
 ```
 
 | Command | Purpose |
@@ -88,6 +89,7 @@ transitrix impact [--root <dir>] [--json]
 | `new <type>` | Scaffolds a standalone motivation-layer element (`goal`, `driver`, `constraint`, `requirement`) with the admission record and lifecycle envelope computed rather than hand-typed — see [Envelope defaults](#envelope-defaults). `--dry-run` previews without writing. Run `transitrix new <type> --help` for the per-type fields. |
 | `export-compliance` | Markdown or PDF report of the compliance views (matrix by default; `law:` / `product:` / `gap` scopes). Scans `--root` (default cwd). PDF needs WeasyPrint on PATH (`pipx install weasyprint`). |
 | `impact` | Names which `canon/views/**` documents a *staged* (`git add`, not yet committed) `canon/elements/**` change makes stale. Silent when nothing is staged, or when nothing this can resolve is affected. Resolves the three canon-projection view notations with a static resolver (`goals`, `dgca`/`fgca`, `action`); every other view (inline-form views, `blocks`, `applications`, `capability-map`, `compliance-impact`, `coverage-metric`, `bpmn`) is reported as coverage not determined, never as unaffected. Document (`.ttrs`) coverage is not yet included. `--root` sets the repo to check (default cwd). |
+| `render` | Renders a `.ttrs` document end to end — Pass 1 + Pass 2 + Markdown + PDF + a run-record — and writes `<basename>.md`, `<basename>.pdf` and `<basename>.run-record.json` next to the source (or into `--out`). No instruction-slot filler is supplied, so every slot renders open, same as the source's own unfilled state — this is a building block for a future regeneration offer, not a document-authoring tool of its own. `--root` sets the repo whose `git rev-parse HEAD` is recorded in the run-record (default: the source file's directory). Exits 1 on any unresolved model-object reference (`strict` profile, `runPass1`'s own default). |
 
 Flags: `--no-metrics` suppresses the metrics report on compile; `--no-validate`
 suppresses validation **warnings** (errors always run). Input files must use a
@@ -102,6 +104,7 @@ transitrix validate order.bpmn.transitrix.yaml --json
 transitrix validate --scope=repo --root organizations/acme_corp
 transitrix metrics order.bpmn.transitrix.yaml --json
 transitrix export-compliance --format md --scope gap --output gaps.md
+transitrix render canon/views/documents/product.mrd.ttrs
 transitrix serve --port 9000
 ```
 
