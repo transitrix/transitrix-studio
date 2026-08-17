@@ -19,10 +19,6 @@ dependencies {
     intellijPlatform {
         intellijIdeaCommunity(providers.gradleProperty("platformVersion"))
         testFramework(TestFrameworkType.Platform)
-        // Required by the IntelliJ Platform Gradle Plugin v2 for the
-        // `instrumentCode` task (form/NotNull bytecode instrumentation);
-        // without it the build fails with "No Java Compiler dependency found".
-        instrumentationTools()
         // Required for the `signPlugin` task — downloads the Marketplace ZIP Signer CLI.
         zipSigner()
     }
@@ -84,7 +80,7 @@ val webviewBundleDir = rootProject.layout.projectDirectory
 // output without a declared dependency (Gradle 8.x validation error).
 val webviewResourcesDir = layout.buildDirectory.dir("webview-resources")
 
-val syncWebviewBundle by tasks.registering(Copy::class) {
+val syncWebviewBundle = tasks.register<Copy>("syncWebviewBundle") {
     description = "Copy the @transitrix/diagrams webview bundle into the plugin resources."
     from(webviewBundleDir) {
         include("transitrix-render.js", "transitrix-render.css")
