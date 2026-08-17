@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { writeFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
+import { createInterface } from 'node:readline/promises';
 import * as path from 'node:path';
 
 import jsyaml from 'js-yaml';
@@ -45,7 +46,7 @@ import {
 } from './validate-fix.js';
 import { handleExportComplianceCommand } from './export-compliance.js';
 import { handleRenderCommand } from './render-document.js';
-import { computeStagedImpact, reportImpact } from './impact.js';
+import { computeStagedImpact, reportImpact, offerDocumentRegeneration } from './impact.js';
 import { transitrixPackageVersion } from './package-version.js';
 import { bundledDiagramsVersion } from './diagrams-version.js';
 import { isActionViewDoc } from '@transitrix/diagrams/activities';
@@ -780,6 +781,23 @@ async function handleImpactCommand(argv: string[]): Promise<void> {
 
   const result = computeStagedImpact(root);
   reportImpact(result, useJson);
+
+  // Regeneration offer: interactive (TTY) `transitrix impact` only —
+  // transitrix-hq#182. `--json` stays script-safe (no prompt, no behavior
+  // change) and a non-TTY run (CI, a pipe) is left exactly as `reportImpact`
+  // already printed it, since there is no one to answer a prompt.
+  const hasDocumentOffer = result.affected.some((f) => f.notation === 'documents');
+  if (!useJson && hasDocumentOffer && process.stdin.isTTY) {
+    const rl = createInterface({ input: process.stdin, output: process.stdout });
+    try {
+      await offerDocumentRegeneration(result, root, async (file) => {
+        const answer = await rl.question(`Regenerate ${file}? [y/N] `);
+        return /^y(es)?$/i.test(answer.trim());
+      });
+    } finally {
+      rl.close();
+    }
+  }
 }
 
 async function handleMetricsCommand(argv: string[]): Promise<void> {

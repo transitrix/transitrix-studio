@@ -22,6 +22,7 @@
 // coverage-not-determined, same honesty rule as an unresolvable view.
 
 import { execFileSync } from 'node:child_process';
+import * as path from 'node:path';
 import yaml from 'js-yaml';
 import { coerceDatesToIsoStrings } from '@transitrix/diagrams/yaml-normalize.js';
 import { resolveGoals, isGoalsViewDoc } from '@transitrix/diagrams/goals/resolver.js';
@@ -30,6 +31,7 @@ import { resolveAction, isActionViewDoc } from '@transitrix/diagrams/activities'
 import { loadRepoModel, loadViewDocs, loadDocumentSources } from './repo-validate.js';
 import { loadNotationYaml, notationOf } from './validate-notation.js';
 import { DOCUMENT_SOURCE_EXTENSION } from './validate-document-source.js';
+import { renderDocumentToDisk } from './render-document.js';
 // Vendored from methodology — see scripts/vendor-methodology-document-renderer.mjs
 // and tests/document-renderer-vendor.test.ts for the integrity check that
 // keeps this import target trustworthy. Only the syntax half (parseTemplate)
@@ -312,5 +314,39 @@ export function reportImpact(result: ImpactResult, useJson: boolean): void {
       console.log(`  • ${n.file} [${n.notation}]`);
     }
     console.log();
+  }
+}
+
+/** For each `documents` (`.ttrs`) artefact in `result.affected`, asks
+ *  `confirm` whether to regenerate it and, on acceptance, runs the same
+ *  render path `transitrix render` uses (transitrix-hq#186) — output is
+ *  identical to invoking that command directly on the same document
+ *  (transitrix-hq#182 acceptance criterion 3). `goals`/`dgca`/`fgca`/`action`
+ *  view findings are skipped: no headless-rendering path exists for them
+ *  (transitrix-hq#182's narrowed scope), so they get the notice `reportImpact`
+ *  already prints and nothing more. Declining writes nothing — `confirm`
+ *  returning `false` is a no-op, so the identical offer reappears on the next
+ *  run against the same staged change (acceptance criterion 4). Never called
+ *  for `--json` mode or for a `notDetermined` finding — both are the caller's
+ *  responsibility to keep out of `result.affected` before this runs. */
+export async function offerDocumentRegeneration(
+  result: ImpactResult,
+  root: string,
+  confirm: (file: string) => Promise<boolean>,
+): Promise<void> {
+  for (const finding of result.affected) {
+    if (finding.notation !== 'documents') continue;
+    const accept = await confirm(finding.file);
+    if (!accept) continue;
+
+    const renderResult = await renderDocumentToDisk({ path: path.join(root, finding.file), root });
+    if (renderResult.ok) {
+      console.log(`  ✓ regenerated ${finding.file} → ${renderResult.markdownPath}, ${renderResult.pdfPath}, ${renderResult.runRecordPath}`);
+    } else {
+      console.error(`  ✗ ${finding.file}`);
+      for (const e of renderResult.errors) {
+        console.error(`    ${e.code}: ${e.message}`);
+      }
+    }
   }
 }
