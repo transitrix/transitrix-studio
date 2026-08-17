@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Re-vendor @transitrix/document-renderer's pass-1 resolver into vendor/methodology/.
+ * Re-vendor @transitrix/document-renderer's render pipeline into vendor/methodology/.
  *
  * Same contract as vendor-methodology-vocabulary.mjs: vendor a tagged release,
  * never a local sibling checkout and never a branch, so what lands here is what
@@ -8,14 +8,19 @@
  * path — "Pass 1 ships as a unit callable on its own, so pass 2 and Studio's
  * preview can both depend on it as a library."
  *
- * Five files make up the callable unit: pass1.mjs is the entry point;
- * parse-template.mjs, repository.mjs, ids.mjs and syntax.mjs are what it
- * imports. Vendored verbatim, with their relative imports intact, so
- * pass1.mjs resolves the same way here as it does in methodology's own tree.
+ * Eight files make up the vendored surface: pass1.mjs (the deterministic
+ * resolver) and its four imports (parse-template.mjs, repository.mjs,
+ * ids.mjs, syntax.mjs) — vendored first for the .ttrs preview — plus
+ * pass2.mjs (fills instruction slots via a caller-supplied agent hook),
+ * render-pdf.mjs (Markdown → PDF, dependency-free) and run-record.mjs (the
+ * provenance stamp), vendored for `transitrix render`'s persisted end-to-end
+ * render (transitrix-hq#186). Vendored verbatim, with their relative imports
+ * intact, so each file resolves the same way here as it does in methodology's
+ * own tree.
  *
  * Usage:
- *   node scripts/vendor-methodology-document-renderer.mjs --ref v3.4.0
- *   node scripts/vendor-methodology-document-renderer.mjs --ref v3.4.0 --check
+ *   node scripts/vendor-methodology-document-renderer.mjs --ref v3.5.0
+ *   node scripts/vendor-methodology-document-renderer.mjs --ref v3.5.0 --check
  *
  * --check fetches and reports what would change without writing anything.
  *
@@ -33,7 +38,10 @@ const VENDOR_DIR = path.resolve(HERE, '..', 'vendor', 'methodology', 'document-r
 
 const SOURCE_REPO = 'transitrix/methodology';
 const SOURCE_DIR = 'packages/document-renderer/src';
-const FILES = ['pass1.mjs', 'parse-template.mjs', 'repository.mjs', 'ids.mjs', 'syntax.mjs'];
+const FILES = [
+  'pass1.mjs', 'parse-template.mjs', 'repository.mjs', 'ids.mjs', 'syntax.mjs',
+  'pass2.mjs', 'render-pdf.mjs', 'run-record.mjs',
+];
 
 function parseArgs(argv) {
   const out = { ref: null, check: false };

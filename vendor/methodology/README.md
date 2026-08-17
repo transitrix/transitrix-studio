@@ -39,14 +39,20 @@ in the same change.
 
 ## `document-renderer/`
 
-The five source files of `@transitrix/document-renderer`'s pass-1 resolver
-(`pass1.mjs` and the four modules it imports: `parse-template.mjs`,
-`repository.mjs`, `ids.mjs`, `syntax.mjs`). The package's own README states this
-is the intended integration path: "Pass 1 ships as a unit callable on its own,
-so pass 2 and Studio's preview can both depend on it as a library rather than
-on the whole renderer." Studio's `.ttrs` preview (`extension/src/ttrs-preview.ts`)
-imports `runPass1` from the vendored copy — a real library call against the
-methodology-authored resolver, not a reimplementation of its resolution logic.
+Eight source files of `@transitrix/document-renderer`'s render pipeline:
+`pass1.mjs` (the deterministic resolver) and the four modules it imports
+(`parse-template.mjs`, `repository.mjs`, `ids.mjs`, `syntax.mjs`) — vendored
+first for the `.ttrs` preview — plus `pass2.mjs` (fills instruction slots via
+a caller-supplied agent hook), `render-pdf.mjs` (Markdown → PDF, dependency-
+free) and `run-record.mjs` (the provenance stamp), vendored for
+`transitrix render`'s persisted end-to-end render (transitrix-hq#186). The
+package's own README states this is the intended integration path: "Pass 1
+ships as a unit callable on its own, so pass 2 and Studio's preview can both
+depend on it as a library rather than on the whole renderer." Studio's
+`.ttrs` preview (`extension/src/ttrs-preview.ts`) imports `runPass1` from the
+vendored copy, and `src/render-document.ts` imports all three render-pipeline
+modules — real library calls against the methodology-authored renderer, not a
+reimplementation of its logic.
 
 `VENDORED.json` records the source tag and a per-file SHA-256 (LF-normalised).
 `tests/document-renderer-vendor.test.ts` fails closed: a missing file, an
@@ -55,7 +61,7 @@ unpinned file, or a hash mismatch is a build failure, never a pass.
 ### Refreshing
 
 ```
-node scripts/vendor-methodology-document-renderer.mjs --ref v3.4.0
+node scripts/vendor-methodology-document-renderer.mjs --ref v3.5.0
 ```
 
 Same fetch-from-tag contract as `vocabulary.yaml` above — never a sibling

@@ -1,13 +1,16 @@
 {
   "source_repo": "transitrix/methodology",
-  "source_ref": "v3.3.0",
+  "source_ref": "v3.5.0",
   "source_path": "packages/document-renderer/src",
   "files": {
     "pass1.mjs": "10de90ea275d74680bbb8586136bbdb59485090cc263edc0d3dfa903a444abc7",
     "parse-template.mjs": "0109b7ac5edc733e01bb3ec1cd1b8fff10127b06a3d3dc5e33d85a4674065ca0",
     "repository.mjs": "4b90bfe47507205495ea297d7a666c718058ece3d5569a1403059b7f59260493",
     "ids.mjs": "f007b6b1d266b661dcb2a47c91e61c61466af06add68e09f3d8576d05059b084",
-    "syntax.mjs": "b6d1f5bf74d705c262454202289e64475cbaad3e4924e2c89a64660c6de2fd97"
+    "syntax.mjs": "b6d1f5bf74d705c262454202289e64475cbaad3e4924e2c89a64660c6de2fd97",
+    "pass2.mjs": "0f27365e60a4982265c7efd3b93fc09465700cbd6191370b8f7e741bc2a6825b",
+    "render-pdf.mjs": "c2b9679c9b5420fc211dfeba4e196350da1b92e468b46be7b95cc7b3520f1455",
+    "run-record.mjs": "d972147a246c21c438cf12cf67564e7db473fd4aa60bd763ac75fa0942869b60"
   },
-  "vendored_on": "2026-08-08"
+  "vendored_on": "2026-08-16"
 }
