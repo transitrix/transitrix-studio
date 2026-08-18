@@ -30,6 +30,7 @@
 import { checkStrategyChainSemantics } from './check-strategy-chain.js';
 import { checkElementHygiene } from './check-element-hygiene.js';
 import { checkVersionedAttributes } from './check-versioned-attributes.js';
+import { checkCandidateFields } from './check-candidate-fields.js';
 import type { RepoDoc, RepoFinding, RepoModelInput } from './types.js';
 
 const PScope: RepoFinding['scope'] = 'repo';
@@ -431,5 +432,8 @@ export function validateRepoModel(input: RepoModelInput): RepoFinding[] {
   checkElementHygiene(input, findings);
   // Phase 9 — versioned-attribute sidecar rules (CONTRACT.md §9, VERSIONED-001..005).
   checkVersionedAttributes(input, findings);
+  // Phase 10 — candidate-only fields on admitted canon (ELEMENT_PRIMITIVES.md
+  // §7.29, ELEM-CANDIDATE-FIELD-001).
+  checkCandidateFields(input, findings);
   return findings;
 }
