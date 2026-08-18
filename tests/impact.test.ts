@@ -1,11 +1,11 @@
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, existsSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 
 import { afterEach, describe, it, expect, vi } from 'vitest';
 
-import { computeStagedImpact, stagedCanonElementIds, reportImpact } from '../src/impact.js';
+import { computeStagedImpact, stagedCanonElementIds, reportImpact, offerDocumentRegeneration } from '../src/impact.js';
 
 // A staged canon/elements/** change is only meaningful against a real git
 // index (git diff --cached), so — same pattern as
@@ -333,5 +333,149 @@ describe('computeStagedImpact — .ttrs document coverage (transitrix-hq#89)', (
     const result = computeStagedImpact(root);
     expect(result.affected).toEqual([]);
     expect(result.notDetermined).toEqual([]);
+  });
+});
+
+describe('offerDocumentRegeneration (transitrix-hq#182)', () => {
+  it('offers each documents artefact by name and skips a view finding entirely', async () => {
+    root = initRepo();
+    seedBaseline(root); // dgca view resolves every GOAL element (filter: all)
+    write(
+      root,
+      'canon/views/documents/product.mrd.ttrs',
+      ttrsDoc('product.mrd', 'Cites {{ GOAL-1 }} directly.'),
+    );
+    commitAll(root, 'add a document source');
+    write(root, 'canon/elements/goals/GOAL-1.yaml', goalYaml('GOAL-1', 'Grow revenue by 20%'));
+    git(['add', 'canon/elements/goals/GOAL-1.yaml'], root);
+
+    const result = computeStagedImpact(root);
+    expect(result.affected).toEqual([
+      { file: 'canon/views/strategy/dgca.dgca.transitrix.yaml', notation: 'dgca' },
+      { file: 'canon/views/documents/product.mrd.ttrs', notation: 'documents' },
+    ]);
+
+    const confirm = vi.fn(async () => false);
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+    await offerDocumentRegeneration(result, root, confirm);
+    log.mockRestore();
+
+    // Asked once, for the documents artefact only — never for the dgca view.
+    expect(confirm).toHaveBeenCalledTimes(1);
+    expect(confirm).toHaveBeenCalledWith('canon/views/documents/product.mrd.ttrs');
+  });
+
+  it('never offers a coverage-not-determined document, only the determined one', async () => {
+    root = initRepo();
+    seedBaseline(root);
+    write(
+      root,
+      'canon/views/documents/determined.mrd.ttrs',
+      ttrsDoc('determined.mrd', 'Cites {{ REQ-1 }} directly.'),
+    );
+    write(
+      root,
+      'canon/views/documents/undetermined.mrd.ttrs',
+      ttrsDoc('undetermined.mrd', '{{# each REQUIREMENT }}\n{{ .id }}\n{{/ each }}\n\nAlso cites {{ REQ-1 }}.'),
+    );
+    commitAll(root, 'add two document sources');
+    write(root, 'canon/elements/requirements/REQ-1.yaml', requirementYaml('REQ-1', 'Reworded wording'));
+    git(['add', 'canon/elements/requirements/REQ-1.yaml'], root);
+
+    const result = computeStagedImpact(root);
+    expect(result.affected).toEqual([
+      { file: 'canon/views/documents/determined.mrd.ttrs', notation: 'documents' },
+    ]);
+    expect(result.notDetermined).toEqual([
+      { file: 'canon/views/documents/undetermined.mrd.ttrs', notation: 'documents' },
+    ]);
+
+    const confirm = vi.fn(async () => false);
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+    await offerDocumentRegeneration(result, root, confirm);
+    log.mockRestore();
+
+    expect(confirm).toHaveBeenCalledTimes(1);
+    expect(confirm).toHaveBeenCalledWith('canon/views/documents/determined.mrd.ttrs');
+  });
+
+  it('accepting the offer regenerates the document — identical to running the render path directly', async () => {
+    root = initRepo();
+    seedBaseline(root);
+    // `canon: ../..` (from canon/views/documents/ back to canon/) gives Pass 1
+    // a real repository to resolve {{ REQ-1 }} against, same as any other
+    // document that declares its own repository root.
+    write(
+      root,
+      'canon/views/documents/product.mrd.ttrs',
+      [
+        '---',
+        'document: "Test document"',
+        'kind: mrd',
+        'template_id: product.mrd',
+        'template_version: "1.0"',
+        'canon: ../..',
+        '---',
+        '',
+        'Cites {{ REQ-1 }} directly.',
+        '',
+      ].join('\n'),
+    );
+    commitAll(root, 'add a document source');
+    write(root, 'canon/elements/requirements/REQ-1.yaml', requirementYaml('REQ-1', 'Reworded wording'));
+    git(['add', 'canon/elements/requirements/REQ-1.yaml'], root);
+
+    const result = computeStagedImpact(root);
+    const markdownPath = join(root, 'canon/views/documents/product.mrd.md');
+    const pdfPath = join(root, 'canon/views/documents/product.mrd.pdf');
+    const runRecordPath = join(root, 'canon/views/documents/product.mrd.run-record.json');
+    expect(existsSync(markdownPath)).toBe(false);
+
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+    await offerDocumentRegeneration(result, root, async () => true);
+    log.mockRestore();
+
+    expect(existsSync(markdownPath)).toBe(true);
+    expect(existsSync(pdfPath)).toBe(true);
+    expect(existsSync(runRecordPath)).toBe(true);
+
+    const offerMarkdown = readFileSync(markdownPath, 'utf8');
+    expect(offerMarkdown).toContain('REQ-1');
+
+    const { renderDocumentToDisk } = await import('../src/render-document.js');
+    const direct = await renderDocumentToDisk({
+      path: join(root, 'canon/views/documents/product.mrd.ttrs'),
+      root,
+      outDir: join(root, 'direct-out'),
+    });
+    expect(direct.ok).toBe(true);
+    expect(readFileSync(direct.markdownPath, 'utf8')).toBe(offerMarkdown);
+  });
+
+  it('declining performs no regeneration and writes no state — the identical offer reappears', async () => {
+    root = initRepo();
+    seedBaseline(root);
+    write(
+      root,
+      'canon/views/documents/product.mrd.ttrs',
+      ttrsDoc('product.mrd', 'Cites {{ REQ-1 }} directly.'),
+    );
+    commitAll(root, 'add a document source');
+    write(root, 'canon/elements/requirements/REQ-1.yaml', requirementYaml('REQ-1', 'Reworded wording'));
+    git(['add', 'canon/elements/requirements/REQ-1.yaml'], root);
+
+    const firstResult = computeStagedImpact(root);
+    const markdownPath = join(root, 'canon/views/documents/product.mrd.md');
+
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+    await offerDocumentRegeneration(firstResult, root, async () => false);
+    log.mockRestore();
+
+    expect(existsSync(markdownPath)).toBe(false);
+
+    // Nothing was staged or written as a side effect of declining — the same
+    // staged change produces the identical offer on a second run.
+    const secondResult = computeStagedImpact(root);
+    expect(secondResult).toEqual(firstResult);
   });
 });
