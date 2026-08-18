@@ -325,6 +325,45 @@ whether `CMAP-003` should stop *requiring* `current_maturity` inline (a
 validator-tightening question, not a render-pipeline one) — not guessed at
 here.
 
+### Candidate-only fields on admitted canon (`ELEM-CANDIDATE-FIELD-001`)
+
+`ELEMENT_PRIMITIVES.md` §7.29 (methodology v3.6.0) closes `extraction_confidence`
+out of canon for every TYPE, not only for `RELEASE` where the paragraph sits: it
+is a review flag on an ingest **candidate**, surfaced in the review queue and
+used for reviewer-authority routing (CONTRACT.md §6.2), and it is *never
+persisted into canon*. Implemented in
+`packages/diagrams/src/repo-validate/check-candidate-fields.ts`.
+
+| Rule | Severity | Checks |
+|---|---|---|
+| `ELEM-CANDIDATE-FIELD-001` | error | An admitted (`zone: canon`) element carries a candidate-only field (`extraction_confidence`), of any TYPE. |
+
+**Candidate selection is the admission marker, not a notation list** — `zone:
+canon` (`ELEMENT_PRIMITIVES.md` §3, a required envelope field) is what makes the
+field wrong, so the check reads it directly rather than enumerating TYPEs it
+would have to keep in step with §4. It says nothing about `zone: field` or `zone:
+codex` artefacts, where harvest metadata legitimately lives (`source_quality` is
+that zone's own provenance field, CONTRACT.md §5/§11.2), nor about a candidate
+before admission. Sidecars carry neither `zone` nor `id` and fall out for free.
+
+**The message names the replacement, not just the defect** — an element admitted
+from extracted evidence cites it through `derived_from` (§3) pointing at an
+`OBSERVATION` or another Field/Codex artefact, which is the pattern §7.29's own
+fix (`transitrix-hq#197`) put in place.
+
+**The rule code is Studio-authored.** It follows the shape methodology already
+uses for a named element-envelope rule outside the numbered run (`ELEM-ALIAS-001`,
+`ELEM-FORMER-ID-001`) and deliberately avoids taking `ELEM-006` — the numbered
+`ELEM-*` run is methodology's to extend. If methodology registers a code of its
+own for §7.29, this becomes its alias.
+
+**Scope: repo only, for now.** `--scope=file` has no cross-TYPE envelope pass —
+it dispatches to a per-notation validator, and several element TYPEs (`release`
+among them, the one §7.29 is written against) have no file-scope validator wired
+yet, so a check added there would cover the rule unevenly. Whole-canon scope
+covers every TYPE uniformly today; a file-scope half is a follow-up, not a gap
+this rule leaves in `--scope=repo`.
+
 ### Compliance suite (`--scope=repo`, #518)
 
 Repo-scope validation also sweeps the compliance notation surface with the same
