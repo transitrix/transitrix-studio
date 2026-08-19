@@ -43,10 +43,28 @@ export const MAX_YAML_BYTES = 2 * 1024 * 1024; // 2 MiB
 /** Directories never worth descending into during the canon scan. */
 const IGNORED_SCAN_DIRS = new Set(['node_modules', '.git']);
 
-/** True for `*.yaml`/`*.yml` paths that don't live under an ignored directory. */
+/**
+ * True for a path with a `notations/examples/` segment pair — the methodology
+ * repo's bundled worked examples. Those are complete, admission-stamped
+ * documents (transitrix-hq#218): indistinguishable from adopter canon to the
+ * `zone: canon` admission check, so a vendored/sibling copy of the methodology
+ * anywhere under `--root` would otherwise have its example subjects silently
+ * absorbed into the scan.
+ */
+function isVendoredMethodologyExample(rel: string): boolean {
+  const segs = rel.split(/[\\/]/);
+  for (let i = 0; i < segs.length - 1; i++) {
+    if (segs[i] === 'notations' && segs[i + 1] === 'examples') return true;
+  }
+  return false;
+}
+
+/** True for `*.yaml`/`*.yml` paths that don't live under an ignored directory
+ *  or a vendored methodology examples tree. */
 function isScannableYaml(rel: string): boolean {
   if (!/\.ya?ml$/i.test(rel)) return false;
-  return !rel.split(/[\\/]/).some(seg => IGNORED_SCAN_DIRS.has(seg));
+  if (rel.split(/[\\/]/).some(seg => IGNORED_SCAN_DIRS.has(seg))) return false;
+  return !isVendoredMethodologyExample(rel);
 }
 
 /**
@@ -138,6 +156,12 @@ function scanCanonFs(root: string): ComplianceCanon {
     if (parsed === undefined) continue;
     if (!isAdmittedCanonOrCodex(parsed)) continue;
     ingestComplianceDoc(canon, parsed);
+  }
+  if (canon.duplicateIds.length > 0) {
+    console.error(
+      `[export-compliance] duplicate element id(s) found under ${root}, second and later occurrences dropped: ` +
+      canon.duplicateIds.join(', '),
+    );
   }
   return canon;
 }

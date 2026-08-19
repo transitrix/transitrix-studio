@@ -40,6 +40,14 @@ export interface ComplianceCanon {
   /** VALIDATION artefacts (28-validation.md) — the validation-domain peer of
    *  `verifications`, anchored on NEED instead of REQUIREMENT. */
   validations: IndexValidation[];
+  /**
+   * Ids rejected by `ingestComplianceDoc` because that id was already present
+   * in the same bucket (two documents claiming one id — transitrix-hq#218).
+   * The second and any later document is dropped rather than silently
+   * duplicating a matrix column; callers that scan a filesystem can surface
+   * this list as a diagnostic.
+   */
+  duplicateIds: string[];
 }
 
 export function emptyCanon(): ComplianceCanon {
@@ -52,6 +60,7 @@ export function emptyCanon(): ComplianceCanon {
     subjects: [],
     needs: [],
     validations: [],
+    duplicateIds: [],
   };
 }
 
@@ -60,11 +69,28 @@ const strArray = (v: unknown): string[] | undefined =>
   Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : undefined;
 
 /**
+ * Pushes `item` onto `list` unless `list` already holds an entry with the same
+ * id, in which case the id is recorded in `canon.duplicateIds` and the item is
+ * dropped — two documents claiming one id is a defect (transitrix-hq#218), not
+ * a second matrix column.
+ */
+function pushUnique<T extends { id: string }>(canon: ComplianceCanon, list: T[], item: T): boolean {
+  if (list.some(existing => existing.id === item.id)) {
+    canon.duplicateIds.push(item.id);
+    return false;
+  }
+  list.push(item);
+  return true;
+}
+
+/**
  * Classifies one parsed YAML document and, if it is a compliance artefact,
  * pushes its projection into `canon`. Products / requirements / assertions are
  * identified by their `notation` tag; codex source documents by `zone: codex`.
  * Returns the artefact id when ingested (so the caller can record its path), or
- * null when the document is not a (well-formed) compliance artefact.
+ * null when the document is not a (well-formed) compliance artefact, or when
+ * its id duplicates one already ingested into the same bucket (see
+ * `canon.duplicateIds`).
  */
 export function ingestComplianceDoc(canon: ComplianceCanon, doc: unknown): string | null {
   if (doc === null || typeof doc !== 'object' || Array.isArray(doc)) return null;
@@ -73,8 +99,7 @@ export function ingestComplianceDoc(canon: ComplianceCanon, doc: unknown): strin
   if (!id) return null;
 
   if (d.notation === 'product') {
-    canon.products.push({ id, name: str(d.name) ?? id });
-    return id;
+    return pushUnique(canon, canon.products, { id, name: str(d.name) ?? id }) ? id : null;
   }
   if (
     d.notation === 'capability' ||
@@ -82,12 +107,11 @@ export function ingestComplianceDoc(canon: ComplianceCanon, doc: unknown): strin
     d.notation === 'application' ||
     d.notation === 'system'
   ) {
-    canon.subjects.push({ id, name: str(d.name) ?? id });
-    return id;
+    return pushUnique(canon, canon.subjects, { id, name: str(d.name) ?? id }) ? id : null;
   }
   if (d.notation === 'requirement' || d.notation === 'constraint') {
     const origin = str(d.origin);
-    canon.requirements.push({
+    const ok = pushUnique(canon, canon.requirements, {
       id,
       name: str(d.name) ?? id,
       severity: str(d.severity),
@@ -101,31 +125,30 @@ export function ingestComplianceDoc(canon: ComplianceCanon, doc: unknown): strin
       next_review_at: str(d.next_review_at),
       serves: str(d.serves),
     });
-    return id;
+    return ok ? id : null;
   }
   if (d.notation === 'need') {
-    canon.needs.push({ id, name: str(d.name) ?? id });
-    return id;
+    return pushUnique(canon, canon.needs, { id, name: str(d.name) ?? id }) ? id : null;
   }
   if (d.notation === 'validation') {
     const validates = str(d.validates);
     const method = str(d.method) as ValidationMethod | undefined;
     const outcome = str(d.outcome) as ValidationOutcome | undefined;
     if (!validates || !method || !outcome) return null;
-    canon.validations.push({
+    const ok = pushUnique(canon, canon.validations, {
       id, validates, method, outcome,
       performed_at: str(d.performed_at),
       evidenceCount: Array.isArray(d.evidence) ? d.evidence.length : 0,
       admitted_at: str(d.admitted_at),
     });
-    return id;
+    return ok ? id : null;
   }
   if (d.notation === 'assertion') {
     const about = str(d.about);
     const subject = str(d.subject);
     const status = str(d.status) as AssertionStatus | undefined;
     if (!about || !subject || !status) return null;
-    canon.assertions.push({
+    const ok = pushUnique(canon, canon.assertions, {
       id, about, subject, status,
       assessed_at: str(d.assessed_at),
       next_review_at: str(d.next_review_at),
@@ -134,24 +157,23 @@ export function ingestComplianceDoc(canon: ComplianceCanon, doc: unknown): strin
       realised_via: strArray(d.realised_via),
       owner_to_confirm: str(d.owner_to_confirm),
     });
-    return id;
+    return ok ? id : null;
   }
   if (d.notation === 'verification') {
     const verifies = str(d.verifies);
     const method = str(d.method) as VerificationMethod | undefined;
     const outcome = str(d.outcome) as VerificationOutcome | undefined;
     if (!verifies || !method || !outcome) return null;
-    canon.verifications.push({
+    const ok = pushUnique(canon, canon.verifications, {
       id, verifies, method, outcome,
       performed_at: str(d.performed_at),
       evidenceCount: Array.isArray(d.evidence) ? d.evidence.length : 0,
       admitted_at: str(d.admitted_at),
     });
-    return id;
+    return ok ? id : null;
   }
   if (d.zone === 'codex') {
-    canon.codex.push({ id, name: str(d.name) ?? id, type: str(d.type), jurisdiction: str(d.jurisdiction) });
-    return id;
+    return pushUnique(canon, canon.codex, { id, name: str(d.name) ?? id, type: str(d.type), jurisdiction: str(d.jurisdiction) }) ? id : null;
   }
   return null;
 }
