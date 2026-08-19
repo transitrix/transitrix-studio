@@ -27,10 +27,10 @@ function model(elements: RepoDoc[]): RepoModelInput {
 }
 
 function candidateFindings(input: RepoModelInput) {
-  return validateRepoModel(input).filter((f) => f.ruleId === 'ELEM-CANDIDATE-FIELD-001');
+  return validateRepoModel(input).filter((f) => f.ruleId === 'ADMIT-009');
 }
 
-describe('checkCandidateFields — ELEM-CANDIDATE-FIELD-001', () => {
+describe('checkCandidateFields — ADMIT-009', () => {
   it('flags extraction_confidence on an admitted RELEASE element', () => {
     const findings = candidateFindings(model([release({ extraction_confidence: 'high' })]));
     expect(findings.length).toBe(1);
