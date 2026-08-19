@@ -61,4 +61,23 @@ describe('ingestComplianceDoc', () => {
     expect(canon.products).toEqual([]);
     expect(canon.subjects).toEqual([]);
   });
+
+  // transitrix-hq#218 — two documents claiming the same product id rendered as
+  // two identical matrix columns because canon.products.push had no dedup.
+  it('drops a second document that reuses an already-ingested id in the same bucket', () => {
+    const canon = emptyCanon();
+    expect(ingestComplianceDoc(canon, { notation: 'product', id: 'PRODUCT-1', name: 'First' })).toBe('PRODUCT-1');
+    expect(ingestComplianceDoc(canon, { notation: 'product', id: 'PRODUCT-1', name: 'Duplicate' })).toBeNull();
+    expect(canon.products).toEqual([{ id: 'PRODUCT-1', name: 'First' }]);
+    expect(canon.duplicateIds).toEqual(['PRODUCT-1']);
+  });
+
+  it('does not flag a repeated id across different buckets as a duplicate', () => {
+    const canon = emptyCanon();
+    ingestComplianceDoc(canon, { notation: 'product', id: 'SAME-1', name: 'P' });
+    ingestComplianceDoc(canon, { notation: 'capability', id: 'SAME-1', name: 'C' });
+    expect(canon.products).toEqual([{ id: 'SAME-1', name: 'P' }]);
+    expect(canon.subjects).toEqual([{ id: 'SAME-1', name: 'C' }]);
+    expect(canon.duplicateIds).toEqual([]);
+  });
 });
