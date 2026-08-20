@@ -1,4 +1,4 @@
-// Candidate-only fields on admitted canon — `ELEM-CANDIDATE-FIELD-001`.
+// Candidate-only fields on admitted canon — `ADMIT-009`.
 //
 // `ELEMENT_PRIMITIVES.md` §7.29 (methodology v3.6.0) states it normatively for
 // `RELEASE` and then generalises it to every TYPE:
@@ -28,13 +28,14 @@
 // `zone` and no `id`, so they fall out for free — the same "no id -> not an
 // element" split `docId` already makes for every sibling check in this folder.
 //
-// **Rule code.** `ELEM-CANDIDATE-FIELD-001` is Studio-authored, in the shape
+// **Rule code.** Studio-authored as `ELEM-CANDIDATE-FIELD-001` (in the shape
 // methodology already uses for a named element-envelope rule outside the
-// numbered run (`ELEM-ALIAS-001`, `ELEM-FORMER-ID-001`). It deliberately does
-// not take `ELEM-006`: the numbered `ELEM-*` run is methodology's to extend,
-// and squatting the next free number would collide with whatever it registers
-// there next. If methodology later registers a code of its own for §7.29, this
-// one becomes its alias and the rename is a one-line change here.
+// numbered run — `ELEM-ALIAS-001`, `ELEM-FORMER-ID-001` — deliberately not
+// `ELEM-006`, since the numbered `ELEM-*` run is methodology's to extend and
+// squatting the next free number would collide with whatever it registers
+// there next). Renamed to `ADMIT-009` (transitrix/methodology#505, merged
+// 2026-08-19) now that methodology has registered a code of its own for
+// §7.29 — no functional change, this is that alias.
 
 import { docId } from './validate-repo.js';
 import type { RepoDoc, RepoFinding, RepoModelInput } from './types.js';
@@ -67,9 +68,8 @@ function isAdmittedCanonElement(doc: RepoDoc): boolean {
 }
 
 /**
- * `ELEM-CANDIDATE-FIELD-001` — a candidate-only field present on an admitted
- * (`zone: canon`) element, of any TYPE. Appends findings; pure, deterministic
- * order.
+ * `ADMIT-009` — a candidate-only field present on an admitted (`zone: canon`)
+ * element, of any TYPE. Appends findings; pure, deterministic order.
  */
 export function checkCandidateFields(input: RepoModelInput, findings: RepoFinding[]): void {
   for (const doc of input.elements) {
@@ -82,9 +82,9 @@ export function checkCandidateFields(input: RepoModelInput, findings: RepoFindin
       findings.push({
         scope: PScope,
         id,
-        ruleId: 'ELEM-CANDIDATE-FIELD-001',
+        ruleId: 'ADMIT-009',
         message:
-          `ELEM-CANDIDATE-FIELD-001: admitted element '${id || doc.path}' carries '${field}', ` +
+          `ADMIT-009: admitted element '${id || doc.path}' carries '${field}', ` +
           `which is an ingest-candidate review flag and is never persisted into canon ` +
           `(ELEMENT_PRIMITIVES.md §7.29). Remove it and ${instead}.`,
       });

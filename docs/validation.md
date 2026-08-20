@@ -325,7 +325,7 @@ whether `CMAP-003` should stop *requiring* `current_maturity` inline (a
 validator-tightening question, not a render-pipeline one) — not guessed at
 here.
 
-### Candidate-only fields on admitted canon (`ELEM-CANDIDATE-FIELD-001`)
+### Candidate-only fields on admitted canon (`ADMIT-009`)
 
 `ELEMENT_PRIMITIVES.md` §7.29 (methodology v3.6.0) closes `extraction_confidence`
 out of canon for every TYPE, not only for `RELEASE` where the paragraph sits: it
@@ -336,7 +336,7 @@ persisted into canon*. Implemented in
 
 | Rule | Severity | Checks |
 |---|---|---|
-| `ELEM-CANDIDATE-FIELD-001` | error | An admitted (`zone: canon`) element carries a candidate-only field (`extraction_confidence`), of any TYPE. |
+| `ADMIT-009` | error | An admitted (`zone: canon`) element carries a candidate-only field (`extraction_confidence`), of any TYPE. |
 
 **Candidate selection is the admission marker, not a notation list** — `zone:
 canon` (`ELEMENT_PRIMITIVES.md` §3, a required envelope field) is what makes the
@@ -351,11 +351,12 @@ from extracted evidence cites it through `derived_from` (§3) pointing at an
 `OBSERVATION` or another Field/Codex artefact, which is the pattern §7.29's own
 fix (`transitrix-hq#197`) put in place.
 
-**The rule code is Studio-authored.** It follows the shape methodology already
-uses for a named element-envelope rule outside the numbered run (`ELEM-ALIAS-001`,
-`ELEM-FORMER-ID-001`) and deliberately avoids taking `ELEM-006` — the numbered
-`ELEM-*` run is methodology's to extend. If methodology registers a code of its
-own for §7.29, this becomes its alias.
+**The rule code was Studio-authored, `ELEM-CANDIDATE-FIELD-001`,** following the
+shape methodology already uses for a named element-envelope rule outside the
+numbered run (`ELEM-ALIAS-001`, `ELEM-FORMER-ID-001`) and deliberately avoiding
+`ELEM-006` — the numbered `ELEM-*` run is methodology's to extend. Renamed to
+`ADMIT-009` (transitrix/methodology#505, merged 2026-08-19) now that methodology
+has registered a code of its own for §7.29 — no functional change.
 
 **Scope: repo only, for now.** `--scope=file` has no cross-TYPE envelope pass —
 it dispatches to a per-notation validator, and several element TYPEs (`release`

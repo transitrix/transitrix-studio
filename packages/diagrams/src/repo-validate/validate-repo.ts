@@ -433,7 +433,7 @@ export function validateRepoModel(input: RepoModelInput): RepoFinding[] {
   // Phase 9 — versioned-attribute sidecar rules (CONTRACT.md §9, VERSIONED-001..005).
   checkVersionedAttributes(input, findings);
   // Phase 10 — candidate-only fields on admitted canon (ELEMENT_PRIMITIVES.md
-  // §7.29, ELEM-CANDIDATE-FIELD-001).
+  // §7.29, ADMIT-009).
   checkCandidateFields(input, findings);
   return findings;
 }
