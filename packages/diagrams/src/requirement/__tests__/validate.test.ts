@@ -84,12 +84,12 @@ describe('validateRequirement — REQ-002 (derived_from resolution)', () => {
 });
 
 describe('validateRequirement — REQ-003 (derived_from TYPE)', () => {
-  it('flags a derived_from TYPE outside LAW/REGULATION/POLICY/INTERNAL_STANDARD', () => {
+  it('flags a derived_from TYPE outside LAW/REGULATION/POLICY/INTERNAL_STANDARD/PRINCIPLE', () => {
     expect(codes({ ...valid(), derived_from: ['PRODUCT-MOBILE-1'] })).toContain('REQ-003');
   });
 
   it('accepts each permitted derived_from TYPE', () => {
-    for (const id of ['LAW-X-1', 'REGULATION-X-1', 'POLICY-X-1', 'INTERNAL_STANDARD-X-1']) {
+    for (const id of ['LAW-X-1', 'REGULATION-X-1', 'POLICY-X-1', 'INTERNAL_STANDARD-X-1', 'PRINCIPLE-X-1']) {
       expect(codes({ ...valid(), derived_from: [id] })).not.toContain('REQ-003');
     }
   });

@@ -13,7 +13,7 @@ export interface GateChecks {
 }
 
 /** TYPEs a requirement may be derived from (15-requirement.md §2, REQ-003). */
-export const REQUIREMENT_DERIVED_FROM_TYPES = ['LAW', 'REGULATION', 'POLICY', 'INTERNAL_STANDARD'] as const;
+export const REQUIREMENT_DERIVED_FROM_TYPES = ['LAW', 'REGULATION', 'POLICY', 'INTERNAL_STANDARD', 'PRINCIPLE'] as const;
 
 /** ISO/IEC/IEEE 29148 specification-tier ladder (15-requirement.md §2.5, REQ-005). */
 export type RequirementLevel = 'stakeholder' | 'system' | 'software';
