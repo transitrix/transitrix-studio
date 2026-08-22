@@ -3,9 +3,20 @@
 // CODEX-001 — shape, zone, id grammar, admission envelope.
 // CODEX-002 — `type` field matches the id TYPE prefix when present.
 // CODEX-003 — external artefact frontmatter (jurisdiction, effective_date).
-// CODEX-004 — internal artefact frontmatter (issuing_authority, effective_date).
+// CODEX-004 — internal artefact frontmatter (issuing_authority, effective_date for
+//             POLICY/INTERNAL_STANDARD; statement, rationale for PRINCIPLE — §4.1).
 // CODEX-005 — jurisdiction must match the parent folder under codex/external/
 //             (when `folderJurisdiction` is supplied by the repo sweep).
+// CODEX-006 — a PRINCIPLE artefact does not declare `established_by` (§4.1). The spec
+//             marks this "info" severity; this module has no info tier, so it is
+//             surfaced as a warning — the nearest existing severity that does not fail
+//             `valid`.
+//
+// Note: this file's CODEX-00x numbering predates the spec's own v0.2 renumbering
+// (14-codex.md §6, §8.2) and does not track it code-for-code — e.g. the spec's current
+// CODEX-001 is a folder/jurisdiction check this file assigns to CODEX-005. Realigning the
+// full scheme is out of scope here; this change only adds the purely-additive PRINCIPLE
+// TYPE (§4.1) under the existing local numbering.
 
 import type { ValidationError, ValidationWarning, ValidationResult } from '../validation-types.js';
 import { isCanonicalId, typeOfId } from '../typed-id.js';
@@ -13,6 +24,7 @@ import {
   CODEX_ARTEFACT_TYPES,
   EXTERNAL_CODEX_TYPES,
   INTERNAL_CODEX_TYPES,
+  PRINCIPLE_CODEX_TYPES,
   type CodexArtefactType,
 } from './types.js';
 
@@ -48,7 +60,7 @@ export function validateCodex(input: unknown, options: CodexValidateOptions = {}
   if (!isCanonicalId(c.id) || !isCodexType(idType)) {
     errors.push({
       code: 'CODEX-001',
-      message: `id "${String(c.id)}" must be a typed codex id (LAW, REGULATION, POLICY, or INTERNAL_STANDARD).`,
+      message: `id "${String(c.id)}" must be a typed codex id (LAW, REGULATION, POLICY, INTERNAL_STANDARD, or PRINCIPLE).`,
       path: 'id',
     });
   }
@@ -103,6 +115,22 @@ export function validateCodex(input: unknown, options: CodexValidateOptions = {}
     }
     if (typeof c.effective_date !== 'string' || c.effective_date.trim() === '') {
       errors.push({ code: 'CODEX-004', message: 'effective_date is required for internal codex artefacts.', path: 'effective_date' });
+    }
+  }
+
+  if (artefactType && (PRINCIPLE_CODEX_TYPES as readonly string[]).includes(artefactType)) {
+    if (typeof c.statement !== 'string' || c.statement.trim() === '') {
+      errors.push({ code: 'CODEX-004', message: 'statement is required for a PRINCIPLE artefact.', path: 'statement' });
+    }
+    if (typeof c.rationale !== 'string' || c.rationale.trim() === '') {
+      errors.push({ code: 'CODEX-004', message: 'rationale is required for a PRINCIPLE artefact.', path: 'rationale' });
+    }
+    if (typeof c.established_by !== 'string' || c.established_by.trim() === '') {
+      warnings.push({
+        code: 'CODEX-006',
+        message: 'established_by is not declared on this PRINCIPLE artefact — admissible, but a review finding for whoever admits it.',
+        path: 'established_by',
+      });
     }
   }
 
