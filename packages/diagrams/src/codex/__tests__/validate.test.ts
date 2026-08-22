@@ -29,6 +29,19 @@ const VALID_INTERNAL = {
   gate_checks: { source_authority: 'VP Engineering' },
 };
 
+const VALID_PRINCIPLE = {
+  zone: 'codex',
+  id: 'PRINCIPLE-data-minimisation-1',
+  name: 'Data Minimisation',
+  type: 'PRINCIPLE',
+  admitted_at: '2026-08-22',
+  admitted_by: 'v.korobeinikov',
+  gate_checks: { source_authority: 'Architecture Review Board' },
+  statement: 'The organisation collects no personal data beyond what a stated purpose requires.',
+  rationale: 'Reduces breach exposure and regulatory surface.',
+  established_by: 'ADR-2026-08-21-a-catalogue-declares-its-boundary',
+};
+
 describe('validateCodex', () => {
   it('accepts a valid external artefact', () => {
     const r = validateCodex(VALID_EXTERNAL, { folderJurisdiction: 'eu' });
@@ -66,6 +79,31 @@ describe('validateCodex', () => {
   it('CODEX-004 requires issuing_authority on internal artefacts', () => {
     const r = validateCodex({ ...VALID_INTERNAL, issuing_authority: '' });
     expect(r.errors.some((e) => e.code === 'CODEX-004')).toBe(true);
+  });
+
+  it('accepts a valid PRINCIPLE artefact', () => {
+    const r = validateCodex(VALID_PRINCIPLE);
+    expect(r.valid, JSON.stringify(r.errors)).toBe(true);
+    expect(r.warnings).toHaveLength(0);
+  });
+
+  it('CODEX-004 requires statement and rationale on PRINCIPLE artefacts', () => {
+    const r = validateCodex({ ...VALID_PRINCIPLE, statement: '', rationale: '' });
+    expect(r.errors.some((e) => e.code === 'CODEX-004' && e.path === 'statement')).toBe(true);
+    expect(r.errors.some((e) => e.code === 'CODEX-004' && e.path === 'rationale')).toBe(true);
+  });
+
+  it('PRINCIPLE does not require issuing_authority or effective_date', () => {
+    const { established_by, ...rest } = VALID_PRINCIPLE;
+    const r = validateCodex(rest);
+    expect(r.valid, JSON.stringify(r.errors)).toBe(true);
+  });
+
+  it('CODEX-006 warns (not errors) when a PRINCIPLE omits established_by', () => {
+    const { established_by, ...rest } = VALID_PRINCIPLE;
+    const r = validateCodex(rest);
+    expect(r.valid).toBe(true);
+    expect(r.warnings.some((w) => w.code === 'CODEX-006' && w.path === 'established_by')).toBe(true);
   });
 });
 

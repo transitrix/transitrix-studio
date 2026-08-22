@@ -3,9 +3,14 @@
 // CODEX-001 — shape, zone, id grammar, admission envelope.
 // CODEX-002 — `type` field matches the id TYPE prefix when present.
 // CODEX-003 — external artefact frontmatter (jurisdiction, effective_date).
-// CODEX-004 — internal artefact frontmatter (issuing_authority, effective_date).
+// CODEX-004 — internal artefact frontmatter: issuing_authority + effective_date
+//             for POLICY/INTERNAL_STANDARD; statement + rationale for PRINCIPLE
+//             (14-codex.md §4.1 — issuing_authority/effective_date are optional
+//             on PRINCIPLE, not required).
 // CODEX-005 — jurisdiction must match the parent folder under codex/external/
 //             (when `folderJurisdiction` is supplied by the repo sweep).
+// CODEX-006 — info: a PRINCIPLE artefact does not declare `established_by`
+//             (14-codex.md §4.1 — absence is admissible, not an error).
 
 import type { ValidationError, ValidationWarning, ValidationResult } from '../validation-types.js';
 import { isCanonicalId, typeOfId } from '../typed-id.js';
@@ -48,7 +53,7 @@ export function validateCodex(input: unknown, options: CodexValidateOptions = {}
   if (!isCanonicalId(c.id) || !isCodexType(idType)) {
     errors.push({
       code: 'CODEX-001',
-      message: `id "${String(c.id)}" must be a typed codex id (LAW, REGULATION, POLICY, or INTERNAL_STANDARD).`,
+      message: `id "${String(c.id)}" must be a typed codex id (LAW, REGULATION, POLICY, INTERNAL_STANDARD, or PRINCIPLE).`,
       path: 'id',
     });
   }
@@ -93,7 +98,21 @@ export function validateCodex(input: unknown, options: CodexValidateOptions = {}
     }
   }
 
-  if (artefactType && (INTERNAL_CODEX_TYPES as readonly string[]).includes(artefactType)) {
+  if (artefactType === 'PRINCIPLE') {
+    if (typeof c.statement !== 'string' || c.statement.trim() === '') {
+      errors.push({ code: 'CODEX-004', message: 'statement is required for PRINCIPLE artefacts.', path: 'statement' });
+    }
+    if (typeof c.rationale !== 'string' || c.rationale.trim() === '') {
+      errors.push({ code: 'CODEX-004', message: 'rationale is required for PRINCIPLE artefacts.', path: 'rationale' });
+    }
+    if (typeof c.established_by !== 'string' || c.established_by.trim() === '') {
+      warnings.push({
+        code: 'CODEX-006',
+        message: 'established_by is not set for this PRINCIPLE artefact — absence is admissible, but flag it for review at admission.',
+        path: 'established_by',
+      });
+    }
+  } else if (artefactType && (INTERNAL_CODEX_TYPES as readonly string[]).includes(artefactType)) {
     if (typeof c.issuing_authority !== 'string' || c.issuing_authority.trim() === '') {
       errors.push({
         code: 'CODEX-004',
