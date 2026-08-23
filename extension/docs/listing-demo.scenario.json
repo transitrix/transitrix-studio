@@ -1,0 +1,32 @@
+{
+  "surface": "gui",
+  "editor": "vscode",
+  "output": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 30,
+    "audio": false
+  },
+  "extension": {
+    "vsix": "../../output/*.vsix"
+  },
+  "fixture": {
+    "copy": [
+      { "from": "listing.blocks.transitrix.yaml" }
+    ]
+  },
+  "steps": [
+    { "op": "wait", "ms": 1500 },
+    { "op": "keys", "keys": "^1" },
+    { "op": "wait", "ms": 400 },
+    { "op": "keys", "keys": "^f" },
+    { "op": "wait", "ms": 400 },
+    { "op": "type", "text": "Storefront" },
+    { "op": "keys", "keys": "{ESCAPE}" },
+    { "op": "wait", "ms": 400 },
+    { "op": "type", "text": "Website" },
+    { "op": "wait", "ms": 300 },
+    { "op": "keys", "keys": "^s" },
+    { "op": "wait", "ms": 4000 }
+  ]
+}

@@ -1,0 +1,18 @@
+notation: blocks
+spec_version: "0.1"
+name: Listing
+
+nested_blocks:
+  id: BLOCKS-1
+  name: Shop
+  blocks:
+    - id: BX-A
+      name: Storefront
+      children:
+        - id: BX-A1
+          name: Catalog
+    - id: BX-B
+      name: Payments
+      children:
+        - id: BX-B1
+          name: Checkout
