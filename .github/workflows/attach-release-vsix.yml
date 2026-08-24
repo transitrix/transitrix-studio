@@ -1,25 +1,28 @@
 name: Attach universal VSIX to release draft
 
 # Builds the universal VSIX once (build-vsix.yml) and attaches it, with its
-# recorded SHA-256, to the release as a downloadable asset — at draft
-# creation, before Valerii publishes it. Every registry-publish job
-# downstream of a published release downloads this exact asset instead of
+# recorded SHA-256, to an existing release draft before it is published.
+# Every registry-publish job downstream downloads this exact file instead of
 # repackaging, so the artefact verified before release is the one that ships.
 #
-# Runs on release *creation*, filtered to drafts: the release-runbook draft
-# step happens first, so the asset is already attached by the time
-# publishing the draft fires the registry-publish workflows.
+# Draft release activity does not emit a dependable Actions event. Run this
+# workflow explicitly against the release commit after creating the draft.
+# The attach job refuses a non-draft release or a draft aimed at any other
+# commit.
 
 on:
-  release:
-    types: [created]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing draft release tag (for example v3.3.1)
+        required: true
+        type: string
 
 permissions:
   contents: read
 
 jobs:
   build:
-    if: github.event.release.draft == true
     permissions:
       contents: read
       id-token: write
@@ -28,7 +31,6 @@ jobs:
 
   attach:
     needs: build
-    if: github.event.release.draft == true
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -50,6 +52,35 @@ jobs:
             exit 1
           fi
 
+      - name: Resolve and verify the target release draft
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        shell: bash
+        run: |
+          if ! [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::release tag must be a stable semver tag such as v3.3.1"
+            exit 1
+          fi
+
+          release=$(gh api "/repos/${{ github.repository }}/releases/tags/$RELEASE_TAG")
+          draft=$(jq -r '.draft' <<<"$release")
+          target=$(jq -r '.target_commitish' <<<"$release")
+          release_id=$(jq -r '.id' <<<"$release")
+
+          if [ "$draft" != "true" ]; then
+            echo "::error::$RELEASE_TAG is not an unpublished draft"
+            exit 1
+          fi
+          if [ "$target" != "${{ github.sha }}" ]; then
+            echo "::error::draft target $target does not match workflow commit ${{ github.sha }}"
+            exit 1
+          fi
+
+          echo "release-id=$release_id" >> "$GITHUB_OUTPUT"
+          echo "Verified draft $RELEASE_TAG targets $target"
+
       - name: Attach VSIX and SHA-256 to the release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -61,7 +92,7 @@ jobs:
               --method POST \
               -H "Accept: application/vnd.github+json" \
               -H "Content-Type: application/octet-stream" \
-              "/repos/${{ github.repository }}/releases/${{ github.event.release.id }}/assets?name=$name" \
+              "/repos/${{ github.repository }}/releases/${{ steps.release.outputs.release-id }}/assets?name=$name" \
               --input "$f" > /dev/null
             echo "Attached $name"
           done
