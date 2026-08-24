@@ -1,5 +1,5 @@
 /**
- * Cervin → Transitrix corpus convention guard (CLAUDE.md §Cervin naming, P6).
+ * Cervin → Transitrix corpus convention guard (AGENTS.md §Cervin naming).
  *
  * New notation files must use the canonical `*.transitrix.yaml` suffixes
  * (BPMN: `*.bpmn.transitrix.yaml`). The legacy `*.cervin.yaml` suffix is still
@@ -31,7 +31,7 @@ if (files.length > 0) {
   );
   console.error('Offending tracked file(s):');
   for (const f of files) console.error(`  - ${f}`);
-  console.error('See CLAUDE.md §Cervin naming (P6) and CONTRIBUTING.md.');
+  console.error('See AGENTS.md §Cervin naming and CONTRIBUTING.md.');
   process.exit(1);
 }
 

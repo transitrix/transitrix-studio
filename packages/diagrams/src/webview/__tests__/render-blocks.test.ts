@@ -1,7 +1,7 @@
 /**
  * Unit tests for the host-neutral nested-blocks SVG renderer used by both the
  * VS Code blocks preview and the IntelliJ JCEF webview bundle. These tests pin
- * the per-node label rule (CLAUDE.md "Entity block layout"): leaf nodes wrap
+ * the per-node label rule (AGENTS.md "Entity block layout"): leaf nodes wrap
  * the name to at most 3 lines and the ID to at most 2 lines, with `…`
  * truncation beyond that; container headers stack name + ID, each truncated
  * with `…` to fit the block width. No label may extend past the rect.

@@ -108,7 +108,7 @@ const LABEL_CHARS = 18;
 const LABEL_LINE_H = 13;
 
 // ---------------------------------------------------------------------------
-// BPMN-specific CSS — no font-style:italic per CLAUDE.md design rule
+// BPMN-specific CSS — no font-style:italic per AGENTS.md design rule
 // ---------------------------------------------------------------------------
 
 export const BPMN_PROCESS_CSS = `
