@@ -38,6 +38,7 @@ export {
 export * from "./change/index";
 export * from "./compliance/index";
 export * from "./compliance-matrix/index";
+export * from "./compliance-verification-matrix/index";
 export * from "./confidence/index";
 export * from "./factor/index";
 export * from "./fgca/index";

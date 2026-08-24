@@ -1,0 +1,19 @@
+# Fixture — a verification exists but is not yet closed (REQ-VERIF-COVERAGE-002).
+notation: requirement
+id: REQUIREMENT-MATRIX-OPEN-1
+name: "Matrix fixture — unresolved verification"
+description: >
+  Worked example: exactly one VERIFICATION, still not_yet_run — the
+  REQ-VERIF-COVERAGE-002 case.
+severity: medium
+
+zone: canon
+admitted_at: "2026-08-01"
+admitted_by: "v.korobeinikov"
+gate_checks:
+  uniqueness: pass
+  consistency: pass
+  completeness: pass
+
+valid_from: "2026-08-01"
+valid_to: null
