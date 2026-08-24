@@ -64,7 +64,19 @@ jobs:
             exit 1
           fi
 
-          release=$(gh api "/repos/${{ github.repository }}/releases/tags/$RELEASE_TAG")
+          # GitHub's tag endpoint returns 404 for drafts because their tags do
+          # not exist until publication. Resolve the unique draft from the
+          # release collection instead.
+          release=$(
+            gh api --paginate "/repos/${{ github.repository }}/releases" |
+              jq -s --arg tag "$RELEASE_TAG" '
+                [.[][] | select(.draft == true and .tag_name == $tag)] |
+                if length == 1 then .[0]
+                elif length == 0 then error("no unpublished draft has that tag")
+                else error("multiple unpublished drafts have that tag")
+                end
+              '
+          )
           draft=$(jq -r '.draft' <<<"$release")
           target=$(jq -r '.target_commitish' <<<"$release")
           release_id=$(jq -r '.id' <<<"$release")
