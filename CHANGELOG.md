@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.3.0] — 2026-08-24
+
+### Added
+
+- **Listing demonstration GIF.** `extension/docs/listing.gif` shows source YAML beside a live Blocks preview; an edit redraws the diagram. The demonstration source is `extension/docs/listing.blocks.transitrix.yaml`.
+
+### Changed
+
+- **Open VSX publish consumes the release-attached VSIX instead of rebuilding.** Creating a release draft now builds the universal VSIX once and attaches it, with its SHA-256, as a release asset; the Open VSX publish job downloads and verifies that exact file rather than repackaging at publish time. The VS Code Marketplace publish workflow no longer triggers automatically on a release — it runs by `workflow_dispatch` only.
+- **`ELEM-CANDIDATE-FIELD-001` renamed to `ADMIT-009`.** The candidate-only-field-on-admitted-canon check was Studio-authored under a placeholder code (`ELEMENT_PRIMITIVES.md` §7.29) since methodology had not yet registered one of its own. `transitrix/methodology#505` (merged 2026-08-19) registered `ADMIT-009` for the same rule; Studio's check, tests and docs now use that code. No functional change.
+- **Listing demonstration wired into both READMEs.** `extension/README.md` and the repository root `README.md` now reference `extension/docs/listing.gif` by the same absolute `raw.githubusercontent.com` URL, replacing the old `preview.png` reference. A new hygiene check (`scripts/ci-hygiene-image-refs.mjs`) fails the build if a consuming README references a packaged image by a relative path — the cause of the 1.4.3 broken-image regression.
+
 ## [3.2.0] — 2026-08-10
 
 ### Added
@@ -41,7 +53,7 @@
 - **Work-item references use the neutral `HUB-NNN` form** across comments, READMEs and docstrings (54 files). Not the hash form — a bare `#84` auto-links to this repository's own issue 84, rendering as a working link to an unrelated item.
 - **Public-surface hygiene gains a pattern slot and a full-tree pass** (`scripts/ci-hygiene-tree.mjs`). The diff check only sees what a PR adds, so anything already committed was invisible to it; the tree pass reads every tracked text file. Scoped to the new slot alone so it fails on the change under review, not on pre-existing content. Patterns stay in repository secrets; output is `file:line` only.
 - **The declared methodology version now names the release this build actually targets.** `transitrix.methodologyVersion` (`package.json`) and the `SCHEMA_VERSION` constant it is pinned to both read `0.5.0` — a release this repository moved past long ago, left behind because nothing but their own lockstep test read either value. Both now read `3.1.0`: the notation vocabulary and rule coverage on this branch implement that release's additions in full (`RISK-001..004`, `METRIC-001..004`, `NEED-001..002`, `VALID-001..006`, `REQ-005`/`REQ-006`) and none of the additions from the release after it. The accompanying comments no longer restate "the current methodology release" as a literal — that was the fact that went stale, and the constant does not track it. Two hardcoded vocabulary literals are known to lag `3.1.0` and are deliberately not changed here: `target-state/types.ts` carries no `type: base | target` field, and the cross-reference id grammar in `blocks/validate.ts` diverges from the one in `typed-id.ts` — its terminal `\d+` admits the leading-zero ids that `IDS_AND_REFERENCES.md` §1 rejects, and its uppercase-only middle segments miss the mixed-case ids that do occur in canon. Correcting the declaration is what makes those two visible as drift rather than as a wrong baseline.
-- **A PR contributes its `CHANGELOG.md` entry as its own fragment file, not a hand-edit of the shared `## Unreleased` section.** Two PRs to `diagrams/src` that each edited the head of `CHANGELOG.md` collided by construction, whatever their code touched. `node scripts/new-changelog-fragment.mjs <section> <slug>` scaffolds a fragment under `changelog/fragments/`; `node scripts/assemble-changelog.mjs` — run as the first step of release prep (`docs/internal/release-runbook.md`) — folds every fragment into `## Unreleased` in the same section/order/wording convention a hand-edit would have produced, then deletes the fragments it consumed. Existing `CHANGELOG.md` history is untouched; the mechanism applies going forward only.
+- **A PR contributes its `CHANGELOG.md` entry as its own fragment file, not a hand-edit of the shared `## [3.3.0] — 2026-08-24` section.** Two PRs to `diagrams/src` that each edited the head of `CHANGELOG.md` collided by construction, whatever their code touched. `node scripts/new-changelog-fragment.mjs <section> <slug>` scaffolds a fragment under `changelog/fragments/`; `node scripts/assemble-changelog.mjs` — run as the first step of release prep (`docs/internal/release-runbook.md`) — folds every fragment into `## [3.3.0] — 2026-08-24` in the same section/order/wording convention a hand-edit would have produced, then deletes the fragments it consumed. Existing `CHANGELOG.md` history is untouched; the mechanism applies going forward only.
 - **Package version bumps are checked at release time, not on every PR.** A PR
   touching `packages/diagrams/src` no longer has to bump
   `packages/diagrams/package.json` or `packages/cli/package.json`, so two such
