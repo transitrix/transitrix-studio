@@ -2,7 +2,7 @@
 
 **Diagrams as text, in your editor.** Write a diagram in a plain YAML file, and Transitrix Studio renders it live, right beside your code. No drag-and-drop canvas, no proprietary file format — just text you can diff, review in a pull request, and hand to an AI that reads it natively.
 
-![Process landscape preview — YAML on the left, rendered diagram on the right](https://raw.githubusercontent.com/transitrix/transitrix-studio/main/extension/docs/preview.png)
+![Transitrix Studio in action — YAML on the left, live Blocks preview on the right, an edit redrawing the diagram](https://raw.githubusercontent.com/transitrix/transitrix-studio/main/extension/docs/listing.gif)
 
 ## Why text-native diagrams?
 
