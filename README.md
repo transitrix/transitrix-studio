@@ -4,6 +4,8 @@
 
 Text-first BPMN authoring: write your process as structured YAML, compile to valid BPMN 2.0 XML with automatic layout, preview live in VS Code or the browser.
 
+![Transitrix Studio in action — YAML on the left, live Blocks preview on the right, an edit redrawing the diagram](https://raw.githubusercontent.com/transitrix/transitrix-studio/main/extension/docs/listing.gif)
+
 ## What this is
 
 Transitrix Studio brings **text-first diagram authoring** to VS Code. Instead of dragging shapes in a GUI editor, you write YAML — structured, diffable, reviewable in pull requests. The compiler produces BPMN 2.0 XML with computed layout coordinates using the ELK (Eclipse Layout Kernel) engine.
