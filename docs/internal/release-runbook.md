@@ -1,7 +1,7 @@
 # Release runbook
 
-How a Transitrix Studio release ships: **creating the release draft builds
-and attaches the universal VSIX; publishing the draft triggers the
+How a Transitrix Studio release ships: **an explicit draft-attachment run builds
+and attaches the universal VSIX; publishing the verified draft triggers the
 registry-publish jobs**, which consume that same attached file rather than
 rebuilding — npm packages, Open VSX, and the JetBrains plugin all publish
 from CI.
@@ -10,7 +10,7 @@ from CI.
 
 | Artifact | Pipeline | Trigger |
 |---|---|---|
-| Universal VSIX, attached to the release + SHA-256 recorded | `.github/workflows/attach-release-vsix.yml` | GitHub Release **created** as a draft |
+| Universal VSIX, attached to the release + SHA-256 recorded | `.github/workflows/attach-release-vsix.yml` | Explicit `workflow_dispatch` for an existing draft tag, run against its exact target commit |
 | `@transitrix/diagrams` + `@transitrix/cli` → npm | `.github/workflows/npm-publish.yml` | GitHub Release **published** (or `workflow_dispatch`) |
 | VS Code extension → VS Code Marketplace | `.github/workflows/vscode-marketplace-publish.yml` | `workflow_dispatch` only — see that workflow's header before changing this |
 | VS Code extension → Open VSX (Cursor / VSCodium / Windsurf) | `.github/workflows/openvsx-publish.yml` | GitHub Release **published** (or `workflow_dispatch`); downloads the asset `attach-release-vsix.yml` attached rather than rebuilding |
@@ -75,16 +75,19 @@ notes PRs:
 
 ### 3. Draft release (agent-preparable)
 
-- Create a **draft** GitHub Release: tag `vX.Y.Z`, target `main`, title
-  `Transitrix Studio X.Y.Z`, body = the CHANGELOG section under a
-  `## What's changed` heading. (A draft creates no tag; the tag is created
-  on the then-current target when the draft is published — so always merge
-  the release PR **before** drafting.)
-- Creating the draft fires `attach-release-vsix.yml`: it builds the
-  universal VSIX once, records its SHA-256, and attaches both to the draft
-  as release assets. Confirm the assets are present before the next step —
-  a draft published without them leaves the registry-publish jobs with
-  nothing to download.
+- Create a **draft** GitHub Release: tag `vX.Y.Z`, target the exact release
+  commit SHA, title `Transitrix Studio X.Y.Z`, body = the CHANGELOG section
+  under a `## What's changed` heading. A draft creates no tag; the tag is
+  created when the draft is published. Always merge the release PR before
+  drafting, and pin the draft to that merge commit rather than to a moving
+  branch.
+- Dispatch `attach-release-vsix.yml` against that same commit and pass the
+  draft's `vX.Y.Z` tag as its `tag` input. The workflow refuses a published
+  release, a non-semver tag, or a draft targeting a different commit. It
+  builds the universal VSIX once, records its SHA-256, and attaches both to
+  the draft as release assets. Confirm the run is green and both assets are
+  present before the next step — a draft published without them leaves the
+  registry-publish jobs with nothing to download.
 - Valerii reviews the draft, verifies the branch/commit it targets and the
   attached asset, and publishes it — see step 4.
 
