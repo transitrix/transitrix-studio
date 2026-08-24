@@ -98,13 +98,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          for f in output/*.vsix output/*.sha256; do
-            name=$(basename "$f")
-            gh api \
-              --method POST \
-              -H "Accept: application/vnd.github+json" \
-              -H "Content-Type: application/octet-stream" \
-              "/repos/${{ github.repository }}/releases/${{ steps.release.outputs.release-id }}/assets?name=$name" \
-              --input "$f" > /dev/null
-            echo "Attached $name"
-          done
+          # Release assets upload through uploads.github.com, not the api.github.com
+          # host `gh api` defaults to for a bare path — `gh release upload` targets
+          # the correct host itself.
+          gh release upload "${{ inputs.tag }}" output/*.vsix output/*.sha256 \
+            -R ${{ github.repository }}
