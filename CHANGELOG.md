@@ -1,5 +1,30 @@
 # Changelog
 
+## [3.4.0] — 2026-08-25
+
+### Added
+
+- **`ACT-021` when an Action Schedule is scoped by `root_action`.** An ACTION the view would otherwise include that is not that root and not reachable from it via `parent` is omitted from the render with a warning that names both ids. The warning does not fire when `root_action` is absent. Duplicate-id `ACT-004` is unchanged.
+- **BPMN presentation export.** A selectable `presentation` profile on BPMN compile / SVG / PNG export lays the diagram out automatically for a 1780 px frame with a 20 px label floor. It is not the live preview — default layout and typography stay as they are.
+- **Process Blueprint catalogued columns render from the PROCESS element, and the compliance lane joins on that process (or a STEP of it).** A `PROCESS-…` column header and goal / result come from the child process (`name`, optional `goal` / `result`); restated view fields are ignored. Sketch `STAGE-…` columns keep their authored copy. The compliance overlay pins an assertion when `realised_via` names that process or a step whose home is that process, and no longer treats a sketch `STAGE-…` id as a join key. The STAGE-only fulfilment blueprint still renders as before.
+- **Process Blueprint validators admit catalogued `PROCESS-` columns.** A column id may be a document-local `STAGE-…` sketch or an admitted `PROCESS-…`; sketch columns still require `name` / `goal` / `result` on the view (`BP-005`), catalogued columns must not restate those fields (`BP-013`) and must resolve to a `PROCESS` element (`BP-012`). Aspect `stages: […]` arrays accept either form. Composition stays the `process_parent` relation (`PROCESS` → `PROCESS`): self-reference is `REL-007`, a cycle is `REL-008` (warning), and a named parent process with a `PROCESS-` column and no in-effect parent link is `BP-014` (warning — a sketch overlay and a shared subprocess remain well-formed). Existing `STAGE-` only blueprints keep validating.
+- **Requirement–Verification Matrix in the editor.** A Command Palette command opens a repository-wide table of every requirement with its direct parent, related test result, and recorded outcome — including an explicit coverage gap when there is no result (`REQ-VERIF-COVERAGE-001`) or only an unresolved one (`REQ-VERIF-COVERAGE-002`). Saving a requirement or verification file refreshes an open table. Export CSV writes the same rows, in the same order, as the view.
+
+### Changed
+
+- **`.ttrs` headers use `recipe_id` / `recipe_version`.** Fixtures, the document renderer, and `transitrix render` follow methodology 4.0.0: the header fields and the identifiers that carry them (`recipeId`, `parseRecipe`, `recipePath`) no longer use `template` as the name of this object. The vendored renderer is pinned to `v4.0.0`.
+
+### Fixed
+
+- **DGCA projection follows `delivers_changes`.** An Action that links to a Change only through the canonical `delivers_changes` field is included when `view_config.actions.surface` is `derived`, and the preview builds Change-to-Action edges from that field. The older `changes` field and `view_config.activities` remain aliases.
+- **DGA-mode DGCA omits the Changes column.** A `dgca` document with `view_config.layers.changes: off` (and no `changes:` key) renders Driver → Goal → Action. A four-layer DGCA is unchanged.
+- **Release-draft VSIX attach resolves unpublished drafts and uploads through the release-upload host.** The attach job no longer looks up a tag that does not exist until the draft is published, and assets go via `gh release upload` rather than the API host that cannot receive them.
+
+### Packages
+
+- `@transitrix/diagrams` 1.10.0 → 1.11.0 — process-blueprint `PROCESS-` columns, requirement–verification matrix, `ACT-021`, DGCA `delivers_changes` / DGA omit-changes.
+- `@transitrix/cli` 2.5.0 → 2.6.0 — paired bump; BPMN presentation export and `.ttrs` `recipe_id` render path.
+
 ## [3.3.0] — 2026-08-24
 
 ### Added
