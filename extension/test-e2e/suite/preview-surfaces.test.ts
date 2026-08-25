@@ -183,8 +183,12 @@ describe('preview surfaces render real content (transitrix-hq#143)', function ()
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tx-rvm-'));
     const a = path.join(dir, 'a.csv');
     const b = path.join(dir, 'b.csv');
-    await withSaveDialogTarget(a, () => vscode.commands.executeCommand('transitrixStudio.exportRequirementVerificationMatrixCsv'));
-    await withSaveDialogTarget(b, () => vscode.commands.executeCommand('transitrixStudio.exportRequirementVerificationMatrixCsv'));
+    await withSaveDialogTarget(a, async () => {
+      await vscode.commands.executeCommand('transitrixStudio.exportRequirementVerificationMatrixCsv');
+    });
+    await withSaveDialogTarget(b, async () => {
+      await vscode.commands.executeCommand('transitrixStudio.exportRequirementVerificationMatrixCsv');
+    });
     const bytesA = fs.readFileSync(a);
     const bytesB = fs.readFileSync(b);
     assert.deepStrictEqual(bytesA, bytesB, 'two exports from unchanged state must be byte-identical');
