@@ -19,6 +19,7 @@ import type {
   StageTextCell,
 } from './types.js';
 import { wrapTextLines } from '../webview/entity-text-layout.js';
+import { columnIndexesForRealisedVia, resolveColumnDisplay } from './resolve-columns.js';
 
 const ASPECT_CATEGORIES: AspectCategory[] = ['systems', 'actors', 'equipment', 'information_entities'];
 
@@ -33,7 +34,13 @@ const ASPECT_LABEL: Record<AspectCategory, string> = {
 // (absent = feature disabled) and must stay optional in the resolved type.
 type SizingOptionKeys = Exclude<
   keyof ProcessBlueprintLayoutOptions,
-  'complianceLane' | 'complianceInput' | 'visibleAspects' | 'visibleRows' | 'visibleStages'
+  | 'complianceLane'
+  | 'complianceInput'
+  | 'visibleAspects'
+  | 'visibleRows'
+  | 'visibleStages'
+  | 'processCatalog'
+  | 'stepHomeProcess'
 >;
 
 /**
@@ -41,7 +48,16 @@ type SizingOptionKeys = Exclude<
  * the opt-in feature fields stay optional (undefined = feature disabled).
  */
 type ResolvedLayoutOptions = Required<Pick<ProcessBlueprintLayoutOptions, SizingOptionKeys>> &
-  Pick<ProcessBlueprintLayoutOptions, 'complianceLane' | 'complianceInput' | 'visibleAspects' | 'visibleRows' | 'visibleStages'>;
+  Pick<
+    ProcessBlueprintLayoutOptions,
+    | 'complianceLane'
+    | 'complianceInput'
+    | 'visibleAspects'
+    | 'visibleRows'
+    | 'visibleStages'
+    | 'processCatalog'
+    | 'stepHomeProcess'
+  >;
 
 const DEFAULTS = {
   legendColumnWidth: 140,
@@ -258,27 +274,29 @@ function deriveComplianceRow(
 
     for (const stageRef of realisedVia) {
       if (typeof stageRef !== 'string') continue;
-      const idx = stageIndexById.get(stageRef.trim());
-      if (idx === undefined) continue;
+      const idxs = columnIndexesForRealisedVia(stageRef, stageIndexById, opts.stepHomeProcess);
+      if (idxs.length === 0) continue;
 
-      for (const lawId of lawIds) {
-        // Apply jurisdiction filter.
-        if (filterJurisdictions) {
-          const jur = input.codexJurisdictions?.[lawId];
-          if (!jur || !filterJurisdictions.has(jur)) continue;
-        }
+      for (const idx of idxs) {
+        for (const lawId of lawIds) {
+          // Apply jurisdiction filter.
+          if (filterJurisdictions) {
+            const jur = input.codexJurisdictions?.[lawId];
+            if (!jur || !filterJurisdictions.has(jur)) continue;
+          }
 
-        if (!stageAccum.has(idx)) stageAccum.set(idx, new Map());
-        const lawMap = stageAccum.get(idx)!;
-        const existing = lawMap.get(lawId);
-        const isGap = a.status === 'non_compliant' || a.status === 'partial';
-        if (!existing) {
-          lawMap.set(lawId, { gap: isGap, deadline: req.deadline });
-        } else {
-          existing.gap = existing.gap || isGap;
-          // Keep the earlier deadline (more urgent).
-          if (req.deadline && (!existing.deadline || req.deadline < existing.deadline)) {
-            existing.deadline = req.deadline;
+          if (!stageAccum.has(idx)) stageAccum.set(idx, new Map());
+          const lawMap = stageAccum.get(idx)!;
+          const existing = lawMap.get(lawId);
+          const isGap = a.status === 'non_compliant' || a.status === 'partial';
+          if (!existing) {
+            lawMap.set(lawId, { gap: isGap, deadline: req.deadline });
+          } else {
+            existing.gap = existing.gap || isGap;
+            // Keep the earlier deadline (more urgent).
+            if (req.deadline && (!existing.deadline || req.deadline < existing.deadline)) {
+              existing.deadline = req.deadline;
+            }
           }
         }
       }
@@ -338,6 +356,7 @@ export function layoutProcessBlueprint(
     ? allStages.filter(s => s?.id != null && opts.visibleStages!.includes(s.id))
     : allStages;
   const stageIndexById = buildStageIndex(stages);
+  const display = stages.map(s => resolveColumnDisplay(s, opts.processCatalog));
 
   // Row visibility from visibleRows
   const visRows = opts.visibleRows;
@@ -354,7 +373,7 @@ export function layoutProcessBlueprint(
   const stageHeaders: StageHeaderCell[] = stages.map((s, i) => ({
     stageIndex: i,
     id: s?.id ?? '',
-    name: s?.name ?? '',
+    name: display[i].name,
     x: opts.legendColumnWidth + i * opts.stageColumnWidth,
     y: 0,
     width: opts.stageColumnWidth,
@@ -373,8 +392,8 @@ export function layoutProcessBlueprint(
     return Math.max(minHeight, maxLines * opts.textLineHeight + 2 * opts.cellTextPadY);
   };
 
-  const goalLines = stages.map(s => wrap(s?.goal ?? ''));
-  const resultLines = stages.map(s => wrap(s?.result ?? ''));
+  const goalLines = display.map(d => wrap(d.goal));
+  const resultLines = display.map(d => wrap(d.result));
 
   let cursorY = opts.stageHeaderHeight;
   let goalRowY = 0, goalRowHeight = 0;
@@ -385,8 +404,8 @@ export function layoutProcessBlueprint(
   if (showGoal) {
     goalRowY = cursorY;
     goalRowHeight = rowHeightFor(goalLines.map(l => l.length), opts.goalRowHeight);
-    goalCells.push(...stages.map((s, i) => ({
-      stageIndex: i, text: s?.goal ?? '', lines: goalLines[i],
+    goalCells.push(...display.map((d, i) => ({
+      stageIndex: i, text: d.goal, lines: goalLines[i],
       x: opts.legendColumnWidth + i * opts.stageColumnWidth, y: goalRowY,
       width: opts.stageColumnWidth, height: goalRowHeight,
     })));
@@ -395,8 +414,8 @@ export function layoutProcessBlueprint(
   if (showResult) {
     resultRowY = cursorY;
     resultRowHeight = rowHeightFor(resultLines.map(l => l.length), opts.resultRowHeight);
-    resultCells.push(...stages.map((s, i) => ({
-      stageIndex: i, text: s?.result ?? '', lines: resultLines[i],
+    resultCells.push(...display.map((d, i) => ({
+      stageIndex: i, text: d.result, lines: resultLines[i],
       x: opts.legendColumnWidth + i * opts.stageColumnWidth, y: resultRowY,
       width: opts.stageColumnWidth, height: resultRowHeight,
     })));

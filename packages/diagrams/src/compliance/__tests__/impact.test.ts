@@ -406,13 +406,12 @@ describe('CV-3a — stage grouping (ImpactColumn, extractObjectDetails, buildImp
     expect(matrix.cells[0][1].kind).toBe('bound');
   });
 
-  it('assertion with realised_via fills only the matching stage column', () => {
+  it('assertion with realised_via fills only the matching PROCESS column', () => {
     const canon = emptyCanon();
     canon.requirements.push({ id: 'REQ-1', name: 'R1' });
-    // Assertion only covers STAGE-A.
     canon.assertions.push({
       id: 'ASS-1', about: 'REQ-1', subject: 'PROD-1', status: 'compliant',
-      realised_via: ['STAGE-A'],
+      realised_via: ['PROCESS-RECEIVE-1'],
     });
     const matrix = buildImpactMatrix(
       canon,
@@ -422,10 +421,53 @@ describe('CV-3a — stage grouping (ImpactColumn, extractObjectDetails, buildImp
         obligations: {},
         grouping: { columns: 'product-stage' },
       },
-      [{ objectId: 'PROD-1', details: [{ id: 'STAGE-A', name: 'a' }, { id: 'STAGE-B', name: 'b' }] }],
+      [{ objectId: 'PROD-1', details: [{ id: 'PROCESS-RECEIVE-1', name: 'Receive' }, { id: 'PROCESS-SHIP-1', name: 'Ship' }] }],
     );
-    expect(matrix.cells[0][0].kind).toBe('bound');   // STAGE-A: covered
-    expect(matrix.cells[0][1].kind).toBe('gap');     // STAGE-B: gap
+    expect(matrix.cells[0][0].kind).toBe('bound');
+    expect(matrix.cells[0][1].kind).toBe('gap');
+  });
+
+  it('does not pin a STAGE- sketch column from realised_via', () => {
+    const canon = emptyCanon();
+    canon.requirements.push({ id: 'REQ-1', name: 'R1' });
+    canon.assertions.push({
+      id: 'ASS-1', about: 'REQ-1', subject: 'PROD-1', status: 'compliant',
+      realised_via: ['STAGE-1'],
+    });
+    const matrix = buildImpactMatrix(
+      canon,
+      {
+        id: 'V', name: 'V',
+        subjects: { products: ['PROD-1'] },
+        obligations: {},
+        grouping: { columns: 'product-stage' },
+      },
+      [{ objectId: 'PROD-1', details: [{ id: 'STAGE-1', name: 'Sketch' }, { id: 'PROCESS-RECEIVE-1', name: 'Receive' }] }],
+    );
+    expect(matrix.cells[0][0].kind).toBe('gap');
+    expect(matrix.cells[0][1].kind).toBe('gap');
+  });
+
+  it('pins a PROCESS column when realised_via names a STEP of that process', () => {
+    const canon = emptyCanon();
+    canon.requirements.push({ id: 'REQ-1', name: 'R1' });
+    canon.assertions.push({
+      id: 'ASS-1', about: 'REQ-1', subject: 'PROD-1', status: 'compliant',
+      realised_via: ['STEP-RECV-1'],
+    });
+    const matrix = buildImpactMatrix(
+      canon,
+      {
+        id: 'V', name: 'V',
+        subjects: { products: ['PROD-1'] },
+        obligations: {},
+        grouping: { columns: 'product-stage' },
+      },
+      [{ objectId: 'PROD-1', details: [{ id: 'PROCESS-RECEIVE-1', name: 'Receive' }, { id: 'PROCESS-SHIP-1', name: 'Ship' }] }],
+      { stepHomeProcess: new Map([['STEP-RECV-1', 'PROCESS-RECEIVE-1']]) },
+    );
+    expect(matrix.cells[0][0].kind).toBe('bound');
+    expect(matrix.cells[0][1].kind).toBe('gap');
   });
 
   it('subject with no stage mapping falls back to single product-grain column', () => {

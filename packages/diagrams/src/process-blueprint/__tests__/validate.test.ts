@@ -486,3 +486,26 @@ describe('process-blueprint examples (regression)', () => {
     });
   }
 });
+
+describe('catalogued-column fixture (relations/process-parent)', () => {
+  const parentDir = path.resolve(
+    process.cwd(),
+    '..',
+    '..',
+    'tests',
+    'fixtures',
+    'notation-corpus',
+    'relations',
+    'process-parent',
+  );
+
+  it('validates fulfilment-chain.process-blueprint.transitrix.yaml at file scope', () => {
+    const text = fs.readFileSync(
+      path.join(parentDir, 'fulfilment-chain.process-blueprint.transitrix.yaml'),
+      'utf8',
+    );
+    const r = validateProcessBlueprint(yaml.load(text));
+    expect(r.errors).toEqual([]);
+    expect(r.valid).toBe(true);
+  });
+});

@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import yaml from 'js-yaml';
 import { layoutProcessBlueprint } from '../layout.js';
+import { collectProcessColumnRecords } from '../resolve-columns.js';
 import type { ProcessBlueprintFile } from '../types.js';
 
 function build(file: Partial<ProcessBlueprintFile['process_blueprint']>): ProcessBlueprintFile {
@@ -235,6 +239,122 @@ describe('layoutProcessBlueprint', () => {
       });
       expect(layout.aspectRows).toHaveLength(1);
       expect(layout.aspectRows[0].category).toBe('systems');
+    });
+  });
+
+  describe('catalogued PROCESS- columns', () => {
+    const catalog = new Map([
+      ['PROCESS-RECEIVE-1', { name: 'Receive order', goal: 'Capture a validated customer order.', result: 'Validated order record.' }],
+      ['PROCESS-PICK-1', { name: 'Pick and pack', goal: 'Assemble the physical order.', result: 'Packed shipment.' }],
+      ['PROCESS-SHIP-1', { name: 'Ship', goal: 'Hand to the carrier.', result: 'In-transit shipment.' }],
+    ]);
+
+    it('headers and goal/result come from the catalogue, not restated view fields', () => {
+      const layout = layoutProcessBlueprint(
+        build({
+          stages: [
+            { id: 'PROCESS-RECEIVE-1', name: 'ignore', goal: 'ignore', result: 'ignore' },
+            { id: 'PROCESS-PICK-1' },
+            { id: 'PROCESS-SHIP-1' },
+          ],
+        }),
+        { processCatalog: catalog },
+      );
+      expect(layout.stageHeaders.map(h => h.name)).toEqual(['Receive order', 'Pick and pack', 'Ship']);
+      expect(layout.goalCells.map(c => c.text)).toEqual([
+        'Capture a validated customer order.',
+        'Assemble the physical order.',
+        'Hand to the carrier.',
+      ]);
+      expect(layout.resultCells.map(c => c.text)).toEqual([
+        'Validated order record.',
+        'Packed shipment.',
+        'In-transit shipment.',
+      ]);
+    });
+
+    it('places aspect pills by PROCESS- id in stages[] array order', () => {
+      const layout = layoutProcessBlueprint(
+        build({
+          stages: [
+            { id: 'PROCESS-RECEIVE-1' },
+            { id: 'PROCESS-PICK-1' },
+            { id: 'PROCESS-SHIP-1' },
+          ],
+          systems: [
+            { name: 'OMS', stages: ['PROCESS-RECEIVE-1', 'PROCESS-PICK-1'] },
+            { name: 'TMS', stages: ['PROCESS-SHIP-1'] },
+          ],
+        }),
+        { processCatalog: catalog },
+      );
+      const pills = layout.aspectRows[0].pills;
+      expect(pills).toHaveLength(2);
+      expect(pills[0].startStageIndex).toBe(0);
+      expect(pills[0].endStageIndex).toBe(1);
+      expect(pills[1].startStageIndex).toBe(2);
+      expect(pills[1].endStageIndex).toBe(2);
+    });
+
+    it('STAGE- only columns still take name/goal/result from the view', () => {
+      const layout = layoutProcessBlueprint(
+        build({
+          stages: [{ id: 'STAGE-1', name: 'Receive', goal: 'g', result: 'r' }],
+        }),
+        { processCatalog: catalog },
+      );
+      expect(layout.stageHeaders[0].name).toBe('Receive');
+      expect(layout.goalCells[0].text).toBe('g');
+      expect(layout.resultCells[0].text).toBe('r');
+    });
+  });
+
+  describe('notation-corpus fixtures', () => {
+    const corpus = path.resolve(process.cwd(), '..', '..', 'tests', 'fixtures', 'notation-corpus');
+
+    function collectYamlUnder(dir: string): unknown[] {
+      const out: unknown[] = [];
+      for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+        const p = path.join(dir, e.name);
+        if (e.isDirectory()) out.push(...collectYamlUnder(p));
+        else if (e.name.endsWith('.yaml')) out.push(yaml.load(fs.readFileSync(p, 'utf8')));
+      }
+      return out;
+    }
+
+    it('STAGE-only order-fulfilment still lays out authored headers', () => {
+      const file = yaml.load(
+        fs.readFileSync(
+          path.join(corpus, 'process-blueprint', 'order-fulfilment.process-blueprint.transitrix.yaml'),
+          'utf8',
+        ),
+      ) as ProcessBlueprintFile;
+      const layout = layoutProcessBlueprint(file);
+      expect(layout.stageHeaders).toHaveLength(5);
+      expect(layout.stageHeaders.map(h => h.name)).toEqual([
+        'Receive order',
+        'Allocate inventory',
+        'Pick & pack',
+        'Ship',
+        'Confirm delivery & close',
+      ]);
+      expect(layout.aspectRows.length).toBeGreaterThan(0);
+    });
+
+    it('catalogued fulfilment-chain headers and goal/result come from PROCESS elements', () => {
+      const parent = path.join(corpus, 'relations', 'process-parent');
+      const file = yaml.load(
+        fs.readFileSync(path.join(parent, 'fulfilment-chain.process-blueprint.transitrix.yaml'), 'utf8'),
+      ) as ProcessBlueprintFile;
+      const catalog = collectProcessColumnRecords(collectYamlUnder(path.join(parent, 'canon', 'elements')));
+      const layout = layoutProcessBlueprint(file, { processCatalog: catalog });
+      expect(layout.stageHeaders.map(h => h.name)).toEqual(['Receive order', 'Pick and pack', 'Ship']);
+      expect(layout.goalCells.map(c => c.text)).toEqual([
+        'Capture a validated customer order.',
+        'Assemble the physical order from reserved inventory.',
+        'Hand the shipment to the carrier and notify the customer.',
+      ]);
+      expect(layout.aspectRows[0].pills.length).toBeGreaterThan(0);
     });
   });
 });

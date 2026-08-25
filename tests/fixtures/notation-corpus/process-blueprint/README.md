@@ -6,7 +6,9 @@ File extension: **`.process-blueprint.transitrix.yaml`**
 
 A process blueprint is a wide, single-page diagram that maps each stage of a value chain to its supporting operational context — systems, actors, equipment, and information entities — together with the stage's goal and result. Stages are laid out left to right; each stage is a column, and the aspect categories are fixed rows that align horizontally across columns.
 
-The data shape is **flat**: a single `process_blueprint:` root with parallel arrays for `stages[]` and the four aspect categories. Each aspect entry carries a `stages: [STAGE-…]` cross-reference listing every stage it appears in. The nested-box visual is derived from this flat shape by the renderer — entries spanning consecutive stages render as a single pill; entries on non-consecutive stages render as one pill per stage.
+The data shape is **flat**: a single `process_blueprint:` root with parallel arrays for `stages[]` and the four aspect categories. Each aspect entry carries a `stages: […]` cross-reference listing every column it appears in — a document-local `STAGE-…` sketch or an admitted `PROCESS-…`. The nested-box visual is derived from this flat shape by the renderer — entries spanning consecutive columns render as a single pill; entries on non-consecutive columns render as one pill per column.
+
+A catalogued-column worked example (columns are child `PROCESS` elements; headers and goal/result come from those elements) lives at [`../relations/process-parent/`](../relations/process-parent/).
 
 ## Files in this folder
 
@@ -28,11 +30,9 @@ notation: process-blueprint
 |---|---|
 | `process_blueprint.id` | Pattern `PROCESS_BLUEPRINT-[<middle>-]<INTEGER>` |
 | `process_blueprint.name` | Display name |
-| `process_blueprint.stages` | Non-empty array of stage entries |
-| `stages[].id` | Pattern `STAGE-[<middle>-]<INTEGER>`; unique within the document |
-| `stages[].name` | Stage name |
-| `stages[].goal` | What the stage should achieve, one short sentence |
-| `stages[].result` | The deliverable that exits the stage, one short sentence |
+| `process_blueprint.stages` | Non-empty array of column entries |
+| `stages[].id` | `STAGE-[<middle>-]<INTEGER>` (sketch) or `PROCESS-[<middle>-]<INTEGER>` (catalogued); unique within the document |
+| `stages[].name` / `goal` / `result` | Required on `STAGE-…` columns. Omit on `PROCESS-…` columns — the preview derives them from the child PROCESS element |
 
 ## Optional fields
 
@@ -45,11 +45,11 @@ notation: process-blueprint
 | `process_blueprint.equipment[]` | Physical instruments — free-form labels in v0.1 |
 | `process_blueprint.information_entities[]` | Data, documents, records — free-form labels in v0.1 |
 
-Every aspect entry has `name` and `stages: [STAGE-…]` (non-empty). An entry's `id` is optional; when present it must match the canonical grammar `<TYPE>-[<middle>-]<INTEGER>`.
+Every aspect entry has `name` and `stages: […]` (non-empty). An entry's `id` is optional; when present it must match the canonical grammar `<TYPE>-[<middle>-]<INTEGER>`.
 
 ## Preview
 
-Open any `.process-blueprint.transitrix.yaml` file in VS Code with Transitrix Studio installed — the preview panel opens automatically showing the value chain as a horizontal grid: stages across the top, goal/result rows above the fixed aspect rows (systems → actors → equipment → information). Entries spanning consecutive stages render as a single pill; entries on non-consecutive stages render as one pill per stage.
+Open any `.process-blueprint.transitrix.yaml` file in VS Code with Transitrix Studio installed — the preview panel opens automatically showing the value chain as a horizontal grid: columns across the top, goal/result rows above the fixed aspect rows (systems → actors → equipment → information). Entries spanning consecutive columns render as a single pill; entries on non-consecutive columns render as one pill per column. A `PROCESS-…` column reads its header and goal/result from the matching PROCESS element under a neighbouring or ancestor `canon/elements/` tree.
 
 ## Canonical reference
 

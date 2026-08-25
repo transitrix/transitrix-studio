@@ -32,3 +32,12 @@ export type {
 } from './validate.js';
 
 export { layoutProcessBlueprint } from './layout.js';
+export {
+  collectProcessColumnRecords,
+  collectStepHomeProcess,
+  columnIndexesForRealisedVia,
+  isProcessColumnId,
+  isStageColumnId,
+  resolveColumnDisplay,
+} from './resolve-columns.js';
+export type { ProcessColumnRecord } from './resolve-columns.js';

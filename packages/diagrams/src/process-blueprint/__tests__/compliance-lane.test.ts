@@ -9,7 +9,13 @@ import type {
 
 // ── fixtures ────────────────────────────────────────────────────────────────
 
-const STAGES: ProcessBlueprintFile['process_blueprint']['stages'] = [
+const PROCESS_STAGES: ProcessBlueprintFile['process_blueprint']['stages'] = [
+  { id: 'PROCESS-RECEIVE-1' },
+  { id: 'PROCESS-PACK-1' },
+  { id: 'PROCESS-SHIP-1' },
+];
+
+const STAGE_STAGES: ProcessBlueprintFile['process_blueprint']['stages'] = [
   { id: 'STAGE-1', name: 'Receive', goal: 'g1', result: 'r1' },
   { id: 'STAGE-2', name: 'Process', goal: 'g2', result: 'r2' },
   { id: 'STAGE-3', name: 'Ship', goal: 'g3', result: 'r3' },
@@ -18,7 +24,14 @@ const STAGES: ProcessBlueprintFile['process_blueprint']['stages'] = [
 function buildFile(overrides: Partial<ProcessBlueprintFile['process_blueprint']> = {}): ProcessBlueprintFile {
   return {
     notation: 'process-blueprint',
-    process_blueprint: { id: 'PROCESS_BLUEPRINT-T-1', name: 'Test', stages: STAGES, ...overrides },
+    process_blueprint: { id: 'PROCESS_BLUEPRINT-T-1', name: 'Test', stages: PROCESS_STAGES, ...overrides },
+  };
+}
+
+function buildStageFile(overrides: Partial<ProcessBlueprintFile['process_blueprint']> = {}): ProcessBlueprintFile {
+  return {
+    notation: 'process-blueprint',
+    process_blueprint: { id: 'PROCESS_BLUEPRINT-T-1', name: 'Test', stages: STAGE_STAGES, ...overrides },
   };
 }
 
@@ -43,11 +56,17 @@ function makeAssertion(
 function layout(
   file: ProcessBlueprintFile,
   input: ComplianceLaneInput,
-  overrides: { jurisdictions?: string[]; previousSnapshot?: Record<string, string[]> } = {},
+  overrides: {
+    jurisdictions?: string[];
+    previousSnapshot?: Record<string, string[]>;
+    stepHomeProcess?: ReadonlyMap<string, string>;
+  } = {},
 ) {
+  const { stepHomeProcess, ...lane } = overrides;
   return layoutProcessBlueprint(file, {
-    complianceLane: { enabled: true, ...overrides },
+    complianceLane: { enabled: true, ...lane },
     complianceInput: input,
+    stepHomeProcess,
   });
 }
 
@@ -75,7 +94,7 @@ describe('compliance lane derivation', () => {
 
   it('derives a chip for each law-stage pair', () => {
     const input: ComplianceLaneInput = {
-      assertions: [makeAssertion('REQ-1', 'compliant', ['STAGE-1'])],
+      assertions: [makeAssertion('REQ-1', 'compliant', ['PROCESS-RECEIVE-1'])],
       requirements: [REQ_A],
     };
     const l = layout(buildFile(), input);
@@ -88,7 +107,7 @@ describe('compliance lane derivation', () => {
 
   it('produces one chip per law per stage (same law, two stages → two chips)', () => {
     const input: ComplianceLaneInput = {
-      assertions: [makeAssertion('REQ-1', 'compliant', ['STAGE-1', 'STAGE-2'])],
+      assertions: [makeAssertion('REQ-1', 'compliant', ['PROCESS-RECEIVE-1', 'PROCESS-PACK-1'])],
       requirements: [REQ_A],
     };
     const l = layout(buildFile(), input);
@@ -101,8 +120,8 @@ describe('compliance lane derivation', () => {
   it('merges multiple assertions for the same law-stage into one chip', () => {
     const input: ComplianceLaneInput = {
       assertions: [
-        makeAssertion('REQ-1', 'compliant', ['STAGE-1']),
-        makeAssertion('REQ-1', 'partial', ['STAGE-1']),
+        makeAssertion('REQ-1', 'compliant', ['PROCESS-RECEIVE-1']),
+        makeAssertion('REQ-1', 'partial', ['PROCESS-RECEIVE-1']),
       ],
       requirements: [REQ_A],
     };
@@ -113,19 +132,19 @@ describe('compliance lane derivation', () => {
   describe('decoration: new', () => {
     it('marks chip as new when law is not in previous snapshot', () => {
       const input: ComplianceLaneInput = {
-        assertions: [makeAssertion('REQ-1', 'compliant', ['STAGE-1'])],
+        assertions: [makeAssertion('REQ-1', 'compliant', ['PROCESS-RECEIVE-1'])],
         requirements: [REQ_A],
       };
-      const l = layout(buildFile(), input, { previousSnapshot: { 'STAGE-1': [] } });
+      const l = layout(buildFile(), input, { previousSnapshot: { 'PROCESS-RECEIVE-1': [] } });
       expect(l.complianceRow!.chips[0].decorations).toContain('new');
     });
 
     it('does not mark chip as new when law is in previous snapshot', () => {
       const input: ComplianceLaneInput = {
-        assertions: [makeAssertion('REQ-1', 'compliant', ['STAGE-1'])],
+        assertions: [makeAssertion('REQ-1', 'compliant', ['PROCESS-RECEIVE-1'])],
         requirements: [REQ_A],
       };
-      const l = layout(buildFile(), input, { previousSnapshot: { 'STAGE-1': ['LAW-GDPR-1'] } });
+      const l = layout(buildFile(), input, { previousSnapshot: { 'PROCESS-RECEIVE-1': ['LAW-GDPR-1'] } });
       expect(l.complianceRow!.chips[0].decorations).not.toContain('new');
     });
   });
@@ -133,7 +152,7 @@ describe('compliance lane derivation', () => {
   describe('decoration: gap', () => {
     it('marks chip as gap when assertion status is non_compliant', () => {
       const input: ComplianceLaneInput = {
-        assertions: [makeAssertion('REQ-1', 'non_compliant', ['STAGE-1'])],
+        assertions: [makeAssertion('REQ-1', 'non_compliant', ['PROCESS-RECEIVE-1'])],
         requirements: [REQ_A],
       };
       const l = layout(buildFile(), input);
@@ -142,7 +161,7 @@ describe('compliance lane derivation', () => {
 
     it('marks chip as gap when assertion status is partial', () => {
       const input: ComplianceLaneInput = {
-        assertions: [makeAssertion('REQ-1', 'partial', ['STAGE-2'])],
+        assertions: [makeAssertion('REQ-1', 'partial', ['PROCESS-PACK-1'])],
         requirements: [REQ_A],
       };
       const l = layout(buildFile(), input);
@@ -151,7 +170,7 @@ describe('compliance lane derivation', () => {
 
     it('does not mark chip as gap for compliant assertion', () => {
       const input: ComplianceLaneInput = {
-        assertions: [makeAssertion('REQ-1', 'compliant', ['STAGE-1'])],
+        assertions: [makeAssertion('REQ-1', 'compliant', ['PROCESS-RECEIVE-1'])],
         requirements: [REQ_A],
       };
       const l = layout(buildFile(), input);
@@ -161,8 +180,8 @@ describe('compliance lane derivation', () => {
     it('propagates gap if any assertion for the same law-stage is non-compliant', () => {
       const input: ComplianceLaneInput = {
         assertions: [
-          makeAssertion('REQ-1', 'compliant', ['STAGE-1']),
-          makeAssertion('REQ-1', 'non_compliant', ['STAGE-1']),
+          makeAssertion('REQ-1', 'compliant', ['PROCESS-RECEIVE-1']),
+          makeAssertion('REQ-1', 'non_compliant', ['PROCESS-RECEIVE-1']),
         ],
         requirements: [REQ_A],
       };
@@ -174,7 +193,7 @@ describe('compliance lane derivation', () => {
   describe('decoration: deadline', () => {
     it('marks chip as deadline when gap exists and requirement deadline is past_due', () => {
       const input: ComplianceLaneInput = {
-        assertions: [makeAssertion('REQ-3', 'non_compliant', ['STAGE-1'])],
+        assertions: [makeAssertion('REQ-3', 'non_compliant', ['PROCESS-RECEIVE-1'])],
         requirements: [REQ_DEADLINE],
       };
       const l = layout(buildFile(), input);
@@ -185,7 +204,7 @@ describe('compliance lane derivation', () => {
 
     it('does not mark deadline when gap is absent even if deadline is past_due', () => {
       const input: ComplianceLaneInput = {
-        assertions: [makeAssertion('REQ-3', 'compliant', ['STAGE-1'])],
+        assertions: [makeAssertion('REQ-3', 'compliant', ['PROCESS-RECEIVE-1'])],
         requirements: [REQ_DEADLINE],
       };
       const l = layout(buildFile(), input);
@@ -194,7 +213,7 @@ describe('compliance lane derivation', () => {
 
     it('does not mark deadline when no deadline on requirement', () => {
       const input: ComplianceLaneInput = {
-        assertions: [makeAssertion('REQ-1', 'non_compliant', ['STAGE-1'])],
+        assertions: [makeAssertion('REQ-1', 'non_compliant', ['PROCESS-RECEIVE-1'])],
         requirements: [REQ_A],
       };
       const l = layout(buildFile(), input);
@@ -203,10 +222,10 @@ describe('compliance lane derivation', () => {
 
     it('all three decorations can stack on the same chip', () => {
       const input: ComplianceLaneInput = {
-        assertions: [makeAssertion('REQ-3', 'non_compliant', ['STAGE-1'])],
+        assertions: [makeAssertion('REQ-3', 'non_compliant', ['PROCESS-RECEIVE-1'])],
         requirements: [REQ_DEADLINE],
       };
-      const l = layout(buildFile(), input, { previousSnapshot: { 'STAGE-1': [] } });
+      const l = layout(buildFile(), input, { previousSnapshot: { 'PROCESS-RECEIVE-1': [] } });
       const d = l.complianceRow!.chips[0].decorations;
       expect(d).toContain('new');
       expect(d).toContain('gap');
@@ -217,7 +236,7 @@ describe('compliance lane derivation', () => {
   describe('jurisdiction filter', () => {
     it('passes through all laws when no jurisdictions filter', () => {
       const input: ComplianceLaneInput = {
-        assertions: [makeAssertion('REQ-2', 'compliant', ['STAGE-1'])],
+        assertions: [makeAssertion('REQ-2', 'compliant', ['PROCESS-RECEIVE-1'])],
         requirements: [REQ_B], // derived_from: [LAW-GDPR-1, LAW-SOX-2]
         codexJurisdictions: { 'LAW-GDPR-1': 'EU', 'LAW-SOX-2': 'US' },
       };
@@ -227,7 +246,7 @@ describe('compliance lane derivation', () => {
 
     it('filters to only the selected jurisdictions', () => {
       const input: ComplianceLaneInput = {
-        assertions: [makeAssertion('REQ-2', 'compliant', ['STAGE-1'])],
+        assertions: [makeAssertion('REQ-2', 'compliant', ['PROCESS-RECEIVE-1'])],
         requirements: [REQ_B],
         codexJurisdictions: { 'LAW-GDPR-1': 'EU', 'LAW-SOX-2': 'US' },
       };
@@ -238,7 +257,7 @@ describe('compliance lane derivation', () => {
 
     it('returns no row when jurisdiction filter excludes all laws', () => {
       const input: ComplianceLaneInput = {
-        assertions: [makeAssertion('REQ-2', 'compliant', ['STAGE-1'])],
+        assertions: [makeAssertion('REQ-2', 'compliant', ['PROCESS-RECEIVE-1'])],
         requirements: [REQ_B],
         codexJurisdictions: { 'LAW-GDPR-1': 'EU', 'LAW-SOX-2': 'US' },
       };
@@ -250,7 +269,7 @@ describe('compliance lane derivation', () => {
   describe('null-guards', () => {
     it('tolerates null assertion entries without throwing', () => {
       const input: ComplianceLaneInput = {
-        assertions: [null as unknown as ComplianceLaneAssertion, makeAssertion('REQ-1', 'compliant', ['STAGE-1'])],
+        assertions: [null as unknown as ComplianceLaneAssertion, makeAssertion('REQ-1', 'compliant', ['PROCESS-RECEIVE-1'])],
         requirements: [REQ_A],
       };
       expect(() => layout(buildFile(), input)).not.toThrow();
@@ -267,7 +286,7 @@ describe('compliance lane derivation', () => {
 
     it('skips assertions whose requirement is not in the input', () => {
       const input: ComplianceLaneInput = {
-        assertions: [makeAssertion('REQ-MISSING', 'non_compliant', ['STAGE-1'])],
+        assertions: [makeAssertion('REQ-MISSING', 'non_compliant', ['PROCESS-RECEIVE-1'])],
         requirements: [REQ_A],
       };
       const l = layout(buildFile(), input);
@@ -278,7 +297,7 @@ describe('compliance lane derivation', () => {
   describe('legend', () => {
     it('adds a compliance legend entry when the row is present', () => {
       const input: ComplianceLaneInput = {
-        assertions: [makeAssertion('REQ-1', 'compliant', ['STAGE-1'])],
+        assertions: [makeAssertion('REQ-1', 'compliant', ['PROCESS-RECEIVE-1'])],
         requirements: [REQ_A],
       };
       const l = layout(buildFile(), input);
@@ -297,7 +316,7 @@ describe('compliance lane derivation', () => {
     it('total height grows by the compliance row height', () => {
       const withoutLane = layoutProcessBlueprint(buildFile(), {});
       const input: ComplianceLaneInput = {
-        assertions: [makeAssertion('REQ-1', 'compliant', ['STAGE-1'])],
+        assertions: [makeAssertion('REQ-1', 'compliant', ['PROCESS-RECEIVE-1'])],
         requirements: [REQ_A],
       };
       const withLane = layout(buildFile(), input);
@@ -307,7 +326,7 @@ describe('compliance lane derivation', () => {
 
     it('chip x aligns to the stage column', () => {
       const input: ComplianceLaneInput = {
-        assertions: [makeAssertion('REQ-1', 'compliant', ['STAGE-2'])],
+        assertions: [makeAssertion('REQ-1', 'compliant', ['PROCESS-PACK-1'])],
         requirements: [REQ_A],
       };
       const l = layout(buildFile(), input);
@@ -315,6 +334,41 @@ describe('compliance lane derivation', () => {
       // Chip x must be at the start of stage-2's column (index 1) + cellPadding.
       const expectedX = l.legendColumnWidth + 1 * l.stageColumnWidth + 8; // default cellPadding = 8
       expect(chip.x).toBe(expectedX);
+    });
+  });
+
+  describe('catalogued PROCESS- join vs STAGE- sketch', () => {
+    it('does not pin a STAGE- only blueprint from realised_via STAGE- ids', () => {
+      const input: ComplianceLaneInput = {
+        assertions: [makeAssertion('REQ-1', 'compliant', ['STAGE-1', 'STAGE-2'])],
+        requirements: [REQ_A],
+      };
+      const l = layout(buildStageFile(), input);
+      expect(l.complianceRow).toBeUndefined();
+    });
+
+    it('pins a PROCESS- column when realised_via names a STEP of that process', () => {
+      const input: ComplianceLaneInput = {
+        assertions: [makeAssertion('REQ-1', 'compliant', ['STEP-RECV-1'])],
+        requirements: [REQ_A],
+      };
+      const l = layout(buildFile(), input, {
+        stepHomeProcess: new Map([['STEP-RECV-1', 'PROCESS-RECEIVE-1']]),
+      });
+      expect(l.complianceRow).toBeDefined();
+      expect(l.complianceRow!.chips).toHaveLength(1);
+      expect(l.complianceRow!.chips[0].stageIndex).toBe(0);
+    });
+
+    it('does not pin a PROCESS- column from a STEP that belongs to another process', () => {
+      const input: ComplianceLaneInput = {
+        assertions: [makeAssertion('REQ-1', 'compliant', ['STEP-SHIP-1'])],
+        requirements: [REQ_A],
+      };
+      const l = layout(buildFile(), input, {
+        stepHomeProcess: new Map([['STEP-SHIP-1', 'PROCESS-OTHER-1']]),
+      });
+      expect(l.complianceRow).toBeUndefined();
     });
   });
 });

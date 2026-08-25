@@ -12,6 +12,7 @@ import type { ComplianceCanon } from './classify.js';
 import { buildComplianceIndex } from './reverse-index.js';
 import type { CanonCatalog } from '../typed-id.js';
 import type { ComplianceIndex, IndexAssertion, IndexRequirement, ObjectDetailInput, ObjectDetailDef, DeadlineStatus } from './types.js';
+import { isStageColumnId } from '../process-blueprint/resolve-columns.js';
 
 /** Filter selecting REQUIREMENTs by codex source (jurisdiction / regime keys
  *  are accepted for forward compatibility but not yet honoured — the canon
@@ -649,22 +650,48 @@ function buildTaskColumns(
  *
  * At `'product'` grain: `a.subject` must match `col.subjectId`.
  * At `'product-stage'` grain: `a.subject` must match AND either
- * `a.realised_via` is absent (claim covers the whole subject) OR
- * `col.stageId` ∈ `a.realised_via`.
- * At `'product-stage-task'` grain: as above for stage, plus `col.taskId` ∈
- * `a.realised_via` counts as a match (task-level claim covers this task column).
- * A stage-level claim (`col.stageId` ∈ `a.realised_via`) covers all task columns
- * in that stage.
+ * `a.realised_via` is absent (claim covers the whole subject) OR the token
+ * pins this column: a `PROCESS-…` id matching `col.stageId`, or a STEP whose
+ * home process is that column. Sketch `STAGE-…` ids are never a join key.
+ * At `'product-stage-task'` grain: a task-id hit covers that task column; a
+ * process-level claim covers every task column of that process.
  */
-function assertionMatchesColumn(a: IndexAssertion, col: ImpactColumn): boolean {
+function assertionMatchesColumn(
+  a: IndexAssertion,
+  col: ImpactColumn,
+  stepHomeProcess?: ReadonlyMap<string, string>,
+): boolean {
   if (a.subject !== col.subjectId) return false;
   if (!col.stageId) return true;
   if (!a.realised_via || a.realised_via.length === 0) return true;
-  if (col.taskId) {
-    // Task grain: match on taskId OR on stageId (stage claim covers all tasks).
-    return a.realised_via.includes(col.taskId) || a.realised_via.includes(col.stageId);
+
+  const stageId = col.stageId;
+  if (isStageColumnId(stageId)) {
+    // Sketch column: only a task-id hit counts — never the STAGE- key.
+    return col.taskId != null && a.realised_via.includes(col.taskId);
   }
-  return a.realised_via.includes(col.stageId);
+
+  for (const ref of a.realised_via) {
+    if (typeof ref !== 'string') continue;
+    if (isStageColumnId(ref)) continue;
+    if (col.taskId && ref === col.taskId) return true;
+    if (ref === stageId) return true;
+    if (!col.taskId && stepHomeProcess?.get(ref) === stageId) return true;
+  }
+  return false;
+}
+
+function stepHomeFromObjectDetails(objectDetails?: ObjectDetailInput[]): Map<string, string> {
+  const out = new Map<string, string>();
+  if (!objectDetails) return out;
+  for (const od of objectDetails) {
+    for (const d of od.details ?? []) {
+      for (const t of d.tasks ?? []) {
+        if (typeof t?.id === 'string' && t.id.length > 0) out.set(t.id, d.id);
+      }
+    }
+  }
+  return out;
 }
 
 /**
@@ -691,6 +718,7 @@ export function buildImpactMatrix(
   canon: ComplianceCanon,
   config: ImpactViewConfig,
   objectDetails?: ObjectDetailInput[],
+  join?: { stepHomeProcess?: ReadonlyMap<string, string> },
 ): ImpactMatrix {
   const index = buildComplianceIndex({
     requirements: canon.requirements,
@@ -755,6 +783,7 @@ export function buildImpactMatrix(
 
   const rowIndex = new Set(obligations.map(r => r.id));
   const cells: ImpactCell[][] = obligations.map(() => columns.map(() => emptyCell()));
+  const stepHome = join?.stepHomeProcess ?? stepHomeFromObjectDetails(objectDetails);
 
   for (let c = 0; c < columns.length; c++) {
     const col = columns[c];
@@ -762,7 +791,7 @@ export function buildImpactMatrix(
     for (const a of subjectAssertions) {
       if (!rowIndex.has(a.about)) continue;
       if (!allowedStatuses.has(a.status)) continue;
-      if (!assertionMatchesColumn(a, col)) continue;
+      if (!assertionMatchesColumn(a, col, stepHome)) continue;
       const rowIdx = obligations.findIndex(r => r.id === a.about);
       if (rowIdx < 0) continue;
       cells[rowIdx][c].assertions.push(a);

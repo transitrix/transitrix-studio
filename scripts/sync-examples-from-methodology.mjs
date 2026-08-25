@@ -5,8 +5,8 @@
  * example YAMLs used by the spec, by the extension's example folder,
  * and by the conformance tests in packages/diagrams/src/<notation>/__tests__/.
  *
- * Default behaviour is a dry run that prints the diff between
- * <methodology>/notations/examples/ and <studio>/examples/. Pass
+ * Source scope: every *.transitrix.yaml under <methodology>/notations/examples/,
+ * plus companion PROCESS / relation YAML under relations/process-parent/.
  * --apply to copy added/changed files. Pass --apply --delete-stale to
  * also remove files in <studio>/examples/ that have no counterpart in
  * methodology — a strict mirror.
@@ -93,6 +93,17 @@ function relForward(from, full) {
   return path.relative(from, full).replace(/\\/g, '/');
 }
 
+function isSyncableExample(p) {
+  const n = p.replace(/\\/g, '/');
+  if (p.endsWith('.transitrix.yaml')) return true;
+  // Companion PROCESS / relation YAML for the process-parent worked example —
+  // those files are not views, so they miss the *.transitrix.yaml filter.
+  if (n.includes('/relations/process-parent/') && p.endsWith('.yaml')) {
+    return true;
+  }
+  return false;
+}
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const methodologyRoot = path.resolve(
@@ -109,12 +120,11 @@ async function main() {
     process.exit(2);
   }
 
-  // Source scope: every *.transitrix.yaml under <methodology>/notations/examples/
-  const srcFiles = await walk(srcRoot, (p) => p.endsWith('.transitrix.yaml'));
-  // Destination scope: every *.transitrix.yaml under <studio>/examples/.
-  // (The short `.bpmn.yaml` legacy was retired from Studio in the BPMN
-  // extension migration; no legacy form is scanned here.)
-  const dstFiles = await walk(dstRoot, (p) => p.endsWith('.transitrix.yaml'));
+  // Source scope: every *.transitrix.yaml under <methodology>/notations/examples/,
+  // plus the process-parent companion canon (PROCESS / relation YAML).
+  const srcFiles = await walk(srcRoot, isSyncableExample);
+  // Destination scope: the same predicate under the Studio notation corpus.
+  const dstFiles = await walk(dstRoot, isSyncableExample);
 
   const srcRel = new Set(srcFiles.map((p) => relForward(srcRoot, p)));
   const dstRel = new Set(dstFiles.map((p) => relForward(dstRoot, p)));
