@@ -217,13 +217,13 @@ describe('computeStagedImpact (transitrix-hq#89)', () => {
 });
 
 /** A minimal, valid `.ttrs` document source — required header fields only. */
-function ttrsDoc(templateId: string, body: string): string {
+function ttrsDoc(recipeId: string, body: string): string {
   return [
     '---',
     'document: "Test document"',
     'kind: mrd',
-    `template_id: ${templateId}`,
-    'template_version: "1.0"',
+    `recipe_id: ${recipeId}`,
+    'recipe_version: "1.0"',
     '---',
     '',
     body,
@@ -412,8 +412,8 @@ describe('offerDocumentRegeneration (transitrix-hq#182)', () => {
         '---',
         'document: "Test document"',
         'kind: mrd',
-        'template_id: product.mrd',
-        'template_version: "1.0"',
+        'recipe_id: product.mrd',
+        'recipe_version: "1.0"',
         'canon: ../..',
         '---',
         '',

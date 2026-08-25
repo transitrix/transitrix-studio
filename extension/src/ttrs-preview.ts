@@ -25,7 +25,7 @@ import { readBlocksLeafSize } from './node-size-config.js';
 // Studio's own type contract for the vendored JS, not part of what's fetched.
 import { runPass1 } from '../../vendor/methodology/document-renderer/pass1.mjs';
 
-/** Detects `.ttrs` document-template files (transitrix-hq#56 registered the language). */
+/** Detects `.ttrs` document-recipe files (transitrix-hq#56 registered the language). */
 export function isTtrsFile(doc: vscode.TextDocument): boolean {
   return doc.fileName.endsWith('.ttrs');
 }
@@ -109,7 +109,7 @@ export class TtrsPreview extends StaticPreview {
     try {
       const result = await runPass1({
         text: doc.getText(),
-        templatePath: doc.fileName,
+        recipePath: doc.fileName,
         profile: 'review',
         rasterise: (input) => rasteriseFigure(input, figureEmbeds),
       });

@@ -5,8 +5,8 @@
 // and the 2026-08-12 instruction-slot ADR.
 
 export interface RunRecordHeader {
-  template_id: string;
-  template_version: string;
+  recipe_id: string;
+  recipe_version: string;
 }
 
 /** Structurally what pass2.mjs's `slotResults` entries carry — kept local
@@ -45,8 +45,8 @@ export interface RunRecordSlot {
 }
 
 export interface RunRecord {
-  template_id: string;
-  template_version: string;
+  recipe_id: string;
+  recipe_version: string;
   repository_commit: string | null;
   model_id: string | null;
   run_timestamp: string;

@@ -1,8 +1,8 @@
 ---
 document: Software Requirements Specification
 kind: srs
-template_id: platform.srs
-template_version: "1.0"
+recipe_id: platform.srs
+recipe_version: "1.0"
 ---
 
 # Kind disagreement

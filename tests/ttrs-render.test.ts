@@ -67,7 +67,7 @@ describe('renderTtrsResult — no-repository case', () => {
     const result = baseResult({
       markdown: 'See «unresolved: REQ-1».',
       findings: [{ code: 'TTRS-011', state: 'no-repository', flag: null, id: null, file: 'x' }],
-      errors: [{ code: 'TTRS-011', message: 'x.mrd.ttrs: template references a model object but no repository is configured' }],
+      errors: [{ code: 'TTRS-011', message: 'x.mrd.ttrs: recipe references a model object but no repository is configured' }],
     });
     const { bodyContent, errorMsg } = renderTtrsResult(result, new Map());
     expect(bodyContent).toContain('No repository configured');

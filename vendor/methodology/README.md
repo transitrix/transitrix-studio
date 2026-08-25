@@ -41,7 +41,7 @@ in the same change.
 
 Eight source files of `@transitrix/document-renderer`'s render pipeline:
 `pass1.mjs` (the deterministic resolver) and the four modules it imports
-(`parse-template.mjs`, `repository.mjs`, `ids.mjs`, `syntax.mjs`) — vendored
+(`parse-recipe.mjs`, `repository.mjs`, `ids.mjs`, `syntax.mjs`) — vendored
 first for the `.ttrs` preview — plus `pass2.mjs` (fills instruction slots via
 a caller-supplied agent hook), `render-pdf.mjs` (Markdown → PDF, dependency-
 free) and `run-record.mjs` (the provenance stamp), vendored for
@@ -61,7 +61,7 @@ unpinned file, or a hash mismatch is a build failure, never a pass.
 ### Refreshing
 
 ```
-node scripts/vendor-methodology-document-renderer.mjs --ref v3.5.0
+node scripts/vendor-methodology-document-renderer.mjs --ref v4.0.0
 ```
 
 Same fetch-from-tag contract as `vocabulary.yaml` above — never a sibling

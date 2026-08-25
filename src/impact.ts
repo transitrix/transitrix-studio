@@ -34,14 +34,14 @@ import { DOCUMENT_SOURCE_EXTENSION } from './validate-document-source.js';
 import { renderDocumentToDisk } from './render-document.js';
 // Vendored from methodology — see scripts/vendor-methodology-document-renderer.mjs
 // and tests/document-renderer-vendor.test.ts for the integrity check that
-// keeps this import target trustworthy. Only the syntax half (parseTemplate)
+// keeps this import target trustworthy. Only the syntax half (parseRecipe)
 // is needed here; this check never resolves a reference against a repository.
 import {
-  parseTemplate,
-  type TemplateNode,
-  type TemplateReferenceNode,
-  type TemplateInstructNode,
-} from '../vendor/methodology/document-renderer/parse-template.mjs';
+  parseRecipe,
+  type RecipeNode,
+  type RecipeReferenceNode,
+  type RecipeInstructNode,
+} from '../vendor/methodology/document-renderer/parse-recipe.mjs';
 
 export interface ImpactFinding {
   file: string;
@@ -259,19 +259,19 @@ export function computeStagedImpact(root: string): ImpactResult {
  *  a construct would touch, so it cannot claim the document unaffected on the
  *  strength of the plain references alone (epic acceptance requirement 6). A
  *  parse error carries no reference information either — same fallback. */
-function isReferenceNode(node: TemplateNode): node is TemplateReferenceNode {
+function isReferenceNode(node: RecipeNode): node is RecipeReferenceNode {
   return node.type === 'reference';
 }
 
-function isInstructNode(node: TemplateNode): node is TemplateInstructNode {
+function isInstructNode(node: RecipeNode): node is RecipeInstructNode {
   return node.type === 'instruct';
 }
 
 function documentReferencedIds(text: string): { ids: Set<string>; determined: boolean } {
   const ids = new Set<string>();
-  let parsed: ReturnType<typeof parseTemplate>;
+  let parsed: ReturnType<typeof parseRecipe>;
   try {
-    parsed = parseTemplate(text);
+    parsed = parseRecipe(text);
   } catch {
     return { ids, determined: false };
   }
