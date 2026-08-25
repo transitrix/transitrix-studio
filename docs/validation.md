@@ -53,7 +53,7 @@ suite, see below):
   `FGCA-008`..`014`) — see below.
 - **Standalone-element envelope hygiene** (`GOAL-ELEM-002`/`003`,
   `ACTION-001`/`002`/`005`) — see below.
-- **Doc-level grammar** (`GOALS-001`..`007`, `ACT-001`..`003`/`016`,
+- **Doc-level grammar** (`GOALS-001`..`007`, `ACT-001`..`003`/`016`/`021`,
   `FGCA-001`..`007`/`015`) — each notation's own per-file validator, surfaced
   under the `views` array (not `canon`) when the document lives under
   `canon/views/**` — see below.
@@ -186,6 +186,7 @@ in.
 | `GOALS-007` | `goals` | Duplicate `goals[].id` within one document (distinct from the cross-document `checkIdUniqueness` above). |
 | `ACT-001`..`003` | `action` | Document/`notation` shape, activity entry id/name presence. |
 | `ACT-016` | `action` | A milestone (`duration` 0) with both `start_date`/`end_date` pinned must have them equal. |
+| `ACT-021` | `action` | `view_config.scope.root_action` is set and resolves, and an ACTION the view would otherwise include is not that root and not reachable from it via `parent`. Warning; the ACTION is omitted from the render. Distinct from `ACT-004` (duplicate id in this validator). |
 | `FGCA-001`..`007` | `dgca` | Document shape, per-layer entry grammar, cross-reference array grammar. |
 | `FGCA-015` | `dgca` | `factors[].references_constraint` is an array of valid ids. |
 

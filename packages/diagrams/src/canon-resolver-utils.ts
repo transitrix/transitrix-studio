@@ -48,6 +48,25 @@ export function descendantsOf(
   return result;
 }
 
+/** Walk `parent` from `id` toward its ancestors until `rootId` or the chain
+ *  ends. Cycle-safe: a cycle is not a path to the root. */
+export function reachesRootViaParent(
+  id: string,
+  rootId: string,
+  all: Map<string, Record<string, unknown>>,
+): boolean {
+  const seen = new Set<string>();
+  let current: string | undefined = id;
+  while (current) {
+    if (current === rootId) return true;
+    if (seen.has(current)) return false;
+    seen.add(current);
+    const el = all.get(current);
+    current = el ? str(el['parent']) : undefined;
+  }
+  return false;
+}
+
 /** Depth of `id` in its `parent` chain within `all` (root = 0, each step up
  *  adds 1). Cycle-safe (a cycle resolves the entering node to depth 0) and
  *  memoized across calls via the shared `memo` map. */

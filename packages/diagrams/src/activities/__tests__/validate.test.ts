@@ -104,6 +104,38 @@ describe('validateActivities', () => {
     expect(r.errors.some(e => e.code === 'ACT-004')).toBe(true);
   });
 
+  it('ACT-021 — warns on an authored ACTION outside root_action', () => {
+    const r = validateActivities({
+      notation: 'action',
+      project: { start_date: '2026-09-01' },
+      view_config: { scope: { root_action: 'ACTION-LAUNCH-1' } },
+      actions: [
+        { id: 'ACTION-LAUNCH-1', name: 'Launch', duration: 5 },
+        { id: 'ACTION-LAUNCH-PREP-1', name: 'Prep', parent: 'ACTION-LAUNCH-1', duration: 3 },
+        { id: 'ACTION-LAUNCH-COMMS-1', name: 'Comms', duration: 2 },
+      ],
+    });
+    expect(r.valid).toBe(true);
+    const w = r.warnings.filter(x => x.code === 'ACT-021');
+    expect(w).toHaveLength(1);
+    expect(w[0].message).toContain('ACTION-LAUNCH-COMMS-1');
+    expect(w[0].message).toContain('ACTION-LAUNCH-1');
+    expect(r.errors.some(e => e.code === 'ACT-004')).toBe(false);
+    expect(r.warnings.some(x => x.code === 'ACT-004')).toBe(false);
+  });
+
+  it('ACT-021 — does not fire when root_action is absent', () => {
+    const r = validateActivities({
+      notation: 'action',
+      project: { start_date: '2026-09-01' },
+      actions: [
+        { id: 'ACTION-LAUNCH-1', name: 'Launch', duration: 5 },
+        { id: 'ACTION-LAUNCH-COMMS-1', name: 'Comms', duration: 2 },
+      ],
+    });
+    expect(r.warnings.some(x => x.code === 'ACT-021')).toBe(false);
+  });
+
   it('ACT-005 — rejects unknown predecessor reference', () => {
     const r = validateActivities({
       notation: 'action',
