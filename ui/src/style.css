@@ -350,6 +350,18 @@ details.layout-drawer[open] > .layout-summary::before {
   display: none;
 }
 
+#app[data-studio-tab='blocks'] .export-profile-label,
+#app[data-studio-tab='goals'] .export-profile-label {
+  display: none;
+}
+
+.export-profile-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
 .shell-header {
   flex-shrink: 0;
   display: flex;

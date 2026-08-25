@@ -151,6 +151,12 @@ function renderShell(root: HTMLElement): void {
     <button type="button" id="btn-theme" aria-label="Switch color theme">Dark</button>
     <span class="actions-sep" aria-hidden="true"></span>
     <button type="button" id="btn-export-bpmn" disabled title="Download BPMN 2.0 XML (.bpmn) after a successful preview">Export BPMN</button>
+    <label class="export-profile-label">Export profile
+      <select id="export-profile" aria-label="BPMN export profile" title="Presentation is a denser automatic layout for slides; it does not change the live preview">
+        <option value="default">Default</option>
+        <option value="presentation">Presentation</option>
+      </select>
+    </label>
     <button type="button" id="btn-export-svg" disabled title="Download the diagram as SVG (after a successful preview)">SVG</button>
     <button type="button" id="btn-export-png" disabled title="Download the diagram as PNG (after a successful preview)">PNG</button>
   </div>
@@ -227,6 +233,7 @@ const btnReset = document.querySelector('#btn-reset');
 const btnExportBpmn = document.querySelector<HTMLButtonElement>('#btn-export-bpmn');
 const btnExportSvg = document.querySelector<HTMLButtonElement>('#btn-export-svg');
 const btnExportPng = document.querySelector<HTMLButtonElement>('#btn-export-png');
+const exportProfileSelect = document.querySelector<HTMLSelectElement>('#export-profile');
 const btnLayoutReset = document.querySelector('#btn-layout-reset');
 const btnLayoutSave = document.querySelector<HTMLButtonElement>('#btn-layout-save');
 const pickFile = document.querySelector<HTMLInputElement>('#pick-file');
@@ -254,6 +261,7 @@ if (
   !btnExportBpmn ||
   !btnExportSvg ||
   !btnExportPng ||
+  !exportProfileSelect ||
   !pickFile ||
   !btnLayoutReset ||
   !btnLayoutSave ||
@@ -582,6 +590,20 @@ async function compileAndShow(): Promise<void> {
   });
 }
 
+async function fetchBpmnVisualExport(format: 'svg' | 'png'): Promise<{ svg?: string; pngBase64?: string }> {
+  const profile = exportProfileSelect.value === 'presentation' ? 'presentation' : 'default';
+  const res = await fetch('/api/export-bpmn', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json; charset=utf-8' },
+    body: JSON.stringify({ yaml: textarea.value, profile, format }),
+  });
+  const body = (await res.json().catch(() => ({}))) as { svg?: string; pngBase64?: string; message?: string };
+  if (!res.ok) {
+    throw new Error(body.message ?? res.statusText);
+  }
+  return body;
+}
+
 function exportDiagramBpmn(): void {
   try {
     if (studioTab() === 'blocks') {
@@ -624,6 +646,13 @@ async function exportDiagramSvg(): Promise<void> {
       );
       return;
     }
+    if (exportProfileSelect.value === 'presentation') {
+      const { svg } = await fetchBpmnVisualExport('svg');
+      if (!svg) throw new Error('Presentation SVG export returned no markup');
+      const base = guessExportBasenameFromYaml(textarea.value);
+      downloadBlob(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }), `${base}.presentation.svg`);
+      return;
+    }
     const v = getViewer();
     const { svg } = await v.saveSVG();
     const base = guessExportBasenameFromYaml(textarea.value);
@@ -649,6 +678,14 @@ async function exportDiagramPng(): Promise<void> {
       const base = guessBlocksExportBasename(blocksSource.value);
       const suffix = lastBlocksSvgs.length > 1 ? '-sheet1' : '';
       downloadBlob(blob, `${base}${suffix}.png`);
+      return;
+    }
+    if (exportProfileSelect.value === 'presentation') {
+      const { pngBase64 } = await fetchBpmnVisualExport('png');
+      if (!pngBase64) throw new Error('Presentation PNG export returned no image');
+      const bytes = Uint8Array.from(atob(pngBase64), (c) => c.charCodeAt(0));
+      const base = guessExportBasenameFromYaml(textarea.value);
+      downloadBlob(new Blob([bytes], { type: 'image/png' }), `${base}.presentation.png`);
       return;
     }
     const v = getViewer();

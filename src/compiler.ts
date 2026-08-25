@@ -10,6 +10,14 @@ import { BpmnModdle } from 'bpmn-moddle'
 
 export type { LayoutDiagramOptions } from './layout-options.js'
 export { parseLayoutDiagramOptionsFromJson } from './layout-options.js'
+export {
+  BPMN_EXPORT_PROFILES,
+  BPMN_PRESENTATION_FRAME_PX,
+  BPMN_PRESENTATION_MIN_LABEL_PX,
+  layoutOptionsForProfile,
+  parseBpmnExportProfile,
+  type BpmnExportProfileId,
+} from './bpmn-export-profile.js'
 
 export interface CompileTransitrixOptions {
   layout?: Partial<LayoutDiagramOptions>

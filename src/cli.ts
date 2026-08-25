@@ -10,6 +10,7 @@ import {
   DEFAULT_TRANSITRIX_FILE_EXTENSIONS,
   inputMatchesExtension,
   parseCliFileArgv,
+  parseCompileArgv,
   parseValidateArgv,
 } from './cli-parse.js';
 import { compileTransitrixYamlWithLayout } from './compiler.js';
@@ -83,8 +84,8 @@ function printUsage(): void {
   console.error(`Transitrix Studio CLI — usage:
        transitrix --version | -v
        transitrix serve [--port 8765] [--host 127.0.0.1]
-       transitrix <input.yaml> <output.bpmn> [--no-metrics] [--no-validate]
-       transitrix [--ext=.bpmn.transitrix.yaml] <input.yaml> <output.bpmn> [--no-metrics] [--no-validate]
+       transitrix <input.yaml> <output.bpmn|.svg|.png> [--profile=default|presentation] [--no-metrics] [--no-validate]
+       transitrix [--ext=.bpmn.transitrix.yaml] <input.yaml> <output.bpmn|.svg|.png> [--profile=default|presentation] [--no-metrics] [--no-validate]
        transitrix metrics <input.yaml> [--json]
        transitrix metrics [--ext=.bpmn.transitrix.yaml] <input.yaml> [--json]
        transitrix validate <input.yaml> [--json]
@@ -150,9 +151,15 @@ function printUsage(): void {
 
   --no-metrics  suppress quality metrics report on compile.
   --no-validate suppress validation warnings (errors always run).
+  --profile=default|presentation  visual export profile. presentation is a
+              denser automatic layout with 20 px labels, sized for a 1780 px
+              frame. It is never the interactive preview default. When the
+              output path ends in .svg or .png, compile writes that image
+              instead of BPMN XML.
 
 Examples:
   npm run transitrix -- compile input.bpmn.transitrix.yaml output.bpmn
+  npm run transitrix -- compile input.bpmn.transitrix.yaml slides.svg --profile=presentation
   npm run transitrix -- serve
   npm run transitrix -- metrics example.bpmn.transitrix.yaml --json
   npm run transitrix -- validate example.bpmn.transitrix.yaml
@@ -163,14 +170,21 @@ Examples:
 }
 
 async function handleCompileCommand(argv: string[]): Promise<void> {
-  const parsed = parseCliFileArgv(argv);
+  const parsed = parseCompileArgv(argv);
   if (!parsed.ok) {
-    console.error('transitrix: --ext requires a comma-separated list of suffixes.');
+    if (parsed.error === '--profile_requires_value') {
+      console.error('transitrix: --profile requires default or presentation.');
+    } else if (parsed.error === 'bad_profile') {
+      console.error('transitrix: --profile must be default or presentation.');
+    } else {
+      console.error('transitrix: --ext requires a comma-separated list of suffixes.');
+    }
     process.exit(1);
   }
 
-  const { positional, extList, wantsHelp } = parsed;
+  const { positional, extList, wantsHelp, profile, noMetrics, noValidate } = parsed;
   const exts = extList.length > 0 ? extList : DEFAULT_TRANSITRIX_FILE_EXTENSIONS;
+  const noValidateWarnings = noValidate;
 
   if (wantsHelp) {
     printUsage();
@@ -180,7 +194,7 @@ async function handleCompileCommand(argv: string[]): Promise<void> {
   const [src, dst] = positional;
   if (!src || !dst) {
     console.error('transitrix compile: missing input or output file');
-    console.error(`usage: transitrix compile <input.yaml> <output.bpmn>`);
+    console.error(`usage: transitrix compile <input.yaml> <output.bpmn|.svg|.png> [--profile=presentation]`);
     process.exit(1);
   }
 
@@ -191,12 +205,26 @@ async function handleCompileCommand(argv: string[]): Promise<void> {
     process.exit(1);
   }
 
-  const noMetrics = argv.includes('--no-metrics');
-  const noValidateWarnings = argv.includes('--no-validate');
-
   try {
     const yaml = await readFile(src, 'utf8');
-    const result = await compileTransitrixYamlWithLayout(yaml);
+    const dest = dst.toLowerCase();
+    if (dest.endsWith('.svg') || dest.endsWith('.png')) {
+      const { exportBpmnVisual } = await import('./bpmn-visual-export.js');
+      const visual = await exportBpmnVisual(yaml, profile);
+      if (dest.endsWith('.png')) {
+        const { rasterizeBpmnSvgToPng } = await import('./bpmn-png.js');
+        writeFileSync(dst, rasterizeBpmnSvgToPng(visual.svg));
+      } else {
+        writeFileSync(dst, visual.svg);
+      }
+      console.error(`✓ Compiled: ${dst} (profile=${profile})`);
+      return;
+    }
+
+    const { layoutOptionsForProfile } = await import('./bpmn-export-profile.js');
+    const result = await compileTransitrixYamlWithLayout(yaml, {
+      layout: layoutOptionsForProfile(profile),
+    });
     writeFileSync(dst, result.xml);
 
     // RD-112: Print validation report

@@ -37,7 +37,7 @@ Transitrix flips that:
 | Compliance | **Gap dashboard** | Open gaps: unasserted requirements, stale assertions |
 | Compliance | **Requirement–verification matrix** | Repository-wide requirement rows with related test results and coverage gaps |
 
-Every preview ships with a toolbar: title toggle, discrete zoom (50–200%), save as SVG, save as PNG (2× for crisp output), and copy PNG to clipboard (Windows today; macOS / Linux planned).
+Every preview ships with a toolbar: title toggle, discrete zoom (50–200%), save as SVG, save as PNG (2× for crisp output), and copy PNG to clipboard (Windows today; macOS / Linux planned). BPMN also has a **presentation** export (Command Palette: “Save BPMN as presentation SVG/PNG”) — a denser automatic layout with 20 px labels that fits a 1780 px frame. It is not the live preview.
 
 The preview opens automatically when a recognised file becomes the active editor, and refreshes **on save — not on every keystroke.** That's deliberate: re-rendering mid-edit would burn CPU and flash parse errors on every intermediate state of a structural change. It also means an edit with no save behind it looks, at a glance, like a broken preview — the toolbar's small "as of last save" label is the tell that nothing's wrong, the file just hasn't been saved yet.
 

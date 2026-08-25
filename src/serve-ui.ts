@@ -14,6 +14,8 @@ import {
   parseLayoutDiagramOptionsFromJson,
   type LayoutDiagramOptions,
 } from './layout-options.js'
+import { parseBpmnExportProfile } from './bpmn-export-profile.js'
+import { exportBpmnVisual } from './bpmn-visual-export.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -143,6 +145,57 @@ export async function handleCompile(req: IncomingMessage, res: ServerResponse): 
   }
 }
 
+export async function handleExportBpmn(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  if (req.method !== 'POST') {
+    res.writeHead(405, { 'Content-Type': 'text/plain; charset=utf-8' })
+    res.end('405 Method Not Allowed')
+    return
+  }
+  try {
+    const raw = await readHttpBodyLimited(req)
+    let body: unknown
+    try {
+      body = JSON.parse(raw.toString('utf8'))
+    } catch {
+      res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' })
+      res.end(JSON.stringify({ message: 'Invalid JSON request body' }))
+      return
+    }
+    const rec = body as Record<string, unknown>
+    if (typeof rec.yaml !== 'string') {
+      res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' })
+      res.end(JSON.stringify({ message: 'Expected { "yaml": "<source>" [, "profile": "presentation" ] }' }))
+      return
+    }
+    const profile = parseBpmnExportProfile(typeof rec.profile === 'string' ? rec.profile : 'default')
+    if (!profile) {
+      res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' })
+      res.end(JSON.stringify({ message: 'profile must be default or presentation' }))
+      return
+    }
+    const visual = await exportBpmnVisual(rec.yaml, profile)
+    const format = rec.format === 'png' ? 'png' : 'svg'
+    if (format === 'png') {
+      const { rasterizeBpmnSvgToPng } = await import('./bpmn-png.js')
+      const png = rasterizeBpmnSvgToPng(visual.svg)
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' })
+      res.end(JSON.stringify({ profile, format: 'png', pngBase64: png.toString('base64') }))
+      return
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' })
+    res.end(JSON.stringify({ profile, format: 'svg', svg: visual.svg }))
+  } catch (e) {
+    if (e instanceof PayloadTooLargeError) {
+      res.writeHead(413, { 'Content-Type': 'application/json; charset=utf-8' })
+      res.end(JSON.stringify({ message: e.message }))
+      return
+    }
+    const err = e as Error
+    res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' })
+    res.end(JSON.stringify({ message: err.message ?? 'Export failed' }))
+  }
+}
+
 export interface ServeUiOptions {
   port: number
   host?: string
@@ -164,6 +217,11 @@ export async function runUiServer(opts: ServeUiOptions): Promise<void> {
 
       if (pathOnly === '/api/compile') {
         await handleCompile(req, res)
+        return
+      }
+
+      if (pathOnly === '/api/export-bpmn') {
+        await handleExportBpmn(req, res)
         return
       }
 
