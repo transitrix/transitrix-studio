@@ -33,8 +33,9 @@ export interface ComplianceLaneAssertion {
   /** Compliance realisation status. */
   status: 'compliant' | 'partial' | 'non_compliant' | 'under_review' | 'pending_owner' | 'n_a';
   /**
-   * Typed IDs of stages / process steps where the requirement is realised.
-   * When empty/absent, the assertion covers the entire subject, not a specific stage.
+   * Typed IDs of processes or steps where the requirement is realised.
+   * Sketch `STAGE-…` ids are not a join key. When empty/absent, the assertion
+   * covers the entire subject, not a specific column.
    */
   realised_via?: string[];
 }
@@ -100,9 +101,12 @@ export interface ComplianceRow {
 
 export interface Stage {
   id: string;
-  name: string;
-  goal: string;
-  result: string;
+  /** Required on `STAGE-…` sketch columns (`BP-005`); omitted on `PROCESS-…`. */
+  name?: string;
+  /** Required on `STAGE-…` sketch columns (`BP-005`); omitted on `PROCESS-…`. */
+  goal?: string;
+  /** Required on `STAGE-…` sketch columns (`BP-005`); omitted on `PROCESS-…`. */
+  result?: string;
   description?: string;
 }
 
@@ -204,6 +208,16 @@ export interface ProcessBlueprintLayoutOptions {
    * When absent, all stages are shown.
    */
   visibleStages?: string[];
+  /**
+   * Catalogue of `PROCESS-…` column records (id → name / optional goal / result).
+   * Required to header catalogued columns; ignored for `STAGE-…` sketches.
+   */
+  processCatalog?: ReadonlyMap<string, { name: string; goal?: string; result?: string }>;
+  /**
+   * STEP id → home PROCESS id (contained in `PROCESS.flow` or promoted).
+   * Used by the compliance-lane join; omit to skip STEP-level pins.
+   */
+  stepHomeProcess?: ReadonlyMap<string, string>;
 }
 
 import type { LayoutBounds } from '../geometry.js';

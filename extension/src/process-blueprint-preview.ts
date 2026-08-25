@@ -6,6 +6,9 @@ import { TITLE_BLOCK_H, titleBlockSvg, todayIso } from './svg-title-block.js';
 import {
   validateProcessBlueprint,
   layoutProcessBlueprint,
+  collectProcessColumnRecords,
+  collectStepHomeProcess,
+  resolveColumnDisplay,
   type AspectCategory,
   type ComplianceLaneConfig,
   type ComplianceLaneInput,
@@ -21,8 +24,27 @@ import { genNonce } from './preview-controls.js';
 import { readProcessBlueprintSize } from './node-size-config.js';
 import { escXml } from '@transitrix/diagrams/webview/render-util.js';
 import { renderProcessBlueprintBody } from '@transitrix/diagrams/webview/render-process-blueprint.js';
+import { findCanonRoot, isUnderCanon, readYamlDocsUnder } from './canon-loader.js';
 
 const LEGEND_H = 44;
+
+/**
+ * Canon root for a blueprint view: ancestor named `canon/`, or a sibling
+ * `canon/` next to the view (the methodology process-parent worked example).
+ */
+function findBlueprintCanonRoot(fileUri: vscode.Uri): vscode.Uri {
+  const ancestor = findCanonRoot(fileUri);
+  if (ancestor) return ancestor;
+  return vscode.Uri.joinPath(vscode.Uri.file(path.dirname(fileUri.fsPath)), 'canon');
+}
+
+async function loadBlueprintElementDocs(fileUri: vscode.Uri): Promise<unknown[]> {
+  const root = findBlueprintCanonRoot(fileUri);
+  const elements: unknown[] = [];
+  const warnings: string[] = [];
+  await readYamlDocsUnder(vscode.Uri.joinPath(root, 'elements'), elements, warnings);
+  return elements;
+}
 
 function buildChipLegendSvgElements(x: number, y: number, totalWidth: number): string {
   const midY = y + LEGEND_H / 2;
@@ -505,16 +527,27 @@ export class ProcessBlueprintPreview {
     await this.pushDocument(doc);
   }
 
+  /** Re-render when a PROCESS / STEP under the owning canon/ tree is saved. */
+  async refreshIfSiblingSaved(doc: vscode.TextDocument): Promise<void> {
+    if (!this.panel || !this.trackedUri) return;
+    if (!doc.fileName.endsWith('.yaml')) return;
+    const viewUri = vscode.Uri.parse(this.trackedUri);
+    const canonRoot = findBlueprintCanonRoot(viewUri);
+    if (!isUnderCanon(canonRoot, doc.uri)) return;
+    const viewDoc = await vscode.workspace.openTextDocument(viewUri);
+    await this.pushDocument(viewDoc);
+  }
+
   private async pushDocument(doc: vscode.TextDocument): Promise<void> {
     if (!this.panel) return;
     this.lastYamlText = doc.getText();
     this.lastFilename = path.basename(doc.fileName);
-    const html = await this.buildHtml(this.lastYamlText, this.lastFilename);
+    const html = await this.buildHtml(this.lastYamlText, this.lastFilename, doc.uri);
     if (!this.panel) return; // panel may have been disposed while awaiting above
     this.panel.webview.html = html;
   }
 
-  private async buildHtml(yamlText: string, filename: string): Promise<string> {
+  private async buildHtml(yamlText: string, filename: string, fileUri?: vscode.Uri): Promise<string> {
     let svgContent = '';
     this.lastSvgWithLegend = '';
     let errorMsg = '';
@@ -564,7 +597,13 @@ export class ProcessBlueprintPreview {
         if (file.process_blueprint.information_entities?.length) availableRows.push({ id: 'information_entities', label: 'Information' });
         if (laneCfg.enabled) availableRows.push({ id: 'compliance', label: 'Compliance' });
 
-        const availableStages = file.process_blueprint.stages.map(s => ({ id: s.id, name: s.name }));
+        const elementDocs = fileUri ? await loadBlueprintElementDocs(fileUri) : [];
+        const processCatalog = collectProcessColumnRecords(elementDocs);
+        const stepHomeProcess = collectStepHomeProcess(elementDocs);
+        const availableStages = file.process_blueprint.stages.map(s => ({
+          id: s.id,
+          name: resolveColumnDisplay(s, processCatalog).name,
+        }));
 
         // Derive layout filter lists from session state.
         const visibleRowsForLayout: RowId[] | undefined = this.hiddenRows.size === 0
@@ -608,6 +647,8 @@ export class ProcessBlueprintPreview {
           visibleAspects: visibleRowsForLayout ? undefined : visibleAspects,
           visibleRows: visibleRowsForLayout,
           visibleStages: visibleStagesList,
+          processCatalog,
+          stepHomeProcess,
         });
         svgContent = layoutToSvg(layout, filename, docDate, docVersion);
 

@@ -14,6 +14,7 @@ One subfolder per diagram format. Open any `*.transitrix.yaml` file in VS Code w
 | [`capability-map/`](capability-map/) | `*.capability-map.transitrix.yaml` | Capability map | Capability hierarchies with maturity overlay |
 | [`process-map/`](process-map/) | `*.process-map.transitrix.yaml` | Process map | Top-level process catalogues |
 | [`process-blueprint/`](process-blueprint/) | `*.process-blueprint.transitrix.yaml` | Process Blueprint | Wide value-chain blueprint with stage aspects |
+| [`relations/process-parent/`](relations/process-parent/) | `*.process-blueprint.transitrix.yaml` plus companion PROCESS / relation YAML | Process Blueprint (catalogued columns) | Fulfilment-chain blueprint whose columns are child `PROCESS` elements |
 | [`scenarios/`](scenarios/) | `*.scenarios.transitrix.yaml` | Scenarios | Alternative strategic development paths |
 | [`products/`](products/) | `*.products.transitrix.yaml` | Products catalogue | Portfolio of digital products, services, platforms, and bundles |
 | [`product/`](product/) | `*.product.transitrix.yaml` | Product view | Filtered views over Product elements |
