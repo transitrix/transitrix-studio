@@ -4,7 +4,7 @@ import * as vscode from 'vscode';
 
 import type { CompileFn } from './preview.js';
 import { BpmnJsPreview } from './preview.js';
-import { ProcessPreview, type ProcessLayoutFn, type BpmnDisplayOpts, SAVE_BPMN_PROCESS_SVG_COMMAND, OPEN_BPMN_SETTINGS_COMMAND } from './process-preview.js';
+import { ProcessPreview, type ProcessLayoutFn, type BpmnDisplayOpts, SAVE_BPMN_PROCESS_SVG_COMMAND, SAVE_BPMN_PRESENTATION_SVG_COMMAND, SAVE_BPMN_PRESENTATION_PNG_COMMAND, OPEN_BPMN_SETTINGS_COMMAND } from './process-preview.js';
 import { GoalsPreview } from './goals-preview.js';
 import { DGCAPreview, DGAPreview } from './dgca-preview.js';
 import { ActionPreview } from './action-preview.js';
@@ -161,10 +161,17 @@ async function loadProcessLayoutFn(ext: vscode.ExtensionContext): Promise<Proces
   const mod = (await import(compilerHref)) as {
     compileTransitrixYamlWithLayout: (
       yaml: string,
-      options?: { layout?: { laneVerticalGap?: number; uniformLaneHeight?: boolean } },
+      options?: { layout?: Record<string, unknown> },
     ) => Promise<{ layout: unknown; validation: ValidationReport }>;
+    layoutOptionsForProfile: (profile: 'default' | 'presentation') => Record<string, unknown>;
   };
   return async (yaml: string, opts?: BpmnDisplayOpts) => {
+    if (opts?.profile === 'presentation') {
+      const layout = mod.layoutOptionsForProfile('presentation');
+      const result = await mod.compileTransitrixYamlWithLayout(yaml, { layout });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return { layout: result.layout as any, validation: result.validation };
+    }
     const laneGap = vscode.workspace.getConfiguration('transitrix').get<number>('bpmn.laneGap');
     const layout: { laneVerticalGap?: number; uniformLaneHeight?: boolean } = {};
     if (laneGap !== undefined && Number.isFinite(laneGap)) layout.laneVerticalGap = laneGap;
@@ -400,6 +407,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void |
     vscode.commands.registerCommand('transitrixStudio.saveBpmnAsPng', () => preview.saveAsPng()),
     vscode.commands.registerCommand(SAVE_BPMN_PROCESS_SVG_COMMAND, () =>
       processPreview.saveAsSvg(),
+    ),
+    vscode.commands.registerCommand(SAVE_BPMN_PRESENTATION_SVG_COMMAND, () =>
+      processPreview.savePresentationAsSvg(),
+    ),
+    vscode.commands.registerCommand(SAVE_BPMN_PRESENTATION_PNG_COMMAND, () =>
+      processPreview.savePresentationAsPng(),
     ),
     vscode.commands.registerCommand('transitrixStudio.saveBlocksAsSvg', () =>
       blocksPreview.saveAsSvg(),

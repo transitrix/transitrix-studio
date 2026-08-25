@@ -13,6 +13,7 @@ import * as path from 'node:path';
 import * as vscode from 'vscode';
 import {
   renderProcessLayoutSvg,
+  PRESENTATION_BPMN_TYPOGRAPHY,
   type ProcessDiagramLayout,
 } from '@transitrix/diagrams/webview/render-process.js';
 import { escXml } from '@transitrix/diagrams/webview/render-util.js';
@@ -23,13 +24,18 @@ import {
   type ThemeId,
 } from './diagram-frame.js';
 import { genNonce } from './preview-controls.js';
+import { savePngFromSvg } from './png-export.js';
 import type { ValidationReport } from './types.js';
 
 export const SAVE_BPMN_PROCESS_SVG_COMMAND = 'transitrixStudio.saveBpmnProcessAsSvg';
+export const SAVE_BPMN_PRESENTATION_SVG_COMMAND = 'transitrixStudio.saveBpmnPresentationAsSvg';
+export const SAVE_BPMN_PRESENTATION_PNG_COMMAND = 'transitrixStudio.saveBpmnPresentationAsPng';
 export const OPEN_BPMN_SETTINGS_COMMAND = 'transitrixStudio.openBpmnSettings';
 
 export interface BpmnDisplayOpts {
   uniformLaneHeight?: boolean;
+  /** Named visual-export profile. Omit (or `default`) for the interactive preview knobs. */
+  profile?: 'default' | 'presentation';
 }
 
 /** Function that parses + lays out a BPMN YAML document. */
@@ -107,7 +113,13 @@ export class ProcessPreview {
         { viewColumn: vscode.ViewColumn.Beside, preserveFocus: false },
         {
           enableScripts: true,
-          enableCommandUris: [SAVE_BPMN_PROCESS_SVG_COMMAND, OPEN_BPMN_SETTINGS_COMMAND, OPEN_THEME_COMMAND],
+          enableCommandUris: [
+            SAVE_BPMN_PROCESS_SVG_COMMAND,
+            SAVE_BPMN_PRESENTATION_SVG_COMMAND,
+            SAVE_BPMN_PRESENTATION_PNG_COMMAND,
+            OPEN_BPMN_SETTINGS_COMMAND,
+            OPEN_THEME_COMMAND,
+          ],
           retainContextWhenHidden: true,
         },
       );
@@ -171,6 +183,59 @@ export class ProcessPreview {
     const svg = prepareSvgForExport(this.lastSvg, themeId);
     await vscode.workspace.fs.writeFile(target, Buffer.from(svg, 'utf-8'));
     vscode.window.showInformationMessage(`Saved: ${path.basename(target.fsPath)}`);
+  }
+
+  async savePresentationAsSvg(): Promise<void> {
+    const svg = await this.buildPresentationSvg();
+    if (!svg) return;
+    const sourceUri = this.trackedUri ? vscode.Uri.parse(this.trackedUri) : undefined;
+    const stem = sourceUri
+      ? path.basename(sourceUri.fsPath).replace(/\.bpmn\.transitrix\.yaml$/, '')
+      : 'diagram';
+    const defaultUri = sourceUri
+      ? vscode.Uri.file(path.join(path.dirname(sourceUri.fsPath), `${stem}.presentation.svg`))
+      : vscode.Uri.file(`${stem}.presentation.svg`);
+    const target = await vscode.window.showSaveDialog({ defaultUri, filters: { 'SVG Image': ['svg'] } });
+    if (!target) return;
+    const themeId = vscode.workspace.getConfiguration('transitrix').get<ThemeId>('theme', 'transitrix');
+    const out = prepareSvgForExport(svg, themeId);
+    await vscode.workspace.fs.writeFile(target, Buffer.from(out, 'utf-8'));
+    vscode.window.showInformationMessage(`Saved: ${path.basename(target.fsPath)}`);
+  }
+
+  async savePresentationAsPng(): Promise<void> {
+    const svg = await this.buildPresentationSvg();
+    if (!svg) return;
+    const sourceUri = this.trackedUri ? vscode.Uri.parse(this.trackedUri) : undefined;
+    await savePngFromSvg({
+      rawSvg: svg,
+      themeId: vscode.workspace.getConfiguration('transitrix').get<ThemeId>('theme', 'transitrix'),
+      emptyMessage: 'Open a *.bpmn.transitrix.yaml preview first, then save a presentation PNG.',
+      webview: this.panel?.webview,
+      sourceUri,
+      stripExt: /\.bpmn\.transitrix\.yaml$/,
+      viewSuffix: '.presentation',
+    });
+  }
+
+  private async buildPresentationSvg(): Promise<string | undefined> {
+    if (!this.trackedUri) {
+      vscode.window.showWarningMessage('Open a *.bpmn.transitrix.yaml file first.');
+      return undefined;
+    }
+    const doc = vscode.workspace.textDocuments.find((d) => d.uri.toString() === this.trackedUri);
+    if (!doc) {
+      vscode.window.showWarningMessage('Open a *.bpmn.transitrix.yaml file first.');
+      return undefined;
+    }
+    try {
+      const { layout } = await this.layoutFn(doc.getText(), { profile: 'presentation' });
+      return renderProcessLayoutSvg(layout, { typography: PRESENTATION_BPMN_TYPOGRAPHY });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      vscode.window.showErrorMessage(`Presentation export failed: ${msg}`);
+      return undefined;
+    }
   }
 
   private async pushDocument(doc: vscode.TextDocument): Promise<void> {

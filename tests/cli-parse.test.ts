@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_TRANSITRIX_FILE_EXTENSIONS,
   parseCliFileArgv,
+  parseCompileArgv,
   parseValidateArgv,
   inputMatchesExtension,
   isIsoDate,
@@ -49,6 +50,23 @@ describe('cli-parse', () => {
       ok: true,
       positional: ['models/x.cervin.yaml', 'out/generated.bpmn'],
     });
+  });
+});
+
+describe('parseCompileArgv', () => {
+  it('defaults profile to default and strips flags from paths', () => {
+    const r = parseCompileArgv(['in.bpmn.transitrix.yaml', 'out.bpmn', '--no-metrics', '--profile=presentation']);
+    expect(r).toMatchObject({
+      ok: true,
+      positional: ['in.bpmn.transitrix.yaml', 'out.bpmn'],
+      profile: 'presentation',
+      noMetrics: true,
+      noValidate: false,
+    });
+  });
+
+  it('rejects an unknown profile', () => {
+    expect(parseCompileArgv(['--profile=wide', 'in.yaml', 'out.svg'])).toEqual({ ok: false, error: 'bad_profile' });
   });
 });
 

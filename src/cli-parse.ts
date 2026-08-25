@@ -28,6 +28,61 @@ export type ParseCliFileArgvResult =
   | { ok: true; positional: string[]; extList: string[]; wantsHelp: boolean }
   | { ok: false; error: '--ext_requires_value' };
 
+export type BpmnCompileProfileFlag = 'default' | 'presentation';
+
+export type ParseCompileArgvResult =
+  | {
+      ok: true;
+      positional: string[];
+      extList: string[];
+      wantsHelp: boolean;
+      profile: BpmnCompileProfileFlag;
+      noMetrics: boolean;
+      noValidate: boolean;
+    }
+  | { ok: false; error: '--ext_requires_value' | '--profile_requires_value' | 'bad_profile' };
+
+/**
+ * Compile argv: known flags (`--profile`, `--no-metrics`, `--no-validate`)
+ * are stripped so they cannot be mistaken for the input/output paths.
+ */
+export function parseCompileArgv(argv: string[]): ParseCompileArgvResult {
+  const rest: string[] = [];
+  let profile: BpmnCompileProfileFlag = 'default';
+  let noMetrics = false;
+  let noValidate = false;
+
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i];
+    if (a === '--no-metrics') {
+      noMetrics = true;
+      continue;
+    }
+    if (a === '--no-validate') {
+      noValidate = true;
+      continue;
+    }
+    if (a === '--profile') {
+      const raw = argv[++i];
+      if (!raw) return { ok: false, error: '--profile_requires_value' };
+      if (raw !== 'default' && raw !== 'presentation') return { ok: false, error: 'bad_profile' };
+      profile = raw;
+      continue;
+    }
+    if (a.startsWith('--profile=')) {
+      const raw = a.slice('--profile='.length);
+      if (raw !== 'default' && raw !== 'presentation') return { ok: false, error: 'bad_profile' };
+      profile = raw;
+      continue;
+    }
+    rest.push(a);
+  }
+
+  const parsed = parseCliFileArgv(rest);
+  if (!parsed.ok) return parsed;
+  return { ...parsed, profile, noMetrics, noValidate };
+}
+
 export function parseCliFileArgv(argv: string[]): ParseCliFileArgvResult {
   const positional: string[] = [];
   const extList: string[] = [];

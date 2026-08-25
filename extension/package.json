@@ -768,6 +768,16 @@
         "category": "Transitrix"
       },
       {
+        "command": "transitrixStudio.saveBpmnPresentationAsSvg",
+        "title": "Transitrix: Save BPMN as presentation SVG",
+        "category": "Transitrix"
+      },
+      {
+        "command": "transitrixStudio.saveBpmnPresentationAsPng",
+        "title": "Transitrix: Save BPMN as presentation PNG",
+        "category": "Transitrix"
+      },
+      {
         "command": "transitrixStudio.previewComplianceMatrix",
         "title": "Transitrix: Preview compliance matrix",
         "category": "Transitrix",

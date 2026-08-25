@@ -75,11 +75,48 @@ export interface ProcessDiagramLayout {
   associations: ProcessAssociation[];
 }
 
+export interface BpmnTypography {
+  taskFontPx: number;
+  headerFontPx: number;
+  labelFontPx: number;
+  taskChars: number;
+  taskLineH: number;
+  labelChars: number;
+  labelLineH: number;
+  headerCharW: number;
+}
+
+/** Interactive-preview / default-export type sizes. */
+export const DEFAULT_BPMN_TYPOGRAPHY: BpmnTypography = {
+  taskFontPx: 11,
+  headerFontPx: 11,
+  labelFontPx: 10,
+  taskChars: 14,
+  taskLineH: 14,
+  labelChars: 18,
+  labelLineH: 13,
+  headerCharW: 6.5,
+};
+
+/** Presentation-export type sizes (20 px floor, wrap tuned to default node boxes). */
+export const PRESENTATION_BPMN_TYPOGRAPHY: BpmnTypography = {
+  taskFontPx: 20,
+  headerFontPx: 20,
+  labelFontPx: 20,
+  taskChars: 9,
+  taskLineH: 22,
+  labelChars: 14,
+  labelLineH: 22,
+  headerCharW: 11.5,
+};
+
 export interface RenderProcessOptions {
   /** Raw SVG injected after `<style>` — a title line or full title block. */
   title?: string;
   /** Extra vertical space (px) reserved above the pool for a title block. */
   topInset?: number;
+  /** Label metrics. Omit for the interactive-preview defaults. */
+  typography?: BpmnTypography;
 }
 
 // ---------------------------------------------------------------------------
@@ -92,49 +129,52 @@ const LANE_LABEL_BAND = 44;
 /** End margin (px) along the header height axis for rotated pool/lane captions. */
 const HEADER_LABEL_AXIS_PAD = 32;
 
-/** Estimated horizontal advance (px) per character at the header label font size. */
-const HEADER_LABEL_CHAR_W = 6.5;
+/** Active wrap/font metrics for the current render call (sync, restored after). */
+let typo: BpmnTypography = DEFAULT_BPMN_TYPOGRAPHY;
 
-/** Maximum characters per wrapped line inside a task box. */
-const TASK_CHARS = 14;
-
-/** Line height for wrapped task-name text (px). */
-const TASK_LINE_H = 14;
-
-/** Maximum characters per line for below-element labels (events, gateways). */
-const LABEL_CHARS = 18;
-
-/** Line height for multi-line below-element labels (px). */
-const LABEL_LINE_H = 13;
+function runWithTypography<T>(t: BpmnTypography, fn: () => T): T {
+  const prev = typo;
+  typo = t;
+  try {
+    return fn();
+  } finally {
+    typo = prev;
+  }
+}
 
 // ---------------------------------------------------------------------------
 // BPMN-specific CSS — no font-style:italic per CLAUDE.md design rule
 // ---------------------------------------------------------------------------
 
-export const BPMN_PROCESS_CSS = `
+export function bpmnProcessCss(t: BpmnTypography = DEFAULT_BPMN_TYPOGRAPHY): string {
+  return `
 .bpmn-pool { fill: var(--ts-bg-surface,#f8fafc); stroke: var(--ts-node-stroke,#004d67); stroke-width: 1.5; }
 .bpmn-pool-name { fill: var(--ts-bg-elevated,#f1f5f9); stroke: var(--ts-node-stroke,#004d67); stroke-width: 0.75; }
 .bpmn-lane { fill: var(--ts-bg,#ffffff); stroke: var(--ts-node-stroke,#004d67); stroke-width: 0.75; }
 .bpmn-lane-header { fill: var(--ts-bg-elevated,#f1f5f9); stroke: var(--ts-node-stroke,#004d67); stroke-width: 0.75; }
-.bpmn-pool-label { fill: var(--ts-text-primary,#0d2b35); font-family: var(--vscode-font-family, system-ui, -apple-system, sans-serif); font-size: 11px; font-weight: 700; }
-.bpmn-lane-label { fill: var(--ts-text-primary,#0d2b35); font-family: var(--vscode-font-family, system-ui, -apple-system, sans-serif); font-size: 11px; font-weight: 600; }
+.bpmn-pool-label { fill: var(--ts-text-primary,#0d2b35); font-family: var(--vscode-font-family, system-ui, -apple-system, sans-serif); font-size: ${t.headerFontPx}px; font-weight: 700; }
+.bpmn-lane-label { fill: var(--ts-text-primary,#0d2b35); font-family: var(--vscode-font-family, system-ui, -apple-system, sans-serif); font-size: ${t.headerFontPx}px; font-weight: 600; }
 .bpmn-task { fill: var(--ts-bg,#ffffff); stroke: var(--ts-node-stroke,#004d67); stroke-width: 1.5; }
-.bpmn-task-name { fill: var(--ts-text-primary,#0d2b35); font-family: var(--vscode-font-family, system-ui, -apple-system, sans-serif); font-size: 11px; text-anchor: middle; }
+.bpmn-task-name { fill: var(--ts-text-primary,#0d2b35); font-family: var(--vscode-font-family, system-ui, -apple-system, sans-serif); font-size: ${t.taskFontPx}px; text-anchor: middle; }
 .bpmn-event { fill: var(--ts-bg,#ffffff); stroke: var(--ts-node-stroke,#004d67); }
 .bpmn-event-start { stroke-width: 1.5; }
 .bpmn-event-end { stroke-width: 4; }
-.bpmn-event-label { fill: var(--ts-text-secondary,#516970); font-family: var(--vscode-font-family, system-ui, -apple-system, sans-serif); font-size: 10px; text-anchor: middle; }
+.bpmn-event-label { fill: var(--ts-text-secondary,#516970); font-family: var(--vscode-font-family, system-ui, -apple-system, sans-serif); font-size: ${t.labelFontPx}px; text-anchor: middle; }
 .bpmn-gateway { fill: var(--ts-bg,#ffffff); stroke: var(--ts-node-stroke,#004d67); stroke-width: 1.5; }
 .bpmn-gateway-marker { stroke: var(--ts-node-stroke,#004d67); stroke-width: 2.5; stroke-linecap: round; fill: none; }
-.bpmn-gateway-label { fill: var(--ts-text-secondary,#516970); font-family: var(--vscode-font-family, system-ui, -apple-system, sans-serif); font-size: 10px; text-anchor: middle; }
+.bpmn-gateway-label { fill: var(--ts-text-secondary,#516970); font-family: var(--vscode-font-family, system-ui, -apple-system, sans-serif); font-size: ${t.labelFontPx}px; text-anchor: middle; }
 .bpmn-seq-flow { fill: none; stroke: var(--ts-edge-stroke,#004d67); stroke-width: 1.5; }
 .bpmn-default-mark { stroke: var(--ts-edge-stroke,#004d67); stroke-width: 1.5; stroke-linecap: round; }
 .bpmn-assoc { fill: none; stroke: var(--ts-edge-stroke,#004d67); stroke-width: 1; stroke-dasharray: 4 2; }
 .bpmn-data-obj { fill: var(--ts-bg,#ffffff); stroke: var(--ts-node-stroke,#004d67); stroke-width: 1; }
-.bpmn-data-obj-label { fill: var(--ts-text-secondary,#516970); font-size: 10px; text-anchor: middle; }
+.bpmn-data-obj-label { fill: var(--ts-text-secondary,#516970); font-size: ${t.labelFontPx}px; text-anchor: middle; }
 .bpmn-event-intermediate { fill: none; stroke: var(--ts-node-stroke,#004d67); stroke-width: 1; }
 .bpmn-event-icon { fill: none; stroke: var(--ts-node-stroke,#004d67); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 `;
+}
+
+/** Default-preview CSS (11 px / 10 px). Presentation export builds its own via `bpmnProcessCss`. */
+export const BPMN_PROCESS_CSS = bpmnProcessCss(DEFAULT_BPMN_TYPOGRAPHY);
 
 // ---------------------------------------------------------------------------
 // Internal helpers
@@ -153,54 +193,56 @@ function wordTruncate(text: string, maxChars: number): string {
 }
 
 function fitRotatedHeaderText(name: string, spanPx: number): string {
-  const maxChars = Math.max(4, Math.floor(spanPx / HEADER_LABEL_CHAR_W));
+  const maxChars = Math.max(4, Math.floor(spanPx / typo.headerCharW));
   return wordTruncate(name, maxChars);
 }
 
 function wrapTaskName(name: string): string[] {
   if (!name) return [];
+  const limit = typo.taskChars;
   const words = name.split(/\s+/);
   const lines: string[] = [];
   let cur = '';
   for (const w of words) {
-    const token = w.length > TASK_CHARS ? w.slice(0, TASK_CHARS - 1) + '…' : w;
+    const token = w.length > limit ? w.slice(0, limit - 1) + '…' : w;
     if (!cur) {
       cur = token;
-    } else if (cur.length + 1 + token.length <= TASK_CHARS) {
+    } else if (cur.length + 1 + token.length <= limit) {
       cur += ' ' + token;
     } else {
       lines.push(cur);
       if (lines.length === 3) {
-        if (lines[2].length > TASK_CHARS - 1) lines[2] = lines[2].slice(0, TASK_CHARS - 1) + '…';
+        if (lines[2].length > limit - 1) lines[2] = lines[2].slice(0, limit - 1) + '…';
         return lines;
       }
       cur = token;
     }
   }
   if (cur && lines.length < 3) lines.push(cur);
-  if (lines.length === 0) lines.push(name.slice(0, TASK_CHARS));
+  if (lines.length === 0) lines.push(name.slice(0, limit));
   return lines;
 }
 
 function taskNameSvg(name: string | undefined, cx: number, cy: number): string {
   if (!name) return '';
   const lines = wrapTaskName(name);
-  const totalH = lines.length * TASK_LINE_H;
-  const startY = cy - totalH / 2 + TASK_LINE_H * 0.8;
+  const totalH = lines.length * typo.taskLineH;
+  const startY = cy - totalH / 2 + typo.taskLineH * 0.8;
   const tspans = lines
-    .map((ln, i) => `<tspan x="${r(cx)}" y="${r(startY + i * TASK_LINE_H)}">${escXml(ln)}</tspan>`)
+    .map((ln, i) => `<tspan x="${r(cx)}" y="${r(startY + i * typo.taskLineH)}">${escXml(ln)}</tspan>`)
     .join('');
   return `<text class="bpmn-task-name">${tspans}</text>`;
 }
 
 function wrapBelowLabel(name: string): string[] {
+  const limit = typo.labelChars;
   const words = name.split(/\s+/).filter(Boolean);
   const allLines: string[] = [];
   let cur = '';
   for (const word of words) {
-    const tok = word.length > LABEL_CHARS ? word.slice(0, LABEL_CHARS - 1) + '…' : word;
+    const tok = word.length > limit ? word.slice(0, limit - 1) + '…' : word;
     const test = cur ? `${cur} ${tok}` : tok;
-    if (test.length <= LABEL_CHARS) {
+    if (test.length <= limit) {
       cur = test;
     } else {
       if (cur) allLines.push(cur);
@@ -208,11 +250,11 @@ function wrapBelowLabel(name: string): string[] {
     }
   }
   if (cur) allLines.push(cur);
-  if (allLines.length === 0) return [name.slice(0, LABEL_CHARS)];
+  if (allLines.length === 0) return [name.slice(0, limit)];
   if (allLines.length <= 3) return allLines;
   const lines = allLines.slice(0, 3);
   const last = lines[2];
-  lines[2] = last.length + 1 <= LABEL_CHARS ? last + '…' : last.slice(0, LABEL_CHARS - 1) + '…';
+  lines[2] = last.length + 1 <= limit ? last + '…' : last.slice(0, limit - 1) + '…';
   return lines;
 }
 
@@ -226,7 +268,7 @@ function belowLabelSvg(name: string | undefined, cls: string, cx: number, belowY
     return `<text class="${cls}" x="${r(textX)}" y="${startY}">${escXml(lines[0])}</text>`;
   }
   const tspans = lines
-    .map((ln, i) => `<tspan x="${r(textX)}" dy="${i === 0 ? 0 : LABEL_LINE_H}">${escXml(ln)}</tspan>`)
+    .map((ln, i) => `<tspan x="${r(textX)}" dy="${i === 0 ? 0 : typo.labelLineH}">${escXml(ln)}</tspan>`)
     .join('');
   return `<text class="${cls}" x="${r(textX)}" y="${startY}">${tspans}</text>`;
 }
@@ -488,20 +530,23 @@ export function renderProcessLayoutSvg(
   options: RenderProcessOptions = {},
 ): string {
   const { title = '', topInset = title ? 32 : 0 } = options;
-  const pb = layout.poolBounds;
-  const PAD = 16;
+  const t = options.typography ?? DEFAULT_BPMN_TYPOGRAPHY;
+  return runWithTypography(t, () => {
+    const pb = layout.poolBounds;
+    const PAD = 16;
 
-  const svgW = r(pb.x + pb.width + PAD);
-  const svgH = r(pb.y + pb.height + PAD + topInset);
+    const svgW = r(pb.x + pb.width + PAD);
+    const svgH = r(pb.y + pb.height + PAD + topInset);
 
-  const embedCss = generateSvgEmbedCss('transitrix') + BPMN_PROCESS_CSS;
-  const body = renderProcessBody(layout, 0, topInset);
+    const embedCss = generateSvgEmbedCss('transitrix') + bpmnProcessCss(t);
+    const body = renderProcessBody(layout, 0, topInset);
 
-  return (
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}">\n` +
-    `<style>${embedCss}</style>\n` +
-    (title ? `${title}\n` : '') +
-    `${body}\n` +
-    `</svg>`
-  );
+    return (
+      `<svg xmlns="http://www.w3.org/2000/svg" width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}">\n` +
+      `<style>${embedCss}</style>\n` +
+      (title ? `${title}\n` : '') +
+      `${body}\n` +
+      `</svg>`
+    );
+  });
 }

@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   renderProcessLayoutSvg,
   renderProcessBody,
+  PRESENTATION_BPMN_TYPOGRAPHY,
   type ProcessDiagramLayout,
   type ProcessFlowElement,
 } from '../render-process.js';
@@ -146,6 +147,16 @@ describe('renderProcessLayoutSvg — CSS', () => {
       const rule = svg.match(new RegExp(`\\.${cls}\\s*\\{[^}]*\\}`))?.[0] ?? '';
       expect(rule).toContain('font-family');
     }
+  });
+
+  it('presentation typography uses 20px labels without changing the default call', () => {
+    const def = renderProcessLayoutSvg(makeLayout());
+    const pres = renderProcessLayoutSvg(makeLayout(), { typography: PRESENTATION_BPMN_TYPOGRAPHY });
+    expect(def).toContain('font-size: 11px');
+    expect(def).toContain('font-size: 10px');
+    expect(pres).toContain('font-size: 20px');
+    expect(pres).not.toContain('font-size: 11px');
+    expect(pres).not.toContain('font-size: 10px');
   });
 });
 
