@@ -164,7 +164,7 @@ describe('validateProcessBlueprint', () => {
     expect(r.errors.some(e => e.code === 'BP-008')).toBe(false);
   });
 
-  it('BP-006: rejects stage id that does not match STAGE grammar', () => {
+  it('BP-006: rejects stage id that does not match STAGE or PROCESS grammar', () => {
     const r = validateProcessBlueprint({
       ...VALID_BLUEPRINT,
       process_blueprint: {
@@ -173,6 +173,184 @@ describe('validateProcessBlueprint', () => {
       },
     });
     expect(r.errors.some(e => e.code === 'BP-006')).toBe(true);
+  });
+
+  it('BP-006: accepts PROCESS-… column ids', () => {
+    const r = validateProcessBlueprint({
+      ...VALID_BLUEPRINT,
+      process_blueprint: {
+        ...VALID_BLUEPRINT.process_blueprint,
+        stages: [{ id: 'PROCESS-FULFIL-RECEIVE-1' }],
+        systems: [{ name: 'OMS', stages: ['PROCESS-FULFIL-RECEIVE-1'] }],
+        actors: undefined,
+        equipment: undefined,
+        information_entities: undefined,
+      },
+    });
+    expect(r.errors.some(e => e.code === 'BP-006')).toBe(false);
+    expect(r.valid).toBe(true);
+  });
+
+  it('BP-005: does not require name/goal/result on a PROCESS-… column', () => {
+    const r = validateProcessBlueprint({
+      ...VALID_BLUEPRINT,
+      process_blueprint: {
+        ...VALID_BLUEPRINT.process_blueprint,
+        stages: [{ id: 'PROCESS-FULFIL-RECEIVE-1' }],
+        systems: [{ name: 'OMS', stages: ['PROCESS-FULFIL-RECEIVE-1'] }],
+        actors: undefined,
+        equipment: undefined,
+        information_entities: undefined,
+      },
+    });
+    expect(r.errors.some(e => e.code === 'BP-005')).toBe(false);
+  });
+
+  it('BP-013: rejects a PROCESS-… column that restates name/goal/result', () => {
+    const r = validateProcessBlueprint({
+      ...VALID_BLUEPRINT,
+      process_blueprint: {
+        ...VALID_BLUEPRINT.process_blueprint,
+        stages: [{
+          id: 'PROCESS-FULFIL-RECEIVE-1',
+          name: 'Receive',
+          goal: 'Capture order',
+          result: 'Validated order',
+        }],
+        systems: [{ name: 'OMS', stages: ['PROCESS-FULFIL-RECEIVE-1'] }],
+        actors: undefined,
+        equipment: undefined,
+        information_entities: undefined,
+      },
+    });
+    expect(r.errors.filter(e => e.code === 'BP-013')).toHaveLength(3);
+    expect(r.valid).toBe(false);
+  });
+
+  it('BP-012: skipped when no catalogue is supplied', () => {
+    const r = validateProcessBlueprint({
+      ...VALID_BLUEPRINT,
+      process_blueprint: {
+        ...VALID_BLUEPRINT.process_blueprint,
+        stages: [{ id: 'PROCESS-MISSING-1' }],
+        systems: [{ name: 'OMS', stages: ['PROCESS-MISSING-1'] }],
+        actors: undefined,
+        equipment: undefined,
+        information_entities: undefined,
+      },
+    });
+    expect(r.errors.some(e => e.code === 'BP-012')).toBe(false);
+  });
+
+  it('BP-012: rejects a PROCESS-… column that does not resolve to an admitted PROCESS', () => {
+    const r = validateProcessBlueprint(
+      {
+        ...VALID_BLUEPRINT,
+        process_blueprint: {
+          ...VALID_BLUEPRINT.process_blueprint,
+          stages: [{ id: 'PROCESS-MISSING-1' }],
+          systems: [{ name: 'OMS', stages: ['PROCESS-MISSING-1'] }],
+          actors: undefined,
+          equipment: undefined,
+          information_entities: undefined,
+        },
+      },
+      { catalog: { typeOf: () => undefined } },
+    );
+    expect(r.errors.some(e => e.code === 'BP-012')).toBe(true);
+    expect(r.valid).toBe(false);
+  });
+
+  it('BP-012: accepts a PROCESS-… column that resolves to PROCESS', () => {
+    const r = validateProcessBlueprint(
+      {
+        ...VALID_BLUEPRINT,
+        process_blueprint: {
+          ...VALID_BLUEPRINT.process_blueprint,
+          stages: [{ id: 'PROCESS-FULFIL-RECEIVE-1' }],
+          systems: [{ name: 'OMS', stages: ['PROCESS-FULFIL-RECEIVE-1'] }],
+          actors: undefined,
+          equipment: undefined,
+          information_entities: undefined,
+        },
+      },
+      { catalog: { typeOf: (id) => (id === 'PROCESS-FULFIL-RECEIVE-1' ? 'PROCESS' : undefined) } },
+    );
+    expect(r.errors.some(e => e.code === 'BP-012')).toBe(false);
+    expect(r.valid).toBe(true);
+  });
+
+  it('BP-014: warns when process is set, a column is PROCESS-…, and no in-effect process_parent links them', () => {
+    const r = validateProcessBlueprint(
+      {
+        ...VALID_BLUEPRINT,
+        process_blueprint: {
+          ...VALID_BLUEPRINT.process_blueprint,
+          process: 'PROCESS-FULFIL-CHAIN-1',
+          stages: [{ id: 'PROCESS-FULFIL-RECEIVE-1' }],
+          systems: [{ name: 'OMS', stages: ['PROCESS-FULFIL-RECEIVE-1'] }],
+          actors: undefined,
+          equipment: undefined,
+          information_entities: undefined,
+        },
+      },
+      { processParentEdges: [] },
+    );
+    expect(r.warnings.some(w => w.code === 'BP-014')).toBe(true);
+    expect(r.valid).toBe(true);
+  });
+
+  it('BP-014: silent when an in-effect process_parent links the column to the parent', () => {
+    const r = validateProcessBlueprint(
+      {
+        ...VALID_BLUEPRINT,
+        process_blueprint: {
+          ...VALID_BLUEPRINT.process_blueprint,
+          process: 'PROCESS-FULFIL-CHAIN-1',
+          stages: [{ id: 'PROCESS-FULFIL-RECEIVE-1' }],
+          systems: [{ name: 'OMS', stages: ['PROCESS-FULFIL-RECEIVE-1'] }],
+          actors: undefined,
+          equipment: undefined,
+          information_entities: undefined,
+        },
+      },
+      {
+        processParentEdges: [
+          { from: 'PROCESS-FULFIL-RECEIVE-1', to: 'PROCESS-FULFIL-CHAIN-1' },
+        ],
+      },
+    );
+    expect(r.warnings.some(w => w.code === 'BP-014')).toBe(false);
+  });
+
+  it('BP-014: does not fire on a STAGE- only blueprint that names process', () => {
+    const r = validateProcessBlueprint(
+      {
+        ...VALID_BLUEPRINT,
+        process_blueprint: {
+          ...VALID_BLUEPRINT.process_blueprint,
+          process: 'PROCESS-ORD-FULFILL-1',
+        },
+      },
+      { processParentEdges: [] },
+    );
+    expect(r.warnings.some(w => w.code === 'BP-014')).toBe(false);
+  });
+
+  it('BP-014: skipped when processParentEdges is omitted', () => {
+    const r = validateProcessBlueprint({
+      ...VALID_BLUEPRINT,
+      process_blueprint: {
+        ...VALID_BLUEPRINT.process_blueprint,
+        process: 'PROCESS-FULFIL-CHAIN-1',
+        stages: [{ id: 'PROCESS-FULFIL-RECEIVE-1' }],
+        systems: [{ name: 'OMS', stages: ['PROCESS-FULFIL-RECEIVE-1'] }],
+        actors: undefined,
+        equipment: undefined,
+        information_entities: undefined,
+      },
+    });
+    expect(r.warnings.some(w => w.code === 'BP-014')).toBe(false);
   });
 
   it('BP-007: rejects aspect entry missing name', () => {
@@ -284,9 +462,9 @@ describe('validateProcessBlueprint', () => {
     expect(r.valid).toBe(true);
   });
 
-  // BP-012 was removed from the spec on 2026-05-21 (methodology PR #15):
-  // a single-stage aspect entry is normal, valid blueprint content and the
-  // warning fired on the common case. Studio side dropped to match.
+  // The former BP-012 warning (single-stage aspect entry) was removed from
+  // the spec on 2026-05-21. The code BP-012 now names a different rule:
+  // a PROCESS-… column must resolve to an admitted PROCESS.
 
   it('happy path: surfaces no warnings on a well-formed multi-stage blueprint', () => {
     const r = validateProcessBlueprint(VALID_BLUEPRINT);

@@ -1,21 +1,63 @@
 import type { AspectCategory } from './types.js';
 import type { ValidationError, ValidationWarning, ValidationResult } from '../validation-types.js';
+import type { CanonCatalog } from '../typed-id.js';
 
 export type { ValidationError, ValidationWarning, ValidationResult };
 
 const ID_GRAMMAR_RE = /^[A-Z][A-Z_]*(-[A-Z0-9][A-Z0-9_]*)*-\d+$/;
 const PROCESS_BLUEPRINT_ID_RE = /^PROCESS_BLUEPRINT(-[A-Z0-9][A-Z0-9_]*)*-\d+$/;
 const STAGE_ID_RE = /^STAGE(-[A-Z0-9][A-Z0-9_]*)*-\d+$/;
+const PROCESS_ID_RE = /^PROCESS(-[A-Z0-9][A-Z0-9_]*)*-\d+$/;
 const APPLICATION_ID_RE = /^APPLICATION(-[A-Z0-9][A-Z0-9_]*)*-\d+$/;
 const ROLE_ID_RE = /^ROLE(-[A-Z0-9][A-Z0-9_]*)*-\d+$/;
 
 const ASPECT_CATEGORIES: AspectCategory[] = ['systems', 'actors', 'equipment', 'information_entities'];
 
+const RESTATED_COLUMN_FIELDS = ['name', 'goal', 'result'] as const;
+
+export interface ProcessParentEdge {
+  /** Child process id (`from`). */
+  from: string;
+  /** Parent process id (`to`). */
+  to: string;
+}
+
+export interface ProcessBlueprintValidateOptions {
+  /** When provided, BP-012 resolves `PROCESS-…` column ids against admitted canon. */
+  catalog?: CanonCatalog;
+  /**
+   * In-effect `process_parent` edges (child → parent). When provided, BP-014
+   * warns if `process_blueprint.process` is set and a `PROCESS-…` column has
+   * no such edge to that parent. Omit to skip BP-014 (file-scope without the
+   * relation catalogue).
+   */
+  processParentEdges?: readonly ProcessParentEdge[];
+}
+
 function isNonEmptyString(v: unknown): v is string {
   return typeof v === 'string' && v.trim().length > 0;
 }
 
-export function validateProcessBlueprint(input: unknown): ValidationResult {
+function isProcessColumnId(id: string): boolean {
+  return PROCESS_ID_RE.test(id);
+}
+
+function isStageColumnId(id: string): boolean {
+  return STAGE_ID_RE.test(id);
+}
+
+function isColumnId(id: string): boolean {
+  return isStageColumnId(id) || isProcessColumnId(id);
+}
+
+function fieldIsPresent(record: Record<string, unknown>, key: string): boolean {
+  return Object.prototype.hasOwnProperty.call(record, key);
+}
+
+export function validateProcessBlueprint(
+  input: unknown,
+  options: ProcessBlueprintValidateOptions = {},
+): ValidationResult {
   const errors: ValidationError[] = [];
   const warnings: ValidationWarning[] = [];
 
@@ -63,6 +105,7 @@ export function validateProcessBlueprint(input: unknown): ValidationResult {
   }
 
   const stageIds = new Set<string>();
+  const processColumnIds: string[] = [];
   for (let i = 0; i < stagesRaw.length; i++) {
     const s = stagesRaw[i] as Record<string, unknown> | undefined;
     const path = `stages[${i}]`;
@@ -71,29 +114,72 @@ export function validateProcessBlueprint(input: unknown): ValidationResult {
       continue;
     }
     if (!isNonEmptyString(s['id'])) {
-      errors.push({ code: 'BP-005', message: `${path}.id is required` });
+      errors.push({ code: 'BP-006', message: `${path}.id is required` });
+      continue;
+    }
+
+    const sid = s['id'].trim();
+    if (stageIds.has(sid)) {
+      errors.push({ code: 'BP-006', message: `Duplicate stage id: "${sid}"` });
     } else {
-      const sid = s['id'].trim();
-      if (stageIds.has(sid)) {
-        errors.push({ code: 'BP-006', message: `Duplicate stage id: "${sid}"` });
-      } else {
-        stageIds.add(sid);
+      stageIds.add(sid);
+    }
+    if (!isColumnId(sid)) {
+      errors.push({
+        code: 'BP-006',
+        message: `${path}.id "${sid}" must match STAGE-[<middle>-]<INTEGER> or PROCESS-[<middle>-]<INTEGER>`,
+      });
+      continue;
+    }
+
+    if (isProcessColumnId(sid)) {
+      processColumnIds.push(sid);
+      for (const field of RESTATED_COLUMN_FIELDS) {
+        if (fieldIsPresent(s, field)) {
+          errors.push({
+            code: 'BP-013',
+            message: `${path}.${field} must not be restated on a PROCESS-… column — derive it from the process element`,
+          });
+        }
       }
-      if (!STAGE_ID_RE.test(sid)) {
-        errors.push({
-          code: 'BP-006',
-          message: `${path}.id "${sid}" must match STAGE-[<middle>-]<INTEGER>`,
+      if (options.catalog) {
+        const resolved = options.catalog.typeOf(sid);
+        if (resolved !== 'PROCESS') {
+          errors.push({
+            code: 'BP-012',
+            message: `${path}.id "${sid}" must resolve to an admitted PROCESS element`,
+          });
+        }
+      }
+    } else {
+      if (!isNonEmptyString(s['name'])) {
+        errors.push({ code: 'BP-005', message: `${path}.name is required` });
+      }
+      if (!isNonEmptyString(s['goal'])) {
+        errors.push({ code: 'BP-005', message: `${path}.goal is required` });
+      }
+      if (!isNonEmptyString(s['result'])) {
+        errors.push({ code: 'BP-005', message: `${path}.result is required` });
+      }
+    }
+  }
+
+  const parentProcess = isNonEmptyString(pb['process']) ? pb['process'].trim() : undefined;
+  if (parentProcess && options.processParentEdges && processColumnIds.length > 0) {
+    const linked = new Set(
+      options.processParentEdges
+        .filter((e) => e.to === parentProcess)
+        .map((e) => e.from),
+    );
+    for (const child of processColumnIds) {
+      if (!linked.has(child)) {
+        warnings.push({
+          code: 'BP-014',
+          message:
+            `Column "${child}" is a PROCESS-… id and process_blueprint.process is "${parentProcess}", ` +
+            `but no in-effect process_parent REL links that column to that parent`,
         });
       }
-    }
-    if (!isNonEmptyString(s['name'])) {
-      errors.push({ code: 'BP-005', message: `${path}.name is required` });
-    }
-    if (!isNonEmptyString(s['goal'])) {
-      errors.push({ code: 'BP-005', message: `${path}.goal is required` });
-    }
-    if (!isNonEmptyString(s['result'])) {
-      errors.push({ code: 'BP-005', message: `${path}.result is required` });
     }
   }
 
@@ -123,7 +209,7 @@ export function validateProcessBlueprint(input: unknown): ValidationResult {
       if (!Array.isArray(entryStages) || entryStages.length === 0) {
         errors.push({
           code: 'BP-007',
-          message: `${path}.stages must be a non-empty array of STAGE-… ids`,
+          message: `${path}.stages must be a non-empty array of declared column ids`,
         });
       } else {
         for (let j = 0; j < entryStages.length; j++) {

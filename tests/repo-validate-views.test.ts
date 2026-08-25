@@ -360,3 +360,104 @@ describe('repo-scope views sweep — unquoted canon element dates (valid_at filt
     expect(result.views.some((f) => f.message.includes('ACTION-EXPIRED-1'))).toBe(false);
   });
 });
+
+describe('repo-scope process-blueprint PROCESS- columns', () => {
+  let root: string;
+
+  beforeAll(() => {
+    root = mkdtempSync(join(tmpdir(), 'tx-bp-process-'));
+    write(
+      root,
+      'canon/elements/02_business/processes/PROCESS-FULFIL-CHAIN-1.yaml',
+      [
+        'notation: process',
+        'id: PROCESS-FULFIL-CHAIN-1',
+        'name: Fulfilment chain',
+        'zone: canon',
+        'admitted_at: "2026-08-25"',
+        'admitted_by: example',
+        'valid_from: "2026-01-01"',
+        'valid_to: null',
+      ].join('\n'),
+    );
+    write(
+      root,
+      'canon/elements/02_business/processes/PROCESS-FULFIL-RECEIVE-1.yaml',
+      [
+        'notation: process',
+        'id: PROCESS-FULFIL-RECEIVE-1',
+        'name: Receive order',
+        'zone: canon',
+        'admitted_at: "2026-08-25"',
+        'admitted_by: example',
+        'valid_from: "2026-01-01"',
+        'valid_to: null',
+      ].join('\n'),
+    );
+    write(
+      root,
+      'canon/relations/REL-FULFIL-RECEIVE-PROCESS-PARENT-1.yaml',
+      [
+        'notation: relation',
+        'id: REL-FULFIL-RECEIVE-PROCESS-PARENT-1',
+        'type: process_parent',
+        'from: PROCESS-FULFIL-RECEIVE-1',
+        'to: PROCESS-FULFIL-CHAIN-1',
+        'zone: canon',
+        'admitted_at: "2026-08-25"',
+        'admitted_by: example',
+        'valid_from: "2026-01-01"',
+        'valid_to: null',
+      ].join('\n'),
+    );
+    write(
+      root,
+      'canon/views/process-blueprint/chain.process-blueprint.transitrix.yaml',
+      [
+        'notation: process-blueprint',
+        'process_blueprint:',
+        '  id: PROCESS_BLUEPRINT-FULFIL-CHAIN-1',
+        '  name: Fulfilment chain',
+        '  process: PROCESS-FULFIL-CHAIN-1',
+        '  stages:',
+        '    - id: PROCESS-FULFIL-RECEIVE-1',
+        '  systems:',
+        '    - name: OMS',
+        '      stages: [PROCESS-FULFIL-RECEIVE-1]',
+      ].join('\n'),
+    );
+    write(
+      root,
+      'canon/views/process-blueprint/unresolved.process-blueprint.transitrix.yaml',
+      [
+        'notation: process-blueprint',
+        'process_blueprint:',
+        '  id: PROCESS_BLUEPRINT-UNRESOLVED-1',
+        '  name: Unresolved column',
+        '  stages:',
+        '    - id: PROCESS-DOES-NOT-EXIST-1',
+        '  systems:',
+        '    - name: OMS',
+        '      stages: [PROCESS-DOES-NOT-EXIST-1]',
+      ].join('\n'),
+    );
+  });
+
+  afterAll(() => {
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it('accepts a catalogued-column blueprint whose PROCESS- ids resolve and are parented', () => {
+    const result = runRepoValidate(root);
+    const chain = result.views.filter((f) => f.file.endsWith('chain.process-blueprint.transitrix.yaml'));
+    expect(chain.filter((f) => f.severity === 'error')).toEqual([]);
+    expect(chain.some((f) => f.ruleId === 'BP-014')).toBe(false);
+    expect(result.canon.filter((f) => f.ruleId === 'REL-007' || f.ruleId === 'REL-008')).toEqual([]);
+  });
+
+  it('BP-012: flags a PROCESS-… column that does not resolve', () => {
+    const result = runRepoValidate(root);
+    const unresolved = result.views.filter((f) => f.file.endsWith('unresolved.process-blueprint.transitrix.yaml'));
+    expect(unresolved.some((f) => f.ruleId === 'BP-012' && f.severity === 'error')).toBe(true);
+  });
+});
