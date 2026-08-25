@@ -38,6 +38,7 @@
     "prepack": "node ../../scripts/build-cli-package.mjs"
   },
   "dependencies": {
+    "@resvg/resvg-js": "^2.6.2",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
     "bpmn-moddle": "^10.1.0",

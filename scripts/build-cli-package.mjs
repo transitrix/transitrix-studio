@@ -49,8 +49,10 @@ await fs.mkdir(schemaOut, { recursive: true });
 
 // Mirrors packages/cli/package.json "dependencies". Kept external so npm
 // resolves them at install time (ajv has dynamic require patterns that
-// esbuild cannot reliably inline).
-const RUNTIME_DEPS_EXTERNAL = COMPILER_RUNTIME_EXTERNALS;
+// esbuild cannot reliably inline). `@resvg/resvg-js` is the native PNG
+// rasterizer used only by `compile … .png` — bundling it pulls a `.node`
+// addon esbuild cannot load.
+const RUNTIME_DEPS_EXTERNAL = [...COMPILER_RUNTIME_EXTERNALS, '@resvg/resvg-js'];
 
 const sharedBuildOptions = {
   bundle: true,
