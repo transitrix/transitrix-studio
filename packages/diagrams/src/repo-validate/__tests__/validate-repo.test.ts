@@ -704,3 +704,110 @@ describe('validateRepoModel — layer-semantics (hosts / uses / TSVC-003)', () =
     expect(findings).toHaveLength(0);
   });
 });
+
+describe('validateRepoModel — process_parent (REL-007 / REL-008 / endpoints)', () => {
+  function processModel(): RepoModelInput {
+    const model = cleanModel();
+    model.elements.push(
+      el('canon/elements/02_business/processes/PROCESS-CHAIN-1.yaml', {
+        notation: 'process',
+        id: 'PROCESS-CHAIN-1',
+      }),
+      el('canon/elements/02_business/processes/PROCESS-RECEIVE-1.yaml', {
+        notation: 'process',
+        id: 'PROCESS-RECEIVE-1',
+      }),
+      el('canon/elements/02_business/processes/PROCESS-PICK-1.yaml', {
+        notation: 'process',
+        id: 'PROCESS-PICK-1',
+      }),
+    );
+    return model;
+  }
+
+  it('accepts a well-formed process_parent PROCESS → PROCESS', () => {
+    const model = processModel();
+    model.relations.push(
+      el('canon/relations/REL-PP-1.yaml', {
+        notation: 'relation',
+        id: 'REL-PP-1',
+        type: 'process_parent',
+        from: 'PROCESS-RECEIVE-1',
+        to: 'PROCESS-CHAIN-1',
+      }),
+    );
+    expect(validateRepoModel(model).filter((f) => f.ruleId?.startsWith('REL-00'))).toEqual([]);
+  });
+
+  it('REL-007: flags a process_parent whose from equals to', () => {
+    const model = processModel();
+    model.relations.push(
+      el('canon/relations/REL-SELF.yaml', {
+        notation: 'relation',
+        id: 'REL-SELF',
+        type: 'process_parent',
+        from: 'PROCESS-CHAIN-1',
+        to: 'PROCESS-CHAIN-1',
+      }),
+    );
+    const findings = validateRepoModel(model).filter((f) => f.ruleId === 'REL-007');
+    expect(findings).toHaveLength(1);
+    expect(findings[0]).toMatchObject({ scope: 'repo', id: 'REL-SELF', ruleId: 'REL-007' });
+  });
+
+  it('REL-008: warns on a cycle in the process_parent graph', () => {
+    const model = processModel();
+    model.relations.push(
+      el('canon/relations/REL-A.yaml', {
+        notation: 'relation',
+        id: 'REL-A',
+        type: 'process_parent',
+        from: 'PROCESS-RECEIVE-1',
+        to: 'PROCESS-PICK-1',
+      }),
+      el('canon/relations/REL-B.yaml', {
+        notation: 'relation',
+        id: 'REL-B',
+        type: 'process_parent',
+        from: 'PROCESS-PICK-1',
+        to: 'PROCESS-RECEIVE-1',
+      }),
+    );
+    const findings = validateRepoModel(model).filter((f) => f.ruleId === 'REL-008');
+    expect(findings).toHaveLength(1);
+    expect(findings[0].severity).toBe('warning');
+  });
+
+  it('REL-002: flags process_parent whose from is not a PROCESS', () => {
+    const model = processModel();
+    model.relations.push(
+      el('canon/relations/REL-BAD-FROM.yaml', {
+        notation: 'relation',
+        id: 'REL-BAD-FROM',
+        type: 'process_parent',
+        from: 'GOAL-OPS-1',
+        to: 'PROCESS-CHAIN-1',
+      }),
+    );
+    const findings = validateRepoModel(model).filter((f) => f.ruleId === 'REL-002');
+    expect(findings).toHaveLength(1);
+    expect(findings[0].message).toContain('process_parent');
+    expect(findings[0].message).toContain('from');
+  });
+
+  it('does not emit endpoint findings for unknown process_parent endpoints', () => {
+    const model = processModel();
+    model.relations.push(
+      el('canon/relations/REL-MISS.yaml', {
+        notation: 'relation',
+        id: 'REL-MISS',
+        type: 'process_parent',
+        from: 'PROCESS-UNKNOWN-99',
+        to: 'PROCESS-ALSO-UNKNOWN-99',
+      }),
+    );
+    const findings = validateRepoModel(model);
+    expect(findings.every((f) => f.ruleId !== 'REL-002')).toBe(true);
+    expect(findings.some((f) => f.message.includes('PROCESS-UNKNOWN-99'))).toBe(true);
+  });
+});

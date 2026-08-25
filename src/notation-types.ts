@@ -24,6 +24,12 @@ export interface ValidateNotationOptions {
   filePath?: string;
   /** Admitted canon catalogue — enables catalogue-aware checks (e.g. REQ-002, ASSERT-002..005). */
   catalog?: CanonCatalog;
+  /**
+   * In-effect `process_parent` edges (child → parent). Enables BP-014 on a
+   * process-blueprint document when `validate --scope=repo` has the relation
+   * catalogue loaded.
+   */
+  processParentEdges?: ReadonlyArray<{ from: string; to: string }>;
   /** Grid-template name (matrix subset, §6a) — e.g. "raci" — opts a `blocks`
    *  document into that template's extra GridRule checks. */
   template?: string;

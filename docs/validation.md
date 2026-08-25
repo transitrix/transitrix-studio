@@ -43,10 +43,12 @@ suite, see below):
 - **Policy** — an element marked `Active`/`Production` (`metadata.status`) with no `metadata.owner`.
 - **ArchiMate layer-semantics** — endpoint-type constraints for the relation
   kinds with a formally-defined methodology semantics (`unit_located_at`,
-  `located_at`, `offers`, `realizes`, `hosts`, `uses`), plus `TSVC-003`
-  (TECHNOLOGY_SERVICE.node → NODE) and `INT-002` (INTEGRATION interface
-  endpoints → APPLICATION). lint.py ships this phase as a no-op stub; Studio
-  is ahead of the Python tool here — these findings are TypeScript-only.
+  `located_at`, `offers`, `realizes`, `hosts`, `uses`, `process_parent`), plus
+  `TSVC-003` (TECHNOLOGY_SERVICE.node → NODE) and `INT-002` (INTEGRATION
+  interface endpoints → APPLICATION). `process_parent` also fires `REL-007`
+  (self-reference, error) and `REL-008` (cycle in the child→parent graph,
+  warning). lint.py ships this phase as a no-op stub; Studio is ahead of the
+  Python tool here — these findings are TypeScript-only.
 - **Strategy-chain semantics** (`GOALS-009`..`011`, `ACT-005`..`009`,
   `FGCA-008`..`014`) — see below.
 - **Standalone-element envelope hygiene** (`GOAL-ELEM-002`/`003`,

@@ -27,6 +27,8 @@ export type {
   ValidationError as ProcessBlueprintValidationError,
   ValidationWarning as ProcessBlueprintValidationWarning,
   ValidationResult as ProcessBlueprintValidationResult,
+  ProcessBlueprintValidateOptions,
+  ProcessParentEdge,
 } from './validate.js';
 
 export { layoutProcessBlueprint } from './layout.js';

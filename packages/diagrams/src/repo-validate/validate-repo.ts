@@ -31,6 +31,7 @@ import { checkStrategyChainSemantics } from './check-strategy-chain.js';
 import { checkElementHygiene } from './check-element-hygiene.js';
 import { checkVersionedAttributes } from './check-versioned-attributes.js';
 import { checkCandidateFields } from './check-candidate-fields.js';
+import { checkProcessParentSemantics } from './check-process-parent.js';
 import type { RepoDoc, RepoFinding, RepoModelInput } from './types.js';
 
 const PScope: RepoFinding['scope'] = 'repo';
@@ -161,6 +162,7 @@ function checkReferentialIntegrity(input: RepoModelInput, findings: RepoFinding[
  *   realizes        — BUSINESS_SERVICE → CAPABILITY           (25-business-services.md)
  *   hosts           — NODE → TECHNOLOGY_SERVICE               (25-nodes.md / 26-technology-services.md)
  *   uses            — APPLICATION → TECHNOLOGY_SERVICE        (26-technology-services.md)
+ *   process_parent  — PROCESS → PROCESS (17-relations.md §3; REL-007/008)
  *
  * Implemented element checks:
  *   TSVC-003        — TECHNOLOGY_SERVICE.node must resolve to NODE notation
@@ -423,6 +425,7 @@ export function validateRepoModel(input: RepoModelInput): RepoFinding[] {
   checkAtomicity(input, findings);
   checkReferentialIntegrity(input, findings);
   checkLayerSemantics(input, findings);
+  checkProcessParentSemantics(input, findings);
   checkPolicy(input, findings);
   // Phase 7 — strategy-chain semantic rules ported from DSM's Go Validate*
   // functions (GOALS-010, ACT-006..009, FGCA-008..011).

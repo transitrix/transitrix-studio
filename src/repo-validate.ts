@@ -28,6 +28,7 @@ import {
   type RepoModelInput,
   type ResolvedRepoModel,
 } from '@transitrix/diagrams/repo-validate';
+import { collectInEffectProcessParentEdges } from '@transitrix/diagrams/repo-validate/check-process-parent.js';
 import {
   buildComplianceScan,
   buildComplianceIndex,
@@ -346,10 +347,15 @@ export function runViewValidate(
   // cross-reference checks) instead of walking it a second time; otherwise
   // loads lazily, at most once per run, only when a projection-form document
   // is actually encountered.
+  let loadedModel: RepoModelInput | undefined;
+  function ensureRepoModel(): RepoModelInput {
+    if (!loadedModel) loadedModel = preloadedModel ?? loadRepoModel(root);
+    return loadedModel;
+  }
   let canonModel: { elements: unknown[]; relations: unknown[] } | undefined;
   function ensureCanonModel(): { elements: unknown[]; relations: unknown[] } {
     if (!canonModel) {
-      const model = preloadedModel ?? loadRepoModel(root);
+      const model = ensureRepoModel();
       canonModel = {
         elements: model.elements.map((d) => d.data).filter((d): d is Record<string, unknown> => d != null),
         relations: model.relations.map((d) => d.data).filter((d): d is Record<string, unknown> => d != null),
@@ -432,7 +438,13 @@ export function runViewValidate(
       data = resolveGoals(data, { elements: ensureCanonModel().elements });
     }
 
-    const validateOpts = { catalog: ctx?.catalog };
+    const validateOpts = {
+      catalog: ctx?.catalog,
+      processParentEdges:
+        notation === 'process-blueprint'
+          ? collectInEffectProcessParentEdges(ensureRepoModel())
+          : undefined,
+    };
 
     if (notation === 'compliance-impact' && ctx) {
       for (const f of validateNotationDoc(notation, data, validateOpts).findings) {
