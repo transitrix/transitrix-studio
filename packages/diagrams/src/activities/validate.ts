@@ -5,9 +5,61 @@ import type {
   ActivityValidationError,
   ActivityValidationWarning,
 } from './types.js';
+import { isObject, str, reachesRootViaParent } from '../canon-resolver-utils.js';
+import { ACT_021_OMITTED_KEY } from './resolver.js';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const VALID_WEEKDAYS = new Set(['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']);
+
+function act021Message(actionId: string, rootId: string): string {
+  return `ACTION "${actionId}" is not "${rootId}" and is not reachable from it via parent`;
+}
+
+function collectAct021FromProjection(raw: Record<string, unknown>): ActivityValidationWarning[] {
+  const bag = raw[ACT_021_OMITTED_KEY];
+  delete raw[ACT_021_OMITTED_KEY];
+  if (!isObject(bag)) return [];
+  const root = str(bag['root']);
+  const ids = Array.isArray(bag['ids']) ? bag['ids'] : [];
+  if (!root) return [];
+  const out: ActivityValidationWarning[] = [];
+  for (const id of ids) {
+    if (typeof id !== 'string' || !id.trim()) continue;
+    out.push({
+      code: 'ACT-021',
+      message: act021Message(id, root),
+      path: 'view_config.scope.root_action',
+    });
+  }
+  return out;
+}
+
+function collectAct021FromAuthored(
+  raw: Record<string, unknown>,
+  actions: unknown[],
+): ActivityValidationWarning[] {
+  const vc = isObject(raw['view_config']) ? raw['view_config'] : undefined;
+  const scope = vc && isObject(vc['scope']) ? vc['scope'] : undefined;
+  const root = scope ? str(scope['root_action']) : undefined;
+  if (!root) return [];
+  const byId = new Map<string, Record<string, unknown>>();
+  for (const el of actions) {
+    if (!isObject(el)) continue;
+    const id = str(el['id']);
+    if (id) byId.set(id, el);
+  }
+  if (!byId.has(root)) return [];
+  const out: ActivityValidationWarning[] = [];
+  for (const id of byId.keys()) {
+    if (reachesRootViaParent(id, root, byId)) continue;
+    out.push({
+      code: 'ACT-021',
+      message: act021Message(id, root),
+      path: 'view_config.scope.root_action',
+    });
+  }
+  return out;
+}
 
 export function validateActivities(input: unknown): ActivityValidationResult {
   const errors: ActivityValidationError[] = [];
@@ -45,6 +97,12 @@ export function validateActivities(input: unknown): ActivityValidationResult {
   }
   // Normalise onto raw.activities for the rest of this function (avoids touching downstream code)
   if (!Array.isArray(raw.activities)) raw.activities = raw.actions;
+
+  const fromProjection = collectAct021FromProjection(raw);
+  warnings.push(...fromProjection);
+  if (fromProjection.length === 0) {
+    warnings.push(...collectAct021FromAuthored(raw, rawArray));
+  }
 
   // ACT-014 / ACT-015: project.calendar validation (run before per-activity loop;
   // surfaces clearly even when activities also have issues).

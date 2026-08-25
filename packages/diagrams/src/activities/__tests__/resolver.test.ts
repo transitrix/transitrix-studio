@@ -276,3 +276,52 @@ describe('resolveAction — trims incidental whitespace on matched fields', () =
     expect(ids).toEqual(['ACTION-WS-1']);
   });
 });
+
+// ── resolveAction — ACT-021 (root_action omit + warn) ─────────────────────
+
+describe('resolveAction — ACT-021', () => {
+  const ELEMENTS = [
+    { notation: 'action', id: 'ACTION-LAUNCH-1', name: 'Platform launch', type: 'Project' },
+    { notation: 'action', id: 'ACTION-LAUNCH-PREP-1', name: 'Launch preparation', type: 'Task', parent: 'ACTION-LAUNCH-1' },
+    { notation: 'action', id: 'ACTION-LAUNCH-COMMS-1', name: 'Launch communications', type: 'Task' },
+  ];
+  const scoped = {
+    notation: 'action',
+    id: 'ACTION_SCHED-LAUNCH-1',
+    name: 'Launch — scoped',
+    view_config: {
+      scope: { root_action: 'ACTION-LAUNCH-1' },
+      schedule: { start_date: '2026-09-01' },
+    },
+  };
+
+  it('omits the unwired child from the render set and warns ACT-021 on it only', () => {
+    const doc = resolveAction(scoped, { elements: ELEMENTS });
+    const ids = (doc['actions'] as Array<{ id: string }>).map((a) => a.id).sort();
+    expect(ids).toEqual(['ACTION-LAUNCH-1', 'ACTION-LAUNCH-PREP-1']);
+    const v = validateActivities(doc);
+    expect(v.valid).toBe(true);
+    const w = v.warnings.filter((x) => x.code === 'ACT-021');
+    expect(w).toHaveLength(1);
+    expect(w[0].message).toContain('ACTION-LAUNCH-COMMS-1');
+    expect(w[0].message).toContain('ACTION-LAUNCH-1');
+    expect(w[0].message).not.toContain('ACTION-LAUNCH-PREP-1');
+    expect(v.errors.some((e) => e.code === 'ACT-004')).toBe(false);
+    expect(v.warnings.some((x) => x.code === 'ACT-004')).toBe(false);
+  });
+
+  it('does not emit ACT-021 when root_action is absent', () => {
+    const unscoped = {
+      ...scoped,
+      view_config: { scope: {}, schedule: { start_date: '2026-09-01' } },
+    };
+    const doc = resolveAction(unscoped, { elements: ELEMENTS });
+    expect((doc['actions'] as Array<{ id: string }>).map((a) => a.id).sort()).toEqual([
+      'ACTION-LAUNCH-1',
+      'ACTION-LAUNCH-COMMS-1',
+      'ACTION-LAUNCH-PREP-1',
+    ]);
+    const v = validateActivities(doc);
+    expect(v.warnings.some((x) => x.code === 'ACT-021')).toBe(false);
+  });
+});

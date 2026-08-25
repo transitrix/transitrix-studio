@@ -12,7 +12,7 @@
  * §2). Filesystem-free — callable from unit tests without vscode.
  */
 
-import { isObject, str, strArray, descendantsOf, stripEnvelope } from '../canon-resolver-utils.js';
+import { isObject, str, strArray, stripEnvelope, reachesRootViaParent } from '../canon-resolver-utils.js';
 
 export interface ActionViewConfig {
   scope?: {
@@ -43,6 +43,10 @@ export interface ActionCanonSources {
    *  to each element's inline `goals[]`. */
   relations?: unknown[];
 }
+
+/** In-memory bag of ACTION ids dropped by `root_action` scoping. Consumed by
+ *  `validateActivities` as `ACT-021`. Not part of the notation. */
+export const ACT_021_OMITTED_KEY = '__act021_omitted';
 
 /** ACTION elements by id. `notation: action` is canonical; `notation: activity`
  *  is the deprecated pre-2026-06-25 alias (elements/24-action.md §"Deprecated
@@ -123,32 +127,26 @@ export function resolveAction(
     return relGoals.length > 0 ? relGoals : strArray(el['goals']);
   }
 
-  // 1. Scope by root_action (this action + its descendants), or the full
-  // catalogue when omitted (§5.1: "Omit to include elements from the full
-  // catalogue (or use goals/type_filter for other scoping)").
-  const rootAction = str(scope['root_action']);
-  let candidateIds: Set<string>;
-  if (rootAction) {
-    candidateIds = allActions.has(rootAction) ? descendantsOf(rootAction, allActions) : new Set();
-  } else {
-    candidateIds = new Set(allActions.keys());
-  }
+  // 1. Other scope fields first — the set the view would otherwise select
+  // (07-action.md §5.1). `root_action` then omits (and warns) rather than
+  // silently intersecting first.
+  let otherwiseIds: Set<string> = new Set(allActions.keys());
 
-  // 2. Narrow by goals — only actions linked to at least one listed GOAL
+  // Narrow by goals — only actions linked to at least one listed GOAL
   // (via an active action_goal relation, or inline goals[] when no relation
   // exists for that action).
   const goalsFilter = strArray(scope['goals']);
   if (goalsFilter.length > 0) {
-    candidateIds = new Set(
-      [...candidateIds].filter((id) => effectiveGoals(id, allActions.get(id)!).some((g) => goalsFilter.includes(g))),
+    otherwiseIds = new Set(
+      [...otherwiseIds].filter((id) => effectiveGoals(id, allActions.get(id)!).some((g) => goalsFilter.includes(g))),
     );
   }
 
-  // 3. Narrow by type_filter — only actions of a listed type.
+  // Narrow by type_filter — only actions of a listed type.
   const typeFilter = strArray(scope['type_filter']);
   if (typeFilter.length > 0) {
-    candidateIds = new Set(
-      [...candidateIds].filter((id) => {
+    otherwiseIds = new Set(
+      [...otherwiseIds].filter((id) => {
         const el = allActions.get(id);
         const t = str(el?.['type']) ?? str(el?.['activity_type']);
         return t !== undefined && typeFilter.includes(t);
@@ -156,13 +154,13 @@ export function resolveAction(
     );
   }
 
-  // 4. Narrow by valid_at — only actions in effect on that date. Actions with
+  // Narrow by valid_at — only actions in effect on that date. Actions with
   // no valid_from are not lifecycle-tracked and are kept (permissive default,
   // matching the resolver's general "missing = not excluded" stance).
   const validAt = str(scope['valid_at']);
   if (validAt) {
-    candidateIds = new Set(
-      [...candidateIds].filter((id) => {
+    otherwiseIds = new Set(
+      [...otherwiseIds].filter((id) => {
         const el = allActions.get(id);
         const from = str(el?.['valid_from']);
         const to = str(el?.['valid_to']);
@@ -171,6 +169,27 @@ export function resolveAction(
         return true;
       }),
     );
+  }
+
+  const rootAction = str(scope['root_action']);
+  let candidateIds: Set<string>;
+  const omittedOutsideRoot: string[] = [];
+  if (rootAction) {
+    if (!allActions.has(rootAction)) {
+      candidateIds = new Set();
+    } else {
+      candidateIds = new Set();
+      for (const id of otherwiseIds) {
+        if (reachesRootViaParent(id, rootAction, allActions)) {
+          candidateIds.add(id);
+        } else {
+          omittedOutsideRoot.push(id);
+        }
+      }
+      omittedOutsideRoot.sort();
+    }
+  } else {
+    candidateIds = otherwiseIds;
   }
 
   // Element fields map onto Activity fields unchanged, except the canonical
@@ -204,5 +223,6 @@ export function resolveAction(
     actions: selectedActions,
   };
   if (Object.keys(project).length > 0) out['project'] = project;
+  if (omittedOutsideRoot.length > 0) out[ACT_021_OMITTED_KEY] = { root: rootAction, ids: omittedOutsideRoot };
   return out;
 }
