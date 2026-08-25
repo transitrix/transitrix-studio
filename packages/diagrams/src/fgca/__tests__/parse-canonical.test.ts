@@ -168,6 +168,24 @@ describe('parseCanonicalFGCA', () => {
     expect(r.valid).toBe(true);
     expect(r.parsed?.changes[0].activity_ids).toHaveLength(2);
   });
+
+  it('populates change.activity_ids from canonical delivers_changes', () => {
+    const r = parseCanonicalFGCA({
+      ...VALID,
+      actions: [{ id: 'ACTION-1', name: 'Ship', delivers_changes: ['CHANGE-1'] }],
+    });
+    expect(r.valid, JSON.stringify(r.errors)).toBe(true);
+    expect(r.parsed?.changes[0].activity_ids).toEqual(['ACTION-1']);
+  });
+
+  it('FGCA-010: rejects delivers_changes referencing an undefined change', () => {
+    const r = parseCanonicalFGCA({
+      ...VALID,
+      actions: [{ id: 'ACTION-1', name: 'A', delivers_changes: ['CHANGE-99'] }],
+    });
+    expect(r.valid).toBe(false);
+    expect(r.errors.some((e) => e.code === 'FGCA-010')).toBe(true);
+  });
 });
 
 // The "FGCA preview blank / FGA no edges" regression

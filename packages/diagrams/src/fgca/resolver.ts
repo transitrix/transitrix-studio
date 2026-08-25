@@ -7,6 +7,8 @@
  * string IDs.  Filesystem-free — callable from unit tests without vscode.
  */
 
+import { actionChangeLinkField } from './action-change-ids.js';
+
 export interface FGCAViewConfig {
   goals?: {
     filter?: 'all' | 'ids' | 'tags';
@@ -15,6 +17,8 @@ export interface FGCAViewConfig {
   };
   factors?: { surface?: 'derived' | 'all' };
   changes?: { surface?: 'derived' | 'all' };
+  /** Canonical projection key. `activities` remains a deprecated alias. */
+  actions?: { surface?: 'derived' | 'all' };
   activities?: { surface?: 'derived' | 'all' };
   display?: { depth?: number | null; collapsed?: string[] };
 }
@@ -69,8 +73,8 @@ export function isFGCAViewDoc(parsed: unknown): boolean {
  * to pass to `parseCanonicalFGCA`.
  *
  * Cross-reference fields (`goal.factors[]`, `change.goals[]`,
- * `action.changes[]`) are carried from the canon elements unchanged; the
- * resolver decides which elements to include, not how they are shaped.
+ * `action.delivers_changes[]`) are carried from the canon elements unchanged;
+ * the resolver decides which elements to include, not how they are shaped.
  */
 export function resolveFGCA(
   viewDoc: unknown,
@@ -84,7 +88,11 @@ export function resolveFGCA(
   const goalsConf = isObject(vc['goals']) ? vc['goals'] : {};
   const factorsConf = isObject(vc['factors']) ? vc['factors'] : {};
   const changesConf = isObject(vc['changes']) ? vc['changes'] : {};
-  const activitiesConf = isObject(vc['activities']) ? vc['activities'] : {};
+  const actionsConf = isObject(vc['actions'])
+    ? vc['actions']
+    : isObject(vc['activities'])
+      ? vc['activities']
+      : {};
 
   const factorElemsLegacy = collectByNotation(sources.elements, 'factor');
   const factorElemsNew = collectByNotation(sources.elements, 'driver');
@@ -139,13 +147,13 @@ export function resolveFGCA(
     selectedChanges.map((c) => str(c['id'])).filter((x): x is string => x !== undefined),
   );
 
-  // 4. Select activities: derived = reference ≥1 selected change or goal (degenerate FGA link)
+  // 4. Select actions: derived = delivers ≥1 selected change, or (DGA) a selected goal
   let selectedActivities: Array<Record<string, unknown>>;
-  if (str(activitiesConf['surface']) === 'all') {
+  if (str(actionsConf['surface']) === 'all') {
     selectedActivities = [...activityElems.values()];
   } else {
     selectedActivities = [...activityElems.values()].filter((a) =>
-      strArray(a['changes']).some((cid) => selectedChangeIds.has(cid)) ||
+      strArray(a[actionChangeLinkField(a)]).some((cid) => selectedChangeIds.has(cid)) ||
       strArray(a['goals']).some((gid) => selectedGoalIds.has(gid)),
     );
   }

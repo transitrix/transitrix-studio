@@ -8,7 +8,7 @@
  * - Typed string IDs per `IDS_AND_REFERENCES.md` (`FACTOR-1`,
  *   `GOAL-RET-1`, `CHANGE-1`, `ACTION-ONBOARD-1` (legacy `ACTIVITY-*` accepted).
  * - Plural canonical-direction cross-references: `goal.factors`,
- *   `change.goals`, `activity.changes`, `activity.goals`.
+ *   `change.goals`, `action.delivers_changes`, `action.goals`.
  * - Per-notation validation codes `FGCA-001 … FGCA-015`.
  *
  * Returns the validation result plus, on success, an internal `FGCADoc`
@@ -36,6 +36,7 @@ import type {
   ValidationWarning,
   ValidationResult,
 } from '../validation-types.js';
+import { actionChangeLinkField } from './action-change-ids.js';
 
 export interface CanonicalFGCAResult extends ValidationResult {
   /** On success, the internal-form FGCADoc derived from the canonical input. */
@@ -253,11 +254,12 @@ export function parseCanonicalFGCA(input: unknown): CanonicalFGCAResult {
     };
   });
 
-  // Build a reverse mapping: which changes does each activity reference (via
-  // canonical activity.changes)? Used to populate the internal `change.activity_ids`.
+  // Build a reverse mapping: which changes does each action deliver (via
+  // canonical `delivers_changes`, or the pre-rename `changes` alias)?
   const activityChangesByCanonicalActivityId = new Map<string, string[]>();
   activities.forEach((el, i) => {
-    const refIds = checkRefArray(el!, 'changes', changeIds, CHANGE_ID_RE, 'FGCA-010', `activities[${i}]`);
+    const field = actionChangeLinkField(el!);
+    const refIds = checkRefArray(el!, field, changeIds, CHANGE_ID_RE, 'FGCA-010', `activities[${i}]`);
     activityChangesByCanonicalActivityId.set(String(el!['id']), refIds);
   });
 

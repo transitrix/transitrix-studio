@@ -181,6 +181,35 @@ describe('resolveFGCA — action/activity notation alias', () => {
   });
 });
 
+// ── resolveFGCA — canonical delivers_changes ─────────────────────────────────
+
+describe('resolveFGCA — delivers_changes', () => {
+  it('includes an Action linked only via delivers_changes when actions.surface is derived', () => {
+    const elements = [
+      { notation: 'driver', id: 'FACTOR-1', name: 'Market pressure' },
+      { notation: 'goal', id: 'GOAL-1', name: 'Grow revenue', factors: ['FACTOR-1'] },
+      { notation: 'change', id: 'CHANGE-1', name: 'Launch product', goals: ['GOAL-1'] },
+      { notation: 'action', id: 'ACTION-1', name: 'Ship the launch', delivers_changes: ['CHANGE-1'] },
+    ];
+    const viewDoc = {
+      notation: 'dgca',
+      id: 'DGCA-1',
+      name: 'Projection',
+      view_config: {
+        goals: { filter: 'all' },
+        factors: { surface: 'derived' },
+        changes: { surface: 'derived' },
+        actions: { surface: 'derived' },
+      },
+    };
+    const doc = resolveFGCA(viewDoc, { elements, relations: [] });
+    expect((doc['actions'] as Array<{ id: string }>).map((a) => a.id)).toEqual(['ACTION-1']);
+    const r = parseCanonicalFGCA(doc);
+    expect(r.valid, JSON.stringify(r.errors)).toBe(true);
+    expect(r.parsed?.changes[0].activity_ids).toEqual(['ACTION-1']);
+  });
+});
+
 // ── resolveFGCA — empty / degenerate inputs ───────────────────────────────────
 
 describe('resolveFGCA — empty sources', () => {
