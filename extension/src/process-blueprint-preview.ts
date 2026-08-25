@@ -32,7 +32,7 @@ const LEGEND_H = 44;
  * Canon root for a blueprint view: ancestor named `canon/`, or a sibling
  * `canon/` next to the view (the methodology process-parent worked example).
  */
-function findBlueprintCanonRoot(fileUri: vscode.Uri): vscode.Uri | undefined {
+function findBlueprintCanonRoot(fileUri: vscode.Uri): vscode.Uri {
   const ancestor = findCanonRoot(fileUri);
   if (ancestor) return ancestor;
   return vscode.Uri.joinPath(vscode.Uri.file(path.dirname(fileUri.fsPath)), 'canon');
@@ -533,7 +533,6 @@ export class ProcessBlueprintPreview {
     if (!doc.fileName.endsWith('.yaml')) return;
     const viewUri = vscode.Uri.parse(this.trackedUri);
     const canonRoot = findBlueprintCanonRoot(viewUri);
-    if (!canonRoot) return;
     if (!isUnderCanon(canonRoot, doc.uri)) return;
     const viewDoc = await vscode.workspace.openTextDocument(viewUri);
     await this.pushDocument(viewDoc);
