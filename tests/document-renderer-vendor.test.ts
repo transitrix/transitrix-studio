@@ -46,12 +46,12 @@ function loadPin(): VendoredPin {
 }
 
 const EXPECTED_FILES = [
-  'pass1.mjs', 'parse-template.mjs', 'repository.mjs', 'ids.mjs', 'syntax.mjs',
+  'pass1.mjs', 'parse-recipe.mjs', 'repository.mjs', 'ids.mjs', 'syntax.mjs',
   'pass2.mjs', 'render-pdf.mjs', 'run-record.mjs',
 ];
 
 describe('vendor/methodology/document-renderer — integrity', () => {
-  it('VENDORED.json pins exactly the five files the resolver needs', () => {
+  it('VENDORED.json pins exactly the eight files the renderer needs', () => {
     const pin = loadPin();
     expect(Object.keys(pin.files).sort()).toEqual([...EXPECTED_FILES].sort());
   });
@@ -71,7 +71,7 @@ describe('vendor/methodology/document-renderer — integrity', () => {
 });
 
 describe('vendor/methodology/document-renderer — the resolver actually runs', () => {
-  it('runPass1 resolves a repository-optional template with no model references', async () => {
+  it('runPass1 resolves a repository-optional recipe with no model references', async () => {
     const mod = await import(pathToFileURL(path.join(VENDOR_DIR, 'pass1.mjs')).href) as {
       runPass1: (opts: { text: string; profile?: 'strict' | 'review' }) => Promise<{
         ok: boolean;
@@ -83,8 +83,8 @@ describe('vendor/methodology/document-renderer — the resolver actually runs', 
       '---',
       'document: Smoke Test',
       'kind: mrd',
-      'template_id: smoke.mrd',
-      'template_version: "1.0"',
+      'recipe_id: smoke.mrd',
+      'recipe_version: "1.0"',
       '---',
       '# Fixed text only, no model references',
     ].join('\n');
@@ -104,8 +104,8 @@ describe('vendor/methodology/document-renderer — the resolver actually runs', 
       '---',
       'document: Smoke Test',
       'kind: mrd',
-      'template_id: smoke.mrd',
-      'template_version: "1.0"',
+      'recipe_id: smoke.mrd',
+      'recipe_version: "1.0"',
       '---',
       '{{# each REQ }}{{ .title }}{{/ each }}',
     ].join('\n');
@@ -147,7 +147,7 @@ describe('vendor/methodology/document-renderer — pass 2, PDF render, run recor
       serializeRunRecord: (record: Record<string, unknown>) => string;
     };
     const record = mod.buildRunRecord({
-      header: { template_id: 'smoke.mrd', template_version: '1.0' },
+      header: { recipe_id: 'smoke.mrd', recipe_version: '1.0' },
       repositoryCommit: null,
       modelId: null,
       runTimestamp: '2026-08-17T00:00:00.000Z',
@@ -157,7 +157,7 @@ describe('vendor/methodology/document-renderer — pass 2, PDF render, run recor
         { slotId: 'market-size', question: 'q', inputs: [], sufficient: 's', verdict: 'not-attempted', reason: 'no declared inputs', text: null },
       ],
     });
-    expect(record.template_id).toBe('smoke.mrd');
+    expect(record.recipe_id).toBe('smoke.mrd');
     expect(record.run_timestamp).toBe('2026-08-17T00:00:00.000Z');
     expect(record.slots).toHaveLength(1);
     expect((record.slots as Array<Record<string, unknown>>)[0].verdict).toBe('not-attempted');

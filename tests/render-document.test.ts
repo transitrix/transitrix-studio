@@ -36,8 +36,8 @@ const NO_REFERENCE_DOC = [
   '---',
   'document: Smoke Test',
   'kind: mrd',
-  'template_id: smoke.mrd',
-  'template_version: "1.0"',
+  'recipe_id: smoke.mrd',
+  'recipe_version: "1.0"',
   '---',
   '# Fixed text only, no model references',
   '',
@@ -52,7 +52,7 @@ describe('renderDocumentToDisk (transitrix-hq#186)', () => {
     const result = await renderDocumentToDisk({ path: join(root, 'product.mrd.ttrs') });
 
     expect(result.ok).toBe(true);
-    expect(result.templateId).toBe('smoke.mrd');
+    expect(result.recipeId).toBe('smoke.mrd');
     expect(result.markdownPath).toBe(join(root, 'product.mrd.md'));
     expect(result.pdfPath).toBe(join(root, 'product.mrd.pdf'));
     expect(result.runRecordPath).toBe(join(root, 'product.mrd.run-record.json'));
@@ -64,7 +64,7 @@ describe('renderDocumentToDisk (transitrix-hq#186)', () => {
     expect(pdf.subarray(0, 5).toString('latin1')).toBe('%PDF-');
 
     const record = JSON.parse(readFileSync(result.runRecordPath, 'utf8'));
-    expect(record.template_id).toBe('smoke.mrd');
+    expect(record.recipe_id).toBe('smoke.mrd');
     expect(record.slots).toEqual([]);
   });
 
@@ -89,8 +89,8 @@ describe('renderDocumentToDisk (transitrix-hq#186)', () => {
       '---',
       'document: Smoke Test',
       'kind: mrd',
-      'template_id: smoke.mrd',
-      'template_version: "1.0"',
+      'recipe_id: smoke.mrd',
+      'recipe_version: "1.0"',
       '---',
       '{{# instruct market-size }}',
       'question: How large is the market?',
@@ -117,8 +117,8 @@ describe('renderDocumentToDisk (transitrix-hq#186)', () => {
       '---',
       'document: Smoke Test',
       'kind: mrd',
-      'template_id: smoke.mrd',
-      'template_version: "1.0"',
+      'recipe_id: smoke.mrd',
+      'recipe_version: "1.0"',
       '---',
       'Cites {{ REQ-1 }}, which has no repository configured to resolve against.',
     ].join('\n');

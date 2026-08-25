@@ -1,6 +1,6 @@
 // Type contract for the vendored pass1.mjs — Studio's own, not part of what
 // vendor-methodology-document-renderer.mjs fetches from methodology (that
-// script only writes the five .mjs files; this file is untouched by it).
+// script only writes the eight .mjs files; this file is untouched by it).
 // Kept intentionally narrow: only the shape extension/src/ttrs-preview.ts and
 // tests/document-renderer-vendor.test.ts actually read. The source of truth
 // for the full contract is pass1.mjs's own JSDoc and
@@ -9,8 +9,8 @@
 export interface Pass1Header {
   document: string;
   kind: string;
-  template_id: string;
-  template_version: string;
+  recipe_id: string;
+  recipe_version: string;
   canon: string | null;
 }
 
@@ -61,7 +61,7 @@ export interface RasteriseInput {
 
 export interface RunPass1Options {
   text: string;
-  templatePath?: string;
+  recipePath?: string;
   repositoryRoot?: string | null;
   rasterise?: (input: RasteriseInput) => string;
   profile?: 'strict' | 'review';

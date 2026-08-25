@@ -9,7 +9,7 @@
  * preview can both depend on it as a library."
  *
  * Eight files make up the vendored surface: pass1.mjs (the deterministic
- * resolver) and its four imports (parse-template.mjs, repository.mjs,
+ * resolver) and its four imports (parse-recipe.mjs, repository.mjs,
  * ids.mjs, syntax.mjs) — vendored first for the .ttrs preview — plus
  * pass2.mjs (fills instruction slots via a caller-supplied agent hook),
  * render-pdf.mjs (Markdown → PDF, dependency-free) and run-record.mjs (the
@@ -19,8 +19,8 @@
  * own tree.
  *
  * Usage:
- *   node scripts/vendor-methodology-document-renderer.mjs --ref v3.5.0
- *   node scripts/vendor-methodology-document-renderer.mjs --ref v3.5.0 --check
+ *   node scripts/vendor-methodology-document-renderer.mjs --ref v4.0.0
+ *   node scripts/vendor-methodology-document-renderer.mjs --ref v4.0.0 --check
  *
  * --check fetches and reports what would change without writing anything.
  *
@@ -39,7 +39,7 @@ const VENDOR_DIR = path.resolve(HERE, '..', 'vendor', 'methodology', 'document-r
 const SOURCE_REPO = 'transitrix/methodology';
 const SOURCE_DIR = 'packages/document-renderer/src';
 const FILES = [
-  'pass1.mjs', 'parse-template.mjs', 'repository.mjs', 'ids.mjs', 'syntax.mjs',
+  'pass1.mjs', 'parse-recipe.mjs', 'repository.mjs', 'ids.mjs', 'syntax.mjs',
   'pass2.mjs', 'render-pdf.mjs', 'run-record.mjs',
 ];
 

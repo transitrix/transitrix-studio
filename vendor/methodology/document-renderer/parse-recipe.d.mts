@@ -1,11 +1,11 @@
-// Type contract for the vendored parse-template.mjs — Studio's own, not part
+// Type contract for the vendored parse-recipe.mjs — Studio's own, not part
 // of what vendor-methodology-document-renderer.mjs fetches from methodology
-// (that script only writes the five .mjs files; this file is untouched by
+// (that script only writes the eight .mjs files; this file is untouched by
 // it). Kept intentionally narrow: only the shape src/impact.ts actually
-// reads. The source of truth for the full contract is parse-template.mjs's
+// reads. The source of truth for the full contract is parse-recipe.mjs's
 // own JSDoc and methodology/notations/views/documents/DIRECTIVE_LANGUAGE.md.
 
-export interface TemplateReferenceNode {
+export interface RecipeReferenceNode {
   type: 'reference';
   id: string;
   fields: string[];
@@ -13,7 +13,7 @@ export interface TemplateReferenceNode {
 
 /** `each` / `trace` / the `.field` row reference — constructs the language
  *  defines that this pass declines to resolve. `construct` names which one. */
-export interface TemplateUnimplementedNode {
+export interface RecipeUnimplementedNode {
   type: 'unimplemented';
   construct: string;
 }
@@ -21,7 +21,7 @@ export interface TemplateUnimplementedNode {
 /** `{{# instruct <slot-id> }} … {{/ instruct }}` — `inputs` is the slot's own
  *  `inputs:` field, already comma-split and trimmed by the parser; each entry
  *  names a model-object id the slot reads. */
-export interface TemplateInstructNode {
+export interface RecipeInstructNode {
   type: 'instruct';
   slotId: string | undefined;
   question: string | undefined;
@@ -34,34 +34,34 @@ export interface TemplateInstructNode {
  *  `figref`, `error`) — untyped here because src/impact.ts reads none of
  *  their fields, only whether a node is a reference, an instruct slot, or
  *  unimplemented. */
-export interface TemplateOtherNode {
+export interface RecipeOtherNode {
   type: string;
   [key: string]: unknown;
 }
 
-export type TemplateNode =
-  | TemplateReferenceNode
-  | TemplateUnimplementedNode
-  | TemplateInstructNode
-  | TemplateOtherNode;
+export type RecipeNode =
+  | RecipeReferenceNode
+  | RecipeUnimplementedNode
+  | RecipeInstructNode
+  | RecipeOtherNode;
 
-export interface TemplateHeader {
+export interface RecipeHeader {
   document: string;
   kind: string;
-  template_id: string;
-  template_version: string;
+  recipe_id: string;
+  recipe_version: string;
   canon: string | null;
 }
 
-export interface TemplateParseError {
+export interface RecipeParseError {
   code: string;
   message: string;
 }
 
-export interface ParseTemplateResult {
-  header: TemplateHeader | null;
-  ast: TemplateNode[];
-  errors: TemplateParseError[];
+export interface ParseRecipeResult {
+  header: RecipeHeader | null;
+  ast: RecipeNode[];
+  errors: RecipeParseError[];
 }
 
-export function parseTemplate(text: string): ParseTemplateResult;
+export function parseRecipe(text: string): ParseRecipeResult;

@@ -41,7 +41,7 @@ export interface RenderDocumentOptions {
 
 export interface RenderDocumentResult {
   ok: boolean;
-  templateId: string | null;
+  recipeId: string | null;
   markdownPath: string;
   pdfPath: string;
   runRecordPath: string;
@@ -70,7 +70,7 @@ function gitCommitOf(root: string): string | null {
  * Pass 1 runs `profile: 'strict'` (its own default) — a render persisted to
  * disk fails closed on an unresolved reference rather than rendering it as a
  * visible-but-wrong marker for a reader who may never open the source
- * template to see the warning. That is a deliberate difference from the live
+ * recipe to see the warning. That is a deliberate difference from the live
  * `.ttrs` preview (extension/src/ttrs-preview.ts), which runs `review` so an
  * in-progress document stays viewable while it's being written.
  */
@@ -80,7 +80,7 @@ export async function renderDocumentToDisk(options: RenderDocumentOptions): Prom
   const outDir = options.outDir ? path.resolve(options.outDir) : path.dirname(srcPath);
   const repoRoot = options.root ? path.resolve(options.root) : path.dirname(srcPath);
 
-  const pass1Result = await runPass1({ text, templatePath: srcPath, profile: 'strict' });
+  const pass1Result = await runPass1({ text, recipePath: srcPath, profile: 'strict' });
 
   const pass2Result = pass1Result.header
     ? await runPass2({ markdown: pass1Result.markdown, instructionSlots: pass1Result.instructionSlots })
@@ -114,7 +114,7 @@ export async function renderDocumentToDisk(options: RenderDocumentOptions): Prom
 
   return {
     ok: pass1Result.ok,
-    templateId: pass1Result.header?.template_id ?? null,
+    recipeId: pass1Result.header?.recipe_id ?? null,
     markdownPath,
     pdfPath,
     runRecordPath,
