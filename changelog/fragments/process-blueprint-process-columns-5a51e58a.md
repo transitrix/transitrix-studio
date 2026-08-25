@@ -1,3 +1,0 @@
-### Added
-
-- **Process Blueprint validators admit catalogued `PROCESS-` columns.** A column id may be a document-local `STAGE-…` sketch or an admitted `PROCESS-…`; sketch columns still require `name` / `goal` / `result` on the view (`BP-005`), catalogued columns must not restate those fields (`BP-013`) and must resolve to a `PROCESS` element (`BP-012`). Aspect `stages: […]` arrays accept either form. Composition stays the `process_parent` relation (`PROCESS` → `PROCESS`): self-reference is `REL-007`, a cycle is `REL-008` (warning), and a named parent process with a `PROCESS-` column and no in-effect parent link is `BP-014` (warning — a sketch overlay and a shared subprocess remain well-formed). Existing `STAGE-` only blueprints keep validating.
