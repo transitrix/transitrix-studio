@@ -45,6 +45,7 @@ interface FGCADoc {
   goals: GoalItem[];
   changes?: ChangeItem[];
   activities: ActivityItem[];
+  hideChanges?: boolean;
 }
 
 // ── Column layout ─────────────────────────────────────────────────────────────────────────────────
@@ -438,7 +439,7 @@ export class DGCAPreview {
 
     const { html, svg } = renderChainPreview(
       {
-        notation: 'DGCA', viewNotation: 'dgca', hideChanges: false,
+        notation: 'DGCA', viewNotation: 'dgca', hideChanges: parsedDoc?.hideChanges === true,
         heading: 'DGCA — Driver → Goal → Change → Action',
         saveSvgCommand: 'transitrixStudio.saveDGCAAsSvg',
         savePngCommand: 'transitrixStudio.saveDGCAAsPng',

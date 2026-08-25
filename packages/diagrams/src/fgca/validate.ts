@@ -19,6 +19,8 @@ export interface FGCADoc {
   goals: GoalItem[];
   changes: BdnChangeWithActivities[];
   activities: ActivityItem[];
+  /** DGA mode: omit the Changes column (`view_config.layers.changes: off`). */
+  hideChanges?: boolean;
 }
 
 export function validateFGCADoc(input: unknown): FGCAValidationResult {

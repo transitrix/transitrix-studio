@@ -65,9 +65,10 @@ function asObjectArray(v: unknown): Array<Record<string, unknown>> | null {
   return v.map((el) => (el && typeof el === 'object' ? (el as Record<string, unknown>) : null) as Record<string, unknown>);
 }
 
-/** DGA mode (`view_config.layers.changes: off`) may omit the changes layer. */
-function isChangesLayerOff(raw: Record<string, unknown>): boolean {
-  const vc = raw['view_config'];
+/** DGA mode (`view_config.layers.changes: off`) omits the Changes column. */
+export function isDgcaChangesLayerOff(input: unknown): boolean {
+  if (!input || typeof input !== 'object') return false;
+  const vc = (input as Record<string, unknown>)['view_config'];
   if (!vc || typeof vc !== 'object') return false;
   const layers = (vc as Record<string, unknown>)['layers'];
   if (!layers || typeof layers !== 'object') return false;
@@ -126,7 +127,7 @@ export function parseCanonicalFGCA(input: unknown): CanonicalFGCAResult {
   const factorsRaw = asObjectArray(raw['factors']);
   const goalsRaw = asObjectArray(raw['goals']);
   let changesRaw = asObjectArray(raw['changes']);
-  if (changesRaw === null && raw['changes'] === undefined && isChangesLayerOff(raw)) {
+  if (changesRaw === null && raw['changes'] === undefined && isDgcaChangesLayerOff(raw)) {
     changesRaw = [];
   }
   const activitiesRaw = asObjectArray(raw['actions']);
@@ -333,6 +334,7 @@ export function parseCanonicalFGCA(input: unknown): CanonicalFGCAResult {
     goals: internalGoals,
     changes: internalChanges,
     activities: internalActivities,
+    hideChanges: isDgcaChangesLayerOff(raw),
   };
 
   return { valid: true, errors, warnings, parsed };

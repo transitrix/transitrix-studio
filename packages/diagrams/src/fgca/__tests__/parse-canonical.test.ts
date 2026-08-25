@@ -3,6 +3,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import yaml from 'js-yaml';
 import { parseCanonicalFGCA, parseCanonicalFGA } from '../parse-canonical.js';
+import { layoutFGCAPreview } from '../preview-layout.js';
 
 const VALID = {
   notation: 'dgca',
@@ -58,6 +59,28 @@ describe('parseCanonicalFGCA', () => {
     });
     expect(r.valid, JSON.stringify(r.errors)).toBe(true);
     expect(r.parsed?.changes).toEqual([]);
+    expect(r.parsed?.hideChanges).toBe(true);
+  });
+
+  it('DGA-mode preview has three columns (no Changes)', () => {
+    const r = parseCanonicalFGCA({
+      ...VALID,
+      changes: undefined,
+      view_config: { layers: { changes: 'off' } },
+      actions: [
+        { id: 'ACTION-DISCOVERY-1', name: 'Gap assessment', goals: ['GOAL-1'] },
+      ],
+    });
+    expect(r.valid, JSON.stringify(r.errors)).toBe(true);
+    const layout = layoutFGCAPreview(r.parsed!, { hideChanges: r.parsed!.hideChanges });
+    expect(layout.columns.map((c) => c.col)).toEqual(['driver', 'goal', 'activity']);
+  });
+
+  it('four-layer dgca still has a Changes column', () => {
+    const r = parseCanonicalFGCA(VALID);
+    expect(r.parsed?.hideChanges).toBeFalsy();
+    const layout = layoutFGCAPreview(r.parsed!);
+    expect(layout.columns.map((c) => c.col)).toEqual(['driver', 'goal', 'change', 'activity']);
   });
 
   it('FGCA-001: rejects non-object input', () => {

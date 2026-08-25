@@ -87,4 +87,18 @@ describe('webview/entry — Step 4 notation coverage', () => {
     expect(r.errors.length).toBeGreaterThan(0);
     expect(r.svg).toBe('');
   });
+
+  it('omits the Changes column when a dgca document is in DGA mode', () => {
+    const off = render('dgca', readFileSync(path.join(EXAMPLES, 'dgca/dga-mode.dgca.transitrix.yaml'), 'utf8'));
+    expect(off.status).toBe('ok');
+    expect(off.errors).toEqual([]);
+    expect(off.svg).toContain('Drivers (D)');
+    expect(off.svg).toContain('Goals (G)');
+    expect(off.svg).toContain('Actions (A)');
+    expect(off.svg).not.toContain('Changes (C)');
+
+    const four = render('dgca', readFileSync(path.join(EXAMPLES, 'dgca/strategy-2026.dgca.transitrix.yaml'), 'utf8'));
+    expect(four.status).toBe('ok');
+    expect(four.svg).toContain('Changes (C)');
+  });
 });
