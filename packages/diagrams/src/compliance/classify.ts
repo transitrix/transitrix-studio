@@ -166,6 +166,7 @@ export function ingestComplianceDoc(canon: ComplianceCanon, doc: unknown): strin
     if (!verifies || !method || !outcome) return null;
     const ok = pushUnique(canon, canon.verifications, {
       id, verifies, method, outcome,
+      protocol: str(d.protocol),
       performed_at: str(d.performed_at),
       evidenceCount: Array.isArray(d.evidence) ? d.evidence.length : 0,
       admitted_at: str(d.admitted_at),

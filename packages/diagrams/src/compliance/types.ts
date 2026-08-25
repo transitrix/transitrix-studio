@@ -128,6 +128,12 @@ export interface IndexVerification {
   verifies: string;
   method: VerificationMethod;
   outcome: VerificationOutcome;
+  /**
+   * The verification procedure (27-verification.md §2). VERIFICATION carries
+   * no `name` field of its own; `protocol` is the closest human-readable
+   * description and is what a matrix/list view shows as the row's label.
+   */
+  protocol?: string;
   performed_at?: string;
   /** Number of evidence entries — feeds the VERIF-006 gap. */
   evidenceCount?: number;

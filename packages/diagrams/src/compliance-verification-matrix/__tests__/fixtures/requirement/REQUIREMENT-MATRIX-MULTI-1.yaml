@@ -1,0 +1,19 @@
+# Fixture — two admitted verifications against the same requirement.
+notation: requirement
+id: REQUIREMENT-MATRIX-MULTI-1
+name: "Matrix fixture — multiple verifications"
+description: >
+  Worked example: two VERIFICATION records, one pass and one fail — must
+  produce two separate matrix rows.
+severity: high
+
+zone: canon
+admitted_at: "2026-08-01"
+admitted_by: "v.korobeinikov"
+gate_checks:
+  uniqueness: pass
+  consistency: pass
+  completeness: pass
+
+valid_from: "2026-08-01"
+valid_to: null
