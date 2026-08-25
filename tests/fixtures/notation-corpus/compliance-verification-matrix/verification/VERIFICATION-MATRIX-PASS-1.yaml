@@ -1,0 +1,22 @@
+notation: verification
+id: VERIFICATION-MATRIX-PASS-1
+verifies: REQUIREMENT-MATRIX-PASS-1
+
+method: test
+protocol: "Run the matrix fixture's pass-path protocol and confirm the acceptance criterion holds."
+result: "Confirmed."
+outcome: pass
+
+performed_at: "2026-08-05"
+performed_by: ROLE-VERIFICATION-ENG-1
+
+zone: canon
+admitted_at: "2026-08-05"
+admitted_by: "v.korobeinikov"
+gate_checks:
+  uniqueness: pass
+  consistency: pass
+  completeness: pass
+
+valid_from: "2026-08-05"
+valid_to: null

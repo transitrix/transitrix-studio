@@ -96,8 +96,9 @@ const COMPLIANCE_CSS = `
 
 /* List (single-product) */
 .cmp-list { border-collapse: collapse; font-size: 12px; width: 100%; max-width: 760px; }
-.cmp-list th, .cmp-list td { border: 1px solid var(--ts-border, #cbd5e1); padding: 6px 12px; text-align: left; }
+.cmp-list th, .cmp-list td { border: 1px solid var(--ts-border, #cbd5e1); padding: 6px 12px; text-align: left; vertical-align: top; }
 .cmp-list th { background: var(--ts-bg-subtle, #f1f5f9); color: var(--ts-text, #0f172a); }
+.cmp-matrix { max-width: 1100px; }
 .cmp-empty { color: var(--ts-text-muted, #64748b); padding: 24px 0; max-width: 640px; }
 
 /* Deadline pill (CV-4) */

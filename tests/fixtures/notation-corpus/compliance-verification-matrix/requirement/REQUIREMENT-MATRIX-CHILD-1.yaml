@@ -1,0 +1,20 @@
+# Fixture — a child with a resolvable direct parent.
+notation: requirement
+id: REQUIREMENT-MATRIX-CHILD-1
+name: "Matrix fixture — child of REQUIREMENT-MATRIX-PASS-1"
+description: >
+  Worked example: same-TYPE decomposition (15-requirement.md §2.4) — this
+  requirement's parent resolves to an admitted REQUIREMENT in the fixture.
+severity: medium
+parent: REQUIREMENT-MATRIX-PASS-1
+
+zone: canon
+admitted_at: "2026-08-01"
+admitted_by: "v.korobeinikov"
+gate_checks:
+  uniqueness: pass
+  consistency: pass
+  completeness: pass
+
+valid_from: "2026-08-01"
+valid_to: null

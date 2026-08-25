@@ -1,0 +1,18 @@
+notation: verification
+id: VERIFICATION-MATRIX-OPEN-1
+verifies: REQUIREMENT-MATRIX-OPEN-1
+
+method: test
+protocol: "Scheduled test protocol for the matrix fixture's open case; not yet executed."
+outcome: not_yet_run
+
+zone: canon
+admitted_at: "2026-08-05"
+admitted_by: "v.korobeinikov"
+gate_checks:
+  uniqueness: pass
+  consistency: pass
+  completeness: pass
+
+valid_from: "2026-08-05"
+valid_to: null

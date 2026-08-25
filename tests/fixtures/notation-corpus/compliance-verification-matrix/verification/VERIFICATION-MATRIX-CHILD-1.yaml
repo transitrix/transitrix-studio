@@ -1,0 +1,18 @@
+notation: verification
+id: VERIFICATION-MATRIX-CHILD-1
+verifies: REQUIREMENT-MATRIX-CHILD-1
+
+method: test
+protocol: "Protocol run directly against the child requirement — must never be attributed to its parent."
+outcome: pass
+
+zone: canon
+admitted_at: "2026-08-05"
+admitted_by: "v.korobeinikov"
+gate_checks:
+  uniqueness: pass
+  consistency: pass
+  completeness: pass
+
+valid_from: "2026-08-05"
+valid_to: null

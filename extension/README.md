@@ -35,6 +35,7 @@ Transitrix flips that:
 | Compliance | **Compliance matrix** | Products × requirements coverage view |
 | Compliance | **Coverage metric** | Law coverage stats with RAG status |
 | Compliance | **Gap dashboard** | Open gaps: unasserted requirements, stale assertions |
+| Compliance | **Requirement–verification matrix** | Repository-wide requirement rows with related test results and coverage gaps |
 
 Every preview ships with a toolbar: title toggle, discrete zoom (50–200%), save as SVG, save as PNG (2× for crisp output), and copy PNG to clipboard (Windows today; macOS / Linux planned).
 

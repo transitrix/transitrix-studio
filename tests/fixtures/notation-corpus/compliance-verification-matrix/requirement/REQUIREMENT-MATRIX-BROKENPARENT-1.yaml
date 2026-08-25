@@ -1,0 +1,22 @@
+# Fixture — parent names a REQUIREMENT that is not admitted in this fixture
+# set (dangling; not currently a validator concern per 15-requirement.md
+# §2.4). Must remain visible on the row as a raw id with no resolved label.
+notation: requirement
+id: REQUIREMENT-MATRIX-BROKENPARENT-1
+name: "Matrix fixture — broken parent reference"
+description: >
+  Worked example: `parent` names an id absent from the fixture's requirement
+  set.
+severity: high
+parent: REQUIREMENT-MATRIX-DOES-NOT-EXIST-1
+
+zone: canon
+admitted_at: "2026-08-01"
+admitted_by: "v.korobeinikov"
+gate_checks:
+  uniqueness: pass
+  consistency: pass
+  completeness: pass
+
+valid_from: "2026-08-01"
+valid_to: null
