@@ -121,7 +121,7 @@ export function renderFgcaSvg(doc: FGCADoc, options: RenderFgcaOptions = {}): st
     nodeSizePreset = 'normal',
     layoutOptions,
   } = options;
-  const hideChanges = variant === 'dga';
+  const hideChanges = variant === 'dga' || doc.hideChanges === true;
   const nodeSize = resolveDgcaNodeSize(parseNodeSizePreset(nodeSizePreset));
 
   const { nodes, edges, columns, width, height } = layoutFGCAPreview(doc, {

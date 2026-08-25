@@ -1,0 +1,18 @@
+notation: dgca
+spec_version: "0.1"
+id: DGCA-DGA-1
+name: "DGA mode — Changes column off"
+view_config:
+  layers:
+    changes: "off"
+factors:
+  - id: FACTOR-1
+    name: "Driver one"
+goals:
+  - id: GOAL-1
+    name: "Outcome one"
+    factors: [FACTOR-1]
+actions:
+  - id: ACTION-DISCOVERY-1
+    name: "Gap assessment"
+    goals: [GOAL-1]

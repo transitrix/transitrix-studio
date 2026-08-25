@@ -159,5 +159,6 @@ export function resolveFGCA(
     goals: selectedGoals,
     changes: selectedChanges,
     actions: selectedActivities,
+    view_config: viewDoc['view_config'],
   };
 }
