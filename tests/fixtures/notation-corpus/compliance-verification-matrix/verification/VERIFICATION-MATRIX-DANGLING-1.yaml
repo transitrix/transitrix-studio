@@ -1,0 +1,21 @@
+# Fixture — verifies names a REQUIREMENT that is not admitted in this fixture
+# set (VERIF-002 in the notation validator). Must never attach to any matrix
+# row and must not affect any other row's cardinality or gap status.
+notation: verification
+id: VERIFICATION-MATRIX-DANGLING-1
+verifies: REQUIREMENT-MATRIX-DOES-NOT-EXIST-2
+
+method: test
+protocol: "Protocol recorded against a requirement id absent from the fixture set."
+outcome: pass
+
+zone: canon
+admitted_at: "2026-08-05"
+admitted_by: "v.korobeinikov"
+gate_checks:
+  uniqueness: pass
+  consistency: pass
+  completeness: pass
+
+valid_from: "2026-08-05"
+valid_to: null

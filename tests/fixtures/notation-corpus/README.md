@@ -22,6 +22,7 @@ One subfolder per diagram format. Open any `*.transitrix.yaml` file in VS Code w
 | [`compliance/`](compliance/) | `*.compliance.transitrix.yaml` | Compliance register | Obligation register |
 | [`compliance-c3/`](compliance-c3/) | `*.compliance-c3.transitrix.yaml` | Compliance C3 | C3 compliance view |
 | [`compliance-impact/`](compliance-impact/) | `*.compliance-impact.transitrix.yaml` | Compliance impact | Obligation × subject matrix with status |
+| [`compliance-verification-matrix/`](compliance-verification-matrix/) | `REQUIREMENT-MATRIX-*.yaml` / `VERIFICATION-MATRIX-*.yaml` | Requirement–verification matrix | Worked fixture for the repository-wide traceability table |
 | [`coverage-metric/`](coverage-metric/) | `*.coverage-metric.transitrix.yaml` | Coverage metric | Assertion-coverage breakdown per regime |
 | [`actor/`](actor/) | `*.actor.transitrix.yaml` | Actor register | Actor elements |
 | [`stakeholder/`](stakeholder/) | `*.stakeholder.transitrix.yaml` | Stakeholder register | Stakeholder elements |

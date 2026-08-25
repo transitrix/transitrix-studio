@@ -1,0 +1,19 @@
+# Fixture — no verification at all (REQ-VERIF-COVERAGE-001).
+notation: requirement
+id: REQUIREMENT-MATRIX-NONE-1
+name: "Matrix fixture — no verification"
+description: >
+  Worked example: zero VERIFICATION records — must still produce exactly one
+  gap row.
+severity: low
+
+zone: canon
+admitted_at: "2026-08-01"
+admitted_by: "v.korobeinikov"
+gate_checks:
+  uniqueness: pass
+  consistency: pass
+  completeness: pass
+
+valid_from: "2026-08-01"
+valid_to: null

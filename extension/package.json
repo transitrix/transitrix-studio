@@ -73,6 +73,7 @@
     "workspaceContains:**/ASSERTION-*.yaml",
     "workspaceContains:**/REQUIREMENT-*.yaml",
     "workspaceContains:**/CONSTRAINT-*.yaml",
+    "workspaceContains:**/VERIFICATION-*.yaml",
     "workspaceContains:**/*.puml",
     "workspaceContains:**/*.plantuml",
     "workspaceContains:**/*.ttrs"
@@ -817,6 +818,24 @@
       {
         "command": "transitrixStudio.exportGapDashboardCsv",
         "title": "Transitrix: Export compliance gaps as CSV",
+        "category": "Transitrix",
+        "icon": "$(export)"
+      },
+      {
+        "command": "transitrixStudio.previewRequirementVerificationMatrix",
+        "title": "Transitrix: Preview requirement–verification matrix",
+        "category": "Transitrix",
+        "icon": "$(graph)"
+      },
+      {
+        "command": "transitrixStudio.refreshRequirementVerificationMatrix",
+        "title": "Transitrix: Refresh requirement–verification matrix",
+        "category": "Transitrix",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "transitrixStudio.exportRequirementVerificationMatrixCsv",
+        "title": "Transitrix: Export requirement–verification matrix as CSV",
         "category": "Transitrix",
         "icon": "$(export)"
       },

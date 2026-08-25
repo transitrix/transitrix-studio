@@ -16,6 +16,9 @@
  *    just waits for `webview.html`/message traffic to go quiet.
  */
 import * as assert from 'node:assert';
+import * as fs from 'node:fs';
+import * as os from 'node:os';
+import * as path from 'node:path';
 import * as vscode from 'vscode';
 import {
   captureWebviewPanels,
@@ -23,6 +26,7 @@ import {
   openFixture,
   closeAllEditors,
   ensureExtensionActivated,
+  withSaveDialogTarget,
 } from '../helpers';
 
 const SHELL_LENGTH_FLOOR = 800;
@@ -157,5 +161,41 @@ describe('preview surfaces render real content (transitrix-hq#143)', function ()
     assert.ok(panels.length >= 1, 'expected the gap dashboard panel to open');
     const html = await waitForStableHtml(panels[panels.length - 1]);
     assert.ok(html.length > SHELL_LENGTH_FLOOR, `gap dashboard: webview HTML (${html.length} chars) looks unrendered`);
+  });
+
+  it('renders: requirement–verification matrix (repo-wide, command-triggered)', async () => {
+    const { panels } = await captureWebviewPanels(async () => {
+      await vscode.commands.executeCommand('transitrixStudio.previewRequirementVerificationMatrix');
+    });
+    assert.ok(panels.length >= 1, 'expected the requirement–verification matrix panel to open');
+    const html = await waitForStableHtml(panels[panels.length - 1]);
+    assert.ok(html.length > SHELL_LENGTH_FLOOR, `requirement–verification matrix: webview HTML (${html.length} chars) looks unrendered`);
+    assert.match(html, /REQUIREMENT-MATRIX-PASS-1/, 'passing requirement from the worked fixture');
+    assert.match(html, /REQUIREMENT-MATRIX-NONE-1/, 'no-verification requirement from the worked fixture');
+    assert.match(html, /REQ-VERIF-COVERAGE-001/, 'explicit no-result gap');
+    assert.match(html, /REQ-VERIF-COVERAGE-002/, 'unresolved-verification gap');
+    assert.match(html, /REQUIREMENT-MATRIX-BROKENPARENT-1/, 'broken parent remains visible');
+    assert.match(html, /REQUIREMENT-MATRIX-DOES-NOT-EXIST-1/, 'dangling parent id shown as a finding');
+    assert.match(html, /VERIFICATION-MATRIX-DANGLING-1/, 'dangling verifies remains visible as a finding');
+    assert.match(html, /REQUIREMENT-MATRIX-MULTI-1/, 'requirement with multiple verifications');
+    assert.match(html, /REQUIREMENT-MATRIX-CHILD-1/, 'child with resolvable parent');
+
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tx-rvm-'));
+    const a = path.join(dir, 'a.csv');
+    const b = path.join(dir, 'b.csv');
+    await withSaveDialogTarget(a, async () => {
+      await vscode.commands.executeCommand('transitrixStudio.exportRequirementVerificationMatrixCsv');
+    });
+    await withSaveDialogTarget(b, async () => {
+      await vscode.commands.executeCommand('transitrixStudio.exportRequirementVerificationMatrixCsv');
+    });
+    const bytesA = fs.readFileSync(a);
+    const bytesB = fs.readFileSync(b);
+    assert.deepStrictEqual(bytesA, bytesB, 'two exports from unchanged state must be byte-identical');
+    const text = bytesA.toString('utf8');
+    assert.match(text, /REQ-VERIF-COVERAGE-001/);
+    assert.match(text, /REQ-VERIF-COVERAGE-002/);
+    assert.match(text, /REQUIREMENT-MATRIX-PASS-1/);
+    assert.doesNotMatch(text, /VERIFICATION-MATRIX-DANGLING-1/);
   });
 });

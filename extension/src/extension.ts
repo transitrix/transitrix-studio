@@ -23,6 +23,7 @@ import { SingleLawPreview } from './single-law-preview.js';
 import { SingleProductPreview } from './single-product-preview.js';
 import { RequirementTracePreview } from './requirement-trace-preview.js';
 import { GapDashboardPreview } from './gap-dashboard-preview.js';
+import { RequirementVerificationMatrixPreview } from './requirement-verification-matrix-preview.js';
 import { CoverageMetricPreview } from './coverage-metric-preview.js';
 import { PlantUMLPreview, isPumlFile } from './plantuml-preview.js';
 import { TtrsPreview, isTtrsFile } from './ttrs-preview.js';
@@ -263,6 +264,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void |
   const singleProductPreview = new SingleProductPreview(context.extensionUri);
   const requirementTracePreview = new RequirementTracePreview(context.extensionUri);
   const gapDashboardPreview = new GapDashboardPreview(context.extensionUri);
+  const requirementVerificationMatrixPreview = new RequirementVerificationMatrixPreview(context.extensionUri);
   const coverageMetricPreview = new CoverageMetricPreview(context.extensionUri);
   const plantumlPreview = new PlantUMLPreview(context.extensionUri);
   const ttrsPreview = new TtrsPreview();
@@ -285,7 +287,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void |
   // Single source of truth for "given this document, which preview handles
   // it" — shared by the unified `transitrix.openPreview` command, the
   // auto-open-on-focus behaviour, and the refresh-on-save cascade. Repo-wide
-  // dashboards (Compliance Matrix, Gap Dashboard) are intentionally absent:
+    // dashboards (Compliance Matrix, Gap Dashboard, Requirement–Verification
+    // Matrix) are intentionally absent: they aren't bound to a specific open
   // they aren't bound to a specific open file, so they keep their own
   // palette-only commands outside this dispatch.
   function resolveNotationPreview(doc: vscode.TextDocument): ResolvedPreview | undefined {
@@ -383,7 +386,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void |
   //     BPMN PNG export; `exportSvg`/`exportBpmn` are still placeholders.
   //   • `transitrixStudio.*` — the broader Studio surface (per-notation
   //     Save/Copy-as-PNG/SVG/refresh commands, plus the repo-wide Compliance
-  //     Matrix and Gap Dashboard, which stay outside the unified Preview
+  //     Matrix, Gap Dashboard, and Requirement–Verification Matrix, which stay outside the unified Preview
   //     command since they aren't bound to a specific open file).
   context.subscriptions.push(
     vscode.commands.registerTextEditorCommand('transitrix.openPreview', openPreviewHandler),
@@ -463,6 +466,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void |
     vscode.commands.registerCommand('transitrixStudio.previewGapDashboard', () => gapDashboardPreview.showOrReveal()),
     vscode.commands.registerCommand('transitrixStudio.refreshGapDashboard', () => gapDashboardPreview.refresh()),
     vscode.commands.registerCommand('transitrixStudio.exportGapDashboardCsv', () => gapDashboardPreview.exportCsv()),
+    vscode.commands.registerCommand('transitrixStudio.previewRequirementVerificationMatrix', () => requirementVerificationMatrixPreview.showOrReveal()),
+    vscode.commands.registerCommand('transitrixStudio.refreshRequirementVerificationMatrix', () => requirementVerificationMatrixPreview.refresh()),
+    vscode.commands.registerCommand('transitrixStudio.exportRequirementVerificationMatrixCsv', () => requirementVerificationMatrixPreview.exportCsv()),
     // Coverage-metric view (strategy#185) — file-driven, opens beside the YAML.
     vscode.commands.registerCommand('transitrixStudio.refreshCoverageMetric', async () => {
       const doc = vscode.window.activeTextEditor?.document;
@@ -540,6 +546,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void |
         void singleProductPreview.refresh();
         void requirementTracePreview.refresh();
         void gapDashboardPreview.refresh();
+        void requirementVerificationMatrixPreview.refresh();
         void coverageMetricPreview.refreshConfig();
       }
     }),
@@ -563,6 +570,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void |
         void singleProductPreview.refresh();
         void requirementTracePreview.refresh();
         void gapDashboardPreview.refresh();
+      }
+      if (/^(REQUIREMENT|VERIFICATION)-.*\.ya?ml$/.test(path.basename(doc.fileName))) {
+        void requirementVerificationMatrixPreview.refresh();
       }
       void resolveNotationPreview(doc)?.refresh();
     }),

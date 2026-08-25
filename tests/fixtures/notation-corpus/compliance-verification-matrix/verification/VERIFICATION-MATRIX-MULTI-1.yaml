@@ -1,0 +1,18 @@
+notation: verification
+id: VERIFICATION-MATRIX-MULTI-1
+verifies: REQUIREMENT-MATRIX-MULTI-1
+
+method: test
+protocol: "First of two protocols run against the matrix fixture's multi-verification requirement."
+outcome: pass
+
+zone: canon
+admitted_at: "2026-08-05"
+admitted_by: "v.korobeinikov"
+gate_checks:
+  uniqueness: pass
+  consistency: pass
+  completeness: pass
+
+valid_from: "2026-08-05"
+valid_to: null

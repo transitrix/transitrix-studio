@@ -1,4 +1,5 @@
 export { buildRequirementVerificationMatrix } from './build.js';
+export { renderRequirementVerificationMatrixCsv } from './csv.js';
 export type {
   RequirementVerificationMatrix,
   RequirementVerificationMatrixOptions,
