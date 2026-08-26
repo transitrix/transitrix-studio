@@ -69,16 +69,17 @@ import { validateProcess } from './validator.js';
  *  Mirrors lint.py, which skips `.templates/` and `.validators/`. */
 const SKIP_SEGMENTS = new Set(['node_modules', '.templates', '.validators']);
 
-/** Where the document-source walk looks: the three zone folders, plus the
- *  repository's own top level (`null`). Wide enough that a `.ttrs` file put
- *  somewhere other than its registered folder is still found — that is the whole
- *  point of the placement check — and narrow enough that a repository's test
- *  fixtures and documentation are not mistaken for model content. */
+/** Where the document-source walk looks: the zone folders, the views folder,
+ *  plus the repository's own top level (`null`). Wide enough that a `.ttrs` file
+ *  put somewhere other than its registered folder is still found — that is the
+ *  whole point of the placement check — and narrow enough that a repository's
+ *  test fixtures and documentation are not mistaken for model content. */
 const DOCUMENT_SOURCE_SEARCH_ROOTS: ReadonlyArray<string | null> = [
   null,
   'canon',
   'field',
   'codex',
+  'views',
 ];
 
 function segments(rel: string): string[] {
