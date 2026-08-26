@@ -277,10 +277,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<void |
   const ttrsPreview = new TtrsPreview();
 
   // Skip auto-open when the same document merely regained focus (typical
-  // case: the user closed the preview webview). Cleared when the active
-  // editor becomes a different file, so coming back still auto-opens, and
-  // when the document is closed, so a later re-open of the same path does too.
+  // case: the user closed the preview webview). A later show of the same
+  // path after it left the visible set — tab closed, then reopened — still
+  // auto-opens. `onDidCloseTextDocument` is not used: VS Code keeps the
+  // document cached after `closeAllEditors`, so that event never fires.
   let lastAutoOpenedPreviewUri: string | undefined;
+  let lastVisibleEditorUris = new Set(
+    vscode.window.visibleTextEditors.map((e) => e.document.uri.toString()),
+  );
 
   async function openBpmnPreviewForDocument(doc: vscode.TextDocument): Promise<void> {
     const renderer = vscode.workspace.getConfiguration('transitrix').get<string>('bpmnRenderer', 'custom');
@@ -603,15 +607,19 @@ export async function activate(context: vscode.ExtensionContext): Promise<void |
     vscode.window.onDidChangeActiveTextEditor((editor) => {
       if (!editor) return;
       const uri = editor.document.uri.toString();
-      if (lastAutoOpenedPreviewUri && lastAutoOpenedPreviewUri !== uri) {
-        lastAutoOpenedPreviewUri = undefined;
-      }
-      void autoOpenPreviewForDocument(editor.document);
+      // Skip only when this document was already on screen (closing the
+      // webview restores it). `onDidCloseTextDocument` does not fire when
+      // `closeAllEditors` merely hides a tab — the document stays cached —
+      // so a later show of the same path must still auto-open.
+      const regainedFocus = lastVisibleEditorUris.has(uri);
+      void autoOpenPreviewForDocument(editor.document, { regainedFocus });
     }),
-    vscode.workspace.onDidCloseTextDocument((doc) => {
-      if (lastAutoOpenedPreviewUri === doc.uri.toString()) {
+    vscode.window.onDidChangeVisibleTextEditors((editors) => {
+      const next = new Set(editors.map((e) => e.document.uri.toString()));
+      if (lastAutoOpenedPreviewUri && !next.has(lastAutoOpenedPreviewUri)) {
         lastAutoOpenedPreviewUri = undefined;
       }
+      lastVisibleEditorUris = next;
     }),
   );
 
@@ -622,7 +630,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void |
     void autoOpenPreviewForDocument(vscode.window.activeTextEditor.document);
   }
 
-  async function autoOpenPreviewForDocument(doc: vscode.TextDocument): Promise<void> {
+  async function autoOpenPreviewForDocument(
+    doc: vscode.TextDocument,
+    opts: { regainedFocus?: boolean } = {},
+  ): Promise<void> {
     if (doc.uri.scheme !== 'file') return;
     if (!vscode.workspace.getConfiguration('transitrix').get<boolean>('preview.autoOpenOnFileOpen', true)) return;
     const resolved = resolveNotationPreview(doc);
@@ -631,7 +642,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void |
     // Closing the webview restores this document as the active editor, which
     // is not a new open — skip so the panel does not immediately come back.
     // The toolbar Preview command still goes through `openPreviewHandler`.
-    if (lastAutoOpenedPreviewUri === uri) return;
+    if (opts.regainedFocus && lastAutoOpenedPreviewUri === uri) return;
     lastAutoOpenedPreviewUri = uri;
     await resolved.open();
   }
