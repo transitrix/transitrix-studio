@@ -461,3 +461,36 @@ describe('repo-scope process-blueprint PROCESS- columns', () => {
     expect(unresolved.some((f) => f.ruleId === 'BP-012' && f.severity === 'error')).toBe(true);
   });
 });
+
+// Mixed layout detection: both root-level views/ and legacy canon/views/ present.
+// This is an error — the normative layout is root-level views/ only.
+describe('repo-scope views sweep — mixed layout detection (#340)', () => {
+  let root: string;
+
+  beforeAll(() => {
+    root = mkdtempSync(join(tmpdir(), 'tx-views-mixed-'));
+    // Create both legacy canon/views/ and normative root-level views/
+    write(root, 'canon/views/goals/legacy.goals.transitrix.yaml', 'notation: goals\ngoals: []\n');
+    write(root, 'views/goals/normative.goals.transitrix.yaml', 'notation: goals\ngoals: []\n');
+  });
+
+  afterAll(() => {
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it('detects mixed layout and returns a VIEWS-LAYOUT-001 error', () => {
+    const { findings } = runViewValidate(root);
+    const mixed = findings.filter((f) => f.ruleId === 'VIEWS-LAYOUT-001');
+    expect(mixed.length).toBe(1);
+    expect(mixed[0].severity).toBe('error');
+    expect(mixed[0].message).toContain('Mixed views layout detected');
+    expect(mixed[0].message).toContain('root-level views/');
+    expect(mixed[0].message).toContain('canon/views/');
+  });
+
+  it('runRepoValidate fails when both layouts are present', () => {
+    const result = runRepoValidate(root);
+    expect(repoScopeHasErrors(result)).toBe(true);
+    expect(result.views.some((f) => f.ruleId === 'VIEWS-LAYOUT-001')).toBe(true);
+  });
+});

@@ -243,21 +243,70 @@ export function buildRepoValidateContext(root: string): RepoValidateContext {
   };
 }
 
-/** Collect the raw text of every YAML doc under `<root>/canon/views/**`.
+/** Detect mixed layout (both root-level views/ and legacy canon/views/ present).
+ *  Returns the layout mode: 'root', 'legacy', 'mixed', or 'none'. */
+function detectViewsLayout(root: string): 'root' | 'legacy' | 'mixed' | 'none' {
+  let hasRoot = false;
+  let hasLegacy = false;
+  try {
+    readdirSync(path.join(root, 'views'), { recursive: true });
+    hasRoot = true;
+  } catch {
+    // root-level views/ does not exist
+  }
+  try {
+    readdirSync(path.join(root, 'canon', 'views'), { recursive: true });
+    hasLegacy = true;
+  } catch {
+    // legacy canon/views/ does not exist
+  }
+  if (hasRoot && hasLegacy) return 'mixed';
+  if (hasRoot) return 'root';
+  if (hasLegacy) return 'legacy';
+  return 'none';
+}
+
+/** Collect the raw text of every YAML doc under `<root>/views/**` (normative)
+ *  or `<root>/canon/views/**` (legacy).
  *  Exported for `impact.ts` (transitrix-hq#89), which needs the same raw
  *  per-file walk to classify each view document's resolvability without
- *  duplicating this directory walk. */
-export function loadViewDocs(root: string): Array<{ path: string; text: string }> {
+ *  duplicating this directory walk. Returns { docs, layout, hasErrors } where
+ *  layout indicates which directory was used, and hasErrors is true when both
+ *  layouts are present (mixed). */
+export function loadViewDocs(root: string): {
+  docs: Array<{ path: string; text: string }>;
+  layout: 'root' | 'legacy' | 'mixed' | 'none';
+  hasErrors: boolean;
+} {
   const docs: Array<{ path: string; text: string }> = [];
+  const layout = detectViewsLayout(root);
+
+  // Mixed layout is an error — never proceed with discovery.
+  if (layout === 'mixed') {
+    return { docs, layout, hasErrors: true };
+  }
+
+  // Choose which directory to scan based on layout.
+  let viewsDir: string;
+  if (layout === 'root') {
+    viewsDir = 'views';
+  } else if (layout === 'legacy') {
+    viewsDir = path.join('canon', 'views');
+  } else {
+    // No views directory at all
+    return { docs, layout, hasErrors: false };
+  }
+
   let entries: string[] = [];
   try {
-    entries = readdirSync(path.join(root, 'canon', 'views'), { recursive: true }) as string[];
+    entries = readdirSync(path.join(root, viewsDir), { recursive: true }) as string[];
   } catch {
-    return docs;
+    return { docs, layout, hasErrors: false };
   }
+
   for (const rel of entries) {
     if (typeof rel !== 'string' || !isYaml(rel) || shouldSkip(rel)) continue;
-    const fullRel = path.join('canon', 'views', rel);
+    const fullRel = path.join(viewsDir, rel);
     let text: string;
     try {
       text = readFileSync(path.join(root, fullRel), 'utf-8');
@@ -266,7 +315,7 @@ export function loadViewDocs(root: string): Array<{ path: string; text: string }
     }
     docs.push({ path: fullRel.replace(/\\/g, '/'), text });
   }
-  return docs;
+  return { docs, layout, hasErrors: false };
 }
 
 /** Collect every document source (and its `.trs` near-miss) across the model
@@ -327,7 +376,7 @@ export function runDocumentSourceValidate(root: string): ViewFinding[] {
   return findings;
 }
 
-/** Validate every Group A notation file under canon/views/** with the same
+/** Validate every Group A notation file under views/** or canon/views/** with the same
  *  per-notation validator the VS Code preview uses, so a repo-scope run surfaces
  *  the per-file errors an adopter would otherwise read off each preview. */
 export function runViewValidate(
@@ -340,6 +389,22 @@ export function runViewValidate(
 } {
   const findings: ViewFinding[] = [];
   const skipped: Array<{ file: string; notation: string }> = [];
+
+  // Check for mixed layout (both root-level views/ and canon/views/ present).
+  const { docs: viewDocs, hasErrors: mixedLayoutError } = loadViewDocs(root);
+  if (mixedLayoutError) {
+    findings.push({
+      file: 'views/',
+      notation: '',
+      ruleId: 'VIEWS-LAYOUT-001',
+      severity: 'error',
+      message:
+        'Mixed views layout detected: both root-level views/ and legacy canon/views/ are present. ' +
+        'Use only root-level views/ (the normative layout); remove or migrate legacy canon/views/.',
+    });
+    return { findings, skipped };
+  }
+
   // Canon elements/relations for projection-form resolution (dgca:
   // view_config.goals/factors/changes/activities; action: §4 of
   // 07-action.md; goals: §4 of 04-goals.md). Reuses `preloadedModel` when the
@@ -363,7 +428,7 @@ export function runViewValidate(
     }
     return canonModel;
   }
-  for (const doc of loadViewDocs(root)) {
+  for (const doc of viewDocs) {
     let data: unknown;
     try {
       data = loadNotationYaml(doc.text);
