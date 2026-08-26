@@ -365,7 +365,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void |
       return { id: 'coverage-metric', open: () => coverageMetricPreview.showOrReveal(doc), refresh: () => coverageMetricPreview.refreshSaved(doc) };
     }
     if (isComplianceImpactFile(doc)) {
-      return { id: 'compliance-impact', open: () => complianceImpactPreview.showOrReveal(), refresh: () => complianceImpactPreview.refresh() };
+      return { id: 'compliance-impact', open: () => complianceImpactPreview.showOrReveal(doc), refresh: () => complianceImpactPreview.refresh() };
     }
     if (isSingleLawFile(doc)) {
       return { id: 'single-law', open: () => singleLawPreview.showOrReveal(doc), refresh: () => singleLawPreview.refresh() };

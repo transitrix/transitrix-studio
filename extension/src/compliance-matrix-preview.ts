@@ -9,13 +9,13 @@ import {
 } from '@transitrix/diagrams/compliance-matrix';
 import type { AssertionStatus } from '@transitrix/diagrams/assertion/types.js';
 import { genNonce, colWidthPxFromSetting, colWidthRootCss } from './preview-controls.js';
-import { scanComplianceCanon } from './compliance-scan.js';
+import { scanComplianceCanon, complianceScanWarnings } from './compliance-scan.js';
 import type { ScannedCanon } from './compliance-scan.js';
 import { buildDiagramFrame, OPEN_THEME_COMMAND } from './diagram-frame.js';
 
 // Compliance matrix preview (Phase 2).
 //
-// A repo-wide view (not bound to a file): scans the workspace for the canon
+// A repo-wide view (not bound to a file): scans `canon/` and `codex/` for the canon
 // artefacts that carry `notation: product | requirement | assertion`, builds the
 // Products × Requirements matrix, and renders it as a colour-coded grid where
 // gaps (no assertion) are visually obvious.
@@ -106,9 +106,7 @@ export class ComplianceMatrixPreview {
     try {
       const scan = await scanComplianceCanon();
       this.assertionPaths = scan.pathById;
-      this.skippedWarnings = (scan.skippedNotations ?? []).map(
-        s => 'Skipped — unrecognized notation "' + s.notation + '": ' + s.shortPath,
-      );
+      this.skippedWarnings = complianceScanWarnings(scan);
       this.pendingIndex = buildPendingIndex(scan);
       this.fullMatrix = buildComplianceMatrix({
         products: scan.products,

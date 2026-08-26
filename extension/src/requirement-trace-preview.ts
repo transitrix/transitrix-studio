@@ -99,7 +99,7 @@ export class RequirementTracePreview {
       return;
     }
 
-    const scan = await scanComplianceCanon();
+    const scan = await scanComplianceCanon(doc.uri);
     const index = buildComplianceIndex({
       requirements: scan.requirements,
       assertions: scan.assertions,

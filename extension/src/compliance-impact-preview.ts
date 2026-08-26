@@ -4,6 +4,7 @@ import yaml from 'js-yaml';
 import { type ThemeId } from '@transitrix/diagrams/theme';
 import {
   buildImpactMatrix,
+  parseImpactViewConfig,
   type ImpactColumn,
   type ImpactViewConfig,
   type ImpactMatrix,
@@ -12,7 +13,7 @@ import {
 import type { AssertionStatus } from '@transitrix/diagrams/assertion/types.js';
 import type { IndexRequirement, DeadlineStatus } from '@transitrix/diagrams/compliance/types.js';
 import { genNonce, colWidthPxFromSetting, colWidthRootCss } from './preview-controls.js';
-import { scanComplianceCanon, openComplianceFile } from './compliance-scan.js';
+import { scanComplianceCanon, openComplianceFile, complianceScanWarnings } from './compliance-scan.js';
 import type { ScannedCanon } from './compliance-scan.js';
 import { buildDiagramFrame, OPEN_THEME_COMMAND } from './diagram-frame.js';
 
@@ -23,10 +24,10 @@ import { buildDiagramFrame, OPEN_THEME_COMMAND } from './diagram-frame.js';
 // (Phase 2): this view derives impact at the coarsest grain (REQUIREMENT x
 // subject) from the canon ASSERTION artefacts, using an ImpactViewConfig.
 //
-// View config: looks for a workspace *.compliance-impact.{view,transitrix}.yaml file.
-// If none found, subjects.products is auto-filled from the canon scan and all
-// other fields use the pinned defaults (consistent with COMPLIANCE_IMPACT_DEFAULTS
-// in the library -- CV-1). Kept inline so CV-2 is independent of the CV-1 PR.
+// View config: the opened *.compliance-impact.{view,transitrix}.yaml file.
+// If that file is not a usable config, subjects.products is auto-filled from
+// the canon scan and all other fields use the pinned defaults (consistent
+// with COMPLIANCE_IMPACT_DEFAULTS in the library -- CV-1).
 //
 // Proposed-assertion affordance (F17, strategy#84): assertions with
 // status:'proposed' are excluded from buildImpactMatrix by the allowedStatuses
@@ -191,23 +192,12 @@ function parseViewConfigRaw(raw: unknown): ImpactViewConfig | null {
   };
 }
 
-async function resolveViewConfig(canon: ScannedCanon): Promise<ImpactViewConfig> {
-  const viewFiles = await vscode.workspace.findFiles(
-    '**/*.compliance-impact.{view,transitrix}.yaml',
-    '**/node_modules/**',
-    5,
-  );
-  for (const uri of viewFiles) {
-    try {
-      const bytes = await vscode.workspace.fs.readFile(uri);
-      const raw = yaml.load(Buffer.from(bytes).toString('utf-8'));
-      const cfg = parseViewConfigRaw(raw);
-      if (cfg) return cfg;
-    } catch {
-      // Skip unreadable/unparseable files.
-    }
-  }
-  // Auto-config: discover subjects from the canon.
+function configFromParsed(raw: unknown): ImpactViewConfig | null {
+  const parsed = parseImpactViewConfig(raw);
+  return parsed.ok ? parsed.config : parseViewConfigRaw(raw);
+}
+
+function autoViewConfig(canon: ScannedCanon): ImpactViewConfig {
   const productIds = canon.products.map(p => p.id).sort();
   return {
     id: 'auto',
@@ -225,6 +215,36 @@ async function resolveViewConfig(canon: ScannedCanon): Promise<ImpactViewConfig>
     },
     order_rows_by: DEFAULT_ORDER_ROWS_BY,
   };
+}
+
+async function resolveViewConfig(
+  canon: ScannedCanon,
+  viewDoc?: vscode.TextDocument,
+): Promise<ImpactViewConfig> {
+  if (viewDoc) {
+    try {
+      const cfg = configFromParsed(yaml.load(viewDoc.getText()));
+      if (cfg) return cfg;
+    } catch {
+      // Opened file is not a usable view config — fall through to auto.
+    }
+    return autoViewConfig(canon);
+  }
+  const viewFiles = await vscode.workspace.findFiles(
+    '**/*.compliance-impact.{view,transitrix}.yaml',
+    '**/node_modules/**',
+    5,
+  );
+  for (const uri of viewFiles) {
+    try {
+      const bytes = await vscode.workspace.fs.readFile(uri);
+      const cfg = configFromParsed(yaml.load(Buffer.from(bytes).toString('utf-8')));
+      if (cfg) return cfg;
+    } catch {
+      // Skip unreadable/unparseable files.
+    }
+  }
+  return autoViewConfig(canon);
 }
 
 interface ImpactFilter {
@@ -274,6 +294,7 @@ export class ComplianceImpactPreview {
   private matrix: ImpactMatrix | undefined;
   private config: ImpactViewConfig | undefined;
   private canon: ScannedCanon | undefined;
+  private viewDoc: vscode.TextDocument | undefined;
   private pendingIndex = new Map<string, number>();
   private jIndex = new Map<string, string[]>();
   private filter: ImpactFilter = defaultFilter();
@@ -282,7 +303,8 @@ export class ComplianceImpactPreview {
 
   constructor(private readonly extensionUri: vscode.Uri) {}
 
-  async showOrReveal(): Promise<void> {
+  async showOrReveal(doc?: vscode.TextDocument): Promise<void> {
+    if (doc) this.viewDoc = doc;
     if (!this.panel) {
       this.panel = vscode.window.createWebviewPanel(
         'complianceImpactPreview',
@@ -304,6 +326,7 @@ export class ComplianceImpactPreview {
         this.matrix = undefined;
         this.config = undefined;
         this.canon = undefined;
+        this.viewDoc = undefined;
       });
     } else {
       this.panel.reveal(vscode.ViewColumn.Beside, true);
@@ -317,9 +340,9 @@ export class ComplianceImpactPreview {
     this.panel.webview.html = this.buildLoadingHtml(loadingThemeId);
 
     try {
-      const canon = await scanComplianceCanon();
+      const canon = await scanComplianceCanon(this.viewDoc?.uri);
       this.canon = canon;
-      this.config = await resolveViewConfig(canon);
+      this.config = await resolveViewConfig(canon, this.viewDoc);
       this.pendingIndex = buildPendingIndex(canon);
 
       // Auto-fill subjects.products if the view config left it empty.
@@ -398,8 +421,7 @@ export class ComplianceImpactPreview {
     const matrix = this.matrix;
     const config = this.config;
 
-    const skippedList = this.canon?.skippedNotations ?? [];
-    const skippedWarnings = skippedList.map(s => 'Skipped — unrecognized notation "' + s.notation + '": ' + s.shortPath);
+    const skippedWarnings = this.canon ? complianceScanWarnings(this.canon) : [];
 
     const allJurisdictions = matrix ? collectAllJurisdictions(matrix.rows, this.jIndex) : [];
 
