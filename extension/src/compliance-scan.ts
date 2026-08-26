@@ -66,11 +66,17 @@ export function classifyScanMiss(parsed: unknown, duplicateGrew: boolean): ScanM
   return 'unrecognized';
 }
 
-export function shortWorkspacePath(fsPath: string, workspaceRoot: string): string {
-  if (workspaceRoot && fsPath.startsWith(workspaceRoot)) {
-    return fsPath.slice(workspaceRoot.length).replace(/^[\\/]/, '');
-  }
-  return fsPath;
+/**
+ * Workspace-relative display path. Uses `path.relative` so a sibling whose
+ * name only shares a prefix with the root (e.g. `repo-copy` vs `repo`) is
+ * not treated as nested. Cross-drive and parent-traversal paths stay absolute.
+ * On Windows, `path.relative` compares case-insensitively.
+ */
+export function shortWorkspacePath(fsPath: string, workspaceRoot?: string): string {
+  if (!workspaceRoot) return fsPath;
+  const rel = path.relative(path.resolve(workspaceRoot), path.resolve(fsPath));
+  if (rel === '..' || rel.startsWith(`..${path.sep}`) || path.isAbsolute(rel)) return fsPath;
+  return rel;
 }
 
 export function complianceScanWarnings(scan: ScannedCanon): string[] {
@@ -83,8 +89,9 @@ export function complianceScanWarnings(scan: ScannedCanon): string[] {
 /**
  * Scans `canon/` + `codex/` for compliance artefacts. When `fromFile` sits
  * under a `canon/` tree, only that tree and its sibling `codex/` are read.
- * Otherwise the workspace is searched for those folders, excluding tooling
- * trees. Unreadable/unparseable files and non-artefacts are skipped.
+ * Callers that omit `fromFile` always get a workspace-wide scan — the active
+ * editor is not consulted. Unreadable/unparseable files and non-artefacts
+ * are skipped.
  */
 export async function scanComplianceCanon(fromFile?: vscode.Uri): Promise<ScannedCanon> {
   const canon = emptyCanon();
@@ -92,8 +99,7 @@ export async function scanComplianceCanon(fromFile?: vscode.Uri): Promise<Scanne
   const skippedNotations: Array<{ shortPath: string; notation: string }> = [];
   const skippedDuplicates: Array<{ shortPath: string; id: string }> = [];
 
-  const fromPath = fromFile?.fsPath ?? vscode.window.activeTextEditor?.document.uri.fsPath;
-  const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
+  const fromPath = fromFile?.fsPath;
   const uris = await collectScanUris(resolveComplianceScanScope(fromPath));
 
   for (const uri of uris) {
@@ -106,7 +112,8 @@ export async function scanComplianceCanon(fromFile?: vscode.Uri): Promise<Scanne
     }
     const dupBefore = canon.duplicateIds.length;
     const id = ingestComplianceDoc(canon, parsed);
-    const shortPath = shortWorkspacePath(uri.fsPath, workspaceRoot);
+    const folderRoot = vscode.workspace.getWorkspaceFolder(uri)?.uri.fsPath;
+    const shortPath = shortWorkspacePath(uri.fsPath, folderRoot);
     if (id) {
       pathById.set(id, uri.fsPath);
       continue;

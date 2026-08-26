@@ -99,6 +99,28 @@ describe('shortWorkspacePath', () => {
   it('returns the original path when the file is outside the workspace', () => {
     expect(shortWorkspacePath(join('', 'other', 'x.yaml'), join('', 'repo'))).toBe(join('', 'other', 'x.yaml'));
   });
+
+  it('does not treat a sibling whose name starts with the root name as inside', () => {
+    const root = join('', 'repo');
+    const sibling = join('', 'repo-copy', 'canon', 'x.yaml');
+    expect(shortWorkspacePath(sibling, root)).toBe(sibling);
+  });
+
+  it('returns the original path when no workspace root is given', () => {
+    const file = join('', 'repo', 'canon', 'x.yaml');
+    expect(shortWorkspacePath(file)).toBe(file);
+    expect(shortWorkspacePath(file, '')).toBe(file);
+  });
+
+  it('rejects a path on a different Windows drive', () => {
+    if (process.platform !== 'win32') return;
+    expect(shortWorkspacePath('D:\\other\\x.yaml', 'C:\\repo')).toBe('D:\\other\\x.yaml');
+  });
+
+  it('strips a Windows root regardless of drive-letter case', () => {
+    if (process.platform !== 'win32') return;
+    expect(shortWorkspacePath('C:\\Repo\\canon\\x.yaml', 'c:\\repo')).toBe(join('canon', 'x.yaml'));
+  });
 });
 
 describe('complianceScanWarnings', () => {
