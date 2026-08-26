@@ -4,6 +4,7 @@
 
 ### Changed
 
+- **Marketplace listing one-liner** updated to *live preview in your editor* (generic editors, not VS Code specifically). Author name link points to [https://github.com/vkgeorgia](https://github.com/vkgeorgia).
 - **PNG export rasterizes in the preview webview's own canvas** instead of a bundled native rasterizer — `@resvg/resvg-js` is no longer an extension dependency, and the packaged extension ships no `node_modules` at all. No user-visible change to Save .png / Copy PNG.
 - **Packaging drops per-target `.vsix` builds for one universal `.vsix`.** With no native/platform-specific component left in the package (the item above), `vsce package` with no `--target` is now the only packaging path — `scripts/package-extension.mjs` no longer accepts `--target`, and the Marketplace/Open VSX publish workflows each build and publish from a single job instead of a four-runner matrix. The one artefact installs on every VS Code platform, including ones the old matrix never built for (Intel macOS, Windows ARM).
 
