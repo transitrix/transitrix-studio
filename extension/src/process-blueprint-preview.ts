@@ -630,7 +630,7 @@ export class ProcessBlueprintPreview {
         let scannedCanon: ScannedCanon | undefined;
         if (complianceWillRender) {
           try {
-            const canon = await scanComplianceCanon();
+            const canon = await scanComplianceCanon(fileUri);
             scannedCanon = canon;
             complianceInput = buildComplianceLaneInput(canon);
           } catch {

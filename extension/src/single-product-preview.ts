@@ -86,7 +86,7 @@ export class SingleProductPreview {
       return;
     }
 
-    const scan = await scanComplianceCanon();
+    const scan = await scanComplianceCanon(doc.uri);
     const index = buildComplianceIndex({ requirements: scan.requirements, assertions: scan.assertions });
     const view = buildProductView(productId, index);
 

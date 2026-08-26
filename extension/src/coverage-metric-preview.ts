@@ -171,12 +171,12 @@ export class CoverageMetricPreview {
   private async pushDocument(doc: vscode.TextDocument): Promise<void> {
     if (!this.panel) return;
     const filename = doc.uri.path.split('/').pop() ?? '';
-    const html = await this.buildHtml(doc.getText(), filename);
+    const html = await this.buildHtml(doc.getText(), filename, doc.uri);
     if (!this.panel) return; // panel may have been disposed while awaiting above
     this.panel.webview.html = html;
   }
 
-  private async buildHtml(yamlText: string, filename = ''): Promise<string> {
+  private async buildHtml(yamlText: string, filename = '', fileUri?: vscode.Uri): Promise<string> {
     const cfg = vscode.workspace.getConfiguration('transitrix');
     const themeId = cfg.get<ThemeId>('theme', 'transitrix');
     const colW = cfg.get<string>('report.columnWidth', 'normal');
@@ -209,7 +209,7 @@ export class CoverageMetricPreview {
         if (!titleLine) titleLine = escXml(config.name);
         if (!subtitleLine && config.description) subtitleLine = escXml(config.description.trim());
         if (config.warnings) warnings = config.warnings;
-        const canon: ScannedCanon = await scanComplianceCanon();
+        const canon: ScannedCanon = await scanComplianceCanon(fileUri);
         const matrix = buildCoverageMatrix(canon, config);
         bodyHtml = buildTableHtml(matrix);
       }
