@@ -26,9 +26,9 @@ export const DOCUMENT_SOURCE_EXTENSION = '.ttrs';
 /** The near-miss: one keystroke away, and a different, widely used format. */
 export const DOCUMENT_SOURCE_NEAR_MISS_EXTENSION = '.trs';
 
-/** The registered folder for document sources, mirroring how every other view
- *  notation takes a folder of its own under `canon/views/`. */
-export const DOCUMENT_SOURCE_FOLDER = 'canon/views/documents';
+/** The registered folder for document sources, under the normative root-level
+ *  views/ directory alongside other view notations. */
+export const DOCUMENT_SOURCE_FOLDER = 'views/documents';
 
 /** `<basename>.<kind>.ttrs` — exactly two dots, the middle segment is the kind. */
 const DOCUMENT_SOURCE_FILENAME = /^[^.]+\.([a-z0-9-]+)\.ttrs$/;

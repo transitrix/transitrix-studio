@@ -19,7 +19,7 @@ import { DEFAULT_BPMN_TYPOGRAPHY } from '@transitrix/diagrams/webview/render-pro
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const ERASURE = join(
   ROOT,
-  'organizations/acme_corp/canon/views/bpmn/data-subject-erasure.bpmn.transitrix.yaml',
+  'organizations/acme_corp/views/bpmn/data-subject-erasure.bpmn.transitrix.yaml',
 );
 
 describe('BPMN export profiles', () => {
