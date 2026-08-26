@@ -9,10 +9,12 @@ import {
   runViewValidate,
   runRepoValidate,
   repoScopeHasErrors,
+  detectMixedViewsLayout,
 } from '../src/repo-validate.js';
 
 // Phase A.2: `validate --scope=repo` sweeps every
-// notation file under canon/views/** with the same validators the preview uses.
+// notation file under views/** (normative) or canon/views/** (legacy) with
+// the same validators the preview uses.
 
 const corpus = join(
   dirname(fileURLToPath(import.meta.url)),
@@ -30,20 +32,20 @@ function copyCorpus(root: string, rel: string, corpusRel: string): void {
   write(root, rel, readFileSync(join(corpus, corpusRel), 'utf8'));
 }
 
-describe('repo-scope views sweep (#258)', () => {
+describe('repo-scope views sweep — normative layout (#258, transitrix-hq#340)', () => {
   let root: string;
 
   beforeAll(() => {
     root = mkdtempSync(join(tmpdir(), 'tx-views-'));
     // A clean Group A file, a deliberately broken one, a BPMN file (validated via
     // the IR pipeline), a Group B file, and Group C compliance views (covered
-    // since #518 C1).
-    copyCorpus(root, 'canon/views/goals/good.goals.transitrix.yaml', 'goals/strategy-2026.goals.transitrix.yaml');
-    write(root, 'canon/views/goals/bad.goals.transitrix.yaml', 'notation: goals\nid: x\nname: Bad\ngoals: []\n');
-    copyCorpus(root, 'canon/views/bpmn/ok.bpmn.transitrix.yaml', 'bpmn/simple-approval.bpmn.transitrix.yaml');
-    copyCorpus(root, 'canon/views/applications/p.applications.transitrix.yaml', 'applications/portfolio-2026.applications.transitrix.yaml');
-    copyCorpus(root, 'canon/views/coverage-metric/c.coverage-metric.transitrix.yaml', 'coverage-metric/eu-coverage.coverage-metric.transitrix.yaml');
-    copyCorpus(root, 'canon/views/compliance-impact/ci.compliance-impact.view.yaml', 'compliance-impact/gdpr-nis2.compliance-impact.view.yaml');
+    // since #518 C1). Using normative views/ layout.
+    copyCorpus(root, 'views/goals/good.goals.transitrix.yaml', 'goals/strategy-2026.goals.transitrix.yaml');
+    write(root, 'views/goals/bad.goals.transitrix.yaml', 'notation: goals\nid: x\nname: Bad\ngoals: []\n');
+    copyCorpus(root, 'views/bpmn/ok.bpmn.transitrix.yaml', 'bpmn/simple-approval.bpmn.transitrix.yaml');
+    copyCorpus(root, 'views/applications/p.applications.transitrix.yaml', 'applications/portfolio-2026.applications.transitrix.yaml');
+    copyCorpus(root, 'views/coverage-metric/c.coverage-metric.transitrix.yaml', 'coverage-metric/eu-coverage.coverage-metric.transitrix.yaml');
+    copyCorpus(root, 'views/compliance-impact/ci.compliance-impact.view.yaml', 'compliance-impact/gdpr-nis2.compliance-impact.view.yaml');
   });
 
   afterAll(() => {
@@ -101,10 +103,10 @@ describe('repo-scope views sweep — clean tree passes (#258)', () => {
 
   beforeAll(() => {
     root = mkdtempSync(join(tmpdir(), 'tx-views-clean-'));
-    copyCorpus(root, 'canon/views/goals/good.goals.transitrix.yaml', 'goals/strategy-2026.goals.transitrix.yaml');
-    copyCorpus(root, 'canon/views/applications/p.applications.transitrix.yaml', 'applications/portfolio-2026.applications.transitrix.yaml');
-    copyCorpus(root, 'canon/views/coverage-metric/c.coverage-metric.transitrix.yaml', 'coverage-metric/eu-coverage.coverage-metric.transitrix.yaml');
-    copyCorpus(root, 'canon/views/compliance-impact/ci.compliance-impact.view.yaml', 'compliance-impact/gdpr-nis2.compliance-impact.view.yaml');
+    copyCorpus(root, 'views/goals/good.goals.transitrix.yaml', 'goals/strategy-2026.goals.transitrix.yaml');
+    copyCorpus(root, 'views/applications/p.applications.transitrix.yaml', 'applications/portfolio-2026.applications.transitrix.yaml');
+    copyCorpus(root, 'views/coverage-metric/c.coverage-metric.transitrix.yaml', 'coverage-metric/eu-coverage.coverage-metric.transitrix.yaml');
+    copyCorpus(root, 'views/compliance-impact/ci.compliance-impact.view.yaml', 'compliance-impact/gdpr-nis2.compliance-impact.view.yaml');
     // C3 cross-doc refs: codex + product subjects referenced by the compliance views.
     copyCorpus(root, 'codex/external/EU/LAW-GDPR-1.yaml', 'codex/external/EU/LAW-GDPR-1.yaml');
     copyCorpus(root, 'codex/external/EU/LAW-NIS2-1.yaml', 'codex/external/EU/LAW-NIS2-1.yaml');
@@ -163,7 +165,7 @@ describe('repo-scope views sweep — action canon-projection form (#619)', () =>
     );
     write(
       root,
-      'canon/views/action/gdpr-remediation.action.transitrix.yaml',
+      'views/action/gdpr-remediation.action.transitrix.yaml',
       [
         'notation: action',
         'spec_version: "0.1"',
@@ -218,7 +220,7 @@ describe('repo-scope views sweep — dgca canon-projection form', () => {
     );
     write(
       root,
-      'canon/views/dgca/strategy.dgca.transitrix.yaml',
+      'views/dgca/strategy.dgca.transitrix.yaml',
       [
         'notation: dgca',
         'spec_version: "0.1"',
@@ -269,7 +271,7 @@ describe('repo-scope views sweep — goals canon-projection form', () => {
     );
     write(
       root,
-      'canon/views/goals/strategy.goals.transitrix.yaml',
+      'views/goals/strategy.goals.transitrix.yaml',
       [
         'notation: goals',
         'spec_version: "0.1"',
@@ -326,7 +328,7 @@ describe('repo-scope views sweep — unquoted canon element dates (valid_at filt
     );
     write(
       root,
-      'canon/views/action/schedule.action.transitrix.yaml',
+      'views/action/schedule.action.transitrix.yaml',
       [
         'notation: action',
         'spec_version: "0.1"',
@@ -412,7 +414,7 @@ describe('repo-scope process-blueprint PROCESS- columns', () => {
     );
     write(
       root,
-      'canon/views/process-blueprint/chain.process-blueprint.transitrix.yaml',
+      'views/process-blueprint/chain.process-blueprint.transitrix.yaml',
       [
         'notation: process-blueprint',
         'process_blueprint:',
@@ -428,7 +430,7 @@ describe('repo-scope process-blueprint PROCESS- columns', () => {
     );
     write(
       root,
-      'canon/views/process-blueprint/unresolved.process-blueprint.transitrix.yaml',
+      'views/process-blueprint/unresolved.process-blueprint.transitrix.yaml',
       [
         'notation: process-blueprint',
         'process_blueprint:',
@@ -459,5 +461,78 @@ describe('repo-scope process-blueprint PROCESS- columns', () => {
     const result = runRepoValidate(root);
     const unresolved = result.views.filter((f) => f.file.endsWith('unresolved.process-blueprint.transitrix.yaml'));
     expect(unresolved.some((f) => f.ruleId === 'BP-012' && f.severity === 'error')).toBe(true);
+  });
+});
+
+describe('repo-scope views sweep — legacy canon/views/ path compatibility (transitrix-hq#340)', () => {
+  let root: string;
+
+  beforeAll(() => {
+    root = mkdtempSync(join(tmpdir(), 'tx-views-legacy-'));
+    // Test that the legacy canon/views/ path still works during the transition period
+    copyCorpus(root, 'canon/views/goals/good.goals.transitrix.yaml', 'goals/strategy-2026.goals.transitrix.yaml');
+    write(root, 'canon/views/goals/bad.goals.transitrix.yaml', 'notation: goals\nid: x\nname: Bad\ngoals: []\n');
+    copyCorpus(root, 'canon/views/applications/p.applications.transitrix.yaml', 'applications/portfolio-2026.applications.transitrix.yaml');
+  });
+
+  afterAll(() => {
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it('discovers views in legacy canon/views/ when normative views/ is absent', () => {
+    const { findings } = runViewValidate(root);
+    const bad = findings.filter((f) => f.file.endsWith('bad.goals.transitrix.yaml'));
+    expect(bad.length).toBeGreaterThan(0);
+    expect(bad.every((f) => f.notation === 'goals')).toBe(true);
+  });
+
+  it('does not report a mixed-layout error when only legacy path is present', () => {
+    const { findings } = runViewValidate(root);
+    const mixedLayout = findings.filter((f) => f.ruleId === 'VIEWS-LAYOUT-001');
+    expect(mixedLayout).toEqual([]);
+  });
+});
+
+describe('repo-scope views sweep — mixed-layout detection (transitrix-hq#340)', () => {
+  let root: string;
+
+  beforeAll(() => {
+    root = mkdtempSync(join(tmpdir(), 'tx-views-mixed-'));
+    // Create both legacy and normative paths
+    copyCorpus(root, 'canon/views/goals/good.goals.transitrix.yaml', 'goals/strategy-2026.goals.transitrix.yaml');
+    copyCorpus(root, 'views/applications/p.applications.transitrix.yaml', 'applications/portfolio-2026.applications.transitrix.yaml');
+  });
+
+  afterAll(() => {
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it('detects when both canon/views/ and views/ are present', () => {
+    const code = detectMixedViewsLayout(root);
+    expect(code).toBe('VIEWS-LAYOUT-001');
+  });
+
+  it('reports VIEWS-LAYOUT-001 error when both layouts exist', () => {
+    const { findings } = runViewValidate(root);
+    const mixed = findings.filter((f) => f.ruleId === 'VIEWS-LAYOUT-001');
+    expect(mixed.length).toBe(1);
+    expect(mixed[0].severity).toBe('error');
+    expect(mixed[0].message).toContain('both canon/views/');
+    expect(mixed[0].message).toContain('views/');
+    expect(mixed[0].message).toContain('Migrate all files');
+  });
+
+  it('does not report mixed-layout error when only normative path exists', () => {
+    const tmpClean = mkdtempSync(join(tmpdir(), 'tx-views-normative-only-'));
+    try {
+      copyCorpus(tmpClean, 'views/goals/good.goals.transitrix.yaml', 'goals/strategy-2026.goals.transitrix.yaml');
+      const code = detectMixedViewsLayout(tmpClean);
+      expect(code).toBe(null);
+      const { findings } = runViewValidate(tmpClean);
+      const mixed = findings.filter((f) => f.ruleId === 'VIEWS-LAYOUT-001');
+      expect(mixed).toEqual([]);
+    } finally {
+      rmSync(tmpClean, { recursive: true, force: true });
+    }
   });
 });
