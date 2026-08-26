@@ -276,6 +276,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void |
   const plantumlPreview = new PlantUMLPreview(context.extensionUri);
   const ttrsPreview = new TtrsPreview();
 
+  // Skip auto-open when the same document merely regained focus (typical
+  // case: the user closed the preview webview). Cleared when the active
+  // editor becomes a different file, so coming back still auto-opens, and
+  // when the document is closed, so a later re-open of the same path does too.
+  let lastAutoOpenedPreviewUri: string | undefined;
+
   async function openBpmnPreviewForDocument(doc: vscode.TextDocument): Promise<void> {
     const renderer = vscode.workspace.getConfiguration('transitrix').get<string>('bpmnRenderer', 'custom');
     if (renderer === 'custom') {
@@ -595,7 +601,17 @@ export async function activate(context: vscode.ExtensionContext): Promise<void |
     // which used to pop a preview panel per notation type touched by anything
     // that reads file content, not just the user actually looking at a file.
     vscode.window.onDidChangeActiveTextEditor((editor) => {
-      if (editor) void autoOpenPreviewForDocument(editor.document);
+      if (!editor) return;
+      const uri = editor.document.uri.toString();
+      if (lastAutoOpenedPreviewUri && lastAutoOpenedPreviewUri !== uri) {
+        lastAutoOpenedPreviewUri = undefined;
+      }
+      void autoOpenPreviewForDocument(editor.document);
+    }),
+    vscode.workspace.onDidCloseTextDocument((doc) => {
+      if (lastAutoOpenedPreviewUri === doc.uri.toString()) {
+        lastAutoOpenedPreviewUri = undefined;
+      }
     }),
   );
 
@@ -609,7 +625,15 @@ export async function activate(context: vscode.ExtensionContext): Promise<void |
   async function autoOpenPreviewForDocument(doc: vscode.TextDocument): Promise<void> {
     if (doc.uri.scheme !== 'file') return;
     if (!vscode.workspace.getConfiguration('transitrix').get<boolean>('preview.autoOpenOnFileOpen', true)) return;
-    await resolveNotationPreview(doc)?.open();
+    const resolved = resolveNotationPreview(doc);
+    if (!resolved) return;
+    const uri = doc.uri.toString();
+    // Closing the webview restores this document as the active editor, which
+    // is not a new open — skip so the panel does not immediately come back.
+    // The toolbar Preview command still goes through `openPreviewHandler`.
+    if (lastAutoOpenedPreviewUri === uri) return;
+    lastAutoOpenedPreviewUri = uri;
+    await resolved.open();
   }
 
   if (process.env.TX_E2E_TESTING === '1') {
