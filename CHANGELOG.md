@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.4.1] — 2026-08-26
+
+### Fixed
+
+- **`@transitrix/cli` prepack keeps `@resvg/resvg-js` external.** BPMN PNG compile uses that native addon; esbuild has no `.node` loader, so the package declares the dependency and lets npm install it per platform.
+- **Closing the Compliance Impact Matrix no longer reopens it immediately.** Auto-open treated the YAML becoming active again (the usual result of closing the webview) as a fresh file open. The matrix now opens beside the view-config file, and auto-open skips that same document until you switch away and back or reopen the tab. The toolbar Preview command is unchanged.
+
 ## [3.4.0] — 2026-08-25
 
 ### Added
