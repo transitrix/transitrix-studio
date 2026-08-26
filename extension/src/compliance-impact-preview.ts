@@ -287,7 +287,10 @@ export class ComplianceImpactPreview {
       this.panel = vscode.window.createWebviewPanel(
         'complianceImpactPreview',
         this.panelTitle,
-        { viewColumn: vscode.ViewColumn.Active, preserveFocus: false },
+        // Beside, like every other file-bound preview. Active would replace the
+        // view-config YAML in the same group; closing the matrix then restores
+        // that editor and auto-open recreates the panel in a loop.
+        { viewColumn: vscode.ViewColumn.Beside, preserveFocus: false },
         {
           enableScripts: true,
           retainContextWhenHidden: true,
@@ -303,7 +306,7 @@ export class ComplianceImpactPreview {
         this.canon = undefined;
       });
     } else {
-      this.panel.reveal(vscode.ViewColumn.Active, false);
+      this.panel.reveal(vscode.ViewColumn.Beside, true);
     }
     await this.refresh();
   }
