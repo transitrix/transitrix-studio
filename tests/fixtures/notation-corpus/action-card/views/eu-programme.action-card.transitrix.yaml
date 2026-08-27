@@ -14,6 +14,16 @@ spec_version: "0.1"
 #   canon/elements/**   → the ACTIVITY (project + children), CHANGE, GOAL,
 #                         FACTOR elements
 #   canon/relations/**  → the activity_goal relation carrying project → goal
+#
+# Lives under canon/views/ (not beside canon/, unlike the sibling copy at
+# ../../eu-programme.action-card.transitrix.yaml used by the package-level
+# unit tests, which load canon/elements + canon/relations directly and never
+# touch findCanonRoot) — extension/test-e2e opens this file as the active
+# editor, exercising the real ActivityCardPreview -> canon-loader.ts
+# findCanonRoot(doc.uri) path, which walks up from the file looking for an
+# ancestor literally named `canon` (see canon-loader.test.ts's own
+# "returns undefined when no ancestor is named canon/" case) — a file beside
+# canon/, not inside it, would make that lookup fail before rendering.
 
 action_card:
   id: ACTIVITY_CARD-EU-PROGRAMME-1

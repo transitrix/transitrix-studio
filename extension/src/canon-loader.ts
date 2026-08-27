@@ -69,20 +69,26 @@ export function findCanonRootPath(filePath: string): string | undefined {
 }
 
 /**
- * Returns true when `savedFilePath` is inside the `elements/`, `relations/`,
- * or `views/activities/` subtrees of `canonRootPath`.
- * The `views/activities/` subtree is the secondary fallback for activity
+ * Returns true when `savedFilePath` is inside the canonical or view subtrees
+ * of `canonRootPath` (the canon/ directory itself).
+ * Covers `canon/elements/`, `canon/relations/`, `canon/views/activities/`,
+ * and root-level `../views/activities/` (normative layout).
+ * The `views/activities/` subtrees are the secondary fallback for activity
  * elements (§6.1) — changes there trigger an activity-card re-render too.
  */
 export function isUnderCanonPath(canonRootPath: string, savedFilePath: string): boolean {
   const elementsRoot = path.join(canonRootPath, 'elements');
   const relationsRoot = path.join(canonRootPath, 'relations');
-  const viewActivitiesRoot = path.join(canonRootPath, 'views', 'activities');
+  const viewActivitiesRootLegacy = path.join(canonRootPath, 'views', 'activities');
+  // Root-level views/activities/ is at the parent of canon/
+  const modelRoot = path.dirname(canonRootPath);
+  const viewActivitiesRootNormative = path.join(modelRoot, 'views', 'activities');
   const savedDir = path.dirname(savedFilePath);
   return (
     savedDir.startsWith(elementsRoot) ||
     savedDir.startsWith(relationsRoot) ||
-    savedDir.startsWith(viewActivitiesRoot)
+    savedDir.startsWith(viewActivitiesRootLegacy) ||
+    savedDir.startsWith(viewActivitiesRootNormative)
   );
 }
 
@@ -171,14 +177,23 @@ export async function loadCanon(fileUri: vscode.Uri): Promise<CanonDocs> {
     return { elements, relations, warnings };
   }
 
+  // Load canonical elements and relations from canon/
   await readYamlDocsUnder(vscode.Uri.joinPath(canonRoot, 'elements'), elements, warnings);
   await readYamlDocsUnder(vscode.Uri.joinPath(canonRoot, 'relations'), relations, warnings);
 
-  // Secondary fallback (§6.1): if the org keeps activities in view files under
-  // canon/views/activities/, extract individual activity items and add them to
-  // the element pool so the resolver can find them. A warning is emitted for
-  // each view-sourced activity found — the canonical home is canon/elements/.
+  // Secondary fallback (§6.1): if the org keeps activities in view files,
+  // extract individual activity items and add them to the element pool.
+  // Check both root-level views/activities/ (normative) and legacy canon/views/activities/.
+  // A warning is emitted for each view-sourced activity found — canonical home is canon/elements/.
   const viewActivityDocs: unknown[] = [];
+  const modelRoot = vscode.Uri.joinPath(canonRoot, '..');
+  // First try root-level views/activities/ (normative)
+  await readYamlDocsUnder(
+    vscode.Uri.joinPath(modelRoot, 'views', 'activities'),
+    viewActivityDocs,
+    warnings,
+  );
+  // Also check legacy canon/views/activities/ for backward compatibility
   await readYamlDocsUnder(
     vscode.Uri.joinPath(canonRoot, 'views', 'activities'),
     viewActivityDocs,
@@ -191,7 +206,7 @@ export async function loadCanon(fileUri: vscode.Uri): Promise<CanonDocs> {
       const a = act as Record<string, unknown>;
       if (typeof a['id'] === 'string') {
         warnings.push(
-          `Activity "${a['id']}" resolved via canon/views/activities/ (secondary fallback) — ` +
+          `Activity "${a['id']}" resolved via views/activities/ (secondary fallback) — ` +
           `move the element to canon/elements/ for canonical storage.`,
         );
       }

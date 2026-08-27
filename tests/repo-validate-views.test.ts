@@ -535,4 +535,10 @@ describe('repo-scope views sweep — mixed-layout detection (transitrix-hq#340)'
       rmSync(tmpClean, { recursive: true, force: true });
     }
   });
+
+  it('runRepoValidate fails when both layouts are present', () => {
+    const result = runRepoValidate(root);
+    expect(repoScopeHasErrors(result)).toBe(true);
+    expect(result.views.some((f) => f.ruleId === 'VIEWS-LAYOUT-001')).toBe(true);
+  });
 });

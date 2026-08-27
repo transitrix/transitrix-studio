@@ -88,8 +88,13 @@ describe('isUnderCanonPath', () => {
     expect(isUnderCanonPath(canonRoot, saved)).toBe(true);
   });
 
-  it('returns true for a file inside views/activities/ (#344 fallback)', () => {
+  it('returns true for a file inside canon/views/activities/ (legacy fallback)', () => {
     const saved = join(canonRoot, 'views', 'activities', 'q1.activities.transitrix.yaml');
+    expect(isUnderCanonPath(canonRoot, saved)).toBe(true);
+  });
+
+  it('returns true for a file inside root-level views/activities/ (normative)', () => {
+    const saved = ['', 'org', 'views', 'activities', 'q1.activities.transitrix.yaml'].join(sep);
     expect(isUnderCanonPath(canonRoot, saved)).toBe(true);
   });
 
@@ -98,7 +103,7 @@ describe('isUnderCanonPath', () => {
     expect(isUnderCanonPath(canonRoot, saved)).toBe(false);
   });
 
-  it('returns false for a sibling of canon/', () => {
+  it('returns false for a sibling of canon/ (outside views/activities/)', () => {
     const saved = ['', 'org', 'views', 'my-card.yaml'].join(sep);
     expect(isUnderCanonPath(canonRoot, saved)).toBe(false);
   });
