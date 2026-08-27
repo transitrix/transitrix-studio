@@ -29,7 +29,7 @@ const FIXTURES: Fixture[] = [
   { kind: 'dgca', file: 'dgca/strategy-2026.dgca.transitrix.yaml', markup: 'svg' },
   { kind: 'dga', file: 'dga/strategy-2026.dga.transitrix.yaml', markup: 'svg' },
   { kind: 'action', file: 'action/platform-launch.action.transitrix.yaml', markup: 'svg' },
-  { kind: 'action-card', file: 'action-card/eu-programme.action-card.transitrix.yaml', markup: 'svg' },
+  { kind: 'action-card', file: 'action-card/views/eu-programme.action-card.transitrix.yaml', markup: 'svg' },
   { kind: 'process-blueprint', file: 'process-blueprint/order-fulfilment.process-blueprint.transitrix.yaml', markup: 'svg' },
   { kind: 'blocks', file: 'blocks/architecture.blocks.transitrix.yaml', markup: 'svg' },
   { kind: 'applications', file: 'applications/portfolio-2026.applications.transitrix.yaml', markup: 'section' },

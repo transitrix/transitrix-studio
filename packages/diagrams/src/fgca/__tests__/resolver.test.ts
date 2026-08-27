@@ -233,7 +233,7 @@ describe('resolveFGCA — file-based regression against canon fixture', () => {
   const CANON_ROOT = path.resolve(
     process.cwd(), '..', '..', 'tests', 'fixtures', 'notation-corpus', 'dgca', 'canon',
   );
-  const VIEW_DIR = path.join(CANON_ROOT, 'views');
+  const VIEW_DIR = path.resolve(CANON_ROOT, '..', 'views');
   const ELEM_DIR = path.join(CANON_ROOT, 'elements');
 
   function loadYamlsUnder(dir: string): unknown[] {

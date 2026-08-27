@@ -33,7 +33,7 @@ function loadYamlTree(root: string): unknown[] {
 
 describe('activity-card worked example (eu-programme)', () => {
   it('validates, resolves, and lays out the success-signal card', () => {
-    const card = load('eu-programme.action-card.transitrix.yaml');
+    const card = load('views/eu-programme.action-card.transitrix.yaml');
     const elements = loadYamlTree(path.join(dir, 'canon', 'elements'));
     const relations = loadYamlTree(path.join(dir, 'canon', 'relations'));
 
