@@ -129,4 +129,4 @@ Studio renders one file at a time — no repository, no setup beyond installing 
 - 🧰 **Source & issues** — [github.com/transitrix/transitrix-studio](https://github.com/transitrix/transitrix-studio)
 - 📚 **Glossary** — see [`glossary.md`](https://github.com/transitrix/transitrix-studio/blob/main/glossary.md) in the repo root for the notation terms used above
 
-Open source. MIT licensed. Built by [Valerii Korobeinikov](https://github.com/transitrix).
+Open source. MIT licensed. Built by [Valerii Korobeinikov](https://github.com/vkgeorgia).
