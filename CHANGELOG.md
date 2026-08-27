@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- **Listing description and footer attribution.** The extension description emphasizes editor-agnosticism by saying "live preview in your editor" instead of "live preview in VS Code". The footer link points to the author's personal GitHub profile (`github.com/vkgeorgia`) instead of the publisher namespace.
+
 ## [3.4.2] — 2026-08-26
 
 ### Fixed

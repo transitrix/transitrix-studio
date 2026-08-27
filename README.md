@@ -112,7 +112,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). By submitting a pull request, you agree 
 
 ## Author
 
-Created and maintained by **Valerii Korobeinikov**.
+Created and maintained by [Valerii Korobeinikov](https://github.com/vkgeorgia).
 
 ## License
 

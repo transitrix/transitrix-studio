@@ -26,9 +26,11 @@ export const DOCUMENT_SOURCE_EXTENSION = '.ttrs';
 /** The near-miss: one keystroke away, and a different, widely used format. */
 export const DOCUMENT_SOURCE_NEAR_MISS_EXTENSION = '.trs';
 
-/** The registered folder for document sources, under the normative root-level
- *  views/ directory alongside other view notations. */
+/** The normative registered folder for document sources. */
 export const DOCUMENT_SOURCE_FOLDER = 'views/documents';
+
+/** The legacy folder path, supported during transition. */
+const DOCUMENT_SOURCE_FOLDER_LEGACY = 'canon/views/documents';
 
 /** `<basename>.<kind>.ttrs` — exactly two dots, the middle segment is the kind. */
 const DOCUMENT_SOURCE_FILENAME = /^[^.]+\.([a-z0-9-]+)\.ttrs$/;
@@ -125,14 +127,16 @@ export function checkDocumentSourcePath(rel: string): DocumentSourceFinding[] {
   }
 
   const folder = file.slice(0, file.length - base.length).replace(/\/$/, '');
-  if (folder !== DOCUMENT_SOURCE_FOLDER) {
+  const isValidFolder = folder === DOCUMENT_SOURCE_FOLDER || folder === DOCUMENT_SOURCE_FOLDER_LEGACY;
+  if (!isValidFolder) {
     findings.push({
       file,
       ruleId: 'HDR-003',
       severity: 'error',
       message:
         `A "${DOCUMENT_SOURCE_EXTENSION}" document source belongs in ` +
-        `${DOCUMENT_SOURCE_FOLDER}/, not ${folder === '' ? 'the repository root' : `${folder}/`}.`,
+        `${DOCUMENT_SOURCE_FOLDER}/ (or the legacy ${DOCUMENT_SOURCE_FOLDER_LEGACY}/ during transition), ` +
+        `not ${folder === '' ? 'the repository root' : `${folder}/`}.`,
     });
   }
 

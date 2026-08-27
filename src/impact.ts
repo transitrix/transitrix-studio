@@ -184,8 +184,7 @@ export function computeStagedImpact(root: string): ImpactResult {
   const elements = model.elements.map((d) => d.data).filter((d): d is Record<string, unknown> => d != null);
   const relations = model.relations.map((d) => d.data).filter((d): d is Record<string, unknown> => d != null);
 
-  const { docs: viewDocs } = loadViewDocs(root);
-  for (const doc of viewDocs) {
+  for (const doc of loadViewDocs(root)) {
     let data: unknown;
     try {
       data = loadNotationYaml(doc.text);
