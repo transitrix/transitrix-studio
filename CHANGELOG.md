@@ -2,9 +2,23 @@
 
 ## Unreleased
 
+## [3.5.0] — 2026-08-27
+
+### Added
+
+- **Repository-scope validation discovers root-level `views/`.** Methodology 4.1.0 made `views/` a sibling of `canon/` the normative layout. `validate --scope=repo` now scans `views/<notation>/` first and falls back to legacy `canon/views/<notation>/`. A tree that still has both layouts fails with `VIEWS-LAYOUT-001` instead of a silently empty Views section. Per-file `validate <path>` is unchanged. (transitrix-hq#340, #578 / #580)
+
+### Fixed
+
+- **Repo-wide compliance scans stay independent of the editor.** Opening a view under an organisation `canon/` tree no longer couples the workspace-wide dashboard walk to whichever file happens to be active. (#577)
+
 ### Changed
 
 - **Listing description and footer attribution.** The extension description emphasizes editor-agnosticism by saying "live preview in your editor" instead of "live preview in VS Code". The footer link points to the author's personal GitHub profile (`github.com/vkgeorgia`) instead of the publisher namespace.
+
+### Packages
+
+- `@transitrix/cli` 2.6.0 → 2.7.0 — root-level `views/` discovery and `VIEWS-LAYOUT-001`. `@transitrix/diagrams` stays 1.11.0 (no production `packages/diagrams/src` change in this span).
 
 ## [3.4.2] — 2026-08-26
 
