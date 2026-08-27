@@ -68,11 +68,13 @@ const SURFACES: Surface[] = [
   { name: 'action', fixture: 'action/platform-launch.action.transitrix.yaml', expectSvg: true },
   {
     name: 'action-card',
-    // The fixture is at action-card/views/eu-programme.…yaml (the normative
-    // root-level views/ layout). This surface goes through the real
-    // ActivityCardPreview -> findCanonRoot(doc.uri) ancestor walk, which finds
-    // the model root via canon/ and loads canon/elements + canon/relations.
-    fixture: 'action-card/views/eu-programme.action-card.transitrix.yaml',
+    // The canonical fixture for unit tests is at action-card/views/ (root-level
+    // views/ layout, transitrix-hq#331). For e2e testing, a parallel copy is
+    // maintained inside canon/views/ to exercise the real ActivityCardPreview ->
+    // findCanonRoot(doc.uri) ancestor walk, which needs the file inside the
+    // canon/ tree to validate the walk works correctly (see fixture header and
+    // canon-loader.test.ts "returns undefined when no ancestor is named canon/").
+    fixture: 'action-card/canon/views/eu-programme.action-card.transitrix.yaml',
     expectSvg: true,
   },
   { name: 'blocks', fixture: 'blocks/architecture.blocks.transitrix.yaml', expectSvg: true },
