@@ -37,7 +37,7 @@
     "build:webview-bundle": "node scripts/build-webview-bundle.mjs",
     "extension:bundle": "node scripts/build-extension-bundle.mjs",
     "extension:prep": "npm run build:webview && npm run build:plantuml-assets && npm run build:diagrams && node scripts/build-compiler-bundle.mjs && npm run extension:bundle",
-    "pretest": "npm run build",
+    "pretest": "npm run build && node scripts/sync-schemas.mjs",
     "test": "npm run test:core && npm run test:diagrams",
     "test:core": "vitest run",
     "test:diagrams": "npm --workspace packages/diagrams test",
