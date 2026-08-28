@@ -1,0 +1,12 @@
+notation: goals
+spec_version: "0.1"
+name: Listing
+
+goals:
+  - id: G-1
+    name: "Deliver customer value"
+    children:
+      - id: G-1-1
+        name: "Improve user experience"
+      - id: G-1-2
+        name: "Reduce operational costs"
