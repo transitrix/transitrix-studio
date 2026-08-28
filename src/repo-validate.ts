@@ -463,6 +463,15 @@ export function runViewValidate(
     }
 
     if (!isFileValidatableNotation(notation)) {
+      // Report skipped notations as findings (FB-0006): a notation the validator
+      // cannot read should fail loudly (or at least produce a finding), not silently pass.
+      findings.push({
+        file: doc.path,
+        notation,
+        ruleId: 'NOTATION-SKIP-001',
+        severity: 'warning',
+        message: `Notation "${notation}" is not yet validated by the CLI — check it in the Transitrix Studio preview.`,
+      });
       skipped.push({ file: doc.path, notation });
       continue;
     }
@@ -1027,12 +1036,24 @@ export function runLinkSuspicionCheck(root: string, model: RepoModelInput): View
 
 /** Load the canon model under `root` and run the repo-scope checks: canon
  *  cross-references plus per-file notation sweep over canon/views/** and codex/**. */
-export function runRepoValidate(root: string): RepoScopeResult {
+export interface RunRepoValidateOptions {
+  strict?: boolean;
+}
+
+export function runRepoValidate(root: string, options?: RunRepoValidateOptions): RepoScopeResult {
   const ctx = buildRepoValidateContext(root);
   const model = loadRepoModel(root);
   const canon = validateRepoModel(model);
   const { findings: viewNotations, skipped } = runViewValidate(root, ctx, model);
-  const views = [...viewNotations, ...runDocumentSourceValidate(root)];
+  let views = [...viewNotations, ...runDocumentSourceValidate(root)];
+
+  // If --strict is set, convert skipped notation warnings to errors
+  if (options?.strict) {
+    views = views.map((v) =>
+      v.ruleId === 'NOTATION-SKIP-001' ? { ...v, severity: 'error' as const } : v,
+    );
+  }
+
   const codex = runCodexValidate(root);
   const compliance = [
     ...runComplianceValidate(root, ctx),

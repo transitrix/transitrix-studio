@@ -216,8 +216,9 @@ export function validateActivities(input: unknown): ActivityValidationResult {
     }
 
     // ACT-011: warn if no duration (duration_days is accepted as an alias)
+    // Network view is unaffected; this is only about CPM/Gantt rendering.
     if ((act.duration === undefined || act.duration === null) && (act.duration_days === undefined || act.duration_days === null)) {
-      warnings.push({ code: 'ACT-011', message: `Activity "${id}" has no duration — cannot participate in CPM analysis`, path });
+      warnings.push({ code: 'ACT-011', message: `Activity "${id}" has no duration — Gantt view and CPM analysis will exclude it. Network view is unaffected.`, path });
     }
   }
 
