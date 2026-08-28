@@ -91,7 +91,7 @@ function printUsage(): void {
        transitrix validate <input.yaml> [--json]
        transitrix validate [--ext=.bpmn.transitrix.yaml] <input.yaml> [--json]
        transitrix validate <input.yaml> --fix [--author <name>] [--valid-from <YYYY-MM-DD>] [--root <dir>] [--dry-run]
-       transitrix validate --scope=repo [--root <dir>] [--json] [--include-model]
+       transitrix validate --scope=repo [--root <dir>] [--strict] [--json] [--include-model]
        transitrix export-compliance [--format md|pdf] [--scope law:<ID>|product:<ID>|gap] [--output <path>] [--root <dir>]
        transitrix impact [--root <dir>] [--json]
        transitrix render <input.ttrs> [--out <dir>] [--root <dir>] [--json]
@@ -533,7 +533,7 @@ async function handleValidateCommand(argv: string[]): Promise<void> {
     process.exit(1);
   }
 
-  const { scope, root, template, fix, positional, extList, wantsHelp } = parsed;
+  const { scope, root, template, fix, strict, positional, extList, wantsHelp } = parsed;
 
   if (fix && scope === 'repo') {
     console.error('transitrix validate: --fix is only supported for file scope (a single file), not --scope=repo.');
@@ -552,7 +552,7 @@ async function handleValidateCommand(argv: string[]): Promise<void> {
 
   if (wantsHelp) {
     console.error(`usage: transitrix validate <input.yaml> [--json] [--template <name>] [--fix [--author <name>] [--root <dir>] [--dry-run]] (file scope, default)`);
-    console.error(`       transitrix validate --scope=repo [--root <dir>] [--json] [--include-model]`);
+    console.error(`       transitrix validate --scope=repo [--root <dir>] [--strict] [--json] [--include-model]`);
     console.error('');
     console.error('file scope — single-file structural/semantic validation (default).');
     console.error('             BPMN, or any diagram notation routed by its notation: field');
@@ -577,6 +577,7 @@ async function handleValidateCommand(argv: string[]): Promise<void> {
     console.error('             --dry-run previews the fix without writing.');
     console.error('repo scope — whole-canon checks (referential integrity, atomicity,');
     console.error('             id uniqueness, policy) over <root> (default: cwd).');
+    console.error('             --strict treats skipped notation files as errors instead of warnings.');
     console.error('             --include-model (with --json) also emits the resolved');
     console.error('             canon/elements/** and canon/relations/** records it parsed,');
     console.error('             as { model: { elements: [...], relations: [...] } } — for a');
@@ -588,7 +589,7 @@ async function handleValidateCommand(argv: string[]): Promise<void> {
   // Repo scope (#141): whole-canon checks on the @transitrix/diagrams model.
   if (scope === 'repo') {
     const repoRoot = root ?? process.cwd();
-    const result = runRepoValidate(repoRoot);
+    const result = runRepoValidate(repoRoot, { strict });
     // --include-model: also emit the resolved element/relation records the
     // canon walk already parsed, for a non-JS consumer (DSM) that wants the
     // model without a second parser. Opt-in so the default --scope=repo

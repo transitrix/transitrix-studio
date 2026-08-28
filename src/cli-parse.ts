@@ -133,6 +133,7 @@ export type ParseValidateArgvResult =
       author: string | undefined;
       validFrom: string | undefined;
       dryRun: boolean;
+      strict: boolean;
       positional: string[];
       extList: string[];
       wantsHelp: boolean;
@@ -170,6 +171,7 @@ export function parseValidateArgv(argv: string[]): ParseValidateArgvResult {
   let author: string | undefined;
   let validFrom: string | undefined;
   let dryRun = false;
+  let strict = false;
   const rest: string[] = [];
 
   for (let i = 0; i < argv.length; i++) {
@@ -215,6 +217,10 @@ export function parseValidateArgv(argv: string[]): ParseValidateArgvResult {
       dryRun = true;
       continue;
     }
+    if (a === '--strict') {
+      strict = true;
+      continue;
+    }
     if (a === '--author') {
       const v = argv[++i];
       if (v === undefined) return { ok: false, error: '--author_requires_value' };
@@ -253,6 +259,7 @@ export function parseValidateArgv(argv: string[]): ParseValidateArgvResult {
     author,
     validFrom,
     dryRun,
+    strict,
     positional: parsed.positional,
     extList: parsed.extList,
     wantsHelp: parsed.wantsHelp,
