@@ -300,6 +300,21 @@ describe('validateActivities', () => {
     expect(orphanWarnings.some(w => w.message.includes('A-002'))).toBe(true);
   });
 
+  it('ACT-013 — does not warn on activity with parent (counted as connection)', () => {
+    const r = validateActivities({
+      notation: 'action',
+      actions: [
+        { id: 'A-001', name: 'Parent', duration: 1 },
+        { id: 'A-002', name: 'Child (parented, not orphan)', duration: 1, parent: 'A-001' },
+        { id: 'A-003', name: 'Unconnected', duration: 1 },
+      ],
+    });
+    expect(r.valid).toBe(true);
+    const orphanWarnings = r.warnings.filter(w => w.code === 'ACT-013');
+    expect(orphanWarnings.some(w => w.message.includes('A-002'))).toBe(false);
+    expect(orphanWarnings.some(w => w.message.includes('A-003'))).toBe(true);
+  });
+
   it('full valid example passes with no errors', () => {
     const r = validateActivities({
       notation: 'action',

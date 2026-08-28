@@ -292,7 +292,9 @@ export function validateActivities(input: unknown): ActivityValidationResult {
     }
   }
 
-  // ACT-013: orphan activities (warning only)
+  // ACT-013: orphan activities (warning only). An activity is structurally orphan
+  // if it has no connections to the rest of the graph. Valid connections are:
+  // predecessors, successors, parent, or goals (direct or via delivers_changes).
   const successorIds = new Set<string>();
   for (const a of doc.activities) {
     for (const pred of (a.predecessors ?? [])) successorIds.add(pred);
@@ -302,10 +304,11 @@ export function validateActivities(input: unknown): ActivityValidationResult {
     const hasSuccessors = successorIds.has(a.id);
     const hasGoals = Array.isArray(a.goals) && a.goals.length > 0;
     const hasPredecessors = Array.isArray(a.predecessors) && a.predecessors.length > 0;
-    if (doc.activities.length > 1 && !hasSuccessors && !hasGoals && !hasPredecessors) {
+    const hasParent = typeof a.parent === 'string' && a.parent.length > 0;
+    if (doc.activities.length > 1 && !hasSuccessors && !hasGoals && !hasPredecessors && !hasParent) {
       warnings.push({
         code: 'ACT-013',
-        message: `Activity "${a.id}" appears to be structurally orphan (no predecessors, successors, or goals)`,
+        message: `Activity "${a.id}" appears to be structurally orphan (no predecessors, successors, parent, or goals)`,
         path: `activities[${i}]`,
       });
     }
