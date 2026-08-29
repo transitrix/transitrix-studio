@@ -96,6 +96,22 @@ export const SCOPE_CONFIG_SECTION = 'transitrix.scope';
 /** Command that opens Settings filtered to the scope controls. */
 export const OPEN_SCOPE_SETTINGS_COMMAND = 'transitrixStudio.openScopeSettings';
 
+// ── Layout mode ───────────────────────────────────────────────────────
+//
+// Goals diagram layout mode: standard (default) or minimizeCrossings
+// (reorders siblings to reduce edge crossings). Settings-backed persistence.
+
+export type LayoutModeNotation = 'goals' | 'dgca' | 'dga';
+
+/** Reads the user's configured layout mode for a notation. Defaults to 'standard'. */
+export function readLayoutMode(notation: LayoutModeNotation): 'standard' | 'minimizeCrossings' {
+  const mode = vscode.workspace.getConfiguration('transitrix').get<string>(`layoutMode.${notation}`, 'standard');
+  return mode === 'minimizeCrossings' ? 'minimizeCrossings' : 'standard';
+}
+
+/** Config section that, when changed, re-renders layout-aware previews. */
+export const LAYOUT_MODE_CONFIG_SECTION = 'transitrix.layoutMode';
+
 // ── Tree ↔ table view ────────────────────────────────────────────────────────
 //
 // DGCA/DGA previews can render as the tree/chain diagram (default) or as a
