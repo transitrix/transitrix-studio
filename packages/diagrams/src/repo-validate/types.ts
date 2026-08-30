@@ -20,7 +20,7 @@
 // uncoded rather than being retrofitted with invented codes.
 //
 // A second field, `severity`, is un-frozen for the same reason: DSM's
-// warn-severity strategy-chain rules (GOALS-009/011, ACT-005, DGCA-REPO-012..014
+// warn-severity strategy-chain rules (GOALS-009/011, ACT-005, FGCA-012..014
 // — see check-strategy-chain.ts) are non-fatal by
 // DSM's own taxonomy ("import anyway, record the warning"); without a
 // severity field, porting them here would silently make them blocking,
@@ -42,7 +42,7 @@ export interface RepoFinding {
   /** Human-readable description of the violation. */
   message: string;
   /**
-   * Stable rule code (e.g. `GOALS-010`, `ACT-006`, `DGCA-REPO-012`), for a consumer
+   * Stable rule code (e.g. `GOALS-010`, `ACT-006`, `FGCA-008`), for a consumer
    * that maps findings onto its own rule taxonomy (`docs/validation.md`).
    * Omitted for checks that don't yet have one.
    */

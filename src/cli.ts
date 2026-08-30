@@ -117,7 +117,7 @@ function printUsage(): void {
               default; law:/product:/gap scopes). Scans --root (default cwd) for
               requirement/assertion/product/codex canon. PDF rendering requires
               WeasyPrint on PATH (pipx install weasyprint).
-  impact    — names which views/** documents and views/documents/**
+  impact    — names which canon/views/** documents and canon/views/documents/**
               .ttrs sources a *staged* (git add, not yet committed)
               canon/elements/** change makes stale. Silent when nothing is
               staged, or when nothing this can resolve is affected. A view

@@ -1,5 +1,4 @@
 import * as path from 'node:path';
-import * as fs from 'node:fs';
 import * as vscode from 'vscode';
 import yaml from 'js-yaml';
 import { coerceDatesToIsoStrings } from '@transitrix/diagrams/yaml-normalize.js';
@@ -54,42 +53,11 @@ export interface CanonIndex {
 // ── Path-pure helpers (no vscode runtime — directly unit-testable) ─────────
 
 /**
- * Walk up from `filePath` up to 16 ancestor levels looking for the adopter
- * manifest `transitrix.yaml`. Returns the directory containing the manifest,
- * or undefined when no such ancestor exists.
- */
-function findModelRootPath(filePath: string): string | undefined {
-  let dir = path.dirname(filePath);
-  for (let i = 0; i < 16; i++) {
-    const manifestPath = path.join(dir, 'transitrix.yaml');
-    try {
-      if (fs.statSync(manifestPath).isFile()) {
-        return dir;
-      }
-    } catch {
-      // File does not exist or is not accessible; continue walking
-    }
-    const parent = path.dirname(dir);
-    if (parent === dir) break;
-    dir = parent;
-  }
-  return undefined;
-}
-
-/**
- * Walk up from `filePath` up to 16 ancestor levels looking for the canonical
- * store root. First attempts to resolve from the adopter manifest (transitrix.yaml);
- * falls back to looking for a directory literally named `canon` for backward compatibility.
- * Returns the absolute path of the canon directory, or undefined when no root is found.
+ * Walk up from `filePath` up to 16 ancestor levels looking for a directory
+ * literally named `canon`. Returns the absolute path of that directory, or
+ * undefined when no such ancestor exists.
  */
 export function findCanonRootPath(filePath: string): string | undefined {
-  // Primary path: resolve from adopter manifest (transitrix.yaml)
-  const modelRoot = findModelRootPath(filePath);
-  if (modelRoot) {
-    return path.join(modelRoot, 'canon');
-  }
-
-  // Fallback: walk up looking for a directory literally named `canon` (legacy layout)
   let dir = path.dirname(filePath);
   for (let i = 0; i < 16; i++) {
     if (path.basename(dir) === 'canon') return dir;

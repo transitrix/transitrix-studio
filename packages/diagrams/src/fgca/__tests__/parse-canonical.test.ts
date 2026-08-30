@@ -8,7 +8,7 @@ import { layoutFGCAPreview } from '../preview-layout.js';
 const VALID = {
   notation: 'dgca',
   spec_version: '0.1',
-  id: 'DGCA-SAMPLE-1',
+  id: 'FGCA-SAMPLE-1',
   name: 'Sample FGCA chain',
   factors: [
     { id: 'FACTOR-1', name: 'Driver one', type: 'external' },
@@ -83,38 +83,38 @@ describe('parseCanonicalFGCA', () => {
     expect(layout.columns.map((c) => c.col)).toEqual(['driver', 'goal', 'change', 'activity']);
   });
 
-  it('DGCA-001: rejects non-object input', () => {
-    expect(parseCanonicalFGCA(null).errors[0].code).toBe('DGCA-001');
-    expect(parseCanonicalFGCA('string').errors[0].code).toBe('DGCA-001');
+  it('FGCA-001: rejects non-object input', () => {
+    expect(parseCanonicalFGCA(null).errors[0].code).toBe('FGCA-001');
+    expect(parseCanonicalFGCA('string').errors[0].code).toBe('FGCA-001');
   });
 
-  it('DGCA-001: rejects wrong notation', () => {
+  it('FGCA-001: rejects wrong notation', () => {
     const r = parseCanonicalFGCA({ ...VALID, notation: 'fga' });
     expect(r.valid).toBe(false);
-    expect(r.errors.some((e) => e.code === 'DGCA-001')).toBe(true);
+    expect(r.errors.some((e) => e.code === 'FGCA-001')).toBe(true);
   });
 
-  it('DGCA-002: rejects malformed doc id', () => {
+  it('FGCA-002: rejects malformed doc id', () => {
     const r = parseCanonicalFGCA({ ...VALID, id: 'fgca-lowercase-1' });
     expect(r.valid).toBe(false);
-    expect(r.errors.some((e) => e.code === 'DGCA-002')).toBe(true);
+    expect(r.errors.some((e) => e.code === 'FGCA-002')).toBe(true);
   });
 
-  it('DGCA-003: rejects missing name', () => {
+  it('FGCA-003: rejects missing name', () => {
     const { name: _, ...rest } = VALID;
     const r = parseCanonicalFGCA(rest);
     expect(r.valid).toBe(false);
-    expect(r.errors.some((e) => e.code === 'DGCA-003')).toBe(true);
+    expect(r.errors.some((e) => e.code === 'FGCA-003')).toBe(true);
   });
 
-  it('DGCA-004: rejects missing factors array', () => {
+  it('FGCA-004: rejects missing factors array', () => {
     const { factors: _, ...rest } = VALID;
     const r = parseCanonicalFGCA(rest);
     expect(r.valid).toBe(false);
-    expect(r.errors.some((e) => e.code === 'DGCA-004')).toBe(true);
+    expect(r.errors.some((e) => e.code === 'FGCA-004')).toBe(true);
   });
 
-  it('DGCA-006: rejects duplicate IDs within a layer', () => {
+  it('FGCA-006: rejects duplicate IDs within a layer', () => {
     const r = parseCanonicalFGCA({
       ...VALID,
       factors: [
@@ -123,52 +123,52 @@ describe('parseCanonicalFGCA', () => {
       ],
     });
     expect(r.valid).toBe(false);
-    expect(r.errors.some((e) => e.code === 'DGCA-006')).toBe(true);
+    expect(r.errors.some((e) => e.code === 'FGCA-006')).toBe(true);
   });
 
-  it('DGCA-007: rejects malformed factor id', () => {
+  it('FGCA-007: rejects malformed factor id', () => {
     const r = parseCanonicalFGCA({
       ...VALID,
       factors: [{ id: 'F-1', name: 'A' }],
     });
     expect(r.valid).toBe(false);
-    expect(r.errors.some((e) => e.code === 'DGCA-007')).toBe(true);
+    expect(r.errors.some((e) => e.code === 'FGCA-007')).toBe(true);
   });
 
-  it('DGCA-008: rejects goal.factors[] referencing undefined factor', () => {
+  it('FGCA-008: rejects goal.factors[] referencing undefined factor', () => {
     const r = parseCanonicalFGCA({
       ...VALID,
       goals: [{ id: 'GOAL-1', name: 'A', factors: ['FACTOR-99'] }],
     });
     expect(r.valid).toBe(false);
-    expect(r.errors.some((e) => e.code === 'DGCA-008')).toBe(true);
+    expect(r.errors.some((e) => e.code === 'FGCA-008')).toBe(true);
   });
 
-  it('DGCA-009: rejects change.goals[] referencing undefined goal', () => {
+  it('FGCA-009: rejects change.goals[] referencing undefined goal', () => {
     const r = parseCanonicalFGCA({
       ...VALID,
       changes: [{ id: 'CHANGE-1', name: 'A', goals: ['GOAL-99'] }],
     });
     expect(r.valid).toBe(false);
-    expect(r.errors.some((e) => e.code === 'DGCA-009')).toBe(true);
+    expect(r.errors.some((e) => e.code === 'FGCA-009')).toBe(true);
   });
 
-  it('DGCA-010: rejects activity.changes[] referencing undefined change', () => {
+  it('FGCA-010: rejects activity.changes[] referencing undefined change', () => {
     const r = parseCanonicalFGCA({
       ...VALID,
       actions: [{ id: 'ACTIVITY-1', name: 'A', changes: ['CHANGE-99'] }],
     });
     expect(r.valid).toBe(false);
-    expect(r.errors.some((e) => e.code === 'DGCA-010')).toBe(true);
+    expect(r.errors.some((e) => e.code === 'FGCA-010')).toBe(true);
   });
 
-  it('DGCA-015: rejects factor.references_constraint with malformed ID', () => {
+  it('FGCA-015: rejects factor.references_constraint with malformed ID', () => {
     const r = parseCanonicalFGCA({
       ...VALID,
       factors: [{ id: 'FACTOR-1', name: 'A', references_constraint: ['BAD-1'] }],
     });
     expect(r.valid).toBe(false);
-    expect(r.errors.some((e) => e.code === 'DGCA-015')).toBe(true);
+    expect(r.errors.some((e) => e.code === 'FGCA-015')).toBe(true);
   });
 
   it('accepts factor.references_constraint with valid CONSTRAINT ID', () => {
@@ -201,13 +201,13 @@ describe('parseCanonicalFGCA', () => {
     expect(r.parsed?.changes[0].activity_ids).toEqual(['ACTION-1']);
   });
 
-  it('DGCA-010: rejects delivers_changes referencing an undefined change', () => {
+  it('FGCA-010: rejects delivers_changes referencing an undefined change', () => {
     const r = parseCanonicalFGCA({
       ...VALID,
       actions: [{ id: 'ACTION-1', name: 'A', delivers_changes: ['CHANGE-99'] }],
     });
     expect(r.valid).toBe(false);
-    expect(r.errors.some((e) => e.code === 'DGCA-010')).toBe(true);
+    expect(r.errors.some((e) => e.code === 'FGCA-010')).toBe(true);
   });
 });
 
@@ -298,8 +298,8 @@ describe('parseCanonicalFGA', () => {
     const r = parseCanonicalFGA({ ...VALID_FGA, factors: [{ id: 'F-1', name: 'bad' }] });
     expect(r.valid).toBe(false);
     expect(r.errors.some((e) => e.code === 'FGA-007')).toBe(true);
-    // No raw DGCA-prefixed code should leak through the remap.
-    expect(r.errors.every((e) => !e.code.startsWith('DGCA-'))).toBe(true);
+    // No raw FGCA-prefixed code should leak through the remap.
+    expect(r.errors.every((e) => !e.code.startsWith('FGCA-'))).toBe(true);
   });
 });
 

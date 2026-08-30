@@ -16,7 +16,7 @@ import { coerceDatesToIsoStrings } from '@transitrix/diagrams/yaml-normalize.js'
 import { loadCanon, findCanonRoot, isUnderCanon, type CanonDocs } from './canon-loader.js';
 import { DEFAULT_EDGE_CURVATURE } from '@transitrix/diagrams/edge-path.js';
 import { checkScopeRoot } from '@transitrix/diagrams/scope.js';
-import { readSpacing, readCurvature, readEntryCurvature, readScope, readLayoutMode, applyControlMessage, OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND, OPEN_SCOPE_SETTINGS_COMMAND, OPEN_NODE_SIZE_SETTINGS_COMMAND, LAYOUT_MODE_CONFIG_SECTION } from './spacing-config.js';
+import { readSpacing, readCurvature, readEntryCurvature, readScope, applyControlMessage, OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND, OPEN_SCOPE_SETTINGS_COMMAND, OPEN_NODE_SIZE_SETTINGS_COMMAND } from './spacing-config.js';
 import { readGoalsNodeSize, readNodeSizePreset } from './node-size-config.js';
 import { genNonce, buildControlsPanel, buildControlsScript, type ControlsModel, type ScopeGoalOption } from './preview-controls.js';
 
@@ -147,7 +147,6 @@ export class GoalsPreview {
     const scope = readScope('goals');
     const curvature = readCurvature('goals');
     const entryCurvature = readEntryCurvature('goals');
-    const layoutMode = readLayoutMode('goals');
     // Populated on a successful parse — feeds the scope root-picker dropdown
     // and the level-cap upper bound in the interactive control panel.
     let goalOptions: ScopeGoalOption[] = [];
@@ -180,7 +179,6 @@ export class GoalsPreview {
           rankSep: gaps.horizontalGap,
           nodeSep: gaps.verticalGap,
           scope,
-          layoutMode,
         });
         svgContent = layoutToSvg(layout, treeName, filename, docDate, docVersion, curvature, entryCurvature);
       }
