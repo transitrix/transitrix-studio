@@ -46,6 +46,7 @@ export function layoutGoalTree(tree: GoalTree, options: LayoutOptions = {}): Goa
     hideCollapsed = [],
     viewDepth = null,
     scope = { mode: 'all' },
+    layoutMode = 'standard',
   } = options;
 
   const hiddenSet = new Set(hideCollapsed);
@@ -126,9 +127,16 @@ export function layoutGoalTree(tree: GoalTree, options: LayoutOptions = {}): Goa
       return { top: y, bottom: y + nodeHeight };
     }
 
+    // In minimizeCrossings mode, sort children by ID to create a deterministic,
+    // more organized layout that tends to have fewer edge crossings than the
+    // default arbitrary order.
+    const orderedChildIds = layoutMode === 'minimizeCrossings'
+      ? [...childIds].sort((a, b) => a - b)
+      : childIds;
+
     // Place children first to get their span
     const spans: Array<{ top: number; bottom: number }> = [];
-    for (const cid of childIds) {
+    for (const cid of orderedChildIds) {
       spans.push(placeSubtree(cid));
     }
 
@@ -143,7 +151,7 @@ export function layoutGoalTree(tree: GoalTree, options: LayoutOptions = {}): Goa
 
     nodes.push({ id, x: col * (nodeWidth + rankSep), y: finalY, width: nodeWidth, height: nodeHeight, data: goal, isCollapsedRoot, hasHiddenChildren });
 
-    for (const cid of childIds) {
+    for (const cid of orderedChildIds) {
       edges.push({ source: id, target: cid });
     }
 
