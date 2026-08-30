@@ -177,7 +177,7 @@ export function resolveActivityCard(
       code: 'PC-001',
       message:
         `action_card.project "${projectId}" not found after searching ` +
-        `canon/elements/** and canon/views/activities/** — ` +
+        `canon/elements/** — ` +
         `add a YAML file with notation: action and id: "${projectId}" ` +
         `(e.g. canon/elements/05_implementation/actions/${projectId}.yaml)`,
     });

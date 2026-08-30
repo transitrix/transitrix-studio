@@ -1161,7 +1161,7 @@ export function reportRepoFindings(
   }
 
   if (views.length > 0) {
-    console.log('Views (canon/views):');
+    console.log('Views (views/):');
     let currentFile = '';
     for (const v of views) {
       if (v.file !== currentFile) {
