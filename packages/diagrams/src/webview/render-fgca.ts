@@ -89,14 +89,10 @@ export function renderFgcaBody(
         idMaxLines: 1,
       });
       const textSvg = emitCenteredTextSvg(specs, n.x + nodeWidth / 2, escXml);
-      const typeBadge = n.type && n.col === 'activity'
-        ? `<text class="text-id" x="${n.x + nodeWidth - 6}" y="${n.y + 10}" text-anchor="end" dominant-baseline="hanging" font-size="10">${escXml(n.type)}</text>`
-        : '';
       return [
         `<rect class="diagram-node layer-${n.col}" x="${n.x}" y="${n.y}" width="${nodeWidth}" height="${nodeHeight}" rx="8"/>`,
         textSvg,
-        typeBadge,
-      ].filter(Boolean).join('\n');
+      ].join('\n');
     })
     .join('\n');
 

@@ -62,8 +62,6 @@ export interface LayoutOptions {
   viewDepth?: number | null;
   /** Trim the tree to a level cap or a subtree root. Defaults to 'all'. */
   scope?: Scope;
-  /** Layout algorithm mode: 'standard' stacks nodes linearly; 'minimizeCrossings' reorders siblings to reduce edge crossings. Defaults to 'standard'. */
-  layoutMode?: 'standard' | 'minimizeCrossings';
 }
 
 export interface LaidOutNode {

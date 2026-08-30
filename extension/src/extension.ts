@@ -40,7 +40,6 @@ import {
   OPEN_SCOPE_SETTINGS_COMMAND,
   SCOPE_CONFIG_SECTION,
   VIEW_CONFIG_SECTION,
-  LAYOUT_MODE_CONFIG_SECTION,
 } from './spacing-config.js';
 import { OPEN_THEME_COMMAND } from './diagram-frame.js';
 import {
@@ -541,8 +540,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void |
         !e.affectsConfiguration(ENTRY_CURVATURE_CONFIG_SECTION) &&
         !e.affectsConfiguration(SCOPE_CONFIG_SECTION) &&
         !e.affectsConfiguration(VIEW_CONFIG_SECTION) &&
-        !e.affectsConfiguration(NODE_SIZE_CONFIG_SECTION) &&
-        !e.affectsConfiguration(LAYOUT_MODE_CONFIG_SECTION)
+        !e.affectsConfiguration(NODE_SIZE_CONFIG_SECTION)
       ) return;
       void goalsPreview.refreshConfig();
       void dgcaPreview.refreshConfig();

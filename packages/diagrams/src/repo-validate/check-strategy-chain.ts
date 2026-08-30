@@ -5,7 +5,7 @@
 // can drop those Go functions without regressing the checks they enforce
 // today.
 //
-// Rule codes are DSM's own (`GOALS-010`, `ACT-006`..`009`, `DGCA-REPO-008`..`011`)
+// Rule codes are DSM's own (`GOALS-010`, `ACT-006`..`009`, `FGCA-008`..`011`)
 // — not invented here — so DSM can map a CLI finding straight back onto its
 // import-log taxonomy (`RepoFinding.ruleId`).
 //
@@ -48,23 +48,23 @@
 //   ACT-008   — ACTION `start_date`/`end_date` unparseable, or end before start.
 //   ACT-009   — ACTION numeric field (`duration`/`duration_days`, `labor_cost`,
 //               `resources_cost`, `effort`, `score`) is negative.
-//   DGCA-REPO-008  — GOAL.factors references an undefined DRIVER.
-//   DGCA-REPO-009  — CHANGE.goals references an undefined GOAL.
-//   DGCA-REPO-010  — ACTION.delivers_changes references an undefined CHANGE.
-//   DGCA-REPO-011  — ACTION.goals references an undefined GOAL.
+//   FGCA-008  — GOAL.factors references an undefined DRIVER.
+//   FGCA-009  — CHANGE.goals references an undefined GOAL.
+//   FGCA-010  — ACTION.delivers_changes references an undefined CHANGE.
+//   FGCA-011  — ACTION.goals references an undefined GOAL.
 //
 // Ported (warning-severity, advisory):
 //   GOALS-009 — GOAL.parent is set but does not resolve to a known GOAL (orphan).
 //   GOALS-011 — GOAL has no `parent` and `level` >= 1 (backlog).
 //   ACT-005   — ACTION.predecessors entry or ACTION.parent does not resolve
 //               to a known ACTION (orphan).
-//   DGCA-REPO-012  — a DRIVER is not referenced by any GOAL.factors or assessment chain (unreferenced).
-//   DGCA-REPO-013  — a GOAL is not referenced by any CHANGE.goals or ACTION.goals
+//   FGCA-012  — a DRIVER is not referenced by any GOAL.factors (unreferenced).
+//   FGCA-013  — a GOAL is not referenced by any CHANGE.goals or ACTION.goals
 //               (unreferenced).
-//   DGCA-REPO-014  — a CHANGE is not referenced by any ACTION.delivers_changes
+//   FGCA-014  — a CHANGE is not referenced by any ACTION.delivers_changes
 //               (unreferenced).
 
-import { docId, endpointId } from './validate-repo.js';
+import { docId } from './validate-repo.js';
 import type { RepoDoc, RepoFinding, RepoModelInput } from './types.js';
 
 const PScope: RepoFinding['scope'] = 'repo';
@@ -380,7 +380,7 @@ function checkActionNegativeNumbers(actions: ChainElement[], findings: RepoFindi
   }
 }
 
-/** DGCA-008..011 — inline strategy-chain cross-references must resolve within
+/** FGCA-008..011 — inline strategy-chain cross-references must resolve within
  *  the repo: GOAL.factors -> DRIVER, CHANGE.goals -> GOAL, ACTION.goals ->
  *  GOAL, ACTION.delivers_changes -> CHANGE (ELEMENT_PRIMITIVES.md §7.1-§7.4). */
 function checkStrategyChainReferences(
@@ -400,8 +400,8 @@ function checkStrategyChainReferences(
         findings.push({
           scope: PScope,
           id: g.id,
-          ruleId: 'DGCA-REPO-008',
-          message: `DGCA-REPO-008: goal '${g.id}' references undefined driver '${f}'.`,
+          ruleId: 'FGCA-008',
+          message: `FGCA-008: goal '${g.id}' references undefined driver '${f}'.`,
         });
       }
     }
@@ -412,8 +412,8 @@ function checkStrategyChainReferences(
         findings.push({
           scope: PScope,
           id: c.id,
-          ruleId: 'DGCA-REPO-009',
-          message: `DGCA-REPO-009: change '${c.id}' references undefined goal '${g}'.`,
+          ruleId: 'FGCA-009',
+          message: `FGCA-009: change '${c.id}' references undefined goal '${g}'.`,
         });
       }
     }
@@ -424,8 +424,8 @@ function checkStrategyChainReferences(
         findings.push({
           scope: PScope,
           id: a.id,
-          ruleId: 'DGCA-REPO-010',
-          message: `DGCA-REPO-010: action '${a.id}' references undefined change '${c}'.`,
+          ruleId: 'FGCA-010',
+          message: `FGCA-010: action '${a.id}' references undefined change '${c}'.`,
         });
       }
     }
@@ -434,15 +434,15 @@ function checkStrategyChainReferences(
         findings.push({
           scope: PScope,
           id: a.id,
-          ruleId: 'DGCA-REPO-011',
-          message: `DGCA-REPO-011: action '${a.id}' references undefined goal '${g}'.`,
+          ruleId: 'FGCA-011',
+          message: `FGCA-011: action '${a.id}' references undefined goal '${g}'.`,
         });
       }
     }
   }
 }
 
-/** DGCA-REPO-012..014 — a DRIVER/GOAL/CHANGE defined but never referenced
+/** FGCA-012..014 — a DRIVER/GOAL/CHANGE defined but never referenced
  *  downstream in the strategy chain is unreferenced (warning — advisory in
  *  DSM, mirroring the orphan-reference checks above). */
 function checkStrategyChainOrphans(
@@ -451,18 +451,23 @@ function checkStrategyChainOrphans(
   drivers: ChainElement[],
   changes: ChainElement[],
   findings: RepoFinding[],
-  allElements: RepoDoc[],
-  relations: RepoDoc[],
 ): void {
   const referencedDrivers = new Set<string>();
-
-  // Direct references: GOAL.factors
   for (const g of goals) {
     for (const f of readStringArray(g.data, 'factors')) referencedDrivers.add(f);
   }
+  for (const d of drivers) {
+    if (!referencedDrivers.has(d.id)) {
+      findings.push({
+        scope: PScope,
+        id: d.id,
+        ruleId: 'FGCA-012',
+        severity: 'warning',
+        message: `FGCA-012: driver '${d.id}' is not referenced by any goal.`,
+      });
+    }
+  }
 
-  // Indirect references through assessment chain: GOAL ← ASSESSMENT → DRIVER
-  // First, collect which goals are referenced by changes/actions
   const referencedGoals = new Set<string>();
   for (const c of changes) {
     for (const g of readStringArray(c.data, 'goals')) referencedGoals.add(g);
@@ -470,77 +475,14 @@ function checkStrategyChainOrphans(
   for (const a of actions) {
     for (const g of readStringArray(a.data, 'goals')) referencedGoals.add(g);
   }
-
-  // Build a map: assessmentId -> driverId (via assessment.assesses field)
-  const driverByAssessment = new Map<string, string>();
-  for (const doc of allElements) {
-    if (!doc.data) continue;
-    const notation = doc.data['notation'];
-    if (notation !== 'assessment') continue;
-    const assessmentId = docId(doc);
-    if (!assessmentId) continue;
-    const driverId = readString(doc.data, 'assesses');
-    if (driverId) {
-      driverByAssessment.set(assessmentId, driverId);
-    }
-  }
-
-  // For each referenced goal, find assessments that influence it via assessment_influences_goal relations
-  const assessmentsByGoal = new Map<string, Set<string>>();
-  for (const doc of relations) {
-    if (!doc.data) continue;
-    const relType = doc.data['type'];
-    if (relType !== 'assessment_influences_goal') continue;
-    const toId = endpointId(doc.data['to']) ?? endpointId(doc.data['target']);
-    const fromId = endpointId(doc.data['from']) ?? endpointId(doc.data['source']);
-    if (toId && fromId) {
-      if (!assessmentsByGoal.has(toId)) {
-        assessmentsByGoal.set(toId, new Set());
-      }
-      assessmentsByGoal.get(toId)!.add(fromId);
-    }
-  }
-
-  // For each referenced goal, collect drivers from assessments that influence it
-  for (const goalId of referencedGoals) {
-    const assessments = assessmentsByGoal.get(goalId);
-    if (assessments) {
-      for (const assessmentId of assessments) {
-        const driverId = driverByAssessment.get(assessmentId);
-        if (driverId) {
-          referencedDrivers.add(driverId);
-        }
-      }
-    }
-  }
-
-  for (const d of drivers) {
-    if (!referencedDrivers.has(d.id)) {
-      findings.push({
-        scope: PScope,
-        id: d.id,
-        ruleId: 'DGCA-REPO-012',
-        severity: 'warning',
-        message: `DGCA-REPO-012: driver '${d.id}' is not referenced by any goal.`,
-      });
-    }
-  }
-
-  const referencedGoals2 = new Set<string>();
-  for (const c of changes) {
-    for (const g of readStringArray(c.data, 'goals')) referencedGoals2.add(g);
-  }
-  for (const a of actions) {
-    for (const g of readStringArray(a.data, 'goals')) referencedGoals2.add(g);
-  }
   for (const g of goals) {
-    if (!referencedGoals2.has(g.id)) {
+    if (!referencedGoals.has(g.id)) {
       findings.push({
         scope: PScope,
         id: g.id,
-        ruleId: 'DGCA-REPO-013',
+        ruleId: 'FGCA-013',
         severity: 'warning',
-        message: `DGCA-REPO-013: goal '${g.id}' is not referenced by any change or action.`,
+        message: `FGCA-013: goal '${g.id}' is not referenced by any change or action.`,
       });
     }
   }
@@ -554,9 +496,9 @@ function checkStrategyChainOrphans(
       findings.push({
         scope: PScope,
         id: c.id,
-        ruleId: 'DGCA-REPO-014',
+        ruleId: 'FGCA-014',
         severity: 'warning',
-        message: `DGCA-REPO-014: change '${c.id}' is not referenced by any action.`,
+        message: `FGCA-014: change '${c.id}' is not referenced by any action.`,
       });
     }
   }
@@ -564,7 +506,7 @@ function checkStrategyChainOrphans(
 
 /**
  * Run the strategy-chain semantic checks (GOALS-009..011, ACT-005..009,
- * DGCA-REPO-008..014 except GOALS-008 — see the module header) over the loaded
+ * FGCA-008..014 except GOALS-008 — see the module header) over the loaded
  * element set and append findings. Called from `validateRepoModel` after the
  * structural phases. Pure, deterministic order.
  */
@@ -582,5 +524,5 @@ export function checkStrategyChainSemantics(input: RepoModelInput, findings: Rep
   checkActionDates(actions, findings);
   checkActionNegativeNumbers(actions, findings);
   checkStrategyChainReferences(goals, actions, drivers, changes, findings);
-  checkStrategyChainOrphans(goals, actions, drivers, changes, findings, input.elements, input.relations);
+  checkStrategyChainOrphans(goals, actions, drivers, changes, findings);
 }

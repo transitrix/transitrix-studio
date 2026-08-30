@@ -1,0 +1,56 @@
+name: Check Gradle wrapper integrity
+
+on:
+  pull_request:
+    paths:
+      - 'intellij/gradle/wrapper/gradle-wrapper.properties'
+  push:
+    paths:
+      - 'intellij/gradle/wrapper/gradle-wrapper.properties'
+
+jobs:
+  check-wrapper:
+    runs-on: ubuntu-latest
+    name: Verify Gradle wrapper configuration
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check gradle-wrapper.properties has required fields
+        shell: bash
+        run: |
+          wrapper_file="intellij/gradle/wrapper/gradle-wrapper.properties"
+
+          if [ ! -f "$wrapper_file" ]; then
+            echo "ERROR: $wrapper_file not found"
+            exit 1
+          fi
+
+          # Check that distributionUrl is present and uses services.gradle.org
+          if ! grep -q "^distributionUrl=https" "$wrapper_file"; then
+            echo "ERROR: Missing or invalid distributionUrl in $wrapper_file"
+            exit 1
+          fi
+
+          if ! grep -q "services\.gradle\.org" "$wrapper_file"; then
+            echo "ERROR: distributionUrl does not use services.gradle.org (possible supply chain change)"
+            exit 1
+          fi
+
+          # Check that distributionSha256Sum is present
+          if ! grep -q "^distributionSha256Sum=" "$wrapper_file"; then
+            echo "ERROR: Missing distributionSha256Sum in $wrapper_file"
+            echo "This field is required to verify Gradle distribution integrity."
+            exit 1
+          fi
+
+          # Verify SHA256 is a valid hex string
+          sha=$(grep "^distributionSha256Sum=" "$wrapper_file" | cut -d= -f2)
+          if ! [[ "$sha" =~ ^[a-f0-9]{64}$ ]]; then
+            echo "ERROR: distributionSha256Sum is not a valid SHA256 hex string: $sha"
+            exit 1
+          fi
+
+          echo "✓ Gradle wrapper configuration is valid:"
+          cat "$wrapper_file" | grep -E "^distribution|^zipStore"

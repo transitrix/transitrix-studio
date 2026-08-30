@@ -32,7 +32,7 @@ runtime. It scans `<root>/canon/elements/**` (elements) and
 
 Repo-scope checks (parity reference: the `acme_corp` worked example, which
 passes with zero **error**-severity findings from the checks below — it does
-carry `GOALS-011`/`DGCA-REPO-013` **warnings** from the strategy-chain rules
+carry `GOALS-011`/`FGCA-013` **warnings** from the strategy-chain rules
 described below, plus pre-existing findings from the separate compliance
 suite, see below):
 
@@ -50,15 +50,15 @@ suite, see below):
   warning). lint.py ships this phase as a no-op stub; Studio is ahead of the
   Python tool here — these findings are TypeScript-only.
 - **Strategy-chain semantics** (`GOALS-009`..`011`, `ACT-005`..`009`,
-  `DGCA-REPO-008`..`014`) — see below.
+  `FGCA-008`..`014`) — see below.
 - **Standalone-element envelope hygiene** (`GOAL-ELEM-002`/`003`,
   `ACTION-001`/`002`/`005`) — see below.
 - **Doc-level grammar** (`GOALS-001`..`007`, `ACT-001`..`003`/`016`/`021`,
-  `DGCA-001`..`007`/`015`) — each notation's own per-file validator, surfaced
+  `FGCA-001`..`007`/`015`) — each notation's own per-file validator, surfaced
   under the `views` array (not `canon`) when the document lives under
   `canon/views/**` — see below.
 
-### Strategy-chain semantic rules (`GOALS-*` / `ACT-*` / `DGCA-*`)
+### Strategy-chain semantic rules (`GOALS-*` / `ACT-*` / `FGCA-*`)
 
 Ported from DSM's Go `Validate*` functions (`api02/internal/importer/
 {goals,activities,fgca}.go` in `transitrix-dsm`) onto the standalone-element
@@ -80,13 +80,13 @@ DSM's own `Issue.Severity` classification for that rule.
 | `ACT-007` | error | An ACTION element lists itself in its own `predecessors`. |
 | `ACT-008` | error | An ACTION element's `start_date`/`end_date` is not a valid `YYYY-MM-DD` date, or `end_date` is before `start_date` (equal is allowed — e.g. a milestone). |
 | `ACT-009` | error | An ACTION element's `duration` (or the `duration_days` alias), `labor_cost`, `resources_cost`, `effort`, or `score` is negative. |
-| `DGCA-REPO-008` | error | A GOAL's `factors` references a DRIVER id that does not resolve to a DRIVER element. |
-| `DGCA-REPO-009` | error | A CHANGE's `goals` references a GOAL id that does not resolve to a GOAL element. |
-| `DGCA-REPO-010` | error | An ACTION's `delivers_changes` references a CHANGE id that does not resolve to a CHANGE element. |
-| `DGCA-REPO-011` | error | AN ACTION's `goals` references a GOAL id that does not resolve to a GOAL element. |
-| `DGCA-REPO-012` | warning | A DRIVER is not referenced by any GOAL's `factors` (unreferenced). |
-| `DGCA-REPO-013` | warning | A GOAL is not referenced by any CHANGE's or ACTION's `goals` (unreferenced). |
-| `DGCA-REPO-014` | warning | A CHANGE is not referenced by any ACTION's `delivers_changes` (unreferenced). |
+| `FGCA-008` | error | A GOAL's `factors` references a DRIVER id that does not resolve to a DRIVER element. |
+| `FGCA-009` | error | A CHANGE's `goals` references a GOAL id that does not resolve to a GOAL element. |
+| `FGCA-010` | error | An ACTION's `delivers_changes` references a CHANGE id that does not resolve to a CHANGE element. |
+| `FGCA-011` | error | An ACTION's `goals` references a GOAL id that does not resolve to a GOAL element. |
+| `FGCA-012` | warning | A DRIVER is not referenced by any GOAL's `factors` (unreferenced). |
+| `FGCA-013` | warning | A GOAL is not referenced by any CHANGE's or ACTION's `goals` (unreferenced). |
+| `FGCA-014` | warning | A CHANGE is not referenced by any ACTION's `delivers_changes` (unreferenced). |
 
 **`GOALS-008` is the one DSM rule still not ported, at either severity.** Both
 of its cases ("type not declared in `goal_types`" and "level doesn't match
@@ -114,11 +114,11 @@ legitimately omit it. `organizations/acme_corp`'s own `GOAL-CUST-1`/
 `GOAL-OPS-1`/`GOAL-EU-1` are exactly this shape (level 1, no `parent` on the
 element) and do surface `GOALS-011` warnings. That is accepted, not a defect:
 warnings are advisory and non-blocking, unlike the error tier this repo held
-the line on when these rules were first scoped. Similarly, `DGCA-REPO-012`..`014`
+the line on when these rules were first scoped. Similarly, `FGCA-012`..`014`
 read only the inline `factors`/`goals`/`delivers_changes` arrays (the same
-fields `DGCA-REPO-008`..`011` already read) — a repo wiring the strategy chain
+fields `FGCA-008`..`011` already read) — a repo wiring the strategy chain
 through `REL` files instead (e.g. `action_goal`, per `elements/24-action.md`
-§3) will see `DGCA-REPO-013`/`014` warnings on elements that are, in fact, wired
+§3) will see `FGCA-013`/`014` warnings on elements that are, in fact, wired
 via a relation this validator doesn't yet cross-reference. This is a known
 gap shared with the pre-existing error-tier rules, not a regression
 introduced by the warning tier.
@@ -159,7 +159,7 @@ scope a follow-up once the repo-scope model gains path-aware typing.
 generically by `checkIdUniqueness` above, which spans every canon
 element/relation id, not just GOAL/ACTION.
 
-### Doc-level grammar rules (`GOALS-*` / `ACT-*` / `DGCA-*`), via the views sweep
+### Doc-level grammar rules (`GOALS-*` / `ACT-*` / `FGCA-*`), via the views sweep
 
 DSM's remaining `Validate*` doc-level grammar checks — id/name presence,
 required-field shape, per-layer id uniqueness, cross-reference grammar — need
@@ -187,8 +187,8 @@ in.
 | `ACT-001`..`003` | `action` | Document/`notation` shape, activity entry id/name presence. |
 | `ACT-016` | `action` | A milestone (`duration` 0) with both `start_date`/`end_date` pinned must have them equal. |
 | `ACT-021` | `action` | `view_config.scope.root_action` is set and resolves, and an ACTION the view would otherwise include is not that root and not reachable from it via `parent`. Warning; the ACTION is omitted from the render. Distinct from `ACT-004` (duplicate id in this validator). |
-| `DGCA-001`..`007` | `dgca` | Document shape, per-layer entry grammar, cross-reference array grammar. |
-| `DGCA-015` | `dgca` | `factors[].references_constraint` is an array of valid ids. |
+| `FGCA-001`..`007` | `dgca` | Document shape, per-layer entry grammar, cross-reference array grammar. |
+| `FGCA-015` | `dgca` | `factors[].references_constraint` is an array of valid ids. |
 
 ### Document sources (`.ttrs`) — extension, placement, kind (`HDR-003` / `TTRS-013`)
 

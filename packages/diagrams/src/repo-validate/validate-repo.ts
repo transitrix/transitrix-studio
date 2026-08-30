@@ -428,7 +428,7 @@ export function validateRepoModel(input: RepoModelInput): RepoFinding[] {
   checkProcessParentSemantics(input, findings);
   checkPolicy(input, findings);
   // Phase 7 — strategy-chain semantic rules ported from DSM's Go Validate*
-  // functions (GOALS-010, ACT-006..009, DGCA-008..014).
+  // functions (GOALS-010, ACT-006..009, FGCA-008..011).
   checkStrategyChainSemantics(input, findings);
   // Phase 8 — standalone-element envelope rules ported from DSM's Go
   // Validate*Element functions (GOAL-ELEM-001..003, ACTION-001/002/005).

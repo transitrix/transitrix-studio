@@ -4,8 +4,6 @@
 
 ### Changed
 
-- **Repo-scope strategy-chain rule codes adopt scope prefix `DGCA-REPO-008..014`.** Previously the same codes as per-file DGCA rules, now distinguished with the `REPO` scope. Old `FGCA-008..014` codes remain accepted as deprecated aliases until version 5.0.0 for backwards compatibility. Validation output and `docs/validation.md` reference the new codes; the semantic checks are unchanged. (transitrix-hq#409)
-- **Published CLI emits `DGCA-012`/`DGCA-013` instead of retired `FGCA-012`/`FGCA-013` codes.** Per-file DGCA validator codes align with methodology's vocabulary. The driver-reference check now walks the assessment chain (`assessment_influences_goal` relations) in addition to inline `factors`, so a driver linked via an assessment that influences a referenced goal is no longer reported as unreferenced. (#378)
 - **Listing demonstration transitions to Goals tree.** The recording scenario and fixture now demonstrate a Goals tree with a child goal being added, showing the live preview updating when the YAML is saved. This replaces the prior Blocks demonstration. The GIF itself (`extension/docs/listing.gif`) is ready to be recorded with the updated scenario and fixture. (transitrix-hq#330)
 
 ## [3.5.0] — 2026-08-27

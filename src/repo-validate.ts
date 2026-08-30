@@ -1122,31 +1122,10 @@ export function reportRepoFindings(
           scope: 'repo',
           root,
           valid,
-          findings: {
-            errors: canonErrors,
-            warnings: canonWarnings,
-          },
-          views: {
-            valid: viewErrors.length === 0,
-            findings: {
-              errors: viewErrors,
-              warnings: viewWarnings,
-            },
-          },
-          codex: {
-            valid: codexErrors.length === 0,
-            findings: {
-              errors: codexErrors,
-              warnings: codexWarnings,
-            },
-          },
-          compliance: {
-            valid: complianceErrors.length === 0,
-            findings: {
-              errors: complianceErrors,
-              warnings: complianceWarnings,
-            },
-          },
+          findings: canon,
+          views: { valid: viewErrors.length === 0, findings: views },
+          codex: { valid: codexErrors.length === 0, findings: codex },
+          compliance: { valid: complianceErrors.length === 0, findings: compliance },
           linkSuspicion,
           skipped,
           ...(model ? { model } : {}),
@@ -1158,13 +1137,7 @@ export function reportRepoFindings(
     return;
   }
 
-  const hasWarnings =
-    canonWarnings.length > 0
-    || viewWarnings.length > 0
-    || codexWarnings.length > 0
-    || complianceWarnings.length > 0;
-
-  if (valid && skipped.length === 0 && linkSuspicion.length === 0 && !hasWarnings) {
+  if (valid && skipped.length === 0 && linkSuspicion.length === 0) {
     console.log(`✓ ${root} — repo-scope validation passed`);
     if (model) {
       console.log(`  Resolved model: ${model.elements.length} element(s), ${model.relations.length} relation(s)`);
@@ -1188,7 +1161,7 @@ export function reportRepoFindings(
   }
 
   if (views.length > 0) {
-    console.log('Views (views/):');
+    console.log('Views (canon/views):');
     let currentFile = '';
     for (const v of views) {
       if (v.file !== currentFile) {
