@@ -32,6 +32,7 @@ export interface FGCAPreviewActivity {
   id: number | string;
   name: string;
   goal_id?: number | string | null;
+  type?: string;
 }
 
 /** Structural input the preview layout needs — a subset of the parsed DGCA/DGA doc. */
@@ -104,6 +105,7 @@ export interface FGCAPreviewNode {
   y: number;
   label: string;
   col: FGCAPreviewColumn;
+  type?: string;
 }
 export interface FGCAPreviewEdge {
   sx: number;
@@ -154,11 +156,11 @@ export function layoutFGCAPreview(
     ? ['driver', 'goal', 'activity']
     : ['driver', 'goal', 'change', 'activity'];
   const changes = doc.changes ?? [];
-  const colItems: Record<FGCAPreviewColumn, Array<{ id: string; label: string }>> = {
+  const colItems: Record<FGCAPreviewColumn, Array<{ id: string; label: string; type?: string }>> = {
     driver:   doc.factors.map(f => ({ id: `driver_${f.id}`,     label: f.name })),
     goal:     doc.goals.map(g   => ({ id: `goal_${g.id}`,       label: g.name })),
     change:   changes.map(c     => ({ id: `change_${c.id}`,     label: c.name })),
-    activity: doc.activities.map(a => ({ id: `activity_${a.id}`, label: a.name })),
+    activity: doc.activities.map(a => ({ id: `activity_${a.id}`, label: a.name, type: a.type })),
   };
 
   // Build predecessor map: for each node, which node IDs in the previous column
@@ -198,9 +200,9 @@ export function layoutFGCAPreview(
   // Nodes with no predecessors sort last (Infinity barycenter) so they don't
   // displace connected nodes.
   function barycentricSort(
-    items: Array<{ id: string; label: string }>,
+    items: Array<{ id: string; label: string; type?: string }>,
     yCenters: Map<string, number>,
-  ): Array<{ id: string; label: string }> {
+  ): Array<{ id: string; label: string; type?: string }> {
     return [...items].sort((a, b) => {
       const pA = (predecessors.get(a.id) ?? []).map(p => yCenters.get(p) ?? 0).filter(v => v > 0);
       const pB = (predecessors.get(b.id) ?? []).map(p => yCenters.get(p) ?? 0).filter(v => v > 0);
@@ -222,7 +224,7 @@ export function layoutFGCAPreview(
     const items = ci === 0 ? colItems[col] : barycentricSort(colItems[col], yCenters);
     let y = FGCA_PAD + FGCA_HEADER_H + rowGap;
     for (const item of items) {
-      const node: FGCAPreviewNode = { id: item.id, x, y, label: item.label, col };
+      const node: FGCAPreviewNode = { id: item.id, x, y, label: item.label, col, type: item.type };
       nodes.push(node);
       nodeMap.set(item.id, node);
       yCenters.set(item.id, y + nodeHeight / 2);
