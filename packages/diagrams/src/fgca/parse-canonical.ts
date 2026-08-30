@@ -1,15 +1,15 @@
 /**
- * Canonical-form FGCA parser + validator.
+ * Canonical-form DGCA parser + validator.
  *
- * Accepts the methodology's canonical FGCA YAML shape (see
- * `transitrix/methodology` `notations/02-fgca.md`):
+ * Accepts the methodology's canonical DGCA YAML shape (see
+ * `transitrix/methodology` `notations/02-dgca.md`):
  *
- * - Flat top-level arrays, no `fgca:` wrapper.
+ * - Flat top-level arrays, no `dgca:` wrapper.
  * - Typed string IDs per `IDS_AND_REFERENCES.md` (`FACTOR-1`,
  *   `GOAL-RET-1`, `CHANGE-1`, `ACTION-ONBOARD-1` (legacy `ACTIVITY-*` accepted).
  * - Plural canonical-direction cross-references: `goal.factors`,
  *   `change.goals`, `action.delivers_changes`, `action.goals`.
- * - Per-notation validation codes `FGCA-001 … FGCA-015`.
+ * - Per-notation validation codes `DGCA-001 … DGCA-015`.
  *
  * Returns the validation result plus, on success, an internal `FGCADoc`
  * representation built from the canonical input — string IDs are kept
@@ -22,6 +22,10 @@
  * singular cross-refs) can stay where they are. A follow-up task can
  * unify the internal types with the canonical form across all sister
  * modules.
+ *
+ * Legacy FGCA-* codes are accepted as aliases on input for backwards
+ * compatibility until version 5.0.0. New consumers should validate
+ * against DGCA-* codes derived from `notations/vocabulary.yaml`.
  */
 
 import type {
@@ -77,7 +81,7 @@ export function isDgcaChangesLayerOff(input: unknown): boolean {
 
 
 /**
- * Validate canonical FGCA YAML and, on success, return an internal-form
+ * Validate canonical DGCA YAML and, on success, return an internal-form
  * `FGCADoc` ready for `buildFGCALayout`.
  */
 export function parseCanonicalFGCA(input: unknown): CanonicalFGCAResult {
@@ -87,7 +91,7 @@ export function parseCanonicalFGCA(input: unknown): CanonicalFGCAResult {
   if (!input || typeof input !== 'object') {
     return {
       valid: false,
-      errors: [{ code: 'FGCA-001', message: 'document root is not an object' }],
+      errors: [{ code: 'DGCA-001', message: 'document root is not an object' }],
       warnings,
     };
   }
@@ -99,7 +103,7 @@ export function parseCanonicalFGCA(input: unknown): CanonicalFGCAResult {
       valid: false,
       errors: [
         {
-          code: 'FGCA-001',
+          code: 'DGCA-001',
           message: `notation must be "dgca", got "${String(raw['notation'])}"`,
         },
       ],
@@ -107,21 +111,21 @@ export function parseCanonicalFGCA(input: unknown): CanonicalFGCAResult {
     };
   }
 
-  // FGCA-002 — document id (optional in v1.4 per the canonical spec? — spec
-  // says required; absence is FGCA-002).
+  // DGCA-002 — document id (optional in v1.4 per the canonical spec? — spec
+  // says required; absence is DGCA-002).
   if (raw['id'] !== undefined) {
     if (!isNonEmptyString(raw['id']) || !FGCA_DOC_ID_RE.test(raw['id'])) {
       errors.push({
-        code: 'FGCA-002',
-        message: `id "${String(raw['id'])}" must match FGCA-[<middle>-]<INTEGER>`,
+        code: 'DGCA-002',
+        message: `id "${String(raw['id'])}" must match DGCA-[<middle>-]<INTEGER>`,
       });
     }
   } else {
-    errors.push({ code: 'FGCA-002', message: 'document id is required' });
+    errors.push({ code: 'DGCA-002', message: 'document id is required' });
   }
 
   if (!isNonEmptyString(raw['name'])) {
-    errors.push({ code: 'FGCA-003', message: 'name is required' });
+    errors.push({ code: 'DGCA-003', message: 'name is required' });
   }
 
   const factorsRaw = asObjectArray(raw['factors']);
@@ -132,7 +136,7 @@ export function parseCanonicalFGCA(input: unknown): CanonicalFGCAResult {
   }
   const activitiesRaw = asObjectArray(raw['actions']);
   if (activitiesRaw === null && 'activities' in raw) {
-    // DSM's Go ValidateFGCA (fgca.go) still accepts this as the deprecated
+    // DSM's Go ValidateDGCA (dgca.go) still accepts this as the deprecated
     // "activities" key and promotes it with a DGCA-DEPR warning, not an
     // error. Deliberately NOT matched here — PR #320 ("drop deprecated
     // notation aliases fgca/fga/activities/activity-card") already removed
@@ -140,13 +144,13 @@ export function parseCanonicalFGCA(input: unknown): CanonicalFGCAResult {
     // DGCA-DEPR would reverse a deliberate, shipped decision, not fill a
     // gap; see docs/validation.md's "Standalone-element envelope rules"
     // section for the full note.
-    errors.push({ code: 'FGCA-004', message: '"activities" key is not accepted — rename to "actions"', path: 'actions' });
+    errors.push({ code: 'DGCA-004', message: '"activities" key is not accepted — rename to "actions"', path: 'actions' });
   }
 
-  if (factorsRaw === null) errors.push({ code: 'FGCA-004', message: 'factors must be an array', path: 'factors' });
-  if (goalsRaw === null) errors.push({ code: 'FGCA-004', message: 'goals must be an array', path: 'goals' });
-  if (changesRaw === null) errors.push({ code: 'FGCA-004', message: 'changes must be an array', path: 'changes' });
-  if (activitiesRaw === null) errors.push({ code: 'FGCA-004', message: 'actions must be an array', path: 'actions' });
+  if (factorsRaw === null) errors.push({ code: 'DGCA-004', message: 'factors must be an array', path: 'factors' });
+  if (goalsRaw === null) errors.push({ code: 'DGCA-004', message: 'goals must be an array', path: 'goals' });
+  if (changesRaw === null) errors.push({ code: 'DGCA-004', message: 'changes must be an array', path: 'changes' });
+  if (activitiesRaw === null) errors.push({ code: 'DGCA-004', message: 'actions must be an array', path: 'actions' });
 
   if (errors.length > 0) return { valid: false, errors, warnings };
 
@@ -156,7 +160,7 @@ export function parseCanonicalFGCA(input: unknown): CanonicalFGCAResult {
   const changes = changesRaw!;
   const activities = activitiesRaw!;
 
-  // Per-layer ID maps + duplicate detection. (FGCA-006: unique within a layer.)
+  // Per-layer ID maps + duplicate detection. (DGCA-006: unique within a layer.)
   const factorIds = new Set<string>();
   const goalIds = new Set<string>();
   const changeIds = new Set<string>();
@@ -169,28 +173,28 @@ export function parseCanonicalFGCA(input: unknown): CanonicalFGCAResult {
     seen: Set<string>,
   ): { id: string; name: string } | null {
     if (!el) {
-      errors.push({ code: 'FGCA-005', message: `${path} must be an object`, path });
+      errors.push({ code: 'DGCA-005', message: `${path} must be an object`, path });
       return null;
     }
     const id = el['id'];
     const name = el['name'];
     if (!isNonEmptyString(id)) {
-      errors.push({ code: 'FGCA-005', message: `${path}.id is required`, path });
+      errors.push({ code: 'DGCA-005', message: `${path}.id is required`, path });
       return null;
     }
     if (!isNonEmptyString(name)) {
-      errors.push({ code: 'FGCA-005', message: `${path}.name is required`, path });
+      errors.push({ code: 'DGCA-005', message: `${path}.name is required`, path });
     }
     if (!idRe.test(id)) {
       errors.push({
-        code: 'FGCA-007',
+        code: 'DGCA-007',
         message: `${path}.id "${id}" does not match the canonical grammar for its layer`,
         path,
       });
       return null;
     }
     if (seen.has(id)) {
-      errors.push({ code: 'FGCA-006', message: `Duplicate id "${id}"`, path });
+      errors.push({ code: 'DGCA-006', message: `Duplicate id "${id}"`, path });
     } else {
       seen.add(id);
     }
@@ -216,17 +220,17 @@ export function parseCanonicalFGCA(input: unknown): CanonicalFGCAResult {
     const ref = el[field];
     if (ref === undefined || ref === null) return [];
     if (!Array.isArray(ref)) {
-      errors.push({ code: 'FGCA-007', message: `${path}.${field} must be an array of IDs`, path });
+      errors.push({ code: 'DGCA-007', message: `${path}.${field} must be an array of IDs`, path });
       return [];
     }
     const out: string[] = [];
     for (const r of ref) {
       if (!isNonEmptyString(r)) {
-        errors.push({ code: 'FGCA-007', message: `${path}.${field}[] entries must be non-empty strings`, path });
+        errors.push({ code: 'DGCA-007', message: `${path}.${field}[] entries must be non-empty strings`, path });
         continue;
       }
       if (!refRe.test(r)) {
-        errors.push({ code: 'FGCA-007', message: `${path}.${field}[] entry "${r}" does not match the expected grammar`, path });
+        errors.push({ code: 'DGCA-007', message: `${path}.${field}[] entry "${r}" does not match the expected grammar`, path });
         continue;
       }
       if (!targets.has(r)) {
@@ -247,7 +251,7 @@ export function parseCanonicalFGCA(input: unknown): CanonicalFGCAResult {
   }));
 
   const internalGoals: GoalItem[] = goals.map((el, i) => {
-    const refIds = checkRefArray(el!, 'factors', factorIds, FACTOR_OR_DRIVER_ID_RE, 'FGCA-008', `goals[${i}]`);
+    const refIds = checkRefArray(el!, 'factors', factorIds, FACTOR_OR_DRIVER_ID_RE, 'DGCA-008', `goals[${i}]`);
     return {
       id: String(el!['id']),
       name: String(el!['name'] ?? ''),
@@ -260,7 +264,7 @@ export function parseCanonicalFGCA(input: unknown): CanonicalFGCAResult {
   const activityChangesByCanonicalActivityId = new Map<string, string[]>();
   activities.forEach((el, i) => {
     const field = actionChangeLinkField(el!);
-    const refIds = checkRefArray(el!, field, changeIds, CHANGE_ID_RE, 'FGCA-010', `activities[${i}]`);
+    const refIds = checkRefArray(el!, field, changeIds, CHANGE_ID_RE, 'DGCA-010', `activities[${i}]`);
     activityChangesByCanonicalActivityId.set(String(el!['id']), refIds);
   });
 
@@ -275,12 +279,12 @@ export function parseCanonicalFGCA(input: unknown): CanonicalFGCAResult {
   }
 
   const internalChanges: BdnChangeWithActivities[] = changes.map((el, i) => {
-    const goalRefs = checkRefArray(el!, 'goals', goalIds, GOAL_ID_RE, 'FGCA-009', `changes[${i}]`);
+    const goalRefs = checkRefArray(el!, 'goals', goalIds, GOAL_ID_RE, 'DGCA-009', `changes[${i}]`);
     // Internal `change.goal_id` is singular; canonical `change.goals` is plural.
     // First goal wins for the singular field; warn (not error) if multiple.
     if (goalRefs.length > 1) {
       warnings.push({
-        code: 'FGCA-009',
+        code: 'DGCA-009',
         message: `changes[${i}].goals lists ${goalRefs.length} goals; the internal layout uses the first one (${goalRefs[0]}). Multi-goal changes are not lossy for the canonical spec — only the layout linearises them.`,
         path: `changes[${i}].goals`,
       });
@@ -296,7 +300,7 @@ export function parseCanonicalFGCA(input: unknown): CanonicalFGCAResult {
   });
 
   const internalActivities: ActivityItem[] = activities.map((el, i) => {
-    const goalRefs = checkRefArray(el!, 'goals', goalIds, GOAL_ID_RE, 'FGCA-011', `actions[${i}]`);
+    const goalRefs = checkRefArray(el!, 'goals', goalIds, GOAL_ID_RE, 'DGCA-011', `actions[${i}]`);
     const typeVal = typeof el!['type'] === 'string' ? el!['type'] : undefined;
     return {
       id: String(el!['id']),
@@ -306,18 +310,18 @@ export function parseCanonicalFGCA(input: unknown): CanonicalFGCAResult {
     };
   });
 
-  // FACTOR.references_constraint grammar check (FGCA-015).
+  // FACTOR.references_constraint grammar check (DGCA-015).
   factors.forEach((el, i) => {
     const rc = el!['references_constraint'];
     if (rc === undefined || rc === null) return;
     if (!Array.isArray(rc)) {
-      errors.push({ code: 'FGCA-015', message: `factors[${i}].references_constraint must be an array of IDs`, path: `factors[${i}].references_constraint` });
+      errors.push({ code: 'DGCA-015', message: `factors[${i}].references_constraint must be an array of IDs`, path: `factors[${i}].references_constraint` });
       return;
     }
     for (const r of rc) {
       if (typeof r !== 'string' || !CONSTRAINT_ID_RE.test(r)) {
         errors.push({
-          code: 'FGCA-015',
+          code: 'DGCA-015',
           message: `factors[${i}].references_constraint[] entry "${String(r)}" must match CONSTRAINT-[<middle>-]<INTEGER>`,
           path: `factors[${i}].references_constraint`,
         });
@@ -350,11 +354,11 @@ export interface CanonicalFGAResult extends ValidationResult {
 /**
  * Canonical-form FGA parser + validator.
  *
- * FGA is the canonical FGCA chain minus the `changes[]` layer — flat
+ * FGA is the canonical DGCA chain minus the `changes[]` layer — flat
  * top-level `factors[]` + `goals[]` + `activities[]`, with `activity.goals[]`
  * linking activities straight to goals (no intermediate change). It reuses
  * `parseCanonicalFGCA` by injecting an empty `changes` array and remapping
- * the FGCA-NNN codes to the FGA-NNN registry (`notations/03-fga.md`,
+ * the DGCA-NNN codes to the FGA-NNN registry (`notations/03-fga.md`,
  * FGA-001..011). The resulting internal `FGCADoc` carries `activity.goal_id`,
  * which is exactly what the renderer needs to draw goal → activity edges —
  * the field whose absence produced the "FGA nodes render, no edges" bug
@@ -387,24 +391,24 @@ export function parseCanonicalFGA(input: unknown): CanonicalFGAResult {
     };
   }
 
-  // Forward to the FGCA parser with synthetic FGCA notation + doc id + empty
-  // changes. Per-layer / per-ref checks all reuse the FGCA implementation;
-  // codes are remapped on the way out. FGCA-009 / 010 / 014 (changes-related)
+  // Forward to the DGCA parser with synthetic DGCA notation + doc id + empty
+  // changes. Per-layer / per-ref checks all reuse the DGCA implementation;
+  // codes are remapped on the way out. DGCA-009 / 010 / 014 (changes-related)
   // are unreachable here because `changes` is empty.
   const synth = { ...raw, notation: 'dgca', id: 'DGCA-FROM-DGA-1', changes: [] };
   const r = parseCanonicalFGCA(synth);
   const remap: Record<string, string> = {
-    'FGCA-001': 'FGA-001',
-    'FGCA-002': 'FGA-002',
-    'FGCA-003': 'FGA-003',
-    'FGCA-004': 'FGA-004',
-    'FGCA-005': 'FGA-005',
-    'FGCA-006': 'FGA-006',
-    'FGCA-007': 'FGA-007',
-    'FGCA-008': 'FGA-008',
-    'FGCA-011': 'FGA-009',
-    'FGCA-012': 'FGA-010',
-    'FGCA-015': 'FGA-007',
+    'DGCA-001': 'FGA-001',
+    'DGCA-002': 'FGA-002',
+    'DGCA-003': 'FGA-003',
+    'DGCA-004': 'FGA-004',
+    'DGCA-005': 'FGA-005',
+    'DGCA-006': 'FGA-006',
+    'DGCA-007': 'FGA-007',
+    'DGCA-008': 'FGA-008',
+    'DGCA-011': 'FGA-009',
+    'DGCA-012': 'FGA-010',
+    'DGCA-015': 'FGA-007',
   };
   const remapCode = (c: string): string => remap[c] ?? c;
   return {
