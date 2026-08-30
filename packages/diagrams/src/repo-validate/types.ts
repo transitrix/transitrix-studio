@@ -42,7 +42,7 @@ export interface RepoFinding {
   /** Human-readable description of the violation. */
   message: string;
   /**
-   * Stable rule code (e.g. `GOALS-010`, `ACT-006`, `DGCA-012`), for a consumer
+   * Stable rule code (e.g. `GOALS-010`, `ACT-006`, `DGCA-REPO-012`), for a consumer
    * that maps findings onto its own rule taxonomy (`docs/validation.md`).
    * Omitted for checks that don't yet have one.
    */
@@ -54,6 +54,13 @@ export interface RepoFinding {
    * `'warning'` today (`docs/validation.md` § repo-scope rule list).
    */
   severity?: 'error' | 'warning';
+  /**
+   * Deprecated aliases for the `ruleId`, if any. Used for backward compatibility
+   * when a rule code is renamed. E.g., `DGCA-REPO-012` has alias `FGCA-012`.
+   * Removed in a major version (the removal release is listed in the methodology
+   * vocabulary under `deprecated_rule_codes`).
+   */
+  aliases?: string[];
 }
 
 /** A parsed canon document fed to the repo validator. IO (the filesystem walk)

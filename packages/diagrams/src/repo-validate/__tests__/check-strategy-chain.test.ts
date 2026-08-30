@@ -35,8 +35,8 @@ describe('checkStrategyChainSemantics — GOALS-010 (parent cycle)', () => {
     expect(errors).toHaveLength(1);
     expect(errors[0]).toMatchObject({ scope: 'repo', ruleId: 'GOALS-010' });
     expect(errors[0].message).toContain('cycle');
-    // Both goals are unreferenced by any change/action — DGCA-013 warnings.
-    expect(findings.filter((f) => f.ruleId === 'DGCA-013')).toHaveLength(2);
+    // Both goals are unreferenced by any change/action — DGCA-REPO-013 warnings.
+    expect(findings.filter((f) => f.ruleId === 'DGCA-REPO-013')).toHaveLength(2);
   });
 
   it('does not flag an acyclic parent chain (beyond the expected unreferenced-goal warnings)', () => {
@@ -44,7 +44,7 @@ describe('checkStrategyChainSemantics — GOALS-010 (parent cycle)', () => {
     model.elements.push(goal('GOAL-ROOT-1'), goal('GOAL-CHILD-1', { parent: 'GOAL-ROOT-1' }));
     const findings = validateRepoModel(model);
     expect(findings.filter((f) => f.severity !== 'warning')).toEqual([]);
-    expect(findings.every((f) => f.ruleId === 'DGCA-013')).toBe(true);
+    expect(findings.every((f) => f.ruleId === 'DGCA-REPO-013')).toBe(true);
   });
 
   it('flags GOALS-009 for a goal whose parent is unresolved (orphan, not a cycle — warning)', () => {
@@ -203,15 +203,15 @@ describe('checkStrategyChainSemantics — ACT-009 (negative numeric fields)', ()
   });
 });
 
-describe('checkStrategyChainSemantics — DGCA-008..011 (strategy-chain cross-references)', () => {
-  it('flags GOAL.factors referencing an undefined driver (DGCA-008)', () => {
+describe('checkStrategyChainSemantics — DGCA-REPO-008..011 (strategy-chain cross-references)', () => {
+  it('flags GOAL.factors referencing an undefined driver (DGCA-REPO-008)', () => {
     const model = emptyModel();
     model.elements.push(goal('GOAL-A-1', { factors: ['DRIVER-MISSING'] }));
     const findings = validateRepoModel(model);
     const errors = findings.filter((f) => f.severity !== 'warning');
-    expect(errors).toEqual([expect.objectContaining({ id: 'GOAL-A-1', ruleId: 'DGCA-008' })]);
-    // GOAL-A is also unreferenced by any change/action — DGCA-013 warning.
-    expect(findings.filter((f) => f.ruleId === 'DGCA-013')).toHaveLength(1);
+    expect(errors).toEqual([expect.objectContaining({ id: 'GOAL-A-1', ruleId: 'DGCA-REPO-008', aliases: ['FGCA-008'] })]);
+    // GOAL-A is also unreferenced by any change/action — DGCA-REPO-013 warning.
+    expect(findings.filter((f) => f.ruleId === 'DGCA-REPO-013')).toHaveLength(1);
   });
 
   it('accepts GOAL.factors that resolve to a driver (beyond the expected unreferenced-goal warning)', () => {
@@ -220,7 +220,7 @@ describe('checkStrategyChainSemantics — DGCA-008..011 (strategy-chain cross-re
     const findings = validateRepoModel(model);
     expect(findings.filter((f) => f.severity !== 'warning')).toEqual([]);
     expect(findings).toEqual([
-      expect.objectContaining({ id: 'GOAL-A-1', ruleId: 'DGCA-013', severity: 'warning' }),
+      expect.objectContaining({ id: 'GOAL-A-1', ruleId: 'DGCA-REPO-013', severity: 'warning' }),
     ]);
   });
 
@@ -237,9 +237,9 @@ describe('checkStrategyChainSemantics — DGCA-008..011 (strategy-chain cross-re
     model.elements.push(change('CHANGE-A', { goals: ['GOAL-MISSING'] }));
     const findings = validateRepoModel(model);
     const errors = findings.filter((f) => f.severity !== 'warning');
-    expect(errors).toEqual([expect.objectContaining({ id: 'CHANGE-A', ruleId: 'DGCA-009' })]);
+    expect(errors).toEqual([expect.objectContaining({ id: 'CHANGE-A', ruleId: 'DGCA-REPO-009' })]);
     // CHANGE-A is also unreferenced by any action — DGCA-014 warning.
-    expect(findings.filter((f) => f.ruleId === 'DGCA-014')).toHaveLength(1);
+    expect(findings.filter((f) => f.ruleId === 'DGCA-REPO-014')).toHaveLength(1);
   });
 
   it('flags ACTION.delivers_changes referencing an undefined change (DGCA-010)', () => {
@@ -247,7 +247,7 @@ describe('checkStrategyChainSemantics — DGCA-008..011 (strategy-chain cross-re
     model.elements.push(action('ACTION-A-1', { delivers_changes: ['CHANGE-MISSING'] }));
     const findings = validateRepoModel(model);
     expect(findings).toHaveLength(1);
-    expect(findings[0]).toMatchObject({ id: 'ACTION-A-1', ruleId: 'DGCA-010' });
+    expect(findings[0]).toMatchObject({ id: 'ACTION-A-1', ruleId: 'DGCA-REPO-010' });
   });
 
   it('flags ACTION.goals referencing an undefined goal (DGCA-011)', () => {
@@ -255,7 +255,7 @@ describe('checkStrategyChainSemantics — DGCA-008..011 (strategy-chain cross-re
     model.elements.push(action('ACTION-A-1', { goals: ['GOAL-MISSING'] }));
     const findings = validateRepoModel(model);
     expect(findings).toHaveLength(1);
-    expect(findings[0]).toMatchObject({ id: 'ACTION-A-1', ruleId: 'DGCA-011' });
+    expect(findings[0]).toMatchObject({ id: 'ACTION-A-1', ruleId: 'DGCA-REPO-011' });
   });
 
   it('accepts a fully-resolved strategy chain end to end (driver -> goal -> change -> action)', () => {
@@ -269,16 +269,16 @@ describe('checkStrategyChainSemantics — DGCA-008..011 (strategy-chain cross-re
     expect(validateRepoModel(model)).toEqual([]);
   });
 
-  it('flags DGCA-012..014 for a driver/goal/change that is unreferenced (orphan — warning)', () => {
+  it('flags DGCA-REPO-012..014 for a driver/goal/change that is unreferenced (orphan — warning) with deprecated FGCA aliases', () => {
     const model = emptyModel();
     model.elements.push(driver('DRIVER-UNUSED'), goal('GOAL-UNUSED-1'), change('CHANGE-UNUSED'));
     const findings = validateRepoModel(model);
     expect(findings.filter((f) => f.severity !== 'warning')).toEqual([]);
     expect(findings).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ id: 'DRIVER-UNUSED', ruleId: 'DGCA-012', severity: 'warning' }),
-        expect.objectContaining({ id: 'GOAL-UNUSED-1', ruleId: 'DGCA-013', severity: 'warning' }),
-        expect.objectContaining({ id: 'CHANGE-UNUSED', ruleId: 'DGCA-014', severity: 'warning' }),
+        expect.objectContaining({ id: 'DRIVER-UNUSED', ruleId: 'DGCA-REPO-012', severity: 'warning', aliases: ['FGCA-012'] }),
+        expect.objectContaining({ id: 'GOAL-UNUSED-1', ruleId: 'DGCA-REPO-013', severity: 'warning', aliases: ['FGCA-013'] }),
+        expect.objectContaining({ id: 'CHANGE-UNUSED', ruleId: 'DGCA-REPO-014', severity: 'warning', aliases: ['FGCA-014'] }),
       ]),
     );
     expect(findings).toHaveLength(3);
@@ -305,13 +305,13 @@ describe('checkStrategyChainSemantics — organizations/acme_corp parity shape',
     expect(findings.filter((f) => f.severity !== 'warning')).toEqual([]);
     // Warning tier: GOAL-OPS-1/GOAL-CUST-1 are level >= 1 with no inline
     // `parent` (GOALS-011 — expected, ported deliberately at warning severity);
-    // GOAL-OPS-1 is not referenced by any change/action's `goals` (DGCA-013) —
+    // GOAL-OPS-1 is not referenced by any change/action's `goals` (DGCA-REPO-013) —
     // only GOAL-CUST-1 is (via CHANGE-ONBOARD-1.goals).
     expect(findings).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ id: 'GOAL-OPS-1', ruleId: 'GOALS-011', severity: 'warning' }),
         expect.objectContaining({ id: 'GOAL-CUST-1', ruleId: 'GOALS-011', severity: 'warning' }),
-        expect.objectContaining({ id: 'GOAL-OPS-1', ruleId: 'DGCA-013', severity: 'warning' }),
+        expect.objectContaining({ id: 'GOAL-OPS-1', ruleId: 'DGCA-REPO-013', severity: 'warning' }),
       ]),
     );
     expect(findings).toHaveLength(3);
