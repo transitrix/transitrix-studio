@@ -3,7 +3,8 @@
 // just made untrue"). First slice: the three canon-projection view notations
 // with a static resolver (goals, dgca/fgca, action) checked against the
 // staged (git index) content of canon/elements/**. Everything else under
-// canon/views/** — inline-form views, blocks, applications, capability-map,
+// views/** (normative layout) or canon/views/** (legacy, supported for transition)
+// — inline-form views, blocks, applications, capability-map,
 // compliance-impact, coverage-metric, bpmn/process-blueprint — is reported as
 // "coverage not determined", never silently treated as unaffected (the
 // epic's acceptance requirement 6).
@@ -53,7 +54,7 @@ export interface ImpactResult {
   changedIds: string[];
   /** Views a resolver could check, and that read at least one changed id. */
   affected: ImpactFinding[];
-  /** Views under canon/views/** whose derivation this cannot yet resolve —
+  /** Views under views/** (normative layout) whose derivation this cannot yet resolve —
    *  reported explicitly rather than assumed unaffected. */
   notDetermined: ImpactFinding[];
 }
