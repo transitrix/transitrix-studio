@@ -62,6 +62,27 @@ describe('findCanonRootPath', () => {
     expect(findCanonRootPath(filePath)).toBe(['', 'org', 'canon'].join(sep));
   });
 
+  it('resolves canon/ from the model root (transitrix.yaml) for normative layout', () => {
+    // Use the process-parent fixture which has transitrix.yaml at the model root
+    const modelRoot = join(
+      import.meta.dirname ?? __dirname,
+      'fixtures',
+      'notation-corpus',
+      'relations',
+      'process-parent',
+    );
+    // Simulate a file under views/dgca/ at the same model root
+    const filePath = join(modelRoot, 'views', 'dgca', 'model.yaml');
+    const result = findCanonRootPath(filePath);
+    // Should resolve to <modelRoot>/canon via the transitrix.yaml manifest
+    expect(result).toBe(join(modelRoot, 'canon'));
+  });
+
+  it('still resolves from legacy layout when transitrix.yaml is not present', () => {
+    const filePath = ['', 'org', 'canon', 'elements', 'activities', 'ACT-1.yaml'].join(sep);
+    expect(findCanonRootPath(filePath)).toBe(['', 'org', 'canon'].join(sep));
+  });
+
   it('returns undefined when no ancestor is named canon/', () => {
     const filePath = ['', 'org', 'views', 'activity-card', 'my-card.yaml'].join(sep);
     expect(findCanonRootPath(filePath)).toBeUndefined();
