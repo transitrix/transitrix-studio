@@ -28,6 +28,8 @@ jobs:
       id-token: write
       attestations: write
     uses: ./.github/workflows/build-vsix.yml
+    with:
+      release-tag: ${{ inputs.tag }}
 
   attach:
     needs: build
@@ -93,7 +95,18 @@ jobs:
           echo "release-id=$release_id" >> "$GITHUB_OUTPUT"
           echo "Verified draft $RELEASE_TAG targets $target"
 
-      - name: Attach VSIX and SHA-256 to the release
+      - name: Verify SBOM hash
+        shell: bash
+        run: |
+          sbom=$(ls output/sbom.xml | head -n 1)
+          expected=$(cat output/sbom.sha256 | cut -d' ' -f1)
+          actual=$(sha256sum "$sbom" | cut -d' ' -f1)
+          if [ "$actual" != "$expected" ]; then
+            echo "::error::SBOM hash verification failed"
+            exit 1
+          fi
+
+      - name: Attach release assets
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -101,5 +114,38 @@ jobs:
           # Release assets upload through uploads.github.com, not the api.github.com
           # host `gh api` defaults to for a bare path — `gh release upload` targets
           # the correct host itself.
-          gh release upload "${{ inputs.tag }}" output/*.vsix output/*.sha256 \
+          gh release upload "${{ inputs.tag }}" \
+            output/*.vsix output/*.sha256 output/sbom.xml output/sbom.sha256 \
             -R ${{ github.repository }}
+
+      - name: Update release notes with attestation verification command
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          tag="${{ inputs.tag }}"
+          vsix_name="transitrix-studio-${tag#v}.vsix"
+
+          # Get the current release notes
+          release=$(gh api "/repos/${{ github.repository }}/releases/tags/$tag")
+          current_body=$(echo "$release" | jq -r '.body')
+
+          # Add attestation verification section if not already present
+          if ! echo "$current_body" | grep -q "gh attestation verify"; then
+            new_body="$current_body
+
+## Verify build provenance
+
+To verify that this release was built by our CI pipeline and has not been tampered with:
+
+\`\`\`bash
+gh attestation verify --owner transitrix $vsix_name
+\`\`\`
+
+## Bill of Materials
+
+This release includes a Software Bill of Materials (SBOM) in CycloneDX format listing all components and dependencies. Download \`sbom.xml\` to audit the release contents."
+
+            gh api -X PATCH "/repos/${{ github.repository }}/releases/tags/$tag" \
+              -f body="$new_body"
+          fi

@@ -123,6 +123,18 @@ Configure under **Settings → Transitrix Studio**. The canonical keys are `tran
 
 Studio renders one file at a time — no repository, no setup beyond installing it. If you want to model an entire organization's goals, processes, and capabilities as one connected, version-controlled model instead of separate diagrams, that's a different job with its own quick start: **[set up an architecture repository →](https://github.com/transitrix/methodology)**
 
+## Security and build integrity
+
+Each release is attested using GitHub's build provenance system. To verify that a downloaded `.vsix` file was built by our CI pipeline and has not been tampered with:
+
+```bash
+gh attestation verify --owner transitrix transitrix-studio-X.Y.Z.vsix
+```
+
+Replace `X.Y.Z` with the version number. Every release also includes a Software Bill of Materials (SBOM) in CycloneDX format listing all components and dependencies.
+
+For detailed security information, see [SECURITY.md](https://github.com/transitrix/transitrix-studio/blob/main/SECURITY.md) in the repository.
+
 ## Learn more
 
 - 🌐 **Site** — [transitrix.com](https://transitrix.com)
