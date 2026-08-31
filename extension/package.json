@@ -2,7 +2,7 @@
   "name": "transitrix-studio",
   "displayName": "Transitrix Studio",
   "publisher": "transitrix",
-  "version": "3.5.0",
+  "version": "3.6.0",
   "description": "Diagrams as text. Write goals, processes, capabilities, BPMN, and more as plain YAML — 17 notations, live preview in your editor. Diffable in git. AI-friendly. Open source.",
   "license": "MIT",
   "icon": "icon.png",
