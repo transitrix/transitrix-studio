@@ -106,6 +106,16 @@ See [`docs/repo-layout.md`](docs/repo-layout.md) for a detailed directory map.
 
 Notation semantics and design rationale: [github.com/transitrix/methodology](https://github.com/transitrix/methodology).
 
+## Security and integrity
+
+Each release includes build provenance attestation and a Software Bill of Materials (SBOM). To verify a downloaded release:
+
+```bash
+gh attestation verify --owner transitrix transitrix-studio-X.Y.Z.vsix
+```
+
+See [SECURITY.md](SECURITY.md) for details on reporting vulnerabilities, security policies, and audit information.
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md). By submitting a pull request, you agree that your contribution is licensed under the project's MIT License (LICENSE).

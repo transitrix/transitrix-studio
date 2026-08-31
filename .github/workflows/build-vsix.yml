@@ -20,6 +20,11 @@ name: Build universal VSIX (attested)
 
 on:
   workflow_call:
+    inputs:
+      release-tag:
+        description: Optional release tag for deterministic timestamp (SOURCE_DATE_EPOCH)
+        required: false
+        type: string
     outputs:
       sha256:
         description: SHA-256 of the packaged .vsix
@@ -27,7 +32,12 @@ on:
       artifact-name:
         description: Name of the uploaded build artifact containing the .vsix and its .sha256 file
         value: ${{ jobs.build.outputs.artifact-name }}
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      release-tag:
+        description: Optional release tag for deterministic timestamp (SOURCE_DATE_EPOCH)
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -57,21 +67,58 @@ jobs:
       - name: Install root dependencies
         run: npm ci
 
+      - name: Determine SOURCE_DATE_EPOCH
+        id: epoch
+        shell: bash
+        run: |
+          if [ -n "${{ inputs.release-tag }}" ]; then
+            # Extract the commit timestamp from the tag for deterministic builds
+            timestamp=$(git log -1 --format='%aI' "${{ inputs.release-tag }}" 2>/dev/null || echo '')
+            if [ -z "$timestamp" ]; then
+              # Fall back to current commit if tag doesn't exist (pre-release build)
+              timestamp=$(git log -1 --format='%aI' HEAD)
+            fi
+            # Convert ISO 8601 to Unix timestamp
+            epoch=$(date -d "$timestamp" +%s 2>/dev/null || date -jf "%FT%T%z" "$timestamp" +%s 2>/dev/null)
+          else
+            # Use current commit timestamp for non-release builds
+            timestamp=$(git log -1 --format='%aI' HEAD)
+            epoch=$(date -d "$timestamp" +%s 2>/dev/null || date -jf "%FT%T%z" "$timestamp" +%s 2>/dev/null)
+          fi
+          echo "epoch=$epoch" >> "$GITHUB_OUTPUT"
+          echo "Using SOURCE_DATE_EPOCH=$epoch for deterministic build"
+
       - name: Package universal VSIX
         # extension:prep + verify-extension-packaging + `vsce package` (no
         # --target: the extension ships no native/platform component, so one
         # VSIX installs everywhere) -> output/*.vsix
+        #
+        # SOURCE_DATE_EPOCH ensures deterministic zip timestamps: rebuilding
+        # the same tag on any machine produces identical archive bytes.
+        env:
+          SOURCE_DATE_EPOCH: ${{ steps.epoch.outputs.epoch }}
         run: npm run package-extension
+
+      - name: Generate Software Bill of Materials
+        shell: bash
+        run: |
+          vsix=$(ls output/*.vsix | head -n 1)
+          node scripts/generate-sbom.mjs "$vsix"
 
       - name: Record SHA-256
         id: hash
         shell: bash
         run: |
           vsix=$(ls output/*.vsix | head -n 1)
+          sbom=$(ls output/sbom.xml | head -n 1)
           sha=$(sha256sum "$vsix" | cut -d' ' -f1)
+          sbom_sha=$(sha256sum "$sbom" | cut -d' ' -f1)
           echo "$sha  $(basename "$vsix")" > "$vsix.sha256"
+          echo "$sbom_sha  $(basename "$sbom")" > "$sbom.sha256"
           echo "Packaged $vsix"
           echo "SHA-256: $sha"
+          echo "SBOM: $sbom"
+          echo "SBOM SHA-256: $sbom_sha"
           echo "sha256=$sha" >> "$GITHUB_OUTPUT"
           echo "artifact-name=universal-vsix" >> "$GITHUB_OUTPUT"
 
@@ -87,5 +134,7 @@ jobs:
           path: |
             output/*.vsix
             output/*.sha256
+            output/sbom.xml
+            output/sbom.sha256
           if-no-files-found: error
           retention-days: 90
