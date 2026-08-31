@@ -158,6 +158,28 @@ export function resolveFGCA(
     );
   }
 
+  // Collect out-of-scope goals (exist in catalogue but not in selected set).
+  // Used by the validator to suppress errors for references to goals that exist
+  // but are outside the scope.
+  let outOfScopeGoalIds: Set<string> | undefined;
+  if (goalsFilter !== 'all') {
+    // Goal scope is restricted; collect goals that exist but aren't selected.
+    outOfScopeGoalIds = new Set(
+      [...goalElems.keys()].filter((id) => !selectedGoalIds.has(id)),
+    );
+  }
+
+  // Collect out-of-scope factors (exist in catalogue but not in selected set).
+  const selectedFactorIds = new Set(
+    selectedFactors.map((f) => str(f['id'])).filter((x): x is string => x !== undefined),
+  );
+  let outOfScopeFactorIds: Set<string> | undefined;
+  if (goalsFilter !== 'all') {
+    outOfScopeFactorIds = new Set(
+      [...factorElems.keys()].filter((id) => !selectedFactorIds.has(id)),
+    );
+  }
+
   return {
     notation: 'dgca',
     id: viewDoc['id'],
@@ -168,5 +190,7 @@ export function resolveFGCA(
     changes: selectedChanges,
     actions: selectedActivities,
     view_config: viewDoc['view_config'],
+    __outOfScopeGoalIds: outOfScopeGoalIds,
+    __outOfScopeFactorIds: outOfScopeFactorIds,
   };
 }

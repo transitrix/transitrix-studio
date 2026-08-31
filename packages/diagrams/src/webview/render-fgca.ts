@@ -110,6 +110,8 @@ export interface RenderFgcaOptions {
   entryCurvature?: number;
   nodeSizePreset?: NodeSizePreset;
   layoutOptions?: Parameters<typeof layoutFGCAPreview>[1];
+  /** Show scope caption when goal-scoped projection omits goals that reference out-of-scope goals. */
+  scopeCaption?: boolean;
 }
 
 export function renderFgcaSvg(doc: FGCADoc, options: RenderFgcaOptions = {}): string {
@@ -120,6 +122,7 @@ export function renderFgcaSvg(doc: FGCADoc, options: RenderFgcaOptions = {}): st
     entryCurvature,
     nodeSizePreset = 'normal',
     layoutOptions,
+    scopeCaption = false,
   } = options;
   const hideChanges = variant === 'dga' || doc.hideChanges === true;
   const nodeSize = resolveDgcaNodeSize(parseNodeSizePreset(nodeSizePreset));
@@ -144,9 +147,16 @@ export function renderFgcaSvg(doc: FGCADoc, options: RenderFgcaOptions = {}): st
     ? `<text class="text-header" x="${PAD}" y="${PAD - 6}">${escXml(title)}</text>`
     : '';
 
+  const captionSvg = scopeCaption
+    ? `<text class="text-caption" x="${PAD}" y="${height + 16}">${escXml('This diagram is shown for the selected goal scope. Actions on it may also serve goals outside that scope.')}</text>`
+    : '';
+
   const embedCss = generateSvgEmbedCss('transitrix');
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+  // Calculate final height including caption if present
+  const finalHeight = scopeCaption ? height + 24 : height;
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${finalHeight}" viewBox="0 0 ${width} ${finalHeight}">
 <style>${embedCss}</style>
 <defs>
   <marker id="arrow" markerWidth="8" markerHeight="8" refX="8" refY="3" orient="auto">
@@ -155,5 +165,6 @@ export function renderFgcaSvg(doc: FGCADoc, options: RenderFgcaOptions = {}): st
 </defs>
 ${titleSvg}
 ${body}
+${captionSvg}
 </svg>`;
 }

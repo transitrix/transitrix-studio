@@ -187,22 +187,44 @@ function dispatchValidate(kind: NotationKind, doc: unknown): RenderResult {
       return r;
     }
     case 'dgca': {
-      const v = parseCanonicalFGCA(doc);
+      const meta = (doc ?? {}) as Record<string, unknown>;
+      const outOfScopeGoalIds = meta['__outOfScopeGoalIds'] instanceof Set
+        ? (meta['__outOfScopeGoalIds'] as Set<string>)
+        : Array.isArray(meta['__outOfScopeGoalIds'])
+          ? new Set(meta['__outOfScopeGoalIds'] as string[])
+          : undefined;
+      const outOfScopeFactorIds = meta['__outOfScopeFactorIds'] instanceof Set
+        ? (meta['__outOfScopeFactorIds'] as Set<string>)
+        : Array.isArray(meta['__outOfScopeFactorIds'])
+          ? new Set(meta['__outOfScopeFactorIds'] as string[])
+          : undefined;
+      const v = parseCanonicalFGCA(doc, outOfScopeGoalIds, outOfScopeFactorIds);
       const r = emptyResult(kind, v.valid ? 'ok' : 'error');
       r.errors.push(...v.errors);
       r.warnings.push(...v.warnings);
       if (v.valid && v.parsed) {
-        r.svg = renderFgcaSvg(v.parsed, { variant: 'dgca' });
+        r.svg = renderFgcaSvg(v.parsed, { variant: 'dgca', scopeCaption: v.scopeCaption });
       }
       return r;
     }
     case 'dga': {
-      const v = parseCanonicalFGA(doc);
+      const meta = (doc ?? {}) as Record<string, unknown>;
+      const outOfScopeGoalIds = meta['__outOfScopeGoalIds'] instanceof Set
+        ? (meta['__outOfScopeGoalIds'] as Set<string>)
+        : Array.isArray(meta['__outOfScopeGoalIds'])
+          ? new Set(meta['__outOfScopeGoalIds'] as string[])
+          : undefined;
+      const outOfScopeFactorIds = meta['__outOfScopeFactorIds'] instanceof Set
+        ? (meta['__outOfScopeFactorIds'] as Set<string>)
+        : Array.isArray(meta['__outOfScopeFactorIds'])
+          ? new Set(meta['__outOfScopeFactorIds'] as string[])
+          : undefined;
+      const v = parseCanonicalFGA(doc, outOfScopeGoalIds, outOfScopeFactorIds);
       const r = emptyResult(kind, v.valid ? 'ok' : 'error');
       r.errors.push(...v.errors);
       r.warnings.push(...v.warnings);
       if (v.valid && v.parsed) {
-        r.svg = renderFgcaSvg(v.parsed, { variant: 'dga' });
+        r.svg = renderFgcaSvg(v.parsed, { variant: 'dga', scopeCaption: v.scopeCaption });
       }
       return r;
     }

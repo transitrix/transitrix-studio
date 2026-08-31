@@ -303,6 +303,104 @@ describe('parseCanonicalFGA', () => {
   });
 });
 
+describe('parseCanonicalFGCA — goal-scoped projections', () => {
+  const docWithTwoGoals = {
+    notation: 'dgca',
+    spec_version: '0.1',
+    id: 'FGCA-SCOPE-TEST-1',
+    name: 'Two-goal fixture',
+    factors: [
+      { id: 'DRIVER-A-1', name: 'Driver A' },
+      { id: 'DRIVER-B-1', name: 'Driver B' },
+    ],
+    goals: [
+      { id: 'GOAL-PRIMARY-1', name: 'Primary goal', factors: ['DRIVER-A-1'] },
+      { id: 'GOAL-SECONDARY-1', name: 'Secondary goal', factors: ['DRIVER-B-1'] },
+    ],
+    changes: [
+      { id: 'CHANGE-A-1', name: 'Change for primary', goals: ['GOAL-PRIMARY-1'] },
+      { id: 'CHANGE-B-1', name: 'Change for secondary', goals: ['GOAL-SECONDARY-1'] },
+    ],
+    actions: [
+      { id: 'ACTION-AB-1', name: 'Action serving both', goals: ['GOAL-PRIMARY-1', 'GOAL-SECONDARY-1'] },
+      { id: 'ACTION-B-1', name: 'Action serving secondary only', goals: ['GOAL-SECONDARY-1'] },
+    ],
+  };
+
+  it('suppresses FGCA-011 when action references out-of-scope goal that exists', () => {
+    const outOfScopeGoals = new Set(['GOAL-SECONDARY-1']);
+    const r = parseCanonicalFGCA(docWithTwoGoals, outOfScopeGoals);
+    expect(r.valid, JSON.stringify(r.errors)).toBe(true);
+    // ACTION-AB-1 references GOAL-SECONDARY-1 which is out-of-scope, but shouldn't error
+    expect(r.errors.filter((e) => e.code === 'FGCA-011')).toHaveLength(0);
+  });
+
+  it('sets scopeCaption=true when out-of-scope goals are referenced', () => {
+    const outOfScopeGoals = new Set(['GOAL-SECONDARY-1']);
+    const r = parseCanonicalFGCA(docWithTwoGoals, outOfScopeGoals);
+    expect(r.scopeCaption).toBe(true);
+  });
+
+  it('suppresses FGCA-009 when change references out-of-scope goal that exists', () => {
+    // Create a change that serves an out-of-scope goal
+    const doc = {
+      ...docWithTwoGoals,
+      changes: [
+        { id: 'CHANGE-CROSS-1', name: 'Change serving both goals', goals: ['GOAL-PRIMARY-1', 'GOAL-SECONDARY-1'] },
+      ],
+    };
+    const outOfScopeGoals = new Set(['GOAL-SECONDARY-1']);
+    const r = parseCanonicalFGCA(doc, outOfScopeGoals);
+    expect(r.valid, JSON.stringify(r.errors)).toBe(true);
+    expect(r.errors.filter((e) => e.code === 'FGCA-009')).toHaveLength(0);
+  });
+
+  it('does not set scopeCaption when all referenced goals are in-scope', () => {
+    // When every goal referenced by actions/changes is in the selected set
+    const selectedDoc = {
+      notation: 'dgca',
+      spec_version: '0.1',
+      id: 'FGCA-SINGLE-GOAL-1',
+      name: 'Single-goal selection',
+      factors: [{ id: 'DRIVER-A-1', name: 'Driver A' }],
+      goals: [{ id: 'GOAL-PRIMARY-1', name: 'Primary goal', factors: ['DRIVER-A-1'] }],
+      changes: [{ id: 'CHANGE-A-1', name: 'Change for primary', goals: ['GOAL-PRIMARY-1'] }],
+      actions: [{ id: 'ACTION-A-1', name: 'Action serving primary', goals: ['GOAL-PRIMARY-1'] }],
+    };
+    const outOfScopeGoals = new Set<string>();
+    const r = parseCanonicalFGCA(selectedDoc, outOfScopeGoals);
+    expect(r.valid, JSON.stringify(r.errors)).toBe(true);
+    expect(r.scopeCaption).toBe(false);
+  });
+
+  it('still reports FGCA-011 when action references a goal that does not exist at all', () => {
+    const docMissingGoal = {
+      ...docWithTwoGoals,
+      actions: [
+        { id: 'ACTION-X-1', name: 'Action with bad ref', goals: ['GOAL-NONEXISTENT-1'] },
+      ],
+    };
+    const outOfScopeGoals = new Set(['GOAL-SECONDARY-1']);
+    const r = parseCanonicalFGCA(docMissingGoal, outOfScopeGoals);
+    expect(r.valid).toBe(false);
+    expect(r.errors.some((e) => e.code === 'FGCA-011')).toBe(true);
+  });
+
+  it('suppresses FGCA-008 when goal references out-of-scope factor that exists', () => {
+    const docWithCrossFactor = {
+      ...docWithTwoGoals,
+      goals: [
+        { id: 'GOAL-PRIMARY-1', name: 'Primary goal', factors: ['DRIVER-A-1', 'DRIVER-B-1'] },
+        { id: 'GOAL-SECONDARY-1', name: 'Secondary goal', factors: ['DRIVER-B-1'] },
+      ],
+    };
+    const outOfScopeFactors = new Set(['DRIVER-B-1']);
+    const r = parseCanonicalFGCA(docWithCrossFactor, undefined, outOfScopeFactors);
+    expect(r.valid, JSON.stringify(r.errors)).toBe(true);
+    expect(r.errors.filter((e) => e.code === 'FGCA-008')).toHaveLength(0);
+  });
+});
+
 describe('parseCanonicalFGCA — example file regression', () => {
   const EXAMPLES_DIR = path.resolve(process.cwd(), '..', '..', 'tests', 'fixtures', 'notation-corpus', 'dgca');
   const files = fs.existsSync(EXAMPLES_DIR)
