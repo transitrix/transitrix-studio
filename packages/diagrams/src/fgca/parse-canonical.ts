@@ -41,6 +41,8 @@ import { actionChangeLinkField } from './action-change-ids.js';
 export interface CanonicalFGCAResult extends ValidationResult {
   /** On success, the internal-form FGCADoc derived from the canonical input. */
   parsed?: FGCADoc;
+  /** True when a goal-scoped projection should show the scope caption. */
+  scopeCaption?: boolean;
 }
 
 // Canonical ID grammars per IDS_AND_REFERENCES.md §1. The TYPE prefix
@@ -79,8 +81,20 @@ export function isDgcaChangesLayerOff(input: unknown): boolean {
 /**
  * Validate canonical FGCA YAML and, on success, return an internal-form
  * `FGCADoc` ready for `buildFGCALayout`.
+ *
+ * @param input The FGCA document to parse
+ * @param outOfScopeGoalIds When a goal-scoped projection omits goals that exist
+ *        in the catalogue, pass their IDs here to suppress FGCA-011/FGCA-009 errors
+ *        for references to out-of-scope goals. When provided and non-empty, and at least
+ *        one action or change references an out-of-scope goal, `scopeCaption` is set true.
+ * @param outOfScopeFactorIds When a goal-scoped projection omits factors that exist
+ *        in the catalogue, pass their IDs here to suppress FGCA-008 errors.
  */
-export function parseCanonicalFGCA(input: unknown): CanonicalFGCAResult {
+export function parseCanonicalFGCA(
+  input: unknown,
+  outOfScopeGoalIds?: Set<string> | null,
+  outOfScopeFactorIds?: Set<string> | null,
+): CanonicalFGCAResult {
   const errors: ValidationError[] = [];
   const warnings: ValidationWarning[] = [];
 
@@ -204,6 +218,9 @@ export function parseCanonicalFGCA(input: unknown): CanonicalFGCAResult {
 
   if (errors.length > 0) return { valid: false, errors, warnings };
 
+  // Track if any out-of-scope goals/factors are referenced (for scope caption).
+  let hasOutOfScopeRef = false;
+
   // Cross-refs.
   function checkRefArray(
     el: Record<string, unknown>,
@@ -212,6 +229,7 @@ export function parseCanonicalFGCA(input: unknown): CanonicalFGCAResult {
     refRe: RegExp,
     code: string,
     path: string,
+    outOfScope?: Set<string> | null,
   ): string[] {
     const ref = el[field];
     if (ref === undefined || ref === null) return [];
@@ -230,6 +248,13 @@ export function parseCanonicalFGCA(input: unknown): CanonicalFGCAResult {
         continue;
       }
       if (!targets.has(r)) {
+        if (outOfScope?.has(r)) {
+          // Reference exists in catalogue but is out-of-scope: suppress error
+          // and mark that we found an out-of-scope reference (for caption).
+          hasOutOfScopeRef = true;
+          out.push(r);
+          continue;
+        }
         errors.push({ code, message: `${path}.${field}[] references undeclared element "${r}"`, path });
         continue;
       }
@@ -247,7 +272,7 @@ export function parseCanonicalFGCA(input: unknown): CanonicalFGCAResult {
   }));
 
   const internalGoals: GoalItem[] = goals.map((el, i) => {
-    const refIds = checkRefArray(el!, 'factors', factorIds, FACTOR_OR_DRIVER_ID_RE, 'FGCA-008', `goals[${i}]`);
+    const refIds = checkRefArray(el!, 'factors', factorIds, FACTOR_OR_DRIVER_ID_RE, 'FGCA-008', `goals[${i}]`, outOfScopeFactorIds);
     return {
       id: String(el!['id']),
       name: String(el!['name'] ?? ''),
@@ -275,7 +300,7 @@ export function parseCanonicalFGCA(input: unknown): CanonicalFGCAResult {
   }
 
   const internalChanges: BdnChangeWithActivities[] = changes.map((el, i) => {
-    const goalRefs = checkRefArray(el!, 'goals', goalIds, GOAL_ID_RE, 'FGCA-009', `changes[${i}]`);
+    const goalRefs = checkRefArray(el!, 'goals', goalIds, GOAL_ID_RE, 'FGCA-009', `changes[${i}]`, outOfScopeGoalIds);
     // Internal `change.goal_id` is singular; canonical `change.goals` is plural.
     // First goal wins for the singular field; warn (not error) if multiple.
     if (goalRefs.length > 1) {
@@ -296,7 +321,7 @@ export function parseCanonicalFGCA(input: unknown): CanonicalFGCAResult {
   });
 
   const internalActivities: ActivityItem[] = activities.map((el, i) => {
-    const goalRefs = checkRefArray(el!, 'goals', goalIds, GOAL_ID_RE, 'FGCA-011', `actions[${i}]`);
+    const goalRefs = checkRefArray(el!, 'goals', goalIds, GOAL_ID_RE, 'FGCA-011', `actions[${i}]`, outOfScopeGoalIds);
     const typeVal = typeof el!['type'] === 'string' ? el!['type'] : undefined;
     return {
       id: String(el!['id']),
@@ -337,7 +362,13 @@ export function parseCanonicalFGCA(input: unknown): CanonicalFGCAResult {
     hideChanges: isDgcaChangesLayerOff(raw),
   };
 
-  return { valid: true, errors, warnings, parsed };
+  return {
+    valid: true,
+    errors,
+    warnings,
+    parsed,
+    scopeCaption: (outOfScopeGoalIds?.size ?? 0) > 0 && hasOutOfScopeRef,
+  };
 }
 
 const FGA_DOC_ID_RE = /^(FGA|DGA)(-[A-Z0-9][A-Z0-9_]*)*-\d+$/;
@@ -345,6 +376,8 @@ const FGA_DOC_ID_RE = /^(FGA|DGA)(-[A-Z0-9][A-Z0-9_]*)*-\d+$/;
 /** On success, the internal-form FGCADoc derived from canonical FGA input. */
 export interface CanonicalFGAResult extends ValidationResult {
   parsed?: FGCADoc;
+  /** True when a goal-scoped projection should show the scope caption. */
+  scopeCaption?: boolean;
 }
 
 /**
@@ -364,7 +397,11 @@ export interface CanonicalFGAResult extends ValidationResult {
  * the canonical FGA path is unit-testable and the library owns the single
  * canon shape — flat form only, no `fga:` wrapper.
  */
-export function parseCanonicalFGA(input: unknown): CanonicalFGAResult {
+export function parseCanonicalFGA(
+  input: unknown,
+  outOfScopeGoalIds?: Set<string> | null,
+  outOfScopeFactorIds?: Set<string> | null,
+): CanonicalFGAResult {
   if (!input || typeof input !== 'object') {
     return { valid: false, errors: [{ code: 'FGA-001', message: 'document root is not an object' }], warnings: [] };
   }
@@ -392,7 +429,7 @@ export function parseCanonicalFGA(input: unknown): CanonicalFGAResult {
   // codes are remapped on the way out. FGCA-009 / 010 / 014 (changes-related)
   // are unreachable here because `changes` is empty.
   const synth = { ...raw, notation: 'dgca', id: 'DGCA-FROM-DGA-1', changes: [] };
-  const r = parseCanonicalFGCA(synth);
+  const r = parseCanonicalFGCA(synth, outOfScopeGoalIds, outOfScopeFactorIds);
   const remap: Record<string, string> = {
     'FGCA-001': 'FGA-001',
     'FGCA-002': 'FGA-002',
@@ -412,5 +449,6 @@ export function parseCanonicalFGA(input: unknown): CanonicalFGAResult {
     errors: r.errors.map((e) => ({ ...e, code: remapCode(e.code) })),
     warnings: r.warnings.map((w) => ({ ...w, code: remapCode(w.code) })),
     parsed: r.parsed,
+    scopeCaption: r.scopeCaption,
   };
 }

@@ -227,6 +227,54 @@ describe('resolveFGCA — empty sources', () => {
   });
 });
 
+// ── resolveFGCA — goal-scoped projections (goals.filter !== 'all') ────────────
+
+describe('resolveFGCA — goal-scoped projections with out-of-scope tracking', () => {
+  it('computes __outOfScopeGoalIds when goals.filter is ids', () => {
+    const viewDoc = {
+      notation: 'dgca',
+      id: 'DGCA-SCOPE-1',
+      name: 'Scoped view',
+      view_config: {
+        goals: { filter: 'ids', ids: ['GOAL-1'] },
+        factors: { surface: 'derived' },
+        changes: { surface: 'derived' },
+        activities: { surface: 'derived' },
+      },
+    };
+    const doc = resolveFGCA(viewDoc, SOURCES) as Record<string, unknown>;
+    expect((doc['goals'] as Array<{ id: string }>).map((g) => g.id)).toEqual(['GOAL-1']);
+    // GOAL-2 and GOAL-3 exist in canon but are not selected
+    expect(doc['__outOfScopeGoalIds']).toBeInstanceOf(Set);
+    expect((doc['__outOfScopeGoalIds'] as Set<string>).has('GOAL-2')).toBe(true);
+    expect((doc['__outOfScopeGoalIds'] as Set<string>).has('GOAL-3')).toBe(true);
+  });
+
+  it('does not set __outOfScopeGoalIds when goals.filter is all', () => {
+    const doc = resolveFGCA(VIEW_DOC, SOURCES) as Record<string, unknown>;
+    expect(doc['__outOfScopeGoalIds']).toBeUndefined();
+  });
+
+  it('parseCanonicalFGCA accepts the resolved doc with out-of-scope ids', () => {
+    const viewDoc = {
+      notation: 'dgca',
+      id: 'DGCA-SCOPE-1',
+      name: 'Scoped view',
+      view_config: {
+        goals: { filter: 'ids', ids: ['GOAL-1'] },
+        factors: { surface: 'derived' },
+        changes: { surface: 'derived' },
+        activities: { surface: 'derived' },
+      },
+    };
+    const resolved = resolveFGCA(viewDoc, SOURCES) as Record<string, unknown>;
+    const outOfScope = resolved['__outOfScopeGoalIds'] as Set<string> | undefined;
+    const r = parseCanonicalFGCA(resolved, outOfScope);
+    expect(r.valid, JSON.stringify(r.errors)).toBe(true);
+    expect(r.parsed?.goals).toHaveLength(1);
+  });
+});
+
 // ── File-based regression — resolver + canon fixture + parseCanonicalFGCA ─────
 
 describe('resolveFGCA — file-based regression against canon fixture', () => {
