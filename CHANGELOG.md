@@ -5,6 +5,7 @@
 ### Fixed
 
 - **Preview resolves the canon root from the adopter manifest under the normative layout.** This release ships the fix described in 3.6.0's release notes but missing from that VSIX. Opening a projection view at `views/<notation>/*.yaml` now finds its canon store by locating `transitrix.yaml` and then `canon/` as its sibling, instead of walking up looking for an ancestor literally named `canon`. Files under `canon/elements/` keep resolving under the legacy layout, and all nine preview modules that share this resolver pick up the fix. (transitrix-hq#457, #600)
+- **Goal-tree and capability-map collapse toggle is visible on expanded parents.** The ± button on a node with children was gated on `hasHiddenChildren`, which is only true after the subtree is already hidden — so a fully expanded tree never showed the control. The toggle now appears whenever the node has children (minus to collapse, plus to expand), matching the static capability-tree SVG renderer.
 
 ## [3.6.0] — 2026-08-31
 
