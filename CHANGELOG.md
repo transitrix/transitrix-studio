@@ -1,10 +1,36 @@
 # Changelog
 
-## Unreleased
+## [3.6.0] — 2026-08-31
+
+### Added
+
+- **DGCA chain view shows the ACTION scale level as a badge.** Action nodes display their type (Initiative / Programme / Project / Task), read from the activity's `type` field, as a small label in the node's top-right corner; nodes without a `type` render unchanged. (#601)
+- **Goal-scoped DGCA projections tolerate catalogue references outside the selected scope.** When an action or change references a goal that exists in the catalogue but falls outside the current goal filter, the validator no longer reports it as an error; the render output adds a caption explaining the scope limitation. Full-chain views (`goals.filter: all`) are unaffected. (#604)
+- **Goals diagrams support a `minimizeCrossings` layout mode.** Siblings are deterministically reordered by ID before placement, producing fewer edge crossings than the default arbitrary order on tangled trees. Opt in per notation via `transitrix.layoutMode.<notation>`; the existing layout stays the default. (#595)
+- **A notation the validator cannot read now fails loudly.** Skipped notation files are reported as `NOTATION-SKIP-001` warnings; the new `--strict` flag treats them as errors instead. The `ACT-011` message now clarifies it applies to Gantt/CPM rendering only, not the network view. (#593)
 
 ### Changed
 
 - **Listing demonstration transitions to Goals tree.** The recording scenario and fixture now demonstrate a Goals tree with a child goal being added, showing the live preview updating when the YAML is saved. This replaces the prior Blocks demonstration. The GIF itself (`extension/docs/listing.gif`) is ready to be recorded with the updated scenario and fixture. (transitrix-hq#330)
+- **Published CLI emits `DGCA-012`/`DGCA-013` instead of retired `FGCA-012`/`FGCA-013` codes.** Per-file DGCA validator codes align with methodology's vocabulary. The driver-reference check now walks the assessment chain (`assessment_influences_goal` relations) in addition to inline `factors`, so a driver linked via an assessment that influences a referenced goal is no longer reported as unreferenced. (#378)
+- **Repo-scope strategy-chain rule codes adopt scope prefix `DGCA-REPO-008..014`.** Previously the same codes as per-file DGCA rules, now distinguished with the `REPO` scope. Old `FGCA-008..014` codes remain accepted as deprecated aliases until version 5.0.0 for backwards compatibility. Validation output and `docs/validation.md` reference the new codes; the semantic checks are unchanged. (transitrix-hq#409)
+- **Per-file `dgca` validator emits `DGCA-001..015` codes matching the closed vocabulary.** Codes are derived from `notations/vocabulary.yaml`, the authoritative published source; old `FGCA-*` codes remain accepted as aliases until version 5.0.0. `docs/validation.md` now agrees with the vocabulary on every code it prints. (transitrix-hq#417)
+- **CLI help and validator output text say `views/` instead of `canon/views`.** Wording in `impact`, `validate --scope=repo` output, and inline comments now matches the normative layout landed in 3.5.0; behavior is unchanged. (#598)
+
+### Fixed
+
+- **`ACT-013` no longer flags parented activities as structurally orphan.** The orphan check now counts a `parent` reference as a valid structural connection, alongside predecessors, successors, and goal links. (#592)
+- **Preview resolves the canon root from the adopter manifest under the normative layout.** Opening a projection view at `views/<notation>/*.yaml` now finds its canon store by locating `transitrix.yaml` and then `canon/` as its sibling, instead of walking up looking for an ancestor literally named `canon`. Files under `canon/elements/` keep resolving under the legacy layout, and all nine preview modules that share this resolver pick up the fix. (transitrix-hq#457, #600)
+- **Validator reports no longer omit warnings when there are no errors.** Human-readable output prints warning sections whenever findings exist, reserving the single-line "validation passed" for runs with none; machine (`--format=json`) output splits findings into distinct `errors` and `warnings` arrays so downstream consumers can count errors without filtering by severity. (#602)
+
+### Security
+
+- **IntelliJ plugin's Gradle wrapper is integrity-checked.** `gradle-wrapper.properties` now pins `distributionSha256Sum` alongside `distributionUrl`; CI verifies the checksum is present and valid and that the download host stays pinned to `services.gradle.org` on every change to the wrapper properties, failing closed on a missing or invalid pin. (#603)
+
+### Packages
+
+- `@transitrix/diagrams` 1.11.0 → 1.12.0 — goal-scoped DGCA projections, ACTION scale badge, `minimizeCrossings` layout mode, DGCA vocabulary/repo-prefix code changes, `ACT-013` and `NOTATION-SKIP-001` fixes.
+- `@transitrix/cli` 2.7.0 → 2.8.0 — `--strict` flag, independent errors/warnings reporting, `views/` wording.
 
 ## [3.5.0] — 2026-08-27
 
