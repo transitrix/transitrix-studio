@@ -64,6 +64,7 @@ export interface LaidOutNode {
   width: number;
   height: number;
   data: Capability | null;
+  hasChildren: boolean;
   hasHiddenChildren: boolean;
 }
 

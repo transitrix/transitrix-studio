@@ -79,12 +79,13 @@ export function layoutCapabilityMap(map: CapabilityMap, options: LayoutOptions =
     const cap = byId.get(id)!;
     const allChildIds = children.get(id) ?? [];
     const childIds = allChildIds.filter((c) => !hiddenSubtrees.has(c));
+    const hasChildren = allChildIds.length > 0;
     const hasHiddenChildren = childIds.length < allChildIds.length;
 
     if (childIds.length === 0) {
       const y = getNextY(col);
       advanceY(col, nodeHeight + nodeSep);
-      nodes.push({ id, x: col * (nodeWidth + rankSep), y, width: nodeWidth, height: nodeHeight, data: cap, hasHiddenChildren });
+      nodes.push({ id, x: col * (nodeWidth + rankSep), y, width: nodeWidth, height: nodeHeight, data: cap, hasChildren, hasHiddenChildren });
       return { top: y, bottom: y + nodeHeight };
     }
 
@@ -96,7 +97,7 @@ export function layoutCapabilityMap(map: CapabilityMap, options: LayoutOptions =
     const finalY = Math.max(parentY, curColY);
     advanceY(col, finalY - curColY + nodeHeight + nodeSep);
 
-    nodes.push({ id, x: col * (nodeWidth + rankSep), y: finalY, width: nodeWidth, height: nodeHeight, data: cap, hasHiddenChildren });
+    nodes.push({ id, x: col * (nodeWidth + rankSep), y: finalY, width: nodeWidth, height: nodeHeight, data: cap, hasChildren, hasHiddenChildren });
     for (const cid of childIds) edges.push({ source: id, target: cid });
     return { top: Math.min(finalY, spanTop), bottom: Math.max(finalY + nodeHeight, spanBottom) };
   }
@@ -108,7 +109,7 @@ export function layoutCapabilityMap(map: CapabilityMap, options: LayoutOptions =
   }
 
   if (nodes.length === 0) {
-    const rootNode: LaidOutNode = { id: 0, x: 0, y: 0, width: ROOT_WIDTH, height: nodeHeight, data: null, hasHiddenChildren: false };
+    const rootNode: LaidOutNode = { id: 0, x: 0, y: 0, width: ROOT_WIDTH, height: nodeHeight, data: null, hasChildren: false, hasHiddenChildren: false };
     return { rootNode, nodes: [], edges: [], bounds: { x: 0, y: 0, width: ROOT_WIDTH, height: nodeHeight } };
   }
 
@@ -122,7 +123,7 @@ export function layoutCapabilityMap(map: CapabilityMap, options: LayoutOptions =
   const rootTop = Math.min(...l1Nodes.map((n) => n.y));
   const rootBottom = Math.max(...l1Nodes.map((n) => n.y + n.height));
   const rootY = rootTop + (rootBottom - rootTop) / 2 - nodeHeight / 2;
-  const rootNode: LaidOutNode = { id: 0, x: 0, y: rootY, width: ROOT_WIDTH, height: nodeHeight, data: null, hasHiddenChildren: false };
+  const rootNode: LaidOutNode = { id: 0, x: 0, y: rootY, width: ROOT_WIDTH, height: nodeHeight, data: null, hasChildren: l1Ids.length > 0, hasHiddenChildren: false };
 
   const rootEdges: LaidOutEdge[] = l1Ids
     .filter((id) => !hiddenSubtrees.has(id))

@@ -97,6 +97,26 @@ describe('layoutGoalTree', () => {
     expect(layout.nodes.every(n => n.data.level <= 1)).toBe(true);
   });
 
+  it('marks parent nodes as hasChildren while expanded (so the collapse toggle can render)', () => {
+    const layout = layoutGoalTree(TREE);
+    const byId = new Map(layout.nodes.map(n => [n.id, n]));
+    expect(byId.get(1)!.hasChildren).toBe(true);
+    expect(byId.get(2)!.hasChildren).toBe(true);
+    expect(byId.get(3)!.hasChildren).toBe(false);
+    expect(byId.get(4)!.hasChildren).toBe(false);
+    expect(byId.get(1)!.hasHiddenChildren).toBe(false);
+    expect(byId.get(2)!.hasHiddenChildren).toBe(false);
+  });
+
+  it('keeps hasChildren and sets hasHiddenChildren when a subtree is collapsed', () => {
+    const layout = layoutGoalTree(TREE, { hideCollapsed: [2] });
+    const n2 = layout.nodes.find(n => n.id === 2)!;
+    expect(n2.hasChildren).toBe(true);
+    expect(n2.hasHiddenChildren).toBe(true);
+    expect(layout.nodes.some(n => n.id === 3)).toBe(false);
+    expect(layout.nodes.some(n => n.id === 4)).toBe(false);
+  });
+
   it('compresses non-contiguous levels into adjacent columns (no phantom empty columns)', () => {
     // Legacy / non-canonical input: goal_types skip levels 1 and 3, so
     // goals sit at levels 0, 2, 4. Column x must advance by exactly one

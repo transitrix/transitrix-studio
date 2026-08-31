@@ -209,6 +209,7 @@ interface LaidOutNode {
   height: number;
   data: Goal;            // original goal
   isCollapsedRoot: boolean;
+  hasChildren: boolean;
   hasHiddenChildren: boolean;
 }
 
@@ -248,7 +249,7 @@ Visual contract:
 - Hover-highlight of potential parent during drag.
 - Level-based card fill colour (from `theme.goalLevelColors`, default 0..7 palette).
 - Factor indicators: green up-caret (positive/opportunity), red down-caret (risk/negative). Click reveals inline panel above/below.
-- Collapse indicator on nodes with hidden children.
+- Collapse / expand toggle on nodes that have children.
 - React Flow controls: pan, zoom, fit-view, MiniMap.
 - Backlog sidebar (left, collapsible 50/250 px) when `showBacklog` and tree contains backlog goals.
 
