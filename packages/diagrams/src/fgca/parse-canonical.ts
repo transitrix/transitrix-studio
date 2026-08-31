@@ -247,14 +247,13 @@ export function parseCanonicalFGCA(
         errors.push({ code: 'FGCA-007', message: `${path}.${field}[] entry "${r}" does not match the expected grammar`, path });
         continue;
       }
+      if (outOfScope?.has(r)) {
+        // Reference is out-of-scope: suppress error and mark that we found an out-of-scope reference (for caption).
+        hasOutOfScopeRef = true;
+        out.push(r);
+        continue;
+      }
       if (!targets.has(r)) {
-        if (outOfScope?.has(r)) {
-          // Reference exists in catalogue but is out-of-scope: suppress error
-          // and mark that we found an out-of-scope reference (for caption).
-          hasOutOfScopeRef = true;
-          out.push(r);
-          continue;
-        }
         errors.push({ code, message: `${path}.${field}[] references undeclared element "${r}"`, path });
         continue;
       }
