@@ -72,6 +72,8 @@ export interface LaidOutNode {
   height: number;
   data: Goal;
   isCollapsedRoot: boolean;
+  /** True when this node has at least one child in the source tree (visible or hidden). */
+  hasChildren: boolean;
   hasHiddenChildren: boolean;
 }
 

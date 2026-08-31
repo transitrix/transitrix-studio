@@ -161,6 +161,7 @@ function CapabilityMapViewInner({
         maturityColours,
         readOnly,
         isDropTarget: hoveredId === n.id,
+        hasChildren: n.hasChildren,
         hasHiddenChildren: n.hasHiddenChildren,
         isCollapsed: collapsedIds.has(n.id),
         onAddChild,

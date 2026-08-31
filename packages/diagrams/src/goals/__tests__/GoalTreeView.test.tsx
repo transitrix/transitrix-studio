@@ -345,6 +345,40 @@ describe('GoalTreeView', () => {
     });
   });
 
+  it('shows a collapse toggle on nodes with children, not on leaves', async () => {
+    render(<GoalTreeView tree={makeTree()} />);
+    await waitFor(() => {
+      expect(screen.getByText('Triple revenue')).toBeTruthy();
+    });
+    const rootNode = document.querySelector('.react-flow__node[data-id="1"]');
+    expect(rootNode!.querySelector('[aria-label="Collapse branch"]')).toBeTruthy();
+    const leaf = document.querySelector('.react-flow__node[data-id="2"]');
+    expect(leaf!.querySelector('[aria-label="Collapse branch"]')).toBeNull();
+    expect(leaf!.querySelector('[aria-label="Expand branch"]')).toBeNull();
+  });
+
+  it('collapsing a branch hides descendants and the toggle becomes Expand', async () => {
+    render(<GoalTreeView tree={makeTree()} />);
+    await waitFor(() => {
+      expect(screen.getByText('Launch in EU')).toBeTruthy();
+    });
+    const rootNode = document.querySelector('.react-flow__node[data-id="1"]')!;
+    const collapse = rootNode.querySelector('[aria-label="Collapse branch"]')!;
+    collapse.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await waitFor(() => {
+      expect(screen.queryByText('Launch in EU')).toBeNull();
+      expect(screen.queryByText('Cut churn')).toBeNull();
+    });
+    const collapsedRoot = document.querySelector('.react-flow__node[data-id="1"]')!;
+    const expand = collapsedRoot.querySelector('[aria-label="Expand branch"]')!;
+    expect(expand).toBeTruthy();
+    expand.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await waitFor(() => {
+      expect(screen.getByText('Launch in EU')).toBeTruthy();
+      expect(screen.getByText('Cut churn')).toBeTruthy();
+    });
+  });
+
   it('fires onEditRequest on double-click', async () => {
     const onEditRequest = vi.fn();
     render(<GoalTreeView tree={makeTree()} onEditRequest={onEditRequest} />);

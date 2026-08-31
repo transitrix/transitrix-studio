@@ -114,15 +114,17 @@ export function layoutGoalTree(tree: GoalTree, options: LayoutOptions = {}): Goa
     placed.add(id);
 
     const col = levelToCol.get(goal.level) ?? 0;
-    const childIds = (children.get(id) ?? []).filter(c => !hiddenSubtrees.has(c) && !placed.has(c));
-    const isCollapsedRoot = hiddenSet.has(id) && childIds.length > 0;
-    const hasHiddenChildren = childIds.length < (children.get(id) ?? []).length;
+    const allChildIds = children.get(id) ?? [];
+    const childIds = allChildIds.filter(c => !hiddenSubtrees.has(c) && !placed.has(c));
+    const isCollapsedRoot = hiddenSet.has(id) && allChildIds.length > 0;
+    const hasChildren = allChildIds.length > 0;
+    const hasHiddenChildren = childIds.length < allChildIds.length;
 
     if (childIds.length === 0) {
       // Leaf: place at current column Y
       const y = getNextY(col);
       advanceY(col, nodeHeight + nodeSep);
-      nodes.push({ id, x: col * (nodeWidth + rankSep), y, width: nodeWidth, height: nodeHeight, data: goal, isCollapsedRoot, hasHiddenChildren });
+      nodes.push({ id, x: col * (nodeWidth + rankSep), y, width: nodeWidth, height: nodeHeight, data: goal, isCollapsedRoot, hasChildren, hasHiddenChildren });
       return { top: y, bottom: y + nodeHeight };
     }
 
@@ -141,7 +143,7 @@ export function layoutGoalTree(tree: GoalTree, options: LayoutOptions = {}): Goa
     const finalY = Math.max(parentY, curColY);
     advanceY(col, finalY - curColY + nodeHeight + nodeSep);
 
-    nodes.push({ id, x: col * (nodeWidth + rankSep), y: finalY, width: nodeWidth, height: nodeHeight, data: goal, isCollapsedRoot, hasHiddenChildren });
+    nodes.push({ id, x: col * (nodeWidth + rankSep), y: finalY, width: nodeWidth, height: nodeHeight, data: goal, isCollapsedRoot, hasChildren, hasHiddenChildren });
 
     for (const cid of childIds) {
       edges.push({ source: id, target: cid });

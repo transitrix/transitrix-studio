@@ -105,6 +105,29 @@ describe('CapabilityMapView', () => {
     expect(screen.queryByLabelText('Delete capability')).toBeNull();
   });
 
+  it('shows a collapse toggle on capabilities with children, not on leaves', async () => {
+    render(<CapabilityMapView map={makeMap()} />);
+    await waitFor(() => expect(screen.getByText('Customer Acquisition')).toBeTruthy());
+    const parent = document.querySelector('.react-flow__node[data-id="1"]');
+    expect(parent!.querySelector('[aria-label="Collapse branch"]')).toBeTruthy();
+    const leaf = document.querySelector('.react-flow__node[data-id="3"]');
+    expect(leaf!.querySelector('[aria-label="Collapse branch"]')).toBeNull();
+    expect(leaf!.querySelector('[aria-label="Expand branch"]')).toBeNull();
+  });
+
+  it('collapsing a capability hides descendants and the toggle becomes Expand', async () => {
+    render(<CapabilityMapView map={makeMap()} />);
+    await waitFor(() => expect(screen.getByText('Lead Qualification')).toBeTruthy());
+    const parent = document.querySelector('.react-flow__node[data-id="1"]')!;
+    parent.querySelector('[aria-label="Collapse branch"]')!
+      .dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await waitFor(() => {
+      expect(screen.queryByText('Lead Qualification')).toBeNull();
+      expect(screen.queryByText('Inbound Lead Scoring')).toBeNull();
+    });
+    expect(parent.querySelector('[aria-label="Expand branch"]')).toBeTruthy();
+  });
+
   it('fires onChange with kind "addChild" when the add-child button is clicked', async () => {
     const onChange = vi.fn<(e: CapabilityMapChange) => void>();
     render(<CapabilityMapView map={makeMap()} onChange={onChange} />);

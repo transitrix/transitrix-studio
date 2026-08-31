@@ -40,8 +40,19 @@ describe('layoutCapabilityMap', () => {
   it('marks a node as having hidden children when its subtree is collapsed', () => {
     const layout = layoutCapabilityMap(map(), { hideCollapsed: [2] });
     const cap2 = layout.nodes.find((n) => n.id === 2)!;
+    expect(cap2.hasChildren).toBe(true);
     expect(cap2.hasHiddenChildren).toBe(true);
     expect(layout.nodes.some((n) => n.id === 3)).toBe(false); // hidden subtree omitted
+  });
+
+  it('marks parent capabilities as hasChildren while expanded', () => {
+    const layout = layoutCapabilityMap(map());
+    const byId = new Map(layout.nodes.map((n) => [n.id, n]));
+    expect(byId.get(1)!.hasChildren).toBe(true);
+    expect(byId.get(2)!.hasChildren).toBe(true);
+    expect(byId.get(3)!.hasChildren).toBe(false);
+    expect(byId.get(4)!.hasChildren).toBe(false);
+    expect(byId.get(1)!.hasHiddenChildren).toBe(false);
   });
 
   it('returns just the root when there are no on-diagram capabilities', () => {

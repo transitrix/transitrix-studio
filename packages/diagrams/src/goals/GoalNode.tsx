@@ -19,6 +19,7 @@ export interface GoalNodeData {
   theme: Required<ThemeTokens>;
   readOnly: boolean;
   isDropTarget: boolean;
+  hasChildren: boolean;
   hasHiddenChildren: boolean;
   isCollapsed: boolean;
   onAddChild: (parentId: number, parentLevel: number) => void;
@@ -28,7 +29,7 @@ export interface GoalNodeData {
 }
 
 const GoalNode = memo(({ data }: { data: GoalNodeData }) => {
-  const { goal, theme, readOnly, isDropTarget, hasHiddenChildren, isCollapsed } = data;
+  const { goal, theme, readOnly, isDropTarget, hasChildren, hasHiddenChildren, isCollapsed } = data;
   const [openPanel, setOpenPanel] = useState<'positive' | 'negative' | null>(null);
 
   const positive = (goal.factors ?? []).filter((f) => impactSign(f) !== 'negative');
@@ -192,11 +193,11 @@ const GoalNode = memo(({ data }: { data: GoalNodeData }) => {
         </button>
       )}
 
-      {hasHiddenChildren && (
+      {(hasChildren || hasHiddenChildren) && (
         <button
           type="button"
-          aria-label={isCollapsed ? 'Expand branch' : 'Collapse branch'}
-          title={isCollapsed ? 'Expand branch' : 'Collapse branch'}
+          aria-label={isCollapsed || hasHiddenChildren ? 'Expand branch' : 'Collapse branch'}
+          title={isCollapsed || hasHiddenChildren ? 'Expand branch' : 'Collapse branch'}
           onClick={(e) => {
             e.stopPropagation();
             data.onToggleCollapse(goal.id);
@@ -204,10 +205,11 @@ const GoalNode = memo(({ data }: { data: GoalNodeData }) => {
           style={{
             position: 'absolute', top: '50%', right: -8, transform: 'translateY(-50%)',
             width: 16, height: 16, borderRadius: '50%', border: `1px solid ${theme.cardBorderColor}`,
-            background: '#ffffff', color: theme.cardBorderColor, fontSize: 11, lineHeight: '14px', padding: 0, cursor: 'pointer',
+            background: '#ffffff', color: theme.cardBorderColor, fontSize: 11, lineHeight: '14px', padding: 0,
+            cursor: 'pointer', zIndex: 10,
           }}
         >
-          {isCollapsed ? '+' : '−'}
+          {isCollapsed || hasHiddenChildren ? '+' : '−'}
         </button>
       )}
     </div>
