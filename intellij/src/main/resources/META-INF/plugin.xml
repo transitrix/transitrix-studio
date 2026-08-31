@@ -39,8 +39,7 @@
             process blueprints, activity cards, and more.</li>
             <li>Preview panel opens automatically on <code>*.transitrix.yaml</code> files,
             or on demand via right-click → <b>Transitrix: Preview Notation</b>.</li>
-            <li>Powered by the shared <code>@transitrix/diagrams</code> engine —
-            identical output to the VS Code extension.</li>
+            <li>Powered by the shared <code>@transitrix/diagrams</code> engine for live preview of all Transitrix notation formats.</li>
             <li>Open source, MIT licensed.</li>
         </ul>
     ]]></change-notes>
