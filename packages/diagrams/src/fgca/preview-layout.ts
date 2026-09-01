@@ -7,7 +7,8 @@
 //
 // No React, no DOM, no vscode. Safe to call in Node.js or a test environment.
 
-import type { Scope } from '../scope.js';
+import type { ChainColumnKey, ChainScope, FgcaScope } from '../scope.js';
+import { isChainScope } from '../scope.js';
 import { ENTITY_NODE_SIZE } from '../node-size-presets.js';
 
 export type FGCAPreviewColumn = 'driver' | 'goal' | 'change' | 'activity';
@@ -49,12 +50,202 @@ export interface FGCAPreviewLayoutOptions {
   colGap?: number;
   /** Vertical gap (px) between stacked nodes within a column. Default matches the historical hardcoded value. */
   rowGap?: number;
-  /** Trim to a level cap or a single root goal. Defaults to 'all'. */
-  scope?: Scope;
+  /** Trim to a level cap, a single root goal, or per-column chain filters. Defaults to 'all'. */
+  scope?: FgcaScope;
   /** Entity node width (px). Default {@link FGCA_NODE_W}. */
   nodeWidth?: number;
   /** Entity node height (px). Default {@link FGCA_NODE_H}. */
   nodeHeight?: number;
+}
+
+function sid(id: number | string): string {
+  return String(id);
+}
+
+interface ChainPath {
+  driverId?: string;
+  goalId?: string;
+  changeId?: string;
+  activityId?: string;
+}
+
+/**
+ * Every Driver–Goal–Change–Action thread in the document, plus a singleton
+ * path for any entity that is not on a connected thread (orphans). Used to
+ * AND column filters: a node stays visible when it appears on at least one
+ * path that includes every selected id.
+ */
+function enumerateChainPaths(doc: FGCAPreviewDoc): ChainPath[] {
+  const paths: ChainPath[] = [];
+  const seen = {
+    driver: new Set<string>(),
+    goal: new Set<string>(),
+    change: new Set<string>(),
+    activity: new Set<string>(),
+  };
+  const mark = (p: ChainPath): void => {
+    paths.push(p);
+    if (p.driverId) seen.driver.add(p.driverId);
+    if (p.goalId) seen.goal.add(p.goalId);
+    if (p.changeId) seen.change.add(p.changeId);
+    if (p.activityId) seen.activity.add(p.activityId);
+  };
+
+  const changes = doc.changes ?? [];
+
+  for (const g of doc.goals) {
+    const goalId = sid(g.id);
+    const driverIds = (g.factor ?? []).map(f => sid(f.id));
+    const drivers: Array<string | undefined> = driverIds.length > 0 ? driverIds : [undefined];
+
+    const goalChanges = changes.filter(c => sid(c.goal_id) === goalId);
+    const coveredActs = new Set(goalChanges.flatMap(c => c.activity_ids.map(sid)));
+    const directActs = doc.activities.filter(
+      a => a.goal_id != null && sid(a.goal_id) === goalId && !coveredActs.has(sid(a.id)),
+    );
+
+    const slots: Array<{ changeId?: string; activityIds: Array<string | undefined> }> = [];
+    for (const c of goalChanges) {
+      const acts = c.activity_ids.map(sid);
+      slots.push({ changeId: sid(c.id), activityIds: acts.length > 0 ? acts : [undefined] });
+    }
+    for (const a of directActs) {
+      slots.push({ changeId: undefined, activityIds: [sid(a.id)] });
+    }
+    if (slots.length === 0) {
+      slots.push({ changeId: undefined, activityIds: [undefined] });
+    }
+
+    for (const d of drivers) {
+      for (const slot of slots) {
+        for (const a of slot.activityIds) {
+          mark({ driverId: d, goalId, changeId: slot.changeId, activityId: a });
+        }
+      }
+    }
+  }
+
+  for (const f of doc.factors) {
+    const id = sid(f.id);
+    if (!seen.driver.has(id)) mark({ driverId: id });
+  }
+  for (const g of doc.goals) {
+    const id = sid(g.id);
+    if (!seen.goal.has(id)) mark({ goalId: id });
+  }
+  for (const c of changes) {
+    const id = sid(c.id);
+    if (!seen.change.has(id)) mark({ changeId: id, goalId: sid(c.goal_id) });
+  }
+  for (const a of doc.activities) {
+    const id = sid(a.id);
+    if (!seen.activity.has(id)) {
+      mark({ activityId: id, goalId: a.goal_id != null ? sid(a.goal_id) : undefined });
+    }
+  }
+
+  return paths;
+}
+
+function selectChainScopedFGCA(
+  doc: FGCAPreviewDoc,
+  scope: ChainScope,
+  hideChanges: boolean,
+): FGCAPreviewDoc {
+  const driverId = scope.driverId || undefined;
+  const goalId = scope.goalId || undefined;
+  const changeId = hideChanges ? undefined : (scope.changeId || undefined);
+  const activityId = scope.activityId || undefined;
+  if (!driverId && !goalId && !changeId && !activityId) return doc;
+
+  const matched = enumerateChainPaths(doc).filter(p => {
+    if (driverId && p.driverId !== driverId) return false;
+    if (goalId && p.goalId !== goalId) return false;
+    if (changeId && p.changeId !== changeId) return false;
+    if (activityId && p.activityId !== activityId) return false;
+    return true;
+  });
+
+  const driverIds = new Set<string>();
+  const goalIds = new Set<string>();
+  const changeIds = new Set<string>();
+  const activityIds = new Set<string>();
+  for (const p of matched) {
+    if (p.driverId) driverIds.add(p.driverId);
+    if (p.goalId) goalIds.add(p.goalId);
+    if (p.changeId) changeIds.add(p.changeId);
+    if (p.activityId) activityIds.add(p.activityId);
+  }
+
+  return {
+    factors: doc.factors.filter(f => driverIds.has(sid(f.id))),
+    goals: doc.goals.filter(g => goalIds.has(sid(g.id))),
+    changes: doc.changes === undefined ? undefined : doc.changes.filter(c => changeIds.has(sid(c.id))),
+    activities: doc.activities.filter(a => activityIds.has(sid(a.id))),
+  };
+}
+
+const CHAIN_COLUMN_KEYS: ChainColumnKey[] = ['driverId', 'goalId', 'changeId', 'activityId'];
+
+function columnEntities(
+  doc: FGCAPreviewDoc,
+  column: ChainColumnKey,
+): Array<{ id: string; name: string }> {
+  if (column === 'driverId') return doc.factors.map(f => ({ id: sid(f.id), name: f.name ?? '' }));
+  if (column === 'goalId') return doc.goals.map(g => ({ id: sid(g.id), name: g.name ?? '' }));
+  if (column === 'changeId') return (doc.changes ?? []).map(c => ({ id: sid(c.id), name: c.name ?? '' }));
+  return doc.activities.map(a => ({ id: sid(a.id), name: a.name ?? '' }));
+}
+
+/**
+ * Dropdown options for one chain column, cascaded from the other selected
+ * filters (this column's own filter is ignored so the user can still switch it).
+ */
+export function chainColumnOptions(
+  doc: FGCAPreviewDoc,
+  scope: ChainScope,
+  column: ChainColumnKey,
+  hideChanges = false,
+): Array<{ id: string; name: string }> {
+  if (hideChanges && column === 'changeId') return [];
+  const withoutSelf: ChainScope = { ...scope, mode: 'chain', [column]: undefined };
+  const filtered = selectChainScopedFGCA(doc, withoutSelf, hideChanges);
+  return columnEntities(filtered, column);
+}
+
+/**
+ * Drop column filters that are no longer reachable given the others.
+ * `justChanged` is kept even when incompatible — the last pick wins, neighbours yield.
+ */
+export function sanitizeChainScope(
+  doc: FGCAPreviewDoc,
+  scope: ChainScope,
+  opts: { justChanged?: ChainColumnKey; hideChanges?: boolean } = {},
+): ChainScope {
+  const next: ChainScope = {
+    mode: 'chain',
+    driverId: scope.driverId || undefined,
+    goalId: scope.goalId || undefined,
+    changeId: opts.hideChanges ? undefined : (scope.changeId || undefined),
+    activityId: scope.activityId || undefined,
+  };
+
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const key of CHAIN_COLUMN_KEYS) {
+      if (key === opts.justChanged) continue;
+      if (opts.hideChanges && key === 'changeId') continue;
+      const id = next[key];
+      if (!id) continue;
+      const available = new Set(chainColumnOptions(doc, next, key, opts.hideChanges).map(o => o.id));
+      if (!available.has(id)) {
+        next[key] = undefined;
+        changed = true;
+      }
+    }
+  }
+  return next;
 }
 
 /**
@@ -63,14 +254,23 @@ export interface FGCAPreviewLayoutOptions {
  * DGCA/DGA goals are flat (no parent_id), so:
  *   - 'level' → goals with `(level ?? 0) <= maxLevel`.
  *   - 'root'  → the single goal whose id matches `rootGoalId` (empty when absent).
+ *   - 'chain' → AND of per-column ids (Driver / Goal / Change / Action); empty
+ *               ids are All. DGA passes hideChanges so a Change filter is ignored.
  *
  * Factors, changes and activities are then kept only when they touch a visible
  * goal: a factor referenced by a visible goal, a change whose `goal_id` is
  * visible, an activity bound to a visible goal directly or via a visible
  * change. Pure and exported so an access-control layer can reuse it.
  */
-export function selectScopedFGCA(doc: FGCAPreviewDoc, scope: Scope): FGCAPreviewDoc {
+export function selectScopedFGCA(
+  doc: FGCAPreviewDoc,
+  scope: FgcaScope,
+  opts: { hideChanges?: boolean } = {},
+): FGCAPreviewDoc {
   if (scope.mode === 'all') return doc;
+  if (isChainScope(scope)) {
+    return selectChainScopedFGCA(doc, scope, opts.hideChanges === true);
+  }
 
   const visibleGoals =
     scope.mode === 'level'
@@ -147,7 +347,7 @@ export function layoutFGCAPreview(
   } = options;
 
   // Trim to scope first; everything below lays out the visible subset only.
-  const doc = selectScopedFGCA(inputDoc, scope);
+  const doc = selectScopedFGCA(inputDoc, scope, { hideChanges });
 
   const colStride = nodeWidth + colGap;
   const cols: FGCAPreviewColumn[] = hideChanges

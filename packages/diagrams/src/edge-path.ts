@@ -1,8 +1,7 @@
 // Shared edge geometry for the static notation previews (Goals, FGCA, FGA,
-// Activities). All four render dependency/relationship edges as a single cubic
-// Bézier with horizontal control handles: each control point shares its
-// endpoint's Y, so the tangent is horizontal at both ends and the marker-end
-// arrow reads as perpendicular to the node's vertical edge.
+// Activities). The default path is a cubic Bézier with horizontal control
+// handles so the marker-end arrow sits flush on the node's vertical edge.
+// Goals / DGCA / DGA can switch to a straight chord or an orthogonal polyline.
 //
 // Pulling the path math here (rather than duplicating it inline in each
 // preview) makes the configurable-curvature behaviour
@@ -29,6 +28,30 @@ const MAX_HANDLE = 160;
 
 /** Multiplier applied to the base handle length. 1 = historical appearance. */
 export const DEFAULT_EDGE_CURVATURE = 1;
+
+/** Path shape for Goals / DGCA / DGA preview edges. Default matches today's cubic. */
+export type EdgeStyle = 'straight' | 'bezier' | 'polyline';
+export const DEFAULT_EDGE_STYLE: EdgeStyle = 'bezier';
+
+export function parseEdgeStyle(v: unknown): EdgeStyle {
+  if (v === 'straight' || v === 'bezier' || v === 'polyline') return v;
+  return DEFAULT_EDGE_STYLE;
+}
+
+/** Straight segment — the arrowhead follows the chord, not the node edge. */
+export function straightEdgePath(sx: number, sy: number, tx: number, ty: number): string {
+  return `M${sx},${sy} L${tx},${ty}`;
+}
+
+/**
+ * Orthogonal (Manhattan) polyline: horizontal out, vertical, horizontal in.
+ * The last segment is horizontal so `marker-end` still meets the node's
+ * vertical edge the same way the cubic does.
+ */
+export function orthogonalEdgePath(sx: number, sy: number, tx: number, ty: number): string {
+  const midX = sx + (tx - sx) / 2;
+  return `M${sx},${sy} H${midX} V${ty} H${tx}`;
+}
 
 /**
  * Builds the SVG `d` for a horizontal-tangent cubic Bézier from (sx,sy) to
@@ -88,4 +111,22 @@ export function bowedCubicEdgePath(
   const dx = tx - sx;
   const handle = Math.max(EDGE_MIN_HANDLE, Math.min(Math.abs(dx) * DX_FACTOR, MAX_HANDLE)) * curvature;
   return `M${sx},${sy} C${sx + handle},${bowY} ${tx - handle},${bowY} ${tx},${ty}`;
+}
+
+/**
+ * Picks the SVG `d` for a Goals / DGCA / DGA preview edge.
+ * Unknown styles fall back to the historical cubic.
+ */
+export function previewEdgePath(
+  sx: number,
+  sy: number,
+  tx: number,
+  ty: number,
+  style: EdgeStyle = DEFAULT_EDGE_STYLE,
+  curvature: number = DEFAULT_EDGE_CURVATURE,
+  entryCurvature?: number,
+): string {
+  if (style === 'straight') return straightEdgePath(sx, sy, tx, ty);
+  if (style === 'polyline') return orthogonalEdgePath(sx, sy, tx, ty);
+  return horizontalCubicEdgePath(sx, sy, tx, ty, curvature, entryCurvature);
 }

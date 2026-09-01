@@ -21,7 +21,7 @@ import {
   type FGCAPreviewColumn,
 } from '../fgca/preview-layout.js';
 import type { FGCADoc } from '../fgca/validate.js';
-import { horizontalCubicEdgePath, DEFAULT_EDGE_CURVATURE } from '../edge-path.js';
+import { previewEdgePath, DEFAULT_EDGE_CURVATURE, type EdgeStyle } from '../edge-path.js';
 import { parseNodeSizePreset, resolveDgcaNodeSize, type NodeSizePreset } from '../node-size-presets.js';
 import { generateSvgEmbedCss } from '../theme/index.js';
 import { emitCenteredTextSvg, layoutCenteredEntityText, truncateLine } from './entity-text-layout.js';
@@ -39,6 +39,7 @@ type FgcaLayout = ReturnType<typeof layoutFGCAPreview>;
 export interface RenderFgcaBodyOptions {
   nodeWidth?: number;
   nodeHeight?: number;
+  edgeStyle?: EdgeStyle;
 }
 
 /**
@@ -60,6 +61,7 @@ export function renderFgcaBody(
 ): string {
   const nodeWidth = bodyOptions.nodeWidth ?? FGCA_NODE_W;
   const nodeHeight = bodyOptions.nodeHeight ?? FGCA_NODE_H;
+  const edgeStyle = bodyOptions.edgeStyle;
   const headerTruncate = Math.max(8, Math.floor((nodeWidth - 16) / 7));
 
   const headerSvg = columns
@@ -71,7 +73,7 @@ export function renderFgcaBody(
   const edgeSvg = edges
     .map(
       (e) =>
-        `<path d="${horizontalCubicEdgePath(e.sx, e.sy, e.tx, e.ty, curvature, entryCurvature)}" class="diagram-edge" marker-end="url(#arrow)"/>`,
+        `<path d="${previewEdgePath(e.sx, e.sy, e.tx, e.ty, edgeStyle, curvature, entryCurvature)}" class="diagram-edge" marker-end="url(#arrow)"/>`,
     )
     .join('\n');
 
@@ -108,6 +110,7 @@ export interface RenderFgcaOptions {
   curvature?: number;
   /** Entry curvature at the target node; defaults to `curvature` when omitted. */
   entryCurvature?: number;
+  edgeStyle?: EdgeStyle;
   nodeSizePreset?: NodeSizePreset;
   layoutOptions?: Parameters<typeof layoutFGCAPreview>[1];
   /** Show scope caption when goal-scoped projection omits goals that reference out-of-scope goals. */
@@ -120,6 +123,7 @@ export function renderFgcaSvg(doc: FGCADoc, options: RenderFgcaOptions = {}): st
     title = '',
     curvature = DEFAULT_EDGE_CURVATURE,
     entryCurvature,
+    edgeStyle,
     nodeSizePreset = 'normal',
     layoutOptions,
     scopeCaption = false,
@@ -141,6 +145,7 @@ export function renderFgcaSvg(doc: FGCADoc, options: RenderFgcaOptions = {}): st
   const body = renderFgcaBody(columns, nodes, edges, curvature, entryCurvature, {
     nodeWidth: nodeSize.width,
     nodeHeight: nodeSize.height,
+    edgeStyle,
   });
 
   const titleSvg = title

@@ -3,6 +3,8 @@ import {
   layoutFGCAPreview,
   FGCA_PAD,
   FGCA_NODE_W,
+  chainColumnOptions,
+  sanitizeChainScope,
   type FGCAPreviewDoc,
 } from '../preview-layout.js';
 
@@ -115,10 +117,75 @@ describe('layoutFGCAPreview', () => {
       expect(idsOf(layout)).toEqual(new Set(['driver_1', 'goal_10', 'activity_30']));
     });
 
+    it("mode 'chain' ANDs column filters and keeps the connecting thread", () => {
+      const layout = layoutFGCAPreview(doc, { scope: { mode: 'chain', driverId: '1', goalId: '10' } });
+      expect(idsOf(layout)).toEqual(new Set(['driver_1', 'goal_10', 'change_20', 'activity_30']));
+    });
+
+    it("mode 'chain' with a single action keeps its upstream thread", () => {
+      const layout = layoutFGCAPreview(doc, { scope: { mode: 'chain', activityId: '31' } });
+      expect(idsOf(layout)).toEqual(new Set(['driver_2', 'goal_11', 'activity_31']));
+    });
+
+    it("mode 'chain' returns empty when selected columns are not on one thread", () => {
+      const layout = layoutFGCAPreview(doc, { scope: { mode: 'chain', driverId: '1', goalId: '11' } });
+      expect(layout.nodes).toHaveLength(0);
+    });
+
+    it("mode 'chain' ignores changeId when hideChanges is set (DGA)", () => {
+      const layout = layoutFGCAPreview(doc, {
+        hideChanges: true,
+        scope: { mode: 'chain', changeId: '20', goalId: '11' },
+      });
+      expect(idsOf(layout)).toEqual(new Set(['driver_2', 'goal_11', 'activity_31']));
+    });
+
     it("mode 'root' returns an empty layout when the root is absent", () => {
       const layout = layoutFGCAPreview(doc, { scope: { mode: 'root', rootGoalId: '999' } });
       expect(layout.nodes).toHaveLength(0);
       expect(layout.edges).toHaveLength(0);
     });
+  });
+});
+
+describe('chainColumnOptions', () => {
+  it('lists every entity when no other column is filtered', () => {
+    const scope = { mode: 'chain' as const };
+    expect(chainColumnOptions(doc, scope, 'goalId').map(o => o.id)).toEqual(['10', '11']);
+    expect(chainColumnOptions(doc, scope, 'driverId').map(o => o.id)).toEqual(['1', '2']);
+  });
+
+  it('narrows neighbouring columns to the selected thread', () => {
+    const scope = { mode: 'chain' as const, driverId: '1' };
+    expect(chainColumnOptions(doc, scope, 'goalId').map(o => o.id)).toEqual(['10']);
+    expect(chainColumnOptions(doc, scope, 'activityId').map(o => o.id)).toEqual(['30']);
+    // Own column stays full so the user can switch the driver.
+    expect(chainColumnOptions(doc, scope, 'driverId').map(o => o.id)).toEqual(['1', '2']);
+  });
+
+  it('omits the change column when hideChanges is set', () => {
+    expect(chainColumnOptions(doc, { mode: 'chain' }, 'changeId', true)).toEqual([]);
+  });
+});
+
+describe('sanitizeChainScope', () => {
+  it('clears a neighbour that the last pick made unreachable', () => {
+    const cleaned = sanitizeChainScope(
+      doc,
+      { mode: 'chain', driverId: '2', goalId: '10' },
+      { justChanged: 'driverId' },
+    );
+    expect(cleaned.driverId).toBe('2');
+    expect(cleaned.goalId).toBeUndefined();
+  });
+
+  it('keeps the last pick when neighbours would otherwise clear it', () => {
+    const cleaned = sanitizeChainScope(
+      doc,
+      { mode: 'chain', driverId: '1', goalId: '11' },
+      { justChanged: 'goalId' },
+    );
+    expect(cleaned.goalId).toBe('11');
+    expect(cleaned.driverId).toBeUndefined();
   });
 });

@@ -14,9 +14,9 @@ import { renderGoalsLayoutSvg } from '@transitrix/diagrams/webview/render-goals.
 import { parseCanonicalGoals } from '@transitrix/diagrams/goals/parse-canonical.js';
 import { coerceDatesToIsoStrings } from '@transitrix/diagrams/yaml-normalize.js';
 import { loadCanon, findCanonRoot, isUnderCanon, type CanonDocs } from './canon-loader.js';
-import { DEFAULT_EDGE_CURVATURE } from '@transitrix/diagrams/edge-path.js';
+import { DEFAULT_EDGE_CURVATURE, type EdgeStyle } from '@transitrix/diagrams/edge-path.js';
 import { checkScopeRoot } from '@transitrix/diagrams/scope.js';
-import { readSpacing, readCurvature, readEntryCurvature, readScope, applyControlMessage, OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND, OPEN_SCOPE_SETTINGS_COMMAND, OPEN_NODE_SIZE_SETTINGS_COMMAND } from './spacing-config.js';
+import { readSpacing, readCurvature, readEntryCurvature, readEdgeStyle, readScope, applyControlMessage, OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND, OPEN_SCOPE_SETTINGS_COMMAND, OPEN_NODE_SIZE_SETTINGS_COMMAND } from './spacing-config.js';
 import { readGoalsNodeSize, readNodeSizePreset } from './node-size-config.js';
 import { genNonce, buildControlsPanel, buildControlsScript, type ControlsModel, type ScopeGoalOption } from './preview-controls.js';
 
@@ -31,7 +31,7 @@ import { genNonce, buildControlsPanel, buildControlsScript, type ControlsModel, 
 const RANK_SEP = 100;
 const NODE_SEP = 24;
 
-function layoutToSvg(layout: GoalTreeLayout, treeName: string, filename?: string, date?: string, version?: string, curvature: number = DEFAULT_EDGE_CURVATURE, entryCurvature?: number): string {
+function layoutToSvg(layout: GoalTreeLayout, treeName: string, filename?: string, date?: string, version?: string, curvature: number = DEFAULT_EDGE_CURVATURE, entryCurvature?: number, edgeStyle?: EdgeStyle): string {
   // The SVG body (nodes, edges, arrow marker, edge geometry) comes from the
   // shared @transitrix/diagrams goals renderer — the single emitter for every
   // host. This preview only reserves room for and stacks its rich title block
@@ -44,6 +44,7 @@ function layoutToSvg(layout: GoalTreeLayout, treeName: string, filename?: string
   return renderGoalsLayoutSvg(layout, {
     curvature,
     entryCurvature,
+    edgeStyle,
     topInset: showTitle ? TITLE_BLOCK_H : 0,
     title,
   });
@@ -147,6 +148,7 @@ export class GoalsPreview {
     const scope = readScope('goals');
     const curvature = readCurvature('goals');
     const entryCurvature = readEntryCurvature('goals');
+    const edgeStyle = readEdgeStyle('goals');
     // Populated on a successful parse — feeds the scope root-picker dropdown
     // and the level-cap upper bound in the interactive control panel.
     let goalOptions: ScopeGoalOption[] = [];
@@ -180,7 +182,7 @@ export class GoalsPreview {
           nodeSep: gaps.verticalGap,
           scope,
         });
-        svgContent = layoutToSvg(layout, treeName, filename, docDate, docVersion, curvature, entryCurvature);
+        svgContent = layoutToSvg(layout, treeName, filename, docDate, docVersion, curvature, entryCurvature, edgeStyle);
       }
     } catch (e) {
       errorMsg = (e as Error).message ?? 'Parse error';
@@ -197,6 +199,7 @@ export class GoalsPreview {
     const model: ControlsModel = {
       spacing: { ...gaps, defaults: spacingDefaults },
       curvature: { value: curvature, default: 1 },
+      edgeStyle: { value: edgeStyle, default: 'bezier' },
       nodeSize: { value: nodeSizePreset, default: 'normal' },
       scope: {
         rootId: scope.mode === 'root' ? scope.rootGoalId : '',

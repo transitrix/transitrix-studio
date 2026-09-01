@@ -9,17 +9,19 @@ import { parseCanonicalFGCA, parseCanonicalFGA } from '@transitrix/diagrams/fgca
 import { resolveFGCA, isFGCAViewDoc } from '@transitrix/diagrams/fgca/resolver.js';
 import {
   layoutFGCAPreview,
+  chainColumnOptions,
   FGCA_PAD as PAD,
   FGCA_DEFAULT_COL_GAP,
   FGCA_DEFAULT_ROW_GAP,
+  type FGCAPreviewDoc,
 } from '@transitrix/diagrams/fgca/preview-layout.js';
-import { DEFAULT_EDGE_CURVATURE } from '@transitrix/diagrams/edge-path.js';
+import { DEFAULT_EDGE_CURVATURE, type EdgeStyle } from '@transitrix/diagrams/edge-path.js';
 import { renderFgcaBody } from '@transitrix/diagrams/webview/render-fgca.js';
 import { buildChainTable, type ChainTable, type ChainColumn } from '@transitrix/diagrams/fgca/chain-table.js';
 import { coerceDatesToIsoStrings } from '@transitrix/diagrams/yaml-normalize.js';
-import { checkScopeRoot, type Scope } from '@transitrix/diagrams/scope.js';
+import { checkChainScope, type FgcaScope } from '@transitrix/diagrams/scope.js';
 import { savePngFromSvg, copyPngFromSvg } from './png-export.js';
-import { readSpacing, readCurvature, readEntryCurvature, readScope, readView, applyControlMessage, OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND, OPEN_SCOPE_SETTINGS_COMMAND } from './spacing-config.js';
+import { readSpacing, readCurvature, readEntryCurvature, readEdgeStyle, readScope, readChainScope, readView, applyControlMessage, OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND, OPEN_SCOPE_SETTINGS_COMMAND } from './spacing-config.js';
 import { readDgcaNodeSize, readNodeSizePreset } from './node-size-config.js';
 import { genNonce, buildControlsPanel, buildControlsScript, buildViewToggle, buildCaptureButton, buildTimelineStrip, type ControlsModel, type ScopeGoalOption, type SnapshotMarker, type SnapshotMessage } from './preview-controls.js';
 import { snapshotFilename, buildSnapshotContent, extractViewMeta, listSnapshotFiles, parseSnapshotForDisplay } from './snapshot-writer.js';
@@ -56,12 +58,66 @@ interface FGCADoc {
 // the column header labels.
 
 // ── SVG renderer ──────────────────────────────────────────────────────────────
-/** Goal options + deepest level for the scope control, from a parsed doc. FGCA
- *  and FGA goals are flat, so a `root` scope is the single matching goal. */
-function scopeInputsFromDoc(doc: FGCADoc): { goals: ScopeGoalOption[]; maxLevelPresent: number } {
+function asPreviewDoc(doc: FGCADoc): FGCAPreviewDoc {
   return {
-    goals: doc.goals.map(g => ({ id: String(g.id), name: g.name ?? '' })),
-    maxLevelPresent: doc.goals.reduce((m, g) => Math.max(m, typeof g.level === 'number' ? g.level : 0), 0),
+    factors: doc.factors,
+    goals: doc.goals,
+    changes: doc.changes,
+    activities: doc.activities,
+  };
+}
+
+function chainScopeOptions(doc: FGCAPreviewDoc, viewNotation: 'dgca' | 'dga', hideChanges: boolean): {
+  drivers: ScopeGoalOption[];
+  goals: ScopeGoalOption[];
+  changes: ScopeGoalOption[];
+  activities: ScopeGoalOption[];
+} {
+  const chain = readChainScope(viewNotation);
+  return {
+    drivers: chainColumnOptions(doc, chain, 'driverId', hideChanges),
+    goals: chainColumnOptions(doc, chain, 'goalId', hideChanges),
+    changes: chainColumnOptions(doc, chain, 'changeId', hideChanges),
+    activities: chainColumnOptions(doc, chain, 'activityId', hideChanges),
+  };
+}
+
+/** Assembles the interactive control-panel model shared by DGCA and DGA. */
+function chainControlsModel(
+  gaps: { horizontalGap: number; verticalGap: number },
+  defaults: { horizontalGap: number; verticalGap: number },
+  curvature: number,
+  viewNotation: 'dgca' | 'dga',
+  hideChanges: boolean,
+  columnOptions: {
+    drivers: ScopeGoalOption[];
+    goals: ScopeGoalOption[];
+    changes: ScopeGoalOption[];
+    activities: ScopeGoalOption[];
+  },
+  edgeStyle: EdgeStyle,
+): ControlsModel {
+  const nodeSizePreset = readNodeSizePreset(viewNotation);
+  const chain = readChainScope(viewNotation);
+  return {
+    spacing: { ...gaps, defaults },
+    curvature: { value: curvature, default: 1 },
+    edgeStyle: { value: edgeStyle, default: 'bezier' },
+    nodeSize: { value: nodeSizePreset, default: 'normal' },
+    scope: {
+      rootId: '',
+      maxLevel: -1,
+      maxLevelPresent: 0,
+      goals: [],
+      chain: {
+        hideChanges,
+        driverId: chain.driverId ?? '',
+        goalId: chain.goalId ?? '',
+        changeId: chain.changeId ?? '',
+        activityId: chain.activityId ?? '',
+        ...columnOptions,
+      },
+    },
   };
 }
 
@@ -100,30 +156,6 @@ function chainTableHtml(table: ChainTable): string {
     return `<tr>${cells}</tr>`;
   }).join('\n');
   return `<div class="chain-table-wrap"><table class="chain-table"><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
-}
-
-/** Assembles the interactive control-panel model shared by DGCA and DGA. */
-function chainControlsModel(
-  gaps: { horizontalGap: number; verticalGap: number },
-  defaults: { horizontalGap: number; verticalGap: number },
-  curvature: number,
-  scope: Scope,
-  goals: ScopeGoalOption[],
-  maxLevelPresent: number,
-  viewNotation: 'dgca' | 'dga',
-): ControlsModel {
-  const nodeSizePreset = readNodeSizePreset(viewNotation);
-  return {
-    spacing: { ...gaps, defaults },
-    curvature: { value: curvature, default: 1 },
-    nodeSize: { value: nodeSizePreset, default: 'normal' },
-    scope: {
-      rootId: scope.mode === 'root' ? scope.rootGoalId : '',
-      maxLevel: scope.mode === 'level' ? scope.maxLevel : -1,
-      maxLevelPresent,
-      goals,
-    },
-  };
 }
 
 interface ChainPreviewParams {
@@ -193,17 +225,24 @@ function renderChainPreview(
   const scope = readScope(p.viewNotation);
   const curvature = readCurvature(p.viewNotation);
   const entryCurvature = readEntryCurvature(p.viewNotation);
+  const edgeStyle = readEdgeStyle(p.viewNotation);
   const warnings = [...baseWarnings];
   let svg = '';
-  let goalOptions: ScopeGoalOption[] = [];
-  let maxLevelPresent = 0;
+  let columnOptions = { drivers: [] as ScopeGoalOption[], goals: [] as ScopeGoalOption[], changes: [] as ScopeGoalOption[], activities: [] as ScopeGoalOption[] };
   if (parsedDoc) {
-    ({ goals: goalOptions, maxLevelPresent } = scopeInputsFromDoc(parsedDoc));
-    const scopeWarning = checkScopeRoot(scope, parsedDoc.goals.map(g => g.id));
+    const previewDoc = asPreviewDoc(parsedDoc);
+    columnOptions = chainScopeOptions(previewDoc, p.viewNotation, p.hideChanges);
+    const chain = readChainScope(p.viewNotation);
+    const scopeWarning = checkChainScope(chain, {
+      drivers: parsedDoc.factors.map(f => f.id),
+      goals: parsedDoc.goals.map(g => g.id),
+      changes: (parsedDoc.changes ?? []).map(c => c.id),
+      activities: parsedDoc.activities.map(a => a.id),
+    }, p.hideChanges);
     if (scopeWarning) warnings.push(`${scopeWarning.code}: ${scopeWarning.message}`);
-    svg = buildSvg(parsedDoc, p.hideChanges, { colGap: gaps.horizontalGap, rowGap: gaps.verticalGap, curvature, entryCurvature, scope, nodeSize: readDgcaNodeSize(p.viewNotation) }, p.heading, filename, docDate, docVersion);
+    svg = buildSvg(parsedDoc, p.hideChanges, { colGap: gaps.horizontalGap, rowGap: gaps.verticalGap, curvature, entryCurvature, edgeStyle, scope, nodeSize: readDgcaNodeSize(p.viewNotation) }, p.heading, filename, docDate, docVersion);
   }
-  const model = chainControlsModel(gaps, spacingDefaults, curvature, scope, goalOptions, maxLevelPresent, p.viewNotation);
+  const model = chainControlsModel(gaps, spacingDefaults, curvature, p.viewNotation, p.hideChanges, columnOptions, edgeStyle);
   const html = buildDiagramFrame({
     filename, notation: p.notation, svgContent: svg, errorMsg, warnings, themeId,
     saveSvgCommand: p.saveSvgCommand,
@@ -222,7 +261,7 @@ function renderChainPreview(
 function buildSvg(
   doc: FGCADoc,
   hideChanges = false,
-  opts: { colGap?: number; rowGap?: number; curvature?: number; entryCurvature?: number; scope?: Scope; nodeSize?: { width: number; height: number } } = {},
+  opts: { colGap?: number; rowGap?: number; curvature?: number; entryCurvature?: number; edgeStyle?: EdgeStyle; scope?: FgcaScope; nodeSize?: { width: number; height: number } } = {},
   heading?: string,
   filename?: string,
   date?: string,
@@ -245,6 +284,7 @@ function buildSvg(
   const body = renderFgcaBody(columns, nodes, edges, curvature, entryCurvature, {
     nodeWidth: nodeSize.width,
     nodeHeight: nodeSize.height,
+    edgeStyle: opts.edgeStyle,
   });
 
   const totalH = height + titleH;
@@ -271,6 +311,8 @@ export class DGCAPreview {
   private panel: vscode.WebviewPanel | undefined;
   private trackedUri: string | undefined;
   private lastSvg = '';
+  private lastPreviewDoc: FGCAPreviewDoc | null = null;
+  private lastHideChanges = false;
 
   constructor(private readonly extensionUri: vscode.Uri) {}
 
@@ -298,7 +340,11 @@ export class DGCAPreview {
         },
       );
       this.panel.webview.onDidReceiveMessage(async (m) => {
-        if (m.type === 'transitrix:control') { void applyControlMessage('dgca', m); }
+        if (m.type === 'transitrix:control') {
+          void applyControlMessage('dgca', m, this.lastPreviewDoc
+            ? { doc: this.lastPreviewDoc, hideChanges: this.lastHideChanges }
+            : undefined);
+        }
         if (m.type === 'transitrix:snapshot') { await this.handleSnapshotMessage(m as SnapshotMessage); }
       });
       this.panel.onDidDispose(() => { this.panel = undefined; this.trackedUri = undefined; });
@@ -448,6 +494,8 @@ export class DGCAPreview {
       },
       parsedDoc, warnings, errorMsg, docVersion, docDate, filename, themeId,
     );
+    this.lastPreviewDoc = parsedDoc ? asPreviewDoc(parsedDoc) : null;
+    this.lastHideChanges = parsedDoc?.hideChanges === true;
     this.lastSvg = svg;
     return html;
   }
@@ -498,6 +546,8 @@ export class DGAPreview {
   private panel: vscode.WebviewPanel | undefined;
   private trackedUri: string | undefined;
   private lastSvg = '';
+  private lastPreviewDoc: FGCAPreviewDoc | null = null;
+  private lastHideChanges = true;
 
   constructor(private readonly extensionUri: vscode.Uri) {}
 
@@ -525,7 +575,11 @@ export class DGAPreview {
         },
       );
       this.panel.webview.onDidReceiveMessage(async (m) => {
-        if (m.type === 'transitrix:control') { void applyControlMessage('dga', m); }
+        if (m.type === 'transitrix:control') {
+          void applyControlMessage('dga', m, this.lastPreviewDoc
+            ? { doc: this.lastPreviewDoc, hideChanges: this.lastHideChanges }
+            : undefined);
+        }
         if (m.type === 'transitrix:snapshot') { await this.handleSnapshotMessage(m as SnapshotMessage); }
       });
       this.panel.onDidDispose(() => { this.panel = undefined; this.trackedUri = undefined; });
@@ -659,6 +713,8 @@ export class DGAPreview {
       },
       parsedDoc, warnings, errorMsg, docVersion, docDate, filename, themeId,
     );
+    this.lastPreviewDoc = parsedDoc ? asPreviewDoc(parsedDoc) : null;
+    this.lastHideChanges = true;
     this.lastSvg = svg;
     return html;
   }
