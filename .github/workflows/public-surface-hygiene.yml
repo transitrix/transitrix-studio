@@ -42,7 +42,7 @@ jobs:
         env:
           HYGIENE_BLOCKLIST: ${{ secrets.HYGIENE_BLOCKLIST }}
           HYGIENE_BLOCKLIST_HUB: ${{ secrets.HYGIENE_BLOCKLIST_HUB }}
-          HYGIENE_BLOCKLIST_3: ${{ secrets.HYGIENE_BLOCKLIST_3 }}
+          HYGIENE_HUB_SLUG: ${{ secrets.HYGIENE_HUB_SLUG }}
           PR_TITLE: ${{ github.event.pull_request.title }}
           PR_BODY: ${{ github.event.pull_request.body }}
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
@@ -51,7 +51,7 @@ jobs:
 
       - name: Run full-tree hygiene check
         env:
-          HYGIENE_BLOCKLIST_3: ${{ secrets.HYGIENE_BLOCKLIST_3 }}
+          HYGIENE_HUB_SLUG: ${{ secrets.HYGIENE_HUB_SLUG }}
         run: node scripts/ci-hygiene-tree.mjs
 
       - name: Work-item references

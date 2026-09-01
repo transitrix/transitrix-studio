@@ -18,8 +18,8 @@ if (!blocklist || blocklist.trim() === '') {
 }
 
 const blocklistHub = process.env.HYGIENE_BLOCKLIST_HUB;
-const blocklist3 = process.env.HYGIENE_BLOCKLIST_3;
-const combined = [blocklist, blocklistHub, blocklist3]
+const blocklistHubSlug = process.env.HYGIENE_HUB_SLUG;
+const combined = [blocklist, blocklistHub, blocklistHubSlug]
   .filter((p) => p && p.trim())
   .join('|');
 
@@ -27,7 +27,7 @@ const TAG = 'hygiene';
 const SLOTS = [
   ['HYGIENE_BLOCKLIST', blocklist],
   ['HYGIENE_BLOCKLIST_HUB', blocklistHub],
-  ['HYGIENE_BLOCKLIST_3', blocklist3],
+  ['HYGIENE_HUB_SLUG', blocklistHubSlug],
 ];
 
 // Self-validation. A pattern can be perfectly valid and still useless: an empty

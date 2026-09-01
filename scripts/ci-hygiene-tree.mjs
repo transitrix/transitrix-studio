@@ -5,7 +5,7 @@
 // already committed stays invisible to it forever. This pass reads every tracked
 // text file instead.
 //
-// Deliberately scoped to the HYGIENE_BLOCKLIST_3 pattern alone: the older slots
+// Deliberately scoped to the HYGIENE_HUB_SLUG pattern alone: the older slots
 // have never been evaluated tree-wide, and enabling them here would fail every
 // PR on pre-existing content rather than on the change under review.
 //
@@ -15,9 +15,9 @@
 import { execSync } from 'node:child_process';
 import { readFileSync, statSync } from 'node:fs';
 
-const raw = process.env.HYGIENE_BLOCKLIST_3;
+const raw = process.env.HYGIENE_HUB_SLUG;
 if (!raw || raw.trim() === '') {
-  console.warn('[hygiene-tree] HYGIENE_BLOCKLIST_3 secret is not set — skipping check.');
+  console.warn('[hygiene-tree] HYGIENE_HUB_SLUG secret is not set — skipping check.');
   process.exit(0);
 }
 
@@ -25,12 +25,12 @@ let pattern;
 try {
   pattern = new RegExp(raw, 'i');
 } catch {
-  console.error('[hygiene-tree] HYGIENE_BLOCKLIST_3 is not a valid JavaScript regex.');
+  console.error('[hygiene-tree] HYGIENE_HUB_SLUG is not a valid JavaScript regex.');
   process.exit(2);
 }
 
 const TAG = 'hygiene-tree';
-const SLOTS = [['HYGIENE_BLOCKLIST_3', raw]];
+const SLOTS = [['HYGIENE_HUB_SLUG', raw]];
 
 // Self-validation. A pattern can be perfectly valid and still useless: an empty
 // alternative (`a||b`) or a bare `.*` compiles and then matches every input,
