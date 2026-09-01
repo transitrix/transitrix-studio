@@ -1,12 +1,27 @@
 notation: goals
 spec_version: "0.1"
+
+id: GOALS-LISTING-1
 name: Listing
 
+goal_types:
+  - { name: "Strategy",       level: 0 }
+  - { name: "Strategic Goal", level: 1 }
+
 goals:
-  - id: G-1
+  - id: GOAL-1
     name: "Deliver customer value"
-    children:
-      - id: G-1-1
-        name: "Improve user experience"
-      - id: G-1-2
-        name: "Reduce operational costs"
+    type: "Strategy"
+    level: 0
+
+  - id: GOAL-1-1
+    name: "Improve user experience"
+    type: "Strategic Goal"
+    level: 1
+    parent: GOAL-1
+
+  - id: GOAL-1-2
+    name: "Reduce operational costs"
+    type: "Strategic Goal"
+    level: 1
+    parent: GOAL-1
