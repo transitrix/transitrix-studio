@@ -127,6 +127,12 @@ jobs:
         with:
           subject-path: output/*.vsix
 
+      # Retention only has to outlast the run that consumes this. Every caller
+      # downloads the artifact in a job of the same run, and the copy that ships
+      # is attached to the release by `attach-release-vsix`, where it lives as a
+      # release asset outside Actions storage. Seven days leaves room to fetch a
+      # standalone dispatch by hand; holding longer accumulates one ~3 MB copy
+      # per run of a workflow that runs on every release path.
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
@@ -137,4 +143,4 @@ jobs:
             output/sbom.xml
             output/sbom.sha256
           if-no-files-found: error
-          retention-days: 90
+          retention-days: 7
