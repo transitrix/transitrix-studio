@@ -13,7 +13,7 @@
 import { layoutGoalTree } from '../goals/layout.js';
 import type { GoalTree, GoalTreeLayout, LaidOutEdge } from '../goals/types.js';
 import { displayGoalId } from '../goals/parse-canonical.js';
-import { horizontalCubicEdgePath, DEFAULT_EDGE_CURVATURE } from '../edge-path.js';
+import { previewEdgePath, DEFAULT_EDGE_CURVATURE, type EdgeStyle } from '../edge-path.js';
 import { parseNodeSizePreset, resolveGoalsNodeSize, type NodeSizePreset } from '../node-size-presets.js';
 import { generateSvgEmbedCss, type ThemeId } from '../theme/index.js';
 import { emitCenteredTextSvg, layoutCenteredEntityText } from './entity-text-layout.js';
@@ -28,6 +28,7 @@ export interface RenderGoalsOptions {
   treeName?: string;
   curvature?: number;
   entryCurvature?: number;
+  edgeStyle?: EdgeStyle;
   nodeSizePreset?: NodeSizePreset;
 }
 
@@ -37,7 +38,7 @@ export interface RenderGoalsOptions {
  * with the shared theme CSS embedded so the output is self-contained.
  */
 export function renderGoalsSvg(tree: GoalTree, options: RenderGoalsOptions = {}): string {
-  const { treeName = '', curvature = DEFAULT_EDGE_CURVATURE, entryCurvature, nodeSizePreset = 'normal' } = options;
+  const { treeName = '', curvature = DEFAULT_EDGE_CURVATURE, entryCurvature, edgeStyle, nodeSizePreset = 'normal' } = options;
   const nodeSize = resolveGoalsNodeSize(parseNodeSizePreset(nodeSizePreset));
 
   const layout: GoalTreeLayout = layoutGoalTree(tree, {
@@ -55,12 +56,13 @@ export function renderGoalsSvg(tree: GoalTree, options: RenderGoalsOptions = {})
     ? `<text class="text-header" x="${PAD}" y="${PAD - 6}">${escXml(`Goal tree — ${treeName}`)}</text>`
     : '';
 
-  return renderGoalsLayoutSvg(layout, { curvature, entryCurvature, title, embedCssTheme: 'transitrix' });
+  return renderGoalsLayoutSvg(layout, { curvature, entryCurvature, edgeStyle, title, embedCssTheme: 'transitrix' });
 }
 
 export interface RenderGoalsLayoutOptions {
   curvature?: number;
   entryCurvature?: number;
+  edgeStyle?: EdgeStyle;
   /** Extra vertical space reserved at the top of the canvas (e.g. for a title block). */
   topInset?: number;
   /** Raw SVG injected immediately after `<defs>` — a header line or a full title block. */
@@ -78,7 +80,7 @@ export interface RenderGoalsLayoutOptions {
  *     and the export path own styling).
  */
 export function renderGoalsLayoutSvg(layout: GoalTreeLayout, options: RenderGoalsLayoutOptions = {}): string {
-  const { curvature = DEFAULT_EDGE_CURVATURE, entryCurvature, topInset = 0, title = '', embedCssTheme } = options;
+  const { curvature = DEFAULT_EDGE_CURVATURE, entryCurvature, edgeStyle, topInset = 0, title = '', embedCssTheme } = options;
 
   const w = layout.bounds.width + PAD * 2;
   const h = layout.bounds.height + PAD * 2 + topInset;
@@ -95,7 +97,7 @@ export function renderGoalsLayoutSvg(layout: GoalTreeLayout, options: RenderGoal
     const sy = s.y + oy + s.height / 2;
     const tx = t.x + ox;
     const ty = t.y + oy + t.height / 2;
-    return horizontalCubicEdgePath(sx, sy, tx, ty, curvature, entryCurvature);
+    return previewEdgePath(sx, sy, tx, ty, edgeStyle, curvature, entryCurvature);
   }
 
   const edgeSvg = layout.edges

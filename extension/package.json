@@ -306,6 +306,24 @@
           "default": 1,
           "description": "Action preview: CPM dependency-arrow curvature. 0 = straight lines, 1 = default, higher = stronger arc."
         },
+        "transitrix.edgeStyle.goals": {
+          "type": "string",
+          "enum": ["straight", "bezier", "polyline"],
+          "default": "bezier",
+          "description": "Goals preview: arrow path. straight = chord, bezier = cubic curve (slider still applies), polyline = orthogonal elbow."
+        },
+        "transitrix.edgeStyle.dgca": {
+          "type": "string",
+          "enum": ["straight", "bezier", "polyline"],
+          "default": "bezier",
+          "description": "DGCA preview: arrow path. straight = chord, bezier = cubic curve (slider still applies), polyline = orthogonal elbow."
+        },
+        "transitrix.edgeStyle.dga": {
+          "type": "string",
+          "enum": ["straight", "bezier", "polyline"],
+          "default": "bezier",
+          "description": "DGA preview: arrow path. straight = chord, bezier = cubic curve (slider still applies), polyline = orthogonal elbow."
+        },
         "transitrix.entryCurvature.goals": {
           "type": "number",
           "minimum": 0,
@@ -345,27 +363,40 @@
           "default": -1,
           "description": "Goals preview: scope to a level cap. Show only goals at this level and above (e.g. 1 = top two levels). -1 = no cap. Ignored when a scope root id is set."
         },
-        "transitrix.scope.dgca.rootId": {
+        "transitrix.scope.dgca.driverId": {
           "type": "string",
           "default": "",
-          "description": "DGCA preview: scope to a single goal. Set the goal id to show only that goal plus the drivers/changes/activities connected to it. Empty = show all. Takes precedence over the level cap."
+          "description": "DGCA preview: show only chains through this driver. Empty = all drivers."
         },
-        "transitrix.scope.dgca.maxLevel": {
-          "type": "integer",
-          "minimum": -1,
-          "default": -1,
-          "description": "DGCA preview: scope to a goal-level cap. Show only goals at this level and above, plus their connected drivers/changes/activities. -1 = no cap. Ignored when a scope root id is set."
-        },
-        "transitrix.scope.dga.rootId": {
+        "transitrix.scope.dgca.goalId": {
           "type": "string",
           "default": "",
-          "description": "DGA preview: scope to a single goal. Set the goal id to show only that goal plus the drivers/activities connected to it. Empty = show all. Takes precedence over the level cap."
+          "description": "DGCA preview: show only chains through this goal. Empty = all goals."
         },
-        "transitrix.scope.dga.maxLevel": {
-          "type": "integer",
-          "minimum": -1,
-          "default": -1,
-          "description": "DGA preview: scope to a goal-level cap. Show only goals at this level and above, plus their connected drivers/activities. -1 = no cap. Ignored when a scope root id is set."
+        "transitrix.scope.dgca.changeId": {
+          "type": "string",
+          "default": "",
+          "description": "DGCA preview: show only chains through this change. Empty = all changes."
+        },
+        "transitrix.scope.dgca.activityId": {
+          "type": "string",
+          "default": "",
+          "description": "DGCA preview: show only chains through this action. Empty = all actions."
+        },
+        "transitrix.scope.dga.driverId": {
+          "type": "string",
+          "default": "",
+          "description": "DGA preview: show only chains through this driver. Empty = all drivers."
+        },
+        "transitrix.scope.dga.goalId": {
+          "type": "string",
+          "default": "",
+          "description": "DGA preview: show only chains through this goal. Empty = all goals."
+        },
+        "transitrix.scope.dga.activityId": {
+          "type": "string",
+          "default": "",
+          "description": "DGA preview: show only chains through this action. Empty = all actions."
         },
         "transitrix.view.dgca": {
           "type": "string",

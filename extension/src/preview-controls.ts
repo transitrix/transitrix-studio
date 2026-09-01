@@ -44,6 +44,13 @@ export interface CurvatureControlModel {
   default: number;
 }
 
+export type EdgeStyleValue = 'straight' | 'bezier' | 'polyline';
+
+export interface EdgeStyleControlModel {
+  value: EdgeStyleValue;
+  default: EdgeStyleValue;
+}
+
 export interface ScopeControlModel {
   /** Current root id ('' when no root scope is active). */
   rootId: string;
@@ -53,6 +60,21 @@ export interface ScopeControlModel {
   maxLevelPresent: number;
   /** All goals in the document, for the root-picker dropdown. */
   goals: ScopeGoalOption[];
+  /**
+   * DGCA/DGA per-column filters. When set, the panel renders D/G/C/A
+   * selectors instead of Root + Level. DGA sets hideChanges to omit C.
+   */
+  chain?: {
+    hideChanges: boolean;
+    driverId: string;
+    goalId: string;
+    changeId: string;
+    activityId: string;
+    drivers: ScopeGoalOption[];
+    goals: ScopeGoalOption[];
+    changes: ScopeGoalOption[];
+    activities: ScopeGoalOption[];
+  };
 }
 
 export type NodeSizePresetValue = 'compact' | 'normal' | 'wide';
@@ -66,6 +88,8 @@ export interface NodeSizeControlModel {
 export interface ControlsModel {
   spacing: SpacingControlModel;
   curvature: CurvatureControlModel;
+  /** Goals / DGCA / DGA. Omitted for Action, which keeps the curvature slider only. */
+  edgeStyle?: EdgeStyleControlModel;
   /** Omitted for notations without a scope filter (Activities). */
   scope?: ScopeControlModel;
   /** Omitted when the notation has no block-size preset (yet). */
@@ -75,10 +99,10 @@ export interface ControlsModel {
 /** Message posted from the webview to the host on every control change. */
 export interface ControlMessage {
   type: 'transitrix:control';
-  control: 'spacing' | 'curvature' | 'entryCurvature' | 'scope' | 'view' | 'nodeSize';
-  /** spacing: 'horizontalGap'|'verticalGap'; scope: 'rootId'|'maxLevel'|'reset'; view: 'tree'|'table'; nodeSize: 'preset'; absent for curvature. */
-  field?: 'horizontalGap' | 'verticalGap' | 'rootId' | 'maxLevel' | 'reset' | 'tree' | 'table' | 'preset';
-  /** Numeric for spacing/curvature/maxLevel; string for rootId; absent for reset/view. */
+  control: 'spacing' | 'curvature' | 'entryCurvature' | 'scope' | 'view' | 'nodeSize' | 'edgeStyle';
+  /** spacing: 'horizontalGap'|'verticalGap'; scope: 'rootId'|'maxLevel'|'driverId'|'goalId'|'changeId'|'activityId'|'reset'; view: 'tree'|'table'; nodeSize: 'preset'; absent for curvature. */
+  field?: 'horizontalGap' | 'verticalGap' | 'rootId' | 'maxLevel' | 'driverId' | 'goalId' | 'changeId' | 'activityId' | 'reset' | 'tree' | 'table' | 'preset';
+  /** Numeric for spacing/curvature/maxLevel; string for rootId / chain ids; absent for reset/view. */
   value?: number | string;
 }
 
@@ -245,7 +269,12 @@ function hasNonDefault(model: ControlsModel): boolean {
   const s = model.spacing;
   if (s.horizontalGap !== s.defaults.horizontalGap || s.verticalGap !== s.defaults.verticalGap) return true;
   if (model.curvature.value !== model.curvature.default) return true;
+  if (model.edgeStyle && model.edgeStyle.value !== model.edgeStyle.default) return true;
   if (model.nodeSize && model.nodeSize.value !== model.nodeSize.default) return true;
+  if (model.scope?.chain) {
+    const c = model.scope.chain;
+    if (c.driverId !== '' || c.goalId !== '' || c.changeId !== '' || c.activityId !== '') return true;
+  }
   if (model.scope && (model.scope.rootId !== '' || model.scope.maxLevel >= 0)) return true;
   return false;
 }
@@ -264,23 +293,59 @@ function spacingRow(s: SpacingControlModel): string {
   </div>`;
 }
 
-function curvatureRow(c: CurvatureControlModel): string {
+function curvatureRow(c: CurvatureControlModel, style?: EdgeStyleControlModel): string {
+  const opt = (value: EdgeStyleValue, label: string): string =>
+    `<option value="${value}"${style && style.value === value ? ' selected' : ''}>${label}</option>`;
+  const styleSelect = style
+    ? `<label title="Arrow path: straight chord, cubic Bezier, or orthogonal polyline">
+      <select data-tx-control="edgeStyle">${opt('straight', 'Straight')}${opt('bezier', 'Bezier')}${opt('polyline', 'Polyline')}</select>
+    </label>`
+    : '';
+  const showSlider = !style || style.value === 'bezier';
+  const slider = showSlider
+    ? `<input type="range" data-tx-control="curvature" data-tx-event="input" data-tx-output="tx-curv-out"
+        min="${CURVATURE_MIN}" max="${CURVATURE_MAX}" step="${CURVATURE_STEP}" value="${c.value}">
+    <output id="tx-curv-out">${c.value}</output>`
+    : '';
   return `<div class="tx-ctl-row">
-    <span class="tx-ctl-label">Curvature</span>
-    <input type="range" data-tx-control="curvature" data-tx-event="input" data-tx-output="tx-curv-out"
-      min="${CURVATURE_MIN}" max="${CURVATURE_MAX}" step="${CURVATURE_STEP}" value="${c.value}">
-    <output id="tx-curv-out">${c.value}</output>
+    <span class="tx-ctl-label">${style ? 'Arrows' : 'Curvature'}</span>
+    ${styleSelect}
+    ${slider}
   </div>`;
 }
 
-function scopeRow(sc: ScopeControlModel): string {
-  const options = [`<option value="">— All goals —</option>`]
-    .concat(sc.goals.map(g => {
-      const selected = g.id === sc.rootId ? ' selected' : '';
+function scopeOptionList(items: ScopeGoalOption[], selectedId: string, allLabel: string): string {
+  return [`<option value="">${escXml(allLabel)}</option>`]
+    .concat(items.map(g => {
+      const selected = g.id === selectedId ? ' selected' : '';
       const label = g.name && g.name.trim() ? `${g.name} (${g.id})` : g.id;
       return `<option value="${escXml(g.id)}"${selected}>${escXml(label)}</option>`;
     }))
     .join('');
+}
+
+function chainScopeRow(ch: NonNullable<ScopeControlModel['chain']>): string {
+  const sel = (letter: string, field: string, title: string, items: ScopeGoalOption[], id: string): string =>
+    `<label title="${escXml(title)}">${letter}
+      <select data-tx-control="scope" data-tx-field="${field}">${scopeOptionList(items, id, '— All —')}</select></label>`;
+  const parts = [
+    sel('D', 'driverId', 'Show only chains through this driver', ch.drivers, ch.driverId),
+    sel('G', 'goalId', 'Show only chains through this goal', ch.goals, ch.goalId),
+  ];
+  if (!ch.hideChanges) {
+    parts.push(sel('C', 'changeId', 'Show only chains through this change', ch.changes, ch.changeId));
+  }
+  parts.push(sel('A', 'activityId', 'Show only chains through this action', ch.activities, ch.activityId));
+  return `<div class="tx-ctl-row">
+    <span class="tx-ctl-label">Scope</span>
+    ${parts.join('\n    ')}
+    <button type="button" data-tx-control="scope" data-tx-field="reset" title="Clear scope — show everything">Reset</button>
+  </div>`;
+}
+
+function scopeRow(sc: ScopeControlModel): string {
+  if (sc.chain) return chainScopeRow(sc.chain);
+  const options = scopeOptionList(sc.goals, sc.rootId, '— All goals —');
   // Level input is bounded to the document's deepest level. When the document
   // has no level information (maxLevelPresent <= 0) the cap can't trim anything,
   // so the input is disabled with a hint.
@@ -311,7 +376,7 @@ function nodeSizeRow(ns: NodeSizeControlModel): string {
 /** Builds the `<details>` control-panel markup for a notation's interactive preview. */
 export function buildControlsPanel(model: ControlsModel): string {
   const open = hasNonDefault(model) ? ' open' : '';
-  const rows = [spacingRow(model.spacing), curvatureRow(model.curvature)];
+  const rows = [spacingRow(model.spacing), curvatureRow(model.curvature, model.edgeStyle)];
   if (model.nodeSize) rows.push(nodeSizeRow(model.nodeSize));
   if (model.scope) rows.push(scopeRow(model.scope));
   return `<details id="tx-ctl" class="tx-ctl"${open}>
@@ -379,6 +444,10 @@ export function buildControlsScript(nonce: string): string {
           if (el.value === '') { post(control, 'reset'); return; }
           var root = sel('scope', 'rootId'); if (root) root.value = '';
           post(control, field, num(el.value));
+        } else if (control === 'scope' && (field === 'driverId' || field === 'goalId' || field === 'changeId' || field === 'activityId')) {
+          post(control, field, el.value);
+        } else if (control === 'edgeStyle') {
+          post(control, undefined, el.value);
         } else if (control === 'curvature') {
           post(control, undefined, num(el.value));
         } else if (control === 'nodeSize') {

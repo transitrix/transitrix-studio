@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { horizontalCubicEdgePath, bowedCubicEdgePath, EDGE_MIN_HANDLE } from '../edge-path.js';
+import { horizontalCubicEdgePath, bowedCubicEdgePath, previewEdgePath, parseEdgeStyle, EDGE_MIN_HANDLE } from '../edge-path.js';
 
 /** Point at parameter `t` on cubic `P0 C P1 P2 P3` (`d` in `M.. C..`/coords form). */
 function cubicPointAt(
@@ -77,6 +77,34 @@ describe('horizontalCubicEdgePath', () => {
     // S-bow. Capped at 160, the control points stay close to the endpoints.
     const d = horizontalCubicEdgePath(0, 0, 80, 500, 1);
     expect(d).toBe('M0,0 C160,0 -80,500 80,500');
+  });
+});
+
+describe('previewEdgePath', () => {
+  it('straight is a single line', () => {
+    expect(previewEdgePath(0, 10, 80, 40, 'straight')).toBe('M0,10 L80,40');
+  });
+
+  it('polyline is an orthogonal H-V-H elbow', () => {
+    expect(previewEdgePath(0, 10, 80, 40, 'polyline')).toBe('M0,10 H40 V40 H80');
+  });
+
+  it('bezier matches the historical cubic', () => {
+    expect(previewEdgePath(0, 0, 40, 0, 'bezier', 1)).toBe(horizontalCubicEdgePath(0, 0, 40, 0, 1));
+  });
+
+  it('unknown style falls back to bezier', () => {
+    expect(previewEdgePath(0, 0, 40, 0, 'bezier')).toBe(horizontalCubicEdgePath(0, 0, 40, 0));
+  });
+});
+
+describe('parseEdgeStyle', () => {
+  it('accepts the three styles and defaults otherwise', () => {
+    expect(parseEdgeStyle('straight')).toBe('straight');
+    expect(parseEdgeStyle('polyline')).toBe('polyline');
+    expect(parseEdgeStyle('bezier')).toBe('bezier');
+    expect(parseEdgeStyle('nope')).toBe('bezier');
+    expect(parseEdgeStyle(undefined)).toBe('bezier');
   });
 });
 

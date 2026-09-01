@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { checkScopeRoot, SCOPE_MISSING_ROOT_CODE, type Scope } from '../scope.js';
+import {
+  checkScopeRoot,
+  checkChainScope,
+  SCOPE_MISSING_ROOT_CODE,
+  SCOPE_MISSING_CHAIN_CODE,
+  type Scope,
+} from '../scope.js';
 
 describe('checkScopeRoot', () => {
   it('returns null for non-root scopes', () => {
@@ -23,5 +29,29 @@ describe('checkScopeRoot', () => {
   it('handles string goal ids', () => {
     expect(checkScopeRoot({ mode: 'root', rootGoalId: 'g1' }, ['g1', 'g2'])).toBeNull();
     expect(checkScopeRoot({ mode: 'root', rootGoalId: 'gX' }, ['g1', 'g2'])).not.toBeNull();
+  });
+});
+
+describe('checkChainScope', () => {
+  const ids = {
+    drivers: ['D1'],
+    goals: ['G1'],
+    changes: ['C1'],
+    activities: ['A1'],
+  };
+
+  it('returns null when every selected id is present', () => {
+    expect(checkChainScope({ mode: 'chain', driverId: 'D1', goalId: 'G1' }, ids)).toBeNull();
+  });
+
+  it('returns SCOPE-002 when a selected id is absent', () => {
+    const w = checkChainScope({ mode: 'chain', goalId: 'GX' }, ids);
+    expect(w).not.toBeNull();
+    expect(w!.code).toBe(SCOPE_MISSING_CHAIN_CODE);
+    expect(w!.message).toContain('GX');
+  });
+
+  it('ignores a change filter when hideChanges is set', () => {
+    expect(checkChainScope({ mode: 'chain', changeId: 'CX' }, ids, true)).toBeNull();
   });
 });

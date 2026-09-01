@@ -58,6 +58,23 @@ describe('buildControlsPanel', () => {
     expect(html).toContain('<output id="tx-curv-out">');
   });
 
+  it('renders the arrow-style select for Goals/DGCA and hides the slider unless Bezier', () => {
+    const bezier = buildControlsPanel(baseModel({
+      edgeStyle: { value: 'bezier', default: 'bezier' },
+    }));
+    expect(bezier).toContain('data-tx-control="edgeStyle"');
+    expect(bezier).toContain('value="bezier" selected');
+    expect(bezier).toContain('data-tx-control="curvature"');
+    expect(bezier).toContain('Arrows');
+
+    const polyline = buildControlsPanel(baseModel({
+      edgeStyle: { value: 'polyline', default: 'bezier' },
+    }));
+    expect(polyline).toContain('value="polyline" selected');
+    expect(polyline).not.toContain('data-tx-control="curvature"');
+    expect(polyline).toContain(' open>');
+  });
+
   it('omits the scope row when no scope model is given (Activities)', () => {
     const html = buildControlsPanel(baseModel());
     expect(html).not.toContain('data-tx-control="scope"');
@@ -115,6 +132,52 @@ describe('buildControlsPanel', () => {
       scope: { rootId: '5', maxLevel: -1, maxLevelPresent: 2, goals: [] },
     }));
     expect(scopedNonDefault).toContain(' open>');
+  });
+
+  it('renders D/G/C/A selectors for a chain scope and omits Root/Level', () => {
+    const html = buildControlsPanel(baseModel({
+      scope: {
+        rootId: '', maxLevel: -1, maxLevelPresent: 0, goals: [],
+        chain: {
+          hideChanges: false,
+          driverId: '', goalId: 'G1', changeId: '', activityId: '',
+          drivers: [{ id: 'D1', name: 'Reg window' }],
+          goals: [{ id: 'G1', name: 'Launch' }],
+          changes: [{ id: 'C1', name: 'CRM' }],
+          activities: [{ id: 'A1', name: 'Rollout' }],
+        },
+      },
+    }));
+    expect(html).toContain('data-tx-field="driverId"');
+    expect(html).toContain('data-tx-field="goalId"');
+    expect(html).toContain('data-tx-field="changeId"');
+    expect(html).toContain('data-tx-field="activityId"');
+    expect(html).not.toContain('data-tx-field="rootId"');
+    expect(html).not.toContain('data-tx-field="maxLevel"');
+    expect(html).toContain('>D\n');
+    expect(html).toContain('>G\n');
+    expect(html).toContain('>C\n');
+    expect(html).toContain('>A\n');
+    expect(html).toContain('Launch (G1)');
+    expect(html).toContain(' open>');
+  });
+
+  it('hides the C selector when hideChanges is set', () => {
+    const html = buildControlsPanel(baseModel({
+      scope: {
+        rootId: '', maxLevel: -1, maxLevelPresent: 0, goals: [],
+        chain: {
+          hideChanges: true,
+          driverId: '', goalId: '', changeId: '', activityId: '',
+          drivers: [], goals: [], changes: [{ id: 'C1', name: 'hidden' }], activities: [],
+        },
+      },
+    }));
+    expect(html).toContain('data-tx-field="driverId"');
+    expect(html).toContain('data-tx-field="goalId"');
+    expect(html).toContain('data-tx-field="activityId"');
+    expect(html).not.toContain('data-tx-field="changeId"');
+    expect(html).not.toContain('hidden');
   });
 });
 

@@ -3,6 +3,8 @@ export type { FGCALayoutInput } from "./layout";
 export {
   layoutFGCAPreview,
   selectScopedFGCA,
+  chainColumnOptions,
+  sanitizeChainScope,
   FGCA_NODE_W,
   FGCA_NODE_H,
   FGCA_HEADER_H,
