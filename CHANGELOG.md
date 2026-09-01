@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.6.2] — 2026-09-01
+
+### Added
+
+- **DGCA and DGA previews filter the chain by column.** Scope replaces the single root-goal selector with Driver, Goal, Change, and Activity dropdowns (labelled D / G / C / A). Each defaults to All; chosen values combine with AND, and neighbouring lists shrink to the remaining thread. DGA, and DGCA with the Changes layer off, hide the Change selector. Goals preview keeps Root and Level. (#614)
+- **Goals, DGCA, and DGA previews offer Straight, Bezier, and Polyline arrow paths.** The curvature slider remains for Bezier only. Action preview is unchanged. (#614)
+
+### Packages
+
+- `@transitrix/diagrams` 1.12.1 → 1.12.2 — column chain scope on DGCA/DGA, preview edge path styles.
+- `@transitrix/cli` 2.8.1 → 2.8.2 — rebundles diagrams (no compiler source change in this span).
+
 ## [3.6.1] — 2026-08-31
 
 ### Fixed
