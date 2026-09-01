@@ -49,7 +49,7 @@ jobs:
           fi
           mkdir -p output
           gh release download "$tag" --repo "${{ github.repository }}" \
-            --pattern '*.vsix' --pattern '*.sha256' --dir output
+            --pattern '*.vsix' --pattern '*.vsix.sha256' --dir output
 
       - name: Verify the downloaded VSIX against its recorded SHA-256
         shell: bash
