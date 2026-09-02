@@ -124,7 +124,11 @@ export function renderGoalsLayoutSvg(layout: GoalTreeLayout, options: RenderGoal
         idMaxLines: 1,
       });
       const textSvg = emitCenteredTextSvg(specs, x + n.width / 2, escXml);
+      const titleParts = [escXml(labelText), escXml(idText)];
+      if (n.data.level !== undefined) titleParts.push(`level ${n.data.level}`);
+      const titleContent = titleParts.join(' — ');
       return `<g>
+  <title>${titleContent}</title>
   <rect class="diagram-node level-${level}" x="${x}" y="${y}" width="${n.width}" height="${n.height}" rx="${ENTITY_NODE_RX}"/>
   ${textSvg}
 </g>`;

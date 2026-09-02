@@ -92,9 +92,13 @@ export function renderFgcaBody(
         idMaxLines: 1,
       });
       const textSvg = emitCenteredTextSvg(specs, n.x + nodeWidth / 2, escXml);
+      const titleContent = `${escXml(n.label)} (${escXml(entityId)})`;
       return [
+        `<g>`,
+        `<title>${titleContent}</title>`,
         `<rect class="${nodeClass}" x="${n.x}" y="${n.y}" width="${nodeWidth}" height="${nodeHeight}" rx="8"/>`,
         textSvg,
+        `</g>`,
       ].join('\n');
     })
     .join('\n');
