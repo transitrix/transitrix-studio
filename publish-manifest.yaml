@@ -1,0 +1,32 @@
+# Transitrix Studio — publish manifest
+#
+# This file declares what is published from this repository and consumed by
+# its audience. A pull request adding or modifying a file not listed here
+# fails the publish gate — deny by default.
+#
+# Files not listed are internal-only and remain in the repository without
+# being served to consumers.
+
+published:
+  # VS Code extension — published to VS Code Marketplace and Open VSX
+  - extension/**
+
+  # IntelliJ/IDEA plugin — published to JetBrains Marketplace
+  - intellij/**
+
+  # npm packages — published to npm registry
+  - packages/cli/**
+  - packages/diagrams/**
+
+  # Repository front page and documentation
+  - README.md
+  - CHANGELOG.md
+  - CONTRIBUTING.md
+  - LICENSE
+  - NOTICE
+
+  # Published deliverable schemas (generated, committed)
+  - schemas/**
+
+  - publish-manifest.yaml
+  - scripts/check-publish-manifest.mjs
