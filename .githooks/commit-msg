@@ -36,7 +36,7 @@ fi
 
 # Shape 3: Refuse Work item: field that is not exactly THQ-NNN
 # Valid: "Work item: THQ-123"
-# Invalid: "Work item: 123" or "Work item: transitrix-hq#123"
+# Invalid: "Work item: 123" or "Work item: owner/repo#123"
 if echo "$MSG" | grep -E '^Work item:' >/dev/null 2>&1; then
   WORK_ITEM=$(echo "$MSG" | grep '^Work item:' | head -1 | sed 's/^Work item:[[:space:]]*//')
 
