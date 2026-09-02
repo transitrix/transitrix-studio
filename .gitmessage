@@ -1,0 +1,11 @@
+# <type>: <summary in the imperative, <= 72 chars>
+#
+# Why this change, in a sentence or two.
+#
+# Work item: THQ-NNN
+#
+# -- The one rule this template exists for -------------------------
+# Reference the work item ONLY as THQ-NNN.
+# Never name or link the headquarters repository in a commit message,
+# a PR title, a PR body, a branch name, or a file in this repository.
+# THQ-NNN is readable by anyone and resolves for those who may resolve it.
