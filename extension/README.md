@@ -4,7 +4,7 @@ You leave with a decision you can keep true. Not a report of one — the model t
 
 **Diagrams as text, in your editor.** Write a diagram in a plain YAML file, and Transitrix Studio renders it live, right beside your code. No drag-and-drop canvas, no proprietary file format — just text you can diff, review in a pull request, and hand to an AI that reads it natively.
 
-![Transitrix Studio in action — a goals-tree YAML file on the left, its live preview on the right, redrawing as a new goal is added and typed](https://raw.githubusercontent.com/transitrix/transitrix-studio/main/extension/docs/listing.gif)
+![Transitrix Studio in action — a goals-tree YAML file on the left, its live preview on the right, redrawing as a new goal is added and typed](https://raw.githubusercontent.com/transitrix/transitrix-studio/77620e5/extension/docs/listing.gif)
 
 ## Why text-native diagrams?
 
