@@ -7,22 +7,40 @@
 
 import { execSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
-import * as YAML from 'yaml';
 
 const TAG = 'publish-manifest';
 
-// Read and parse the publish manifest
-let manifest;
+// Read and parse the publish manifest — simple YAML parsing (no external deps)
+let declaredPatterns = [];
 try {
   const content = readFileSync('publish-manifest.yaml', 'utf8');
-  manifest = YAML.parse(content);
+  // Parse YAML: extract lines under 'published:' array (lines starting with '  - ')
+  const lines = content.split('\n');
+  let inPublished = false;
+  for (const line of lines) {
+    if (line.match(/^published\s*:/)) {
+      inPublished = true;
+      continue;
+    }
+    if (inPublished) {
+      // Empty line or comment ends the section
+      if (line.trim() === '' || line.match(/^#/)) {
+        break;
+      }
+      // Array item
+      const match = line.match(/^\s*-\s*(.+)$/);
+      if (match) {
+        declaredPatterns.push(match[1].trim());
+      }
+    }
+  }
 } catch (err) {
   console.error(`[${TAG}] Failed to read publish-manifest.yaml:`, err.message);
   process.exit(2);
 }
 
-if (!manifest || !Array.isArray(manifest.published)) {
-  console.error(`[${TAG}] publish-manifest.yaml must contain a 'published' array.`);
+if (declaredPatterns.length === 0) {
+  console.error(`[${TAG}] publish-manifest.yaml must contain a 'published' array with at least one entry.`);
   process.exit(2);
 }
 
@@ -77,7 +95,7 @@ if (addedFiles.length === 0) {
 // Check each added file against declared patterns
 const undeclared = [];
 for (const file of addedFiles) {
-  const matches = manifest.published.some(pattern => pathMatches(file, pattern));
+  const matches = declaredPatterns.some(pattern => pathMatches(file, pattern));
   if (!matches) {
     undeclared.push(file);
   }
