@@ -367,7 +367,7 @@ export function layoutFGCAPreview(
     driver:   doc.factors.map(f => ({ id: `driver_${f.id}`,     label: f.name })),
     goal:     doc.goals.map(g   => ({ id: `goal_${g.id}`,       label: g.name })),
     change:   changes.map(c     => ({ id: `change_${c.id}`,     label: c.name })),
-    activity: doc.activities.map(a => ({ id: `activity_${a.id}`, label: a.name, type: a.type, progress: a.progress })),
+    activity: doc.activities.map(a => ({ id: `activity_${a.id}`, label: a.name, progress: a.progress })),
   };
 
   // Build predecessor map: for each node, which node IDs in the previous column
