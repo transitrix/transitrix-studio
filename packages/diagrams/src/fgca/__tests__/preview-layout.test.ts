@@ -28,16 +28,16 @@ describe('layoutFGCAPreview', () => {
   it('lays out all four columns in order (FGCA)', () => {
     const layout = layoutFGCAPreview(doc);
     expect(layout.columns.map(c => c.col)).toEqual(['driver', 'goal', 'change', 'activity']);
-    // 2 factors + 2 goals + 1 change + 2 activities
-    expect(layout.nodes).toHaveLength(7);
+    // 2 factors + 2 goals + 1 change + 1 virtual change + 2 activities
+    expect(layout.nodes).toHaveLength(8);
     expect(layout.width).toBeGreaterThan(0);
     expect(layout.height).toBeGreaterThan(0);
   });
 
   it('produces the expected FGCA edge set', () => {
-    // F1→G1, F2→G2 (2), G1→C1 (1), C1→A1 (1), G2→A2 direct (1) = 5
+    // F1→G1, F2→G2 (2), G1→C1 (1), C1→A1 (1), G2→vchange (1), vchange→A2 (1) = 6
     const layout = layoutFGCAPreview(doc);
-    expect(layout.edges).toHaveLength(5);
+    expect(layout.edges).toHaveLength(6);
   });
 
   it('hideChanges (FGA) drops the Changes column and links goals to activities', () => {
@@ -92,9 +92,9 @@ describe('layoutFGCAPreview', () => {
     });
 
     it("mode 'root' filters factors and activities to those touching the visible goal", () => {
-      // root 11 → factor 2, activity 31 (direct goal link); no change touches G11.
+      // root 11 → factor 2, activity 31 (direct goal link, now via virtual change); no real change touches G11.
       const layout = layoutFGCAPreview(doc, { scope: { mode: 'root', rootGoalId: '11' } });
-      expect(idsOf(layout)).toEqual(new Set(['driver_2', 'goal_11', 'activity_31']));
+      expect(idsOf(layout)).toEqual(new Set(['driver_2', 'goal_11', 'vchange_activity_31', 'activity_31']));
       // F1, A30, C20 (which only touch the hidden G10) are excluded.
       expect(layout.nodes.some(n => n.id === 'driver_1')).toBe(false);
       expect(layout.nodes.some(n => n.id === 'activity_30')).toBe(false);
@@ -114,7 +114,7 @@ describe('layoutFGCAPreview', () => {
         ],
       };
       const layout = layoutFGCAPreview(leveled, { scope: { mode: 'level', maxLevel: 0 } });
-      expect(idsOf(layout)).toEqual(new Set(['driver_1', 'goal_10', 'activity_30']));
+      expect(idsOf(layout)).toEqual(new Set(['driver_1', 'goal_10', 'vchange_activity_30', 'activity_30']));
     });
 
     it("mode 'chain' ANDs column filters and keeps the connecting thread", () => {
@@ -124,7 +124,7 @@ describe('layoutFGCAPreview', () => {
 
     it("mode 'chain' with a single action keeps its upstream thread", () => {
       const layout = layoutFGCAPreview(doc, { scope: { mode: 'chain', activityId: '31' } });
-      expect(idsOf(layout)).toEqual(new Set(['driver_2', 'goal_11', 'activity_31']));
+      expect(idsOf(layout)).toEqual(new Set(['driver_2', 'goal_11', 'vchange_activity_31', 'activity_31']));
     });
 
     it("mode 'chain' returns empty when selected columns are not on one thread", () => {

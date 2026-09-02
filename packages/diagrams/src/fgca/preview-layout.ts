@@ -304,6 +304,8 @@ export interface FGCAPreviewNode {
   y: number;
   label: string;
   col: FGCAPreviewColumn;
+  /** Marks a synthesized node (e.g. virtual Change) vs. a real entity. */
+  virtual?: boolean;
 }
 export interface FGCAPreviewEdge {
   sx: number;
@@ -354,10 +356,25 @@ export function layoutFGCAPreview(
     ? ['driver', 'goal', 'activity']
     : ['driver', 'goal', 'change', 'activity'];
   const changes = doc.changes ?? [];
-  const colItems: Record<FGCAPreviewColumn, Array<{ id: string; label: string }>> = {
+  const coveredActivities = new Set(changes.flatMap(c => c.activity_ids.map(String)));
+
+  // Synthesize virtual Change nodes for activities without a real Change.
+  // Each virtual node is 1:1 with one activity (not shared across activities).
+  const virtualChanges: Array<{ id: string; activityId: string; goalId: string }> = [];
+  for (const a of doc.activities) {
+    if (a.goal_id != null && !coveredActivities.has(String(a.id))) {
+      const virtualId = `vchange_activity_${a.id}`;
+      virtualChanges.push({ id: virtualId, activityId: String(a.id), goalId: String(a.goal_id) });
+    }
+  }
+
+  const colItems: Record<FGCAPreviewColumn, Array<{ id: string; label: string; virtual?: boolean }>> = {
     driver:   doc.factors.map(f => ({ id: `driver_${f.id}`,     label: f.name })),
     goal:     doc.goals.map(g   => ({ id: `goal_${g.id}`,       label: g.name })),
-    change:   changes.map(c     => ({ id: `change_${c.id}`,     label: c.name })),
+    change:   [
+      ...changes.map(c => ({ id: `change_${c.id}`, label: c.name })),
+      ...virtualChanges.map(v => ({ id: v.id, label: '–', virtual: true })),
+    ],
     activity: doc.activities.map(a => ({ id: `activity_${a.id}`, label: a.name })),
   };
 
@@ -371,12 +388,17 @@ export function layoutFGCAPreview(
     for (const c of changes) {
       predecessors.set(`change_${c.id}`, [`goal_${c.goal_id}`]);
     }
-    const coveredActs = new Set(changes.flatMap(c => c.activity_ids.map(String)));
+    for (const v of virtualChanges) {
+      predecessors.set(v.id, [`goal_${v.goalId}`]);
+    }
     for (const a of doc.activities) {
       const preds = changes
         .filter(c => c.activity_ids.map(String).includes(String(a.id)))
         .map(c => `change_${c.id}`);
-      if (a.goal_id != null && !coveredActs.has(String(a.id))) preds.push(`goal_${a.goal_id}`);
+      const virtualChange = virtualChanges.find(v => v.activityId === String(a.id));
+      if (virtualChange) {
+        preds.push(virtualChange.id);
+      }
       predecessors.set(`activity_${a.id}`, preds);
     }
   } else {
@@ -398,9 +420,9 @@ export function layoutFGCAPreview(
   // Nodes with no predecessors sort last (Infinity barycenter) so they don't
   // displace connected nodes.
   function barycentricSort(
-    items: Array<{ id: string; label: string }>,
+    items: Array<{ id: string; label: string; virtual?: boolean }>,
     yCenters: Map<string, number>,
-  ): Array<{ id: string; label: string }> {
+  ): Array<{ id: string; label: string; virtual?: boolean }> {
     return [...items].sort((a, b) => {
       const pA = (predecessors.get(a.id) ?? []).map(p => yCenters.get(p) ?? 0).filter(v => v > 0);
       const pB = (predecessors.get(b.id) ?? []).map(p => yCenters.get(p) ?? 0).filter(v => v > 0);
@@ -422,7 +444,14 @@ export function layoutFGCAPreview(
     const items = ci === 0 ? colItems[col] : barycentricSort(colItems[col], yCenters);
     let y = FGCA_PAD + FGCA_HEADER_H + rowGap;
     for (const item of items) {
-      const node: FGCAPreviewNode = { id: item.id, x, y, label: item.label, col };
+      const node: FGCAPreviewNode = {
+        id: item.id,
+        x,
+        y,
+        label: item.label,
+        col,
+        virtual: item.virtual,
+      };
       nodes.push(node);
       nodeMap.set(item.id, node);
       yCenters.set(item.id, y + nodeHeight / 2);
@@ -457,12 +486,8 @@ export function layoutFGCAPreview(
   } else {
     for (const c of changes) addEdge(`goal_${c.goal_id}`, `change_${c.id}`);
     for (const c of changes) for (const aid of c.activity_ids) addEdge(`change_${c.id}`, `activity_${aid}`);
-    const coveredActivities = new Set(changes.flatMap(c => c.activity_ids));
-    for (const a of doc.activities) {
-      if (a.goal_id != null && !coveredActivities.has(a.id)) {
-        addEdge(`goal_${a.goal_id}`, `activity_${a.id}`);
-      }
-    }
+    for (const v of virtualChanges) addEdge(`goal_${v.goalId}`, v.id);
+    for (const v of virtualChanges) addEdge(v.id, `activity_${v.activityId}`);
   }
 
   const maxNodeBottom = nodes.reduce(
