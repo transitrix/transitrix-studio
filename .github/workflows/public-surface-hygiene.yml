@@ -24,12 +24,19 @@ jobs:
 
       - name: Block internal agent-ops filenames
         run: |
-          # organizations/** holds intentional demo-adopter fixture content (e.g. acme_corp's own
-          # AGENTS.md, vendored for example purposes) -- legit, not the internal-ops leak this guards against.
-          hits=$(git ls-files | grep -iE '(^|/)(CLAUDE|AGENTS)\.md$' | grep -v '^organizations/' || true)
-          if [ -n "$hits" ]; then
-            echo "::error::CLAUDE.md/AGENTS.md are not allowed in this public repo (internal agent-ops docs)"
-            echo "$hits"
+          # organizations/** and root AGENTS.md are allowed:
+          # - organizations/: demo-adopter fixture content (e.g. acme_corp's own AGENTS.md, vendored for example)
+          # - root AGENTS.md: public agent entrypoint per epic #550 (transitrix-hq)
+          # Internal CLAUDE.md is never public; AGENTS.md elsewhere is internal-only.
+          hits=$(git ls-files | grep -iE '(^|/)(CLAUDE)\.md$' || true)
+          # AGENTS.md block: allow root-level only (public entrypoint), block elsewhere
+          claude_hits=$(echo "$hits" | grep -v '^organizations/' || true)
+          agents_hits=$(git ls-files | grep -iE '(^|/)(AGENTS)\.md$' | grep -v '^AGENTS\.md$' | grep -v '^organizations/' || true)
+
+          if [ -n "$claude_hits" ] || [ -n "$agents_hits" ]; then
+            echo "::error::CLAUDE.md and nested AGENTS.md are not allowed in this public repo (internal agent-ops)"
+            [ -n "$claude_hits" ] && echo "CLAUDE.md:" && echo "$claude_hits"
+            [ -n "$agents_hits" ] && echo "nested AGENTS.md:" && echo "$agents_hits"
             exit 1
           fi
 
@@ -48,6 +55,12 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha || github.event.after }}
         run: node scripts/ci-hygiene-check.mjs
+
+      - name: Check publish manifest
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.event.after }}
+        run: node scripts/check-publish-manifest.mjs
 
       - name: Run full-tree hygiene check
         env:
