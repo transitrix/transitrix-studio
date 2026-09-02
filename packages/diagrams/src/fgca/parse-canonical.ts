@@ -89,11 +89,14 @@ export function isDgcaChangesLayerOff(input: unknown): boolean {
  *        one action or change references an out-of-scope goal, `scopeCaption` is set true.
  * @param outOfScopeFactorIds When a goal-scoped projection omits factors that exist
  *        in the catalogue, pass their IDs here to suppress FGCA-008 errors.
+ * @param progressData Optional map of action ID to progress data (percent + computedAt timestamp).
+ *        Consumed from `__progressData` metadata field if provided there.
  */
 export function parseCanonicalFGCA(
   input: unknown,
   outOfScopeGoalIds?: Set<string> | null,
   outOfScopeFactorIds?: Set<string> | null,
+  progressData?: Map<string, { percent: number; computedAt: string }> | null,
 ): CanonicalFGCAResult {
   const errors: ValidationError[] = [];
   const warnings: ValidationWarning[] = [];
@@ -322,11 +325,14 @@ export function parseCanonicalFGCA(
   const internalActivities: ActivityItem[] = activities.map((el, i) => {
     const goalRefs = checkRefArray(el!, 'goals', goalIds, GOAL_ID_RE, 'FGCA-011', `actions[${i}]`, outOfScopeGoalIds);
     const typeVal = typeof el!['type'] === 'string' ? el!['type'] : undefined;
+    const actId = String(el!['id']);
+    const progressVal = progressData?.get(actId);
     return {
-      id: String(el!['id']),
+      id: actId,
       name: String(el!['name'] ?? ''),
       goal_id: goalRefs.length > 0 ? goalRefs[0] : null,
       ...(typeVal !== undefined ? { type: typeVal } : {}),
+      ...(progressVal !== undefined ? { progress: progressVal } : {}),
     };
   });
 
@@ -400,6 +406,7 @@ export function parseCanonicalFGA(
   input: unknown,
   outOfScopeGoalIds?: Set<string> | null,
   outOfScopeFactorIds?: Set<string> | null,
+  progressData?: Map<string, { percent: number; computedAt: string }> | null,
 ): CanonicalFGAResult {
   if (!input || typeof input !== 'object') {
     return { valid: false, errors: [{ code: 'FGA-001', message: 'document root is not an object' }], warnings: [] };
@@ -428,7 +435,7 @@ export function parseCanonicalFGA(
   // codes are remapped on the way out. FGCA-009 / 010 / 014 (changes-related)
   // are unreachable here because `changes` is empty.
   const synth = { ...raw, notation: 'dgca', id: 'DGCA-FROM-DGA-1', changes: [] };
-  const r = parseCanonicalFGCA(synth, outOfScopeGoalIds, outOfScopeFactorIds);
+  const r = parseCanonicalFGCA(synth, outOfScopeGoalIds, outOfScopeFactorIds, progressData);
   const remap: Record<string, string> = {
     'FGCA-001': 'FGA-001',
     'FGCA-002': 'FGA-002',
