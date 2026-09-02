@@ -4,6 +4,7 @@ import {
   MATURITY_COLORS,
   TREE_LEVEL_COLORS,
   TREE_MATURITY_COLORS,
+  VIRTUAL_ENTITY,
   STRUCTURAL,
   BRAND_EMPHASIS,
   TYPOGRAPHY,
@@ -97,6 +98,7 @@ function diagramVars(variant: 'light' | 'dark' | 'hc'): string {
     `${CSS_VAR.layerGoal}:${lc.goal[variant]}`,
     `${CSS_VAR.layerChange}:${lc.change[variant]}`,
     `${CSS_VAR.layerActivity}:${lc.activity[variant]}`,
+    `${CSS_VAR.virtualEntity}:${VIRTUAL_ENTITY[variant]}`,
     `${CSS_VAR.nodeStroke}:${sc.nodeStroke[variant]}`,
     `${CSS_VAR.edgeStroke}:${sc.edgeStroke[variant]}`,
     `${CSS_VAR.textPrimary}:${sc.textPrimary[variant]}`,
@@ -155,6 +157,7 @@ function diagramClassCss(): string {
 .layer-goal{fill:var(${cv.layerGoal});}
 .layer-change{fill:var(${cv.layerChange});}
 .layer-activity{fill:var(${cv.layerActivity});}
+.layer-virtual{fill:var(${cv.virtualEntity});stroke-dasharray:4,3;}
 ${levelRules}
 .diagram-edge{stroke:var(${cv.edgeStroke});stroke-width:1.5;fill:none;}
 .arrow-fill{fill:var(${cv.edgeStroke});}
