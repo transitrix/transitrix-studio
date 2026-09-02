@@ -15,7 +15,7 @@ let declaredPatterns = [];
 try {
   const content = readFileSync('publish-manifest.yaml', 'utf8');
   // Parse YAML: extract lines under 'published:' array (lines starting with '  - ')
-  const lines = content.split('\n');
+  const lines = content.split(/\r?\n/);
   let inPublished = false;
   for (const line of lines) {
     if (line.match(/^published\s*:/)) {
@@ -23,11 +23,9 @@ try {
       continue;
     }
     if (inPublished) {
-      // Empty line or comment ends the section
-      if (line.trim() === '' || line.match(/^#/)) {
-        break;
-      }
-      // Array item
+      const trimmed = line.trim();
+      if (trimmed === '' || trimmed.startsWith('#')) continue;
+      if (!/^\s/.test(line) && !trimmed.startsWith('-')) break;
       const match = line.match(/^\s*-\s*(.+)$/);
       if (match) {
         declaredPatterns.push(match[1].trim());

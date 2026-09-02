@@ -27,3 +27,6 @@ published:
 
   # Published deliverable schemas (generated, committed)
   - schemas/**
+
+  - publish-manifest.yaml
+  - scripts/check-publish-manifest.mjs
