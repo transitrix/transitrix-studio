@@ -126,27 +126,23 @@ jobs:
         run: |
           tag="${{ inputs.tag }}"
           vsix_name="transitrix-studio-${tag#v}.vsix"
-
-          # Get the current release notes
           release=$(gh api "/repos/${{ github.repository }}/releases/tags/$tag")
           current_body=$(echo "$release" | jq -r '.body')
-
-          # Add attestation verification section if not already present
           if ! echo "$current_body" | grep -q "gh attestation verify"; then
-            new_body="$current_body
-
-## Verify build provenance
-
-To verify that this release was built by our CI pipeline and has not been tampered with:
-
-\`\`\`bash
-gh attestation verify --owner transitrix $vsix_name
-\`\`\`
-
-## Bill of Materials
-
-This release includes a Software Bill of Materials (SBOM) in CycloneDX format listing all components and dependencies. Download \`sbom.xml\` to audit the release contents."
-
+            extra=$(printf '%s\n' \
+              '' \
+              '## Verify build provenance' \
+              '' \
+              'To verify that this release was built by our CI pipeline and has not been tampered with:' \
+              '' \
+              '```bash' \
+              "gh attestation verify --owner transitrix $vsix_name" \
+              '```' \
+              '' \
+              '## Bill of Materials' \
+              '' \
+              'This release includes a Software Bill of Materials (SBOM) in CycloneDX format listing all components and dependencies. Download sbom.xml to audit the release contents.')
+            new_body="${current_body}${extra}"
             gh api -X PATCH "/repos/${{ github.repository }}/releases/tags/$tag" \
               -f body="$new_body"
           fi
