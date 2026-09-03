@@ -99,7 +99,7 @@ jobs:
         shell: bash
         run: |
           sbom=$(ls output/sbom.xml | head -n 1)
-          expected=$(cat output/sbom.sha256 | cut -d' ' -f1)
+          expected=$(cat "$sbom.sha256" | cut -d' ' -f1)
           actual=$(sha256sum "$sbom" | cut -d' ' -f1)
           if [ "$actual" != "$expected" ]; then
             echo "::error::SBOM hash verification failed"
@@ -115,7 +115,7 @@ jobs:
           # host `gh api` defaults to for a bare path — `gh release upload` targets
           # the correct host itself.
           gh release upload "${{ inputs.tag }}" \
-            output/*.vsix output/*.sha256 output/sbom.xml output/sbom.sha256 \
+            output/*.vsix output/*.sha256 output/sbom.xml \
             -R ${{ github.repository }}
 
       - name: Update release notes with attestation verification command
@@ -125,7 +125,7 @@ jobs:
         run: |
           tag="${{ inputs.tag }}"
           vsix_name="transitrix-studio-${tag#v}.vsix"
-          release=$(gh api "/repos/${{ github.repository }}/releases/tags/$tag")
+          release=$(gh api "/repos/${{ github.repository }}/releases/${{ steps.release.outputs.release-id }}")
           current_body=$(echo "$release" | jq -r '.body')
           if ! echo "$current_body" | grep -q "gh attestation verify"; then
             extra=$(printf '%s\n' \
@@ -142,6 +142,6 @@ jobs:
               '' \
               'This release includes a Software Bill of Materials (SBOM) in CycloneDX format listing all components and dependencies. Download sbom.xml to audit the release contents.')
             new_body="${current_body}${extra}"
-            gh api -X PATCH "/repos/${{ github.repository }}/releases/tags/$tag" \
+            gh api -X PATCH "/repos/${{ github.repository }}/releases/${{ steps.release.outputs.release-id }}" \
               -f body="$new_body"
           fi
