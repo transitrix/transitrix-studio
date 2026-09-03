@@ -1,5 +1,27 @@
 # Changelog
 
+## [3.7.0] — 2026-09-03
+
+### Added
+
+- **DGCA synthesizes a virtual Change when an Action has no real Change.** Activities linked only to a Goal still sit in the chain through a dashed placeholder Change node, instead of jumping Goal → Action. (#621)
+- **Goals, DGCA, and DGA nodes show a native tooltip on hover.** The full name and id (and goal level, when present) appear in the SVG title, so truncated labels remain readable. (#622)
+- **DGCA/DGA Action nodes can show a completion-percent badge.** When progress is attached to the activity, a small percent label renders under the type badge; missing data leaves the node unchanged, and a timestamp older than seven days is drawn muted. (#623)
+
+### Changed
+
+- **Marketplace listing opens with the canonical positioning form.** The listing body now leads with the two-sentence statement. (#620)
+- **Marketplace listing GIF shows the Goals-tree demonstration.** The recorded animation has the branch-appear payoff uncropped and side panels collapsed.
+
+### Fixed
+
+- **Marketplace listing hero image URL is pinned to a commit.** The README image points at a content SHA rather than a moving branch tip. (#631)
+
+### Packages
+
+- `@transitrix/diagrams` 1.12.2 → 1.13.0 — virtual Change nodes, hover titles, ACTION percent badge.
+- `@transitrix/cli` 2.8.2 → 2.9.0 — rebundles diagrams (no compiler source change in this span).
+
 ## [3.6.2] — 2026-09-01
 
 ### Added
