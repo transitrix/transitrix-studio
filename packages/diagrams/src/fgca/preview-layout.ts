@@ -33,6 +33,10 @@ export interface FGCAPreviewActivity {
   id: number | string;
   name: string;
   goal_id?: number | string | null;
+  progress?: {
+    percent: number;
+    computedAt: string;
+  };
 }
 
 /** Structural input the preview layout needs — a subset of the parsed DGCA/DGA doc. */
@@ -304,6 +308,11 @@ export interface FGCAPreviewNode {
   y: number;
   label: string;
   col: FGCAPreviewColumn;
+  type?: string;
+  progress?: {
+    percent: number;
+    computedAt: string;
+  };
   /** Marks a synthesized node (e.g. virtual Change) vs. a real entity. */
   virtual?: boolean;
 }
@@ -368,14 +377,14 @@ export function layoutFGCAPreview(
     }
   }
 
-  const colItems: Record<FGCAPreviewColumn, Array<{ id: string; label: string; virtual?: boolean }>> = {
+  const colItems: Record<FGCAPreviewColumn, Array<{ id: string; label: string; type?: string; progress?: { percent: number; computedAt: string }; virtual?: boolean }>> = {
     driver:   doc.factors.map(f => ({ id: `driver_${f.id}`,     label: f.name })),
     goal:     doc.goals.map(g   => ({ id: `goal_${g.id}`,       label: g.name })),
     change:   [
       ...changes.map(c => ({ id: `change_${c.id}`, label: c.name })),
       ...virtualChanges.map(v => ({ id: v.id, label: '–', virtual: true })),
     ],
-    activity: doc.activities.map(a => ({ id: `activity_${a.id}`, label: a.name })),
+    activity: doc.activities.map(a => ({ id: `activity_${a.id}`, label: a.name, progress: a.progress })),
   };
 
   // Build predecessor map: for each node, which node IDs in the previous column
@@ -420,9 +429,9 @@ export function layoutFGCAPreview(
   // Nodes with no predecessors sort last (Infinity barycenter) so they don't
   // displace connected nodes.
   function barycentricSort(
-    items: Array<{ id: string; label: string; virtual?: boolean }>,
+    items: Array<{ id: string; label: string; type?: string; progress?: { percent: number; computedAt: string }; virtual?: boolean }>,
     yCenters: Map<string, number>,
-  ): Array<{ id: string; label: string; virtual?: boolean }> {
+  ): Array<{ id: string; label: string; type?: string; progress?: { percent: number; computedAt: string }; virtual?: boolean }> {
     return [...items].sort((a, b) => {
       const pA = (predecessors.get(a.id) ?? []).map(p => yCenters.get(p) ?? 0).filter(v => v > 0);
       const pB = (predecessors.get(b.id) ?? []).map(p => yCenters.get(p) ?? 0).filter(v => v > 0);
@@ -450,6 +459,8 @@ export function layoutFGCAPreview(
         y,
         label: item.label,
         col,
+        type: item.type,
+        progress: item.progress,
         virtual: item.virtual,
       };
       nodes.push(node);

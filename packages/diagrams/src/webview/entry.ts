@@ -198,7 +198,10 @@ function dispatchValidate(kind: NotationKind, doc: unknown): RenderResult {
         : Array.isArray(meta['__outOfScopeFactorIds'])
           ? new Set(meta['__outOfScopeFactorIds'] as string[])
           : undefined;
-      const v = parseCanonicalFGCA(doc, outOfScopeGoalIds, outOfScopeFactorIds);
+      const progressData = meta['__progressData'] instanceof Map
+        ? (meta['__progressData'] as Map<string, { percent: number; computedAt: string }>)
+        : undefined;
+      const v = parseCanonicalFGCA(doc, outOfScopeGoalIds, outOfScopeFactorIds, progressData);
       const r = emptyResult(kind, v.valid ? 'ok' : 'error');
       r.errors.push(...v.errors);
       r.warnings.push(...v.warnings);
@@ -219,7 +222,10 @@ function dispatchValidate(kind: NotationKind, doc: unknown): RenderResult {
         : Array.isArray(meta['__outOfScopeFactorIds'])
           ? new Set(meta['__outOfScopeFactorIds'] as string[])
           : undefined;
-      const v = parseCanonicalFGA(doc, outOfScopeGoalIds, outOfScopeFactorIds);
+      const progressData = meta['__progressData'] instanceof Map
+        ? (meta['__progressData'] as Map<string, { percent: number; computedAt: string }>)
+        : undefined;
+      const v = parseCanonicalFGA(doc, outOfScopeGoalIds, outOfScopeFactorIds, progressData);
       const r = emptyResult(kind, v.valid ? 'ok' : 'error');
       r.errors.push(...v.errors);
       r.warnings.push(...v.warnings);
