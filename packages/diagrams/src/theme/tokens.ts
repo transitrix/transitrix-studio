@@ -43,6 +43,18 @@ export const LAYER_COLORS = {
 } as const;
 
 /**
+ * Virtual/synthesized entity fill — used for placeholder nodes that represent
+ * absence (e.g. a synthesized Change box when an Action skips straight to its Goal).
+ * Pale neutral tint, distinctly muted from real entity colors; border dashed to
+ * signal non-reality.
+ */
+export const VIRTUAL_ENTITY = {
+  light: '#f3f4f6',
+  dark:  '#2a3134',
+  hc:    '#e2e8f0',
+} as const;
+
+/**
  * Level fill colors for Goals tree nodes — 8 slots, cycled by level index.
  * A single-hue petrol tint ramp (level-0 lightest/root → level-7 deepest);
  * hue never switches with depth. Saturation/lightness tuned so text-primary
@@ -188,6 +200,7 @@ export const CSS_VAR = {
   layerGoal:        '--ts-layer-goal',
   layerChange:      '--ts-layer-change',
   layerActivity:    '--ts-layer-activity',
+  virtualEntity:    '--ts-virtual-entity',
   nodeStroke:       '--ts-node-stroke',
   edgeStroke:       '--ts-edge-stroke',
   textPrimary:      '--ts-text-primary',

@@ -81,6 +81,7 @@ export function renderFgcaBody(
   const nodeSvg = nodes
     .map((n) => {
       const entityId = n.id.slice(n.id.indexOf('_') + 1);
+      const nodeClass = n.virtual ? 'diagram-node layer-virtual' : `diagram-node layer-${n.col}`;
       const specs = layoutCenteredEntityText({
         boxX: n.x,
         boxY: n.y,
@@ -106,7 +107,7 @@ export function renderFgcaBody(
           })()
         : '';
       return [
-        `<rect class="diagram-node layer-${n.col}" x="${n.x}" y="${n.y}" width="${nodeWidth}" height="${nodeHeight}" rx="8"/>`,
+        `<rect class="${nodeClass}" x="${n.x}" y="${n.y}" width="${nodeWidth}" height="${nodeHeight}" rx="8"/>`,
         textSvg,
         typeBadge,
         progressBadge,

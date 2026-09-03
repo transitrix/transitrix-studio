@@ -1,0 +1,51 @@
+#!/bin/bash
+# Refuses cross-repository references before the commit object is created.
+# Rejects specific shapes that would make the commit unmergeable:
+# - owner/repo#number patterns
+# - https://github.com/owner/repo URLs pointing outside this repository
+# - Work item: field that is not THQ-NNN
+#
+# The hook tests shapes only and contains no repository dictionary.
+
+set -e
+
+COMMIT_MSG_FILE="${1:-.git/COMMIT_EDITMSG}"
+
+if [ ! -f "$COMMIT_MSG_FILE" ]; then
+  echo "Error: commit-msg hook could not read the message file" >&2
+  exit 1
+fi
+
+MSG=$(cat "$COMMIT_MSG_FILE" 2>/dev/null || echo "")
+
+# Shape 1: Refuse <owner>/<repo>#<number> references
+# Catches patterns like "owner/repo#123" or "org/project#456"
+if echo "$MSG" | grep -E '[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+#[0-9]+' >/dev/null 2>&1; then
+  echo "Rejected: commit message contains owner/repo#number pattern." >&2
+  echo "Use THQ-NNN to reference work items." >&2
+  exit 1
+fi
+
+# Shape 2: Refuse https://github.com/ URLs pointing outside this repository
+# Catches patterns like "https://github.com/owner/repo"
+if echo "$MSG" | grep -E 'https://github\.com/[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+' >/dev/null 2>&1; then
+  echo "Rejected: commit message contains a GitHub URL to an external repository." >&2
+  echo "Use THQ-NNN to reference work items." >&2
+  exit 1
+fi
+
+# Shape 3: Refuse Work item: field that is not exactly THQ-NNN
+# Valid: "Work item: THQ-123"
+# Invalid: "Work item: 123" or "Work item: owner/repo#123"
+if echo "$MSG" | grep -E '^Work item:' >/dev/null 2>&1; then
+  WORK_ITEM=$(echo "$MSG" | grep '^Work item:' | head -1 | sed 's/^Work item:[[:space:]]*//')
+
+  if ! echo "$WORK_ITEM" | grep -E '^THQ-[0-9]+' >/dev/null 2>&1; then
+    echo "Rejected: Work item field is not THQ-NNN format." >&2
+    echo "Found: 'Work item: $WORK_ITEM'" >&2
+    echo "Use: 'Work item: THQ-NNN' (where NNN is all digits)" >&2
+    exit 1
+  fi
+fi
+
+exit 0
