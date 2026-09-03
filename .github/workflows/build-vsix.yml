@@ -141,6 +141,5 @@ jobs:
             output/*.vsix
             output/*.sha256
             output/sbom.xml
-            output/sbom.sha256
           if-no-files-found: error
           retention-days: 7
