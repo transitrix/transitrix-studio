@@ -8,3 +8,7 @@
 # Vendored artefacts are verbatim copies of a tagged upstream release, pinned by
 # content hash. Keep them byte-identical to the source on every platform.
 vendor/** text eol=lf
+
+# GitHub Actions workflows require LF line endings; CRLF causes the YAML parser
+# to reject the files, resulting in runs with 0 jobs and failure status.
+.github/workflows/** text eol=lf
