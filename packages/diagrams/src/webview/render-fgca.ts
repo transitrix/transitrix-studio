@@ -93,6 +93,7 @@ export function renderFgcaBody(
         idMaxLines: 1,
       });
       const textSvg = emitCenteredTextSvg(specs, n.x + nodeWidth / 2, escXml);
+      const titleContent = `${escXml(n.label)} (${escXml(entityId)})`;
       const typeBadge = n.type && n.col === 'activity'
         ? `<text class="text-id" x="${n.x + nodeWidth - 6}" y="${n.y + 10}" text-anchor="end" dominant-baseline="hanging" font-size="10">${escXml(n.type)}</text>`
         : '';
@@ -107,10 +108,13 @@ export function renderFgcaBody(
           })()
         : '';
       return [
+        `<g>`,
+        `<title>${titleContent}</title>`,
         `<rect class="${nodeClass}" x="${n.x}" y="${n.y}" width="${nodeWidth}" height="${nodeHeight}" rx="8"/>`,
         textSvg,
         typeBadge,
         progressBadge,
+        `</g>`,
       ].filter(Boolean).join('\n');
     })
     .join('\n');
