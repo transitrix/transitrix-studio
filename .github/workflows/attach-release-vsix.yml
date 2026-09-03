@@ -29,7 +29,8 @@ jobs:
       attestations: write
     uses: ./.github/workflows/build-vsix.yml
     with:
-      release-tag: ${{ inputs.tag }}
+      # inputs is defined only for workflow_dispatch; other events must still parse.
+      release-tag: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || '' }}
 
   attach:
     needs: build
