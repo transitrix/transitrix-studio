@@ -17,6 +17,11 @@ on:
         description: Existing draft release tag (for example v3.3.1)
         required: true
         type: string
+  # A dispatch-only reusable caller is parsed on every push and fails with
+  # zero jobs. This branch name is not used; real work stays dispatch-only.
+  push:
+    branches:
+      - '__never_match_attach_release__'
 
 permissions:
   contents: read
