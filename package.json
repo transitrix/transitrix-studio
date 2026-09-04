@@ -80,7 +80,7 @@
     "@types/vscode": "^1.134.0",
     "@vscode/test-electron": "^3.1.0",
     "@vscode/vsce": "^3.9.2",
-    "bpmn-js": "^18.25.1",
+    "bpmn-js": "^18.27.0",
     "bpmn-moddle": "^10.1.0",
     "esbuild": "^0.28.2",
     "mocha": "^11.8.0",
