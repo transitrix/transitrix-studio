@@ -118,6 +118,8 @@ See [SECURITY.md](SECURITY.md) for details on reporting vulnerabilities, securit
 
 ## Contributing
 
+Work for this repository is filed in [`transitrix/transitrix-hq`](https://github.com/transitrix/transitrix-hq), not in this repository's issue tracker. The headquarters repository is private; to report bugs, request features, or suggest improvements, open a pull request here or contact `hello@transitrix.com`.
+
 See [CONTRIBUTING.md](CONTRIBUTING.md). By submitting a pull request, you agree that your contribution is licensed under the project's MIT License (LICENSE).
 
 ## Author
