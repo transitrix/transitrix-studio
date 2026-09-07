@@ -1,10 +1,16 @@
 # Changelog
 
-## [Unreleased]
+## [3.7.2] — 2026-09-07
 
 ### Fixed
 
-- **A DGCA virtual Change shows only the dash placeholder.** The dashed node in the Changes column no longer prints an Action id.
+- **DGCA/DGA completion-percent badges read `computed_at` from the sidecar.** Opening a document with `analytics/action-progress.ndjson` shows the percent on linked ACTION nodes that have a matching row. (#647)
+- **A DGCA virtual Change shows only the dash placeholder.** The dashed node in the Changes column no longer prints an Action id. (#646)
+
+### Packages
+
+- `@transitrix/diagrams` 1.13.1 → 1.13.2 — virtual Change placeholder label.
+- `@transitrix/cli` 2.9.1 → 2.9.2 — sidecar `computed_at` field; rebundles diagrams.
 
 ## [3.7.1] — 2026-09-07
 
