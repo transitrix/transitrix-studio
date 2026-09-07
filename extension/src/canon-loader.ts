@@ -39,6 +39,7 @@ export interface CanonDocs {
   elements: unknown[];
   relations: unknown[];
   warnings: string[];
+  progressData?: Map<string, { percent: number; computedAt: string }>;
 }
 
 /** Indexed view over a CanonDocs store for efficient lookups. */
@@ -193,6 +194,38 @@ export async function readYamlDocsUnder(
 }
 
 /**
+ * Load action progress data from `analytics/action-progress.ndjson` relative to the model root.
+ * Returns undefined if the file does not exist or cannot be parsed. Each line is expected to be
+ * JSON with `id`, `percent`, and `computedAt` fields.
+ */
+async function loadProgressDataFromFileUri(fileUri: vscode.Uri): Promise<Map<string, { percent: number; computedAt: string }> | undefined> {
+  const modelRoot = findModelRootPath(fileUri.fsPath);
+  if (!modelRoot) return undefined;
+
+  const analyticsPath = vscode.Uri.file(path.join(modelRoot, 'analytics', 'action-progress.ndjson'));
+  try {
+    const bytes = await vscode.workspace.fs.readFile(analyticsPath);
+    const text = Buffer.from(bytes).toString('utf-8');
+    const progressData = new Map<string, { percent: number; computedAt: string }>();
+    for (const line of text.split('\n')) {
+      if (!line.trim()) continue;
+      try {
+        const entry = JSON.parse(line);
+        if (typeof entry.id === 'string' && typeof entry.percent === 'number' && typeof entry.computedAt === 'string') {
+          progressData.set(entry.id, { percent: entry.percent, computedAt: entry.computedAt });
+        }
+      } catch {
+        // Silently skip unparseable lines
+      }
+    }
+    return progressData;
+  } catch {
+    // File doesn't exist or cannot be read
+    return undefined;
+  }
+}
+
+/**
  * Load the canon element + relation store for the owning canon/ root of `fileUri`.
  * Returns an empty store with a warning when no canon/ root is found.
  */
@@ -248,7 +281,11 @@ export async function loadCanon(fileUri: vscode.Uri): Promise<CanonDocs> {
   if (elements.length === 0) {
     warnings.push('No element documents found under canon/elements — element references cannot resolve.');
   }
-  return { elements, relations, warnings };
+
+  // Load progress data from analytics/action-progress.ndjson
+  const progressData = await loadProgressDataFromFileUri(fileUri);
+
+  return { elements, relations, warnings, progressData };
 }
 
 // ── Index & lookup helpers ─────────────────────────────────────────────────

@@ -26,6 +26,7 @@ export interface FGCAViewConfig {
 export interface FGCACanonSources {
   elements: unknown[];
   relations: unknown[];
+  progressData?: Map<string, { percent: number; computedAt: string }>;
 }
 
 function isObject(v: unknown): v is Record<string, unknown> {
@@ -192,5 +193,6 @@ export function resolveFGCA(
     view_config: viewDoc['view_config'],
     __outOfScopeGoalIds: outOfScopeGoalIds,
     __outOfScopeFactorIds: outOfScopeFactorIds,
+    __progressData: sources.progressData,
   };
 }
