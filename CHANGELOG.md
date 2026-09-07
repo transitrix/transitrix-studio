@@ -1,5 +1,20 @@
 # Changelog
 
+## [3.7.1] — 2026-09-07
+
+### Fixed
+
+- **DGCA/DGA completion-percent badges now read `analytics/action-progress.ndjson`.** Opening a document in a repository that has that sidecar shows the percent on linked ACTION nodes in both the CLI preview and the editor. A missing sidecar, or an ACTION with no matching row, still leaves the node unchanged and does not fail the preview. (#644)
+
+### Added
+
+- **Show completion percent can be turned off, and a linked ACTION with no row shows a no-data label.** With the setting on (the default), a percent row, a linked ACTION with no row, and an unlinked ACTION are three distinguishable states. With it off, neither the badge nor the placeholder appears. Setting: `transitrix.showCompletionPercent.{dgca,dga}`. (#643)
+
+### Packages
+
+- `@transitrix/diagrams` 1.13.0 → 1.13.1 — no-data percent label; progress data threaded through the resolver.
+- `@transitrix/cli` 2.9.0 → 2.9.1 — loads `analytics/action-progress.ndjson` for DGCA/DGA preview; rebundles diagrams.
+
 ## [3.7.0] — 2026-09-03
 
 ### Added
