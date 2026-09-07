@@ -347,6 +347,34 @@ export function loadDocumentSources(root: string): Array<{ path: string; text: s
   return docs;
 }
 
+/** Load `analytics/action-progress.ndjson` and parse it into a Map of action IDs
+ *  to progress data (percent and computedAt). Returns an empty Map if the file does
+ *  not exist or cannot be parsed. Each line is expected to be JSON with `id`, `percent`,
+ *  and `computedAt` fields. */
+export function loadActionProgressData(
+  root: string,
+): Map<string, { percent: number; computedAt: string }> {
+  const progressData = new Map<string, { percent: number; computedAt: string }>();
+  try {
+    const analyticsPath = path.join(root, 'analytics', 'action-progress.ndjson');
+    const text = readFileSync(analyticsPath, 'utf-8');
+    for (const line of text.split('\n')) {
+      if (!line.trim()) continue;
+      try {
+        const entry = JSON.parse(line);
+        if (typeof entry.id === 'string' && typeof entry.percent === 'number' && typeof entry.computedAt === 'string') {
+          progressData.set(entry.id, { percent: entry.percent, computedAt: entry.computedAt });
+        }
+      } catch {
+        // Silently skip unparseable lines
+      }
+    }
+  } catch {
+    // File doesn't exist or cannot be read; return empty map
+  }
+  return progressData;
+}
+
 /** Check every `.ttrs` document source under `root` for extension, placement
  *  and filename/header kind agreement (CONTRACT.md §3 — `HDR-003`, `TTRS-013`).
  *
@@ -417,6 +445,13 @@ export function runViewValidate(
       };
     }
     return canonModel;
+  }
+  let progressData: Map<string, { percent: number; computedAt: string }> | undefined;
+  function ensureProgressData(): Map<string, { percent: number; computedAt: string }> {
+    if (!progressData) {
+      progressData = loadActionProgressData(root);
+    }
+    return progressData;
   }
   for (const doc of loadViewDocs(root)) {
     let data: unknown;
@@ -492,7 +527,11 @@ export function runViewValidate(
     // FGCA-004 unconditionally until now.
     if (notation === 'dgca' && isFGCAViewDoc(data)) {
       const model = ensureCanonModel();
-      data = resolveFGCA(data, { elements: model.elements, relations: model.relations });
+      data = resolveFGCA(data, {
+        elements: model.elements,
+        relations: model.relations,
+        progressData: ensureProgressData(),
+      });
     }
 
     // Canon-projection form (04-goals.md §4): view_config present, no inline
