@@ -371,6 +371,7 @@ export function layoutFGCAPreview(
 
   // Synthesize virtual Change nodes for activities without a real Change.
   // Each virtual node is 1:1 with one activity (not shared across activities).
+  // The layout key embeds the activity id for uniqueness; it is not a display id.
   const virtualChanges: Array<{ id: string; activityId: string; goalId: string }> = [];
   for (const a of doc.activities) {
     if (a.goal_id != null && !coveredActivities.has(String(a.id))) {

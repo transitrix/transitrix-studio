@@ -43,6 +43,21 @@ describe('entity-text-layout', () => {
     expect(minGap).toBeGreaterThanOrEqual(ROW_GROUP_GAP - 1);
   });
 
+  it('layoutCenteredEntityText omits the id row when id is empty', () => {
+    const specs = layoutCenteredEntityText({
+      boxX: 0,
+      boxY: 0,
+      boxWidth: 250,
+      boxHeight: 80,
+      name: '–',
+      id: '',
+      nameMaxLines: 2,
+      idMaxLines: 1,
+    });
+    expect(specs.some((l) => l.cls === 'text-id')).toBe(false);
+    expect(specs.filter((l) => l.cls === 'text-primary').map((l) => l.text)).toEqual(['–']);
+  });
+
   it('layoutCenteredEntityText emits more name capacity on wide boxes', () => {
     const narrow = layoutCenteredEntityText({
       boxX: 0,

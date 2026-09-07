@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+
+- **A DGCA virtual Change shows only the dash placeholder.** The dashed node in the Changes column no longer prints an Action id.
+
 ## [3.7.1] — 2026-09-07
 
 ### Fixed
