@@ -362,8 +362,8 @@ export function loadActionProgressData(
       if (!line.trim()) continue;
       try {
         const entry = JSON.parse(line);
-        if (typeof entry.id === 'string' && typeof entry.percent === 'number' && typeof entry.computedAt === 'string') {
-          progressData.set(entry.id, { percent: entry.percent, computedAt: entry.computedAt });
+        if (typeof entry.id === 'string' && typeof entry.percent === 'number' && typeof entry.computed_at === 'string') {
+          progressData.set(entry.id, { percent: entry.percent, computedAt: entry.computed_at });
         }
       } catch {
         // Silently skip unparseable lines
