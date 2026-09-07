@@ -165,7 +165,8 @@ export interface LayoutCenteredEntityOptions {
   boxHeight: number;
   name: string;
   type?: string;
-  id: string;
+  /** Canonical entity id. Empty or omitted skips the id row (placeholder nodes). */
+  id?: string;
   nameMaxLines?: number;
   idMaxLines?: number;
   marginX?: number;
@@ -189,7 +190,14 @@ interface TextRowGroup {
  * to avoid overlap.
  */
 const HALF_EXTENT_PRIMARY = 6; // text-primary, 12px font
+const HALF_EXTENT_SECONDARY = 6; // text-secondary, same size as name
 const HALF_EXTENT_ID = 5; // text-id, 10px font
+
+function glyphHalfExtent(cls: string): number {
+  if (cls === 'text-id') return HALF_EXTENT_ID;
+  if (cls === 'text-secondary') return HALF_EXTENT_SECONDARY;
+  return HALF_EXTENT_PRIMARY;
+}
 
 /** Place `groups`' lines starting at `startY`, advancing by each line's own height and gap. */
 function placeLines(groups: TextRowGroup[], startY: number): TextLineSpec[] {
@@ -234,8 +242,11 @@ export function layoutCenteredEntityText(opts: LayoutCenteredEntityOptions): Tex
   const maxCharsId = maxCharsForInnerWidth(innerW, CHAR_W_ID);
 
   const typeLine = opts.type?.trim() ? truncateLine(opts.type, maxCharsType) : undefined;
+  const idText = opts.id?.trim() ?? '';
   const idMaxLines = opts.idMaxLines ?? 1;
-  const idLines = idMaxLines <= 1 ? [truncateId(opts.id, maxCharsId)] : wrapId(opts.id, maxCharsId, idMaxLines);
+  const idLines = idText
+    ? (idMaxLines <= 1 ? [truncateId(idText, maxCharsId)] : wrapId(idText, maxCharsId, idMaxLines))
+    : [];
 
   function buildGroups(nameLines: string[]): TextRowGroup[] {
     const groups: TextRowGroup[] = [
@@ -243,7 +254,7 @@ export function layoutCenteredEntityText(opts: LayoutCenteredEntityOptions): Tex
         cls: 'text-primary',
         lines: nameLines,
         lineHeight: LINE_H_PRIMARY,
-        gapAfter: typeLine ? ROW_GROUP_GAP : NAME_ID_GAP,
+        gapAfter: typeLine ? ROW_GROUP_GAP : idLines.length > 0 ? NAME_ID_GAP : 0,
       },
     ];
     if (typeLine) {
@@ -251,26 +262,28 @@ export function layoutCenteredEntityText(opts: LayoutCenteredEntityOptions): Tex
         cls: 'text-secondary',
         lines: [typeLine],
         lineHeight: LINE_H_SECONDARY,
-        gapAfter: NAME_ID_GAP,
+        gapAfter: idLines.length > 0 ? NAME_ID_GAP : 0,
       });
     }
-    groups.push({
-      cls: 'text-id',
-      lines: idLines,
-      lineHeight: LINE_H_ID,
-      gapAfter: 0,
-    });
+    if (idLines.length > 0) {
+      groups.push({
+        cls: 'text-id',
+        lines: idLines,
+        lineHeight: LINE_H_ID,
+        gapAfter: 0,
+      });
+    }
     return groups;
   }
 
-  // groups[0] is always the name (text-primary) and the last group is always
-  // the id (text-id), so the edge-padding half-extents below are fixed.
+  // groups[0] is always the name (text-primary). The last group is the id when
+  // one is present, otherwise type or name; edge padding uses that class.
   const requestedNameMaxLines = Math.max(1, opts.nameMaxLines ?? 2);
   const availableHeight = Math.max(0, opts.boxHeight - marginY * 2);
 
   let nameLines = wrapWords(opts.name, maxCharsName, requestedNameMaxLines);
   let groups = buildGroups(nameLines);
-  let contentSpan = centerSpan(groups) + HALF_EXTENT_PRIMARY + HALF_EXTENT_ID;
+  let contentSpan = centerSpan(groups) + HALF_EXTENT_PRIMARY + glyphHalfExtent(groups[groups.length - 1].cls);
   for (
     let cap = requestedNameMaxLines - 1;
     cap >= 1 && contentSpan > availableHeight;
@@ -278,7 +291,7 @@ export function layoutCenteredEntityText(opts: LayoutCenteredEntityOptions): Tex
   ) {
     nameLines = wrapWords(opts.name, maxCharsName, cap);
     groups = buildGroups(nameLines);
-    contentSpan = centerSpan(groups) + HALF_EXTENT_PRIMARY + HALF_EXTENT_ID;
+    contentSpan = centerSpan(groups) + HALF_EXTENT_PRIMARY + glyphHalfExtent(groups[groups.length - 1].cls);
   }
 
   const margin = Math.max(0, (opts.boxHeight - contentSpan) / 2);

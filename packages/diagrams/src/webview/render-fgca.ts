@@ -82,7 +82,9 @@ export function renderFgcaBody(
 
   const nodeSvg = nodes
     .map((n) => {
-      const entityId = n.id.slice(n.id.indexOf('_') + 1);
+      // Virtual Change nodes use a layout key such as `vchange_activity_<id>`;
+      // slicing at the first `_` would print `activity_<id>` on a Change.
+      const entityId = n.virtual ? '' : n.id.slice(n.id.indexOf('_') + 1);
       const nodeClass = n.virtual ? 'diagram-node layer-virtual' : `diagram-node layer-${n.col}`;
       const specs = layoutCenteredEntityText({
         boxX: n.x,
@@ -95,7 +97,9 @@ export function renderFgcaBody(
         idMaxLines: 1,
       });
       const textSvg = emitCenteredTextSvg(specs, n.x + nodeWidth / 2, escXml);
-      const titleContent = `${escXml(n.label)} (${escXml(entityId)})`;
+      const titleContent = n.virtual
+        ? escXml(n.label)
+        : `${escXml(n.label)} (${escXml(entityId)})`;
       const typeBadge = n.type && n.col === 'activity'
         ? `<text class="text-id" x="${n.x + nodeWidth - 6}" y="${n.y + 10}" text-anchor="end" dominant-baseline="hanging" font-size="10">${escXml(n.type)}</text>`
         : '';
