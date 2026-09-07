@@ -40,6 +40,7 @@ export interface RenderFgcaBodyOptions {
   nodeWidth?: number;
   nodeHeight?: number;
   edgeStyle?: EdgeStyle;
+  showCompletionPercent?: boolean;
 }
 
 /**
@@ -62,6 +63,7 @@ export function renderFgcaBody(
   const nodeWidth = bodyOptions.nodeWidth ?? FGCA_NODE_W;
   const nodeHeight = bodyOptions.nodeHeight ?? FGCA_NODE_H;
   const edgeStyle = bodyOptions.edgeStyle;
+  const showCompletionPercent = bodyOptions.showCompletionPercent ?? true;
   const headerTruncate = Math.max(8, Math.floor((nodeWidth - 16) / 7));
   const STALENESS_THRESHOLD_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -97,14 +99,19 @@ export function renderFgcaBody(
       const typeBadge = n.type && n.col === 'activity'
         ? `<text class="text-id" x="${n.x + nodeWidth - 6}" y="${n.y + 10}" text-anchor="end" dominant-baseline="hanging" font-size="10">${escXml(n.type)}</text>`
         : '';
-      const progressBadge = n.progress && n.col === 'activity'
+      const progressBadge = showCompletionPercent && n.col === 'activity'
         ? (() => {
-            const computedAt = new Date(n.progress.computedAt);
-            const now = new Date();
-            const isStale = now.getTime() - computedAt.getTime() > STALENESS_THRESHOLD_MS;
-            const className = isStale ? 'text-id' : 'text-id';
-            const opacity = isStale ? ' opacity="0.5"' : '';
-            return `<text class="${className}" x="${n.x + nodeWidth - 6}" y="${n.y + 22}" text-anchor="end" dominant-baseline="hanging" font-size="10"${opacity}>${escXml(n.progress.percent + '%')}</text>`;
+            if (n.progress) {
+              const computedAt = new Date(n.progress.computedAt);
+              const now = new Date();
+              const isStale = now.getTime() - computedAt.getTime() > STALENESS_THRESHOLD_MS;
+              const opacity = isStale ? ' opacity="0.5"' : '';
+              return `<text class="text-id" x="${n.x + nodeWidth - 6}" y="${n.y + 22}" text-anchor="end" dominant-baseline="hanging" font-size="10"${opacity}>${escXml(n.progress.percent + '%')}</text>`;
+            }
+            if (n.linked) {
+              return `<text class="text-id" x="${n.x + nodeWidth - 6}" y="${n.y + 22}" text-anchor="end" dominant-baseline="hanging" font-size="10">–%</text>`;
+            }
+            return '';
           })()
         : '';
       return [
@@ -136,6 +143,8 @@ export interface RenderFgcaOptions {
   layoutOptions?: Parameters<typeof layoutFGCAPreview>[1];
   /** Show scope caption when goal-scoped projection omits goals that reference out-of-scope goals. */
   scopeCaption?: boolean;
+  /** Show completion percent badges on action nodes. */
+  showCompletionPercent?: boolean;
 }
 
 export function renderFgcaSvg(doc: FGCADoc, options: RenderFgcaOptions = {}): string {
@@ -148,6 +157,7 @@ export function renderFgcaSvg(doc: FGCADoc, options: RenderFgcaOptions = {}): st
     nodeSizePreset = 'normal',
     layoutOptions,
     scopeCaption = false,
+    showCompletionPercent = true,
   } = options;
   const hideChanges = variant === 'dga' || doc.hideChanges === true;
   const nodeSize = resolveDgcaNodeSize(parseNodeSizePreset(nodeSizePreset));
@@ -167,6 +177,7 @@ export function renderFgcaSvg(doc: FGCADoc, options: RenderFgcaOptions = {}): st
     nodeWidth: nodeSize.width,
     nodeHeight: nodeSize.height,
     edgeStyle,
+    showCompletionPercent,
   });
 
   const titleSvg = title

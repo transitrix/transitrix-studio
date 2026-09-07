@@ -21,7 +21,7 @@ import { buildChainTable, type ChainTable, type ChainColumn } from '@transitrix/
 import { coerceDatesToIsoStrings } from '@transitrix/diagrams/yaml-normalize.js';
 import { checkChainScope, type FgcaScope } from '@transitrix/diagrams/scope.js';
 import { savePngFromSvg, copyPngFromSvg } from './png-export.js';
-import { readSpacing, readCurvature, readEntryCurvature, readEdgeStyle, readScope, readChainScope, readView, applyControlMessage, OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND, OPEN_SCOPE_SETTINGS_COMMAND } from './spacing-config.js';
+import { readSpacing, readCurvature, readEntryCurvature, readEdgeStyle, readScope, readChainScope, readView, readShowCompletionPercent, applyControlMessage, COMPLETION_PERCENT_CONFIG_SECTION, OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND, OPEN_SCOPE_SETTINGS_COMMAND } from './spacing-config.js';
 import { readDgcaNodeSize, readNodeSizePreset } from './node-size-config.js';
 import { genNonce, buildControlsPanel, buildControlsScript, buildViewToggle, buildCaptureButton, buildTimelineStrip, type ControlsModel, type ScopeGoalOption, type SnapshotMarker, type SnapshotMessage } from './preview-controls.js';
 import { snapshotFilename, buildSnapshotContent, extractViewMeta, listSnapshotFiles, parseSnapshotForDisplay } from './snapshot-writer.js';
@@ -226,6 +226,7 @@ function renderChainPreview(
   const curvature = readCurvature(p.viewNotation);
   const entryCurvature = readEntryCurvature(p.viewNotation);
   const edgeStyle = readEdgeStyle(p.viewNotation);
+  const showCompletionPercent = readShowCompletionPercent(p.viewNotation);
   const warnings = [...baseWarnings];
   let svg = '';
   let columnOptions = { drivers: [] as ScopeGoalOption[], goals: [] as ScopeGoalOption[], changes: [] as ScopeGoalOption[], activities: [] as ScopeGoalOption[] };
@@ -240,7 +241,7 @@ function renderChainPreview(
       activities: parsedDoc.activities.map(a => a.id),
     }, p.hideChanges);
     if (scopeWarning) warnings.push(`${scopeWarning.code}: ${scopeWarning.message}`);
-    svg = buildSvg(parsedDoc, p.hideChanges, { colGap: gaps.horizontalGap, rowGap: gaps.verticalGap, curvature, entryCurvature, edgeStyle, scope, nodeSize: readDgcaNodeSize(p.viewNotation) }, p.heading, filename, docDate, docVersion);
+    svg = buildSvg(parsedDoc, p.hideChanges, { colGap: gaps.horizontalGap, rowGap: gaps.verticalGap, curvature, entryCurvature, edgeStyle, scope, nodeSize: readDgcaNodeSize(p.viewNotation), showCompletionPercent }, p.heading, filename, docDate, docVersion);
   }
   const model = chainControlsModel(gaps, spacingDefaults, curvature, p.viewNotation, p.hideChanges, columnOptions, edgeStyle);
   const html = buildDiagramFrame({
@@ -261,7 +262,7 @@ function renderChainPreview(
 function buildSvg(
   doc: FGCADoc,
   hideChanges = false,
-  opts: { colGap?: number; rowGap?: number; curvature?: number; entryCurvature?: number; edgeStyle?: EdgeStyle; scope?: FgcaScope; nodeSize?: { width: number; height: number } } = {},
+  opts: { colGap?: number; rowGap?: number; curvature?: number; entryCurvature?: number; edgeStyle?: EdgeStyle; scope?: FgcaScope; nodeSize?: { width: number; height: number }; showCompletionPercent?: boolean } = {},
   heading?: string,
   filename?: string,
   date?: string,
@@ -285,6 +286,7 @@ function buildSvg(
     nodeWidth: nodeSize.width,
     nodeHeight: nodeSize.height,
     edgeStyle: opts.edgeStyle,
+    showCompletionPercent: opts.showCompletionPercent,
   });
 
   const totalH = height + titleH;

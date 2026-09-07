@@ -185,6 +185,22 @@ export const VIEW_CONFIG_SECTION = 'transitrix.view';
 
 export { NODE_SIZE_CONFIG_SECTION, OPEN_NODE_SIZE_SETTINGS_COMMAND } from './node-size-config.js';
 
+// ── Completion percent display ────────────────────────────────────────────
+//
+// Toggle to show/hide completion percent badges on action nodes.
+// When on: show badge for actions with progress data, and a "no-data" label
+// for linked actions without progress. When off: show neither.
+
+export type CompletionPercentNotation = 'dgca' | 'dga';
+
+/** Reads whether to show completion percent badges for a notation (default true). */
+export function readShowCompletionPercent(notation: CompletionPercentNotation): boolean {
+  return vscode.workspace.getConfiguration('transitrix').get<boolean>(`showCompletionPercent.${notation}`, true);
+}
+
+/** Config section that, when changed, re-renders completion-percent-aware previews. */
+export const COMPLETION_PERCENT_CONFIG_SECTION = 'transitrix.showCompletionPercent';
+
 // ── In-preview control messages (PR2) ───────────────────────────────────────
 //
 // The interactive control panel (preview-controls.ts) posts a `ControlMessage`

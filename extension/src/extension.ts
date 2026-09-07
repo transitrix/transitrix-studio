@@ -41,6 +41,7 @@ import {
   SCOPE_CONFIG_SECTION,
   VIEW_CONFIG_SECTION,
   EDGE_STYLE_CONFIG_SECTION,
+  COMPLETION_PERCENT_CONFIG_SECTION,
 } from './spacing-config.js';
 import { OPEN_THEME_COMMAND } from './diagram-frame.js';
 import {
@@ -542,7 +543,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void |
         !e.affectsConfiguration(SCOPE_CONFIG_SECTION) &&
         !e.affectsConfiguration(VIEW_CONFIG_SECTION) &&
         !e.affectsConfiguration(NODE_SIZE_CONFIG_SECTION) &&
-        !e.affectsConfiguration(EDGE_STYLE_CONFIG_SECTION)
+        !e.affectsConfiguration(EDGE_STYLE_CONFIG_SECTION) &&
+        !e.affectsConfiguration(COMPLETION_PERCENT_CONFIG_SECTION)
       ) return;
       void goalsPreview.refreshConfig();
       void dgcaPreview.refreshConfig();
