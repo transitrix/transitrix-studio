@@ -293,4 +293,8 @@ export async function applyControlMessage(
       await cfg.update(`scope.${notation}.rootId`, '', target);
     }
   }
+  if (msg.control === 'completionPercent' && (notation === 'dgca' || notation === 'dga')) {
+    await cfg.update(`showCompletionPercent.${notation}`, Boolean(msg.value), target);
+    return;
+  }
 }
