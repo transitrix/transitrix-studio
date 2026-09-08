@@ -85,6 +85,12 @@ export interface NodeSizeControlModel {
   default: NodeSizePresetValue;
 }
 
+export interface CompletionPercentControlModel {
+  value: boolean;
+  /** Default state — used to decide whether the panel opens by default. */
+  default: boolean;
+}
+
 export interface ControlsModel {
   spacing: SpacingControlModel;
   curvature: CurvatureControlModel;
@@ -94,16 +100,18 @@ export interface ControlsModel {
   scope?: ScopeControlModel;
   /** Omitted when the notation has no block-size preset (yet). */
   nodeSize?: NodeSizeControlModel;
+  /** Omitted for notations that don't show ACTION nodes (Goals, Blocks, ProcessBlueprint). */
+  completionPercent?: CompletionPercentControlModel;
 }
 
 /** Message posted from the webview to the host on every control change. */
 export interface ControlMessage {
   type: 'transitrix:control';
-  control: 'spacing' | 'curvature' | 'entryCurvature' | 'scope' | 'view' | 'nodeSize' | 'edgeStyle';
-  /** spacing: 'horizontalGap'|'verticalGap'; scope: 'rootId'|'maxLevel'|'driverId'|'goalId'|'changeId'|'activityId'|'reset'; view: 'tree'|'table'; nodeSize: 'preset'; absent for curvature. */
+  control: 'spacing' | 'curvature' | 'entryCurvature' | 'scope' | 'view' | 'nodeSize' | 'edgeStyle' | 'completionPercent';
+  /** spacing: 'horizontalGap'|'verticalGap'; scope: 'rootId'|'maxLevel'|'driverId'|'goalId'|'changeId'|'activityId'|'reset'; view: 'tree'|'table'; nodeSize: 'preset'; absent for curvature/completionPercent. */
   field?: 'horizontalGap' | 'verticalGap' | 'rootId' | 'maxLevel' | 'driverId' | 'goalId' | 'changeId' | 'activityId' | 'reset' | 'tree' | 'table' | 'preset';
-  /** Numeric for spacing/curvature/maxLevel; string for rootId / chain ids; absent for reset/view. */
-  value?: number | string;
+  /** Numeric for spacing/curvature/maxLevel; string for rootId / chain ids; boolean for completionPercent; absent for reset/view. */
+  value?: number | string | boolean;
 }
 
 /** Snapshot-related message posted from webview to host. */
@@ -271,6 +279,7 @@ function hasNonDefault(model: ControlsModel): boolean {
   if (model.curvature.value !== model.curvature.default) return true;
   if (model.edgeStyle && model.edgeStyle.value !== model.edgeStyle.default) return true;
   if (model.nodeSize && model.nodeSize.value !== model.nodeSize.default) return true;
+  if (model.completionPercent && model.completionPercent.value !== model.completionPercent.default) return true;
   if (model.scope?.chain) {
     const c = model.scope.chain;
     if (c.driverId !== '' || c.goalId !== '' || c.changeId !== '' || c.activityId !== '') return true;
@@ -373,12 +382,22 @@ function nodeSizeRow(ns: NodeSizeControlModel): string {
   </div>`;
 }
 
+function completionPercentRow(cp: CompletionPercentControlModel): string {
+  return `<div class="tx-ctl-row">
+    <label title="Show ACTION completion-percent badge and placeholder">
+      <input type="checkbox" data-tx-control="completionPercent"${cp.value ? ' checked' : ''} />
+      Show completion percent
+    </label>
+  </div>`;
+}
+
 /** Builds the `<details>` control-panel markup for a notation's interactive preview. */
 export function buildControlsPanel(model: ControlsModel): string {
   const open = hasNonDefault(model) ? ' open' : '';
   const rows = [spacingRow(model.spacing), curvatureRow(model.curvature, model.edgeStyle)];
   if (model.nodeSize) rows.push(nodeSizeRow(model.nodeSize));
   if (model.scope) rows.push(scopeRow(model.scope));
+  if (model.completionPercent) rows.push(completionPercentRow(model.completionPercent));
   return `<details id="tx-ctl" class="tx-ctl"${open}>
   <summary>Controls</summary>
   <div class="tx-ctl-body">
@@ -452,6 +471,8 @@ export function buildControlsScript(nonce: string): string {
           post(control, undefined, num(el.value));
         } else if (control === 'nodeSize') {
           post(control, field, el.value);
+        } else if (control === 'completionPercent') {
+          post(control, undefined, el.checked);
         } else {
           post(control, field, num(el.value));
         }

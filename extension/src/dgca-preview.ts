@@ -99,11 +99,13 @@ function chainControlsModel(
 ): ControlsModel {
   const nodeSizePreset = readNodeSizePreset(viewNotation);
   const chain = readChainScope(viewNotation);
+  const showCompletionPercent = readShowCompletionPercent(viewNotation);
   return {
     spacing: { ...gaps, defaults },
     curvature: { value: curvature, default: 1 },
     edgeStyle: { value: edgeStyle, default: 'bezier' },
     nodeSize: { value: nodeSizePreset, default: 'normal' },
+    completionPercent: { value: showCompletionPercent, default: true },
     scope: {
       rootId: '',
       maxLevel: -1,
