@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.7.3] — 2026-09-08
+
+### Added
+
+- **DGCA and DGA previews expose the completion-percent toggle.** The setting appears on the Settings page and as a control in the preview panel. Default stays on. (#649)
+
 ## [3.7.2] — 2026-09-07
 
 ### Fixed
