@@ -415,6 +415,16 @@
           ],
           "default": "tree",
           "description": "DGA preview: 'tree' renders the Driver→Goal→Activity chain diagram; 'table' renders the chain flattened into a table with merged cells. Toggle live from the preview toolbar."
+        },
+        "transitrix.showCompletionPercent.dgca": {
+          "type": "boolean",
+          "default": true,
+          "description": "DGCA preview: show completion-percent badge on ACTION nodes with sidecar data, and '-' placeholder for linked ACTIONs without a row. Turn off to hide the badge and placeholder."
+        },
+        "transitrix.showCompletionPercent.dga": {
+          "type": "boolean",
+          "default": true,
+          "description": "DGA preview: show completion-percent badge on ACTION nodes with sidecar data, and '-' placeholder for linked ACTIONs without a row. Turn off to hide the badge and placeholder."
         }
       }
     },
