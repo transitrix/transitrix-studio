@@ -1,3 +1,4 @@
+import { completionPercentState, completionPercentSvg } from '@transitrix/diagrams/webview/completion-percent.js';
 import * as path from 'node:path';
 import { escXml } from '@transitrix/diagrams/webview/render-util.js';
 import * as vscode from 'vscode';
@@ -20,11 +21,11 @@ import {
   type GanttResult,
 } from '@transitrix/diagrams/activities';
 import { coerceDatesToIsoStrings } from '@transitrix/diagrams/yaml-normalize.js';
-import { loadCanon, findCanonRoot, isUnderCanon, type CanonDocs } from './canon-loader.js';
+import { loadProgressDataFromFileUri, loadCanon, findCanonRoot, isUnderCanon, type CanonDocs } from './canon-loader.js';
 import { DEFAULT_EDGE_CURVATURE } from '@transitrix/diagrams/edge-path.js';
 import { renderActivitiesNetworkBody, ACTIVITIES_NETWORK_DEFS, computeNetworkTopPad } from '@transitrix/diagrams/webview/render-activities.js';
 import { savePngFromSvg, copyPngFromSvg } from './png-export.js';
-import { readSpacing, readCurvature, readEntryCurvature, applyControlMessage, OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND } from './spacing-config.js';
+import { readShowCompletionPercent, readSpacing, readCurvature, readEntryCurvature, applyControlMessage, OPEN_SPACING_SETTINGS_COMMAND, OPEN_CURVATURE_SETTINGS_COMMAND } from './spacing-config.js';
 import { readActionNodeSize, readNodeSizePreset } from './node-size-config.js';
 import { genNonce, buildControlsPanel, buildControlsScript } from './preview-controls.js';
 
@@ -182,6 +183,7 @@ function ganttSvg(layout: GanttLayout, heading?: string, filename?: string, date
         `<rect class="gantt-row-alt" x="${ox}" y="${rowY}" width="${G_LABEL_COL_W + timelineWidth}" height="${G_ROW_H}"/>`,
       );
     }
+    rowParts.push(completionPercentSvg(bar.data.progress, Boolean(bar.data.link?.trim()), ox + G_LABEL_COL_W - 8, rowY + 24));
     // Label column — name on top (primary), id below in smaller grey text.
     // Stacked rather than side-by-side: a single row width isn't enough to
     // show both without overlap once the id gets past a handful of characters.
@@ -459,6 +461,8 @@ function buildTreeHtml(doc: ActivityDoc, filename: string, date: string, version
       ? `<span class="${badgeClass}">${escXml(act.activity_type)}</span>`
       : '';
     const metaParts: string[] = [];
+    const completion = completionPercentState(act.progress, Boolean(act.link?.trim()));
+    if (completion) metaParts.push(`<span class="completion-percent"${completion.stale ? ' style="opacity:0.5"' : ''}>${completion.label}</span>`);
     if (act.owner) metaParts.push(escXml(act.owner));
     if (act.start_date && act.end_date) metaParts.push(`${escXml(act.start_date)} → ${escXml(act.end_date)}`);
     else if (act.start_date) metaParts.push(`from ${escXml(act.start_date)}`);
@@ -842,12 +846,15 @@ export class ActionPreview {
     // Canon-projection form (07-action.md §4): view_config present, no inline
     // actions[]. Load canon/elements/** lazily — only projection-form documents
     // need it; inline documents (the default, self-contained form) skip the
-    // filesystem walk and never see a "no canon root" warning.
+    // filesystem walk and never see a "no canon root" warning. Both forms
+    // read completion metadata through the same model-root sidecar reader.
     let sources: CanonDocs = { elements: [], relations: [], warnings: [] };
     try {
       const parsed = coerceDatesToIsoStrings(yaml.load(yamlText) as unknown);
       if (isActionViewDoc(parsed)) {
         sources = await loadCanon(doc.uri);
+      } else {
+        sources.progressData = await loadProgressDataFromFileUri(doc.uri);
       }
     } catch {
       // Parse errors are handled (and reported) again inside buildHtml.
@@ -863,6 +870,7 @@ export class ActionPreview {
 
     const spacingDefaults = { horizontalGap: ACTIVITIES_DEFAULT_H_GAP, verticalGap: ACTIVITIES_DEFAULT_V_GAP };
     const spacing = readSpacing('action', spacingDefaults);
+    const showCompletionPercent = readShowCompletionPercent('action');
     const curvature = readCurvature('action');
     const entryCurvature = readEntryCurvature('action');
 
@@ -885,8 +893,15 @@ export class ActionPreview {
       if (!v.valid) {
         errorMsg = v.errors.map(e => `${e.code}: ${e.message}`).join('\n');
       } else {
+        const activityDoc = input as ActivityDoc;
+        // Derived values never come from editable YAML fields.
+        const displayDoc: ActivityDoc = { ...activityDoc, activities: activityDoc.activities.map(a => ({
+          ...a,
+          link: showCompletionPercent ? a.link : undefined,
+          progress: showCompletionPercent ? sources.progressData?.get(a.id) : undefined,
+        })) };
         const nodeSize = readActionNodeSize();
-        const views = buildActivityViews(input as ActivityDoc, { horizontalGap: spacing.horizontalGap, verticalGap: spacing.verticalGap, nodeWidth: nodeSize.width, nodeHeight: nodeSize.height }, curvature, entryCurvature, filename, docDate, docVersion);
+        const views = buildActivityViews(displayDoc, { horizontalGap: spacing.horizontalGap, verticalGap: spacing.verticalGap, nodeWidth: nodeSize.width, nodeHeight: nodeSize.height }, curvature, entryCurvature, filename, docDate, docVersion);
         bodyContent = buildCanvasContent(views);
         this.lastNetworkSvg = views.networkSvg;
         this.lastGanttSvg = views.ganttSvg;
@@ -914,6 +929,7 @@ export class ActionPreview {
       spacing: { ...spacing, defaults: spacingDefaults },
       curvature: { value: curvature, default: 1 },
       nodeSize: { value: nodeSizePreset, default: 'normal' },
+      completionPercent: { value: showCompletionPercent, default: true },
     });
 
     return buildDiagramFrame({

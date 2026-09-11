@@ -332,6 +332,7 @@ export function parseCanonicalFGCA(
       name: String(el!['name'] ?? ''),
       goal_id: goalRefs.length > 0 ? goalRefs[0] : null,
       ...(typeVal !== undefined ? { type: typeVal } : {}),
+      ...(typeof el!['link'] === 'string' ? { link: el!['link'] } : {}),
       ...(progressVal !== undefined ? { progress: progressVal } : {}),
     };
   });

@@ -196,9 +196,9 @@ export async function readYamlDocsUnder(
 /**
  * Load action progress data from `analytics/action-progress.ndjson` relative to the model root.
  * Returns undefined if the file does not exist or cannot be parsed. Each line is expected to be
- * JSON with `id`, `percent`, and `computedAt` fields.
+ * JSON with `id`, `percent`, and `computed_at` fields.
  */
-async function loadProgressDataFromFileUri(fileUri: vscode.Uri): Promise<Map<string, { percent: number; computedAt: string }> | undefined> {
+export async function loadProgressDataFromFileUri(fileUri: vscode.Uri): Promise<Map<string, { percent: number; computedAt: string }> | undefined> {
   const modelRoot = findModelRootPath(fileUri.fsPath);
   if (!modelRoot) return undefined;
 
@@ -207,11 +207,22 @@ async function loadProgressDataFromFileUri(fileUri: vscode.Uri): Promise<Map<str
     const bytes = await vscode.workspace.fs.readFile(analyticsPath);
     const text = Buffer.from(bytes).toString('utf-8');
     const progressData = new Map<string, { percent: number; computedAt: string }>();
+    const seen = new Set<string>();
     for (const line of text.split('\n')) {
       if (!line.trim()) continue;
       try {
         const entry = JSON.parse(line);
-        if (typeof entry.id === 'string' && typeof entry.percent === 'number' && typeof entry.computed_at === 'string') {
+        if (!entry || typeof entry.id !== 'string') continue;
+        // Ambiguous ids never get an arbitrary percentage, even if one row is malformed.
+        if (seen.has(entry.id)) {
+          progressData.delete(entry.id);
+          continue;
+        }
+        seen.add(entry.id);
+        if (/^ACTION-(?:[A-Z0-9]+-)*[0-9]+$/.test(entry.id) &&
+            typeof entry.percent === 'number' && Number.isFinite(entry.percent) &&
+            entry.percent >= 0 && entry.percent <= 100 &&
+            typeof entry.computed_at === 'string' && Number.isFinite(Date.parse(entry.computed_at))) {
           progressData.set(entry.id, { percent: entry.percent, computedAt: entry.computed_at });
         }
       } catch {

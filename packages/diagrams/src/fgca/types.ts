@@ -25,6 +25,8 @@ export interface ActivityItem {
   activity_type_id?: number;
   /** Canonical values: initiative | programme | project | work_package. Unknown values pass through without error. */
   type?: string;
+  /** Tracker link, independent of goal relationships. */
+  link?: string;
   progress?: {
     percent: number;
     computedAt: string;

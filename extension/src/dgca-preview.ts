@@ -4,7 +4,7 @@ import * as vscode from 'vscode';
 import yaml from 'js-yaml';
 import { buildDiagramFrame, prepareSvgForExport, type ThemeId, OPEN_THEME_COMMAND } from './diagram-frame.js';
 import { TITLE_BLOCK_H, titleBlockSvg, todayIso } from './svg-title-block.js';
-import { loadCanon, findCanonRoot, isUnderCanon, type CanonDocs } from './canon-loader.js';
+import { loadProgressDataFromFileUri, loadCanon, findCanonRoot, isUnderCanon, type CanonDocs } from './canon-loader.js';
 import { parseCanonicalFGCA, parseCanonicalFGA } from '@transitrix/diagrams/fgca/parse-canonical.js';
 import { resolveFGCA, isFGCAViewDoc } from '@transitrix/diagrams/fgca/resolver.js';
 import {
@@ -472,7 +472,7 @@ export class DGCAPreview {
       // Fall back to inline parsing for legacy documents that carry factors[]/goals[].
       const input = isFGCAViewDoc(parsed) ? resolveFGCA(parsed, sources) : parsed;
       warnings = [...sources.warnings];
-      const v = parseCanonicalFGCA(input);
+      const v = parseCanonicalFGCA(input, undefined, undefined, sources.progressData);
       warnings.push(...v.warnings.map(w => `${w.code}: ${w.message}`));
       if (!v.valid || !v.parsed) {
         errorMsg = v.errors.map(e => `${e.code}: ${e.message}`).join('\n');
@@ -673,10 +673,12 @@ export class DGAPreview {
     if (!this.panel) return;
     const markers = await this.loadSnapshotMarkers();
     if (!this.panel) return; // panel may have been disposed while awaiting above
-    this.panel.webview.html = this.buildHtml(doc.getText(), path.basename(doc.fileName), markers);
+    const progressData = await loadProgressDataFromFileUri(doc.uri);
+    if (!this.panel) return;
+    this.panel.webview.html = this.buildHtml(doc.getText(), path.basename(doc.fileName), markers, progressData);
   }
 
-  private buildHtml(yamlText: string, filename: string, markers: SnapshotMarker[]): string {
+  private buildHtml(yamlText: string, filename: string, markers: SnapshotMarker[], progressData?: CanonDocs['progressData']): string {
     let parsedDoc: FGCADoc | null = null;
     let errorMsg = '';
     let warnings: string[] = [];
@@ -690,7 +692,7 @@ export class DGAPreview {
       docDate = (typeof meta.generated_at === 'string' ? meta.generated_at : undefined)
         ?? (typeof meta.date === 'string' ? meta.date : undefined)
         ?? todayIso();
-      const v = parseCanonicalFGA(parsed);
+      const v = parseCanonicalFGA(parsed, undefined, undefined, progressData);
       warnings = v.warnings.map(w => `${w.code}: ${w.message}`);
       if (!v.valid || !v.parsed) {
         errorMsg = v.errors.map(e => `${e.code}: ${e.message}`).join('\n');

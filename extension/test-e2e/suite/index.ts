@@ -20,6 +20,7 @@ export function run(): Promise<void> {
   const files = [
     'preview-surfaces.test.js',
     'png-export.test.js',
+    'completion-percent.test.js',
   ];
   for (const f of files) {
     mocha.addFile(path.resolve(testsRoot, f));

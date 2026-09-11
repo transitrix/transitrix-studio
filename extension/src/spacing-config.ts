@@ -191,7 +191,7 @@ export { NODE_SIZE_CONFIG_SECTION, OPEN_NODE_SIZE_SETTINGS_COMMAND } from './nod
 // When on: show badge for actions with progress data, and a "no-data" label
 // for linked actions without progress. When off: show neither.
 
-export type CompletionPercentNotation = 'dgca' | 'dga';
+export type CompletionPercentNotation = 'dgca' | 'dga' | 'action';
 
 /** Reads whether to show completion percent badges for a notation (default true). */
 export function readShowCompletionPercent(notation: CompletionPercentNotation): boolean {
@@ -293,7 +293,7 @@ export async function applyControlMessage(
       await cfg.update(`scope.${notation}.rootId`, '', target);
     }
   }
-  if (msg.control === 'completionPercent' && (notation === 'dgca' || notation === 'dga')) {
+  if (msg.control === 'completionPercent' && (notation === 'dgca' || notation === 'dga' || notation === 'action')) {
     await cfg.update(`showCompletionPercent.${notation}`, Boolean(msg.value), target);
     return;
   }
