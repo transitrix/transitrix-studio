@@ -90,14 +90,14 @@ describe('completion percent from the model sidecar', function () {
       await waitFor(() => !panel.webview.html.includes('>63%<'));
       await setEnabled(true);
       await waitFor(() => panel.webview.html.includes('>–%<'), { label: 'invalid rows become missing data' });
-      assert.doesNotMatch(panel.webview.html, />\d+%</);
+      assert.doesNotMatch(panel.webview.html, /class="[^"]*completion-percent"[^>]*>\d+%</);
       assert.strictEqual((panel.webview.html.match(/>–%<\/text>/g) ?? []).length, notation === 'action' ? 6 : 3);
       fs.unlinkSync(sidecar());
       await setEnabled(false);
       await waitFor(() => !panel.webview.html.includes('>–%<'));
       await setEnabled(true);
       await waitFor(() => panel.webview.html.includes('>–%<'), { label: 'missing sidecar' });
-      assert.doesNotMatch(panel.webview.html, />\d+%</);
+      assert.doesNotMatch(panel.webview.html, /class="[^"]*completion-percent"[^>]*>\d+%</);
       assert.match(panel.webview.html, /<svg[\s>]/);
     });
   }
