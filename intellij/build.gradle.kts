@@ -1,7 +1,8 @@
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 
 plugins {
-    kotlin("jvm") version "2.4.20"
+    // CodeQL 2.27.0 supports Kotlin < 2.4.20. Keep extraction working on PRs.
+    kotlin("jvm") version "2.4.10"
     id("org.jetbrains.intellij.platform") version "2.18.1"
 }
 

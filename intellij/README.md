@@ -42,6 +42,21 @@ After that, `./gradlew runIde` opens a sandbox IDE with the plugin loaded.
 
 ## Packaging the distributable `.zip`
 
+Kotlin is pinned to 2.4.10 while CodeQL 2.27.0 requires Kotlin below 2.4.20.
+The matching Dependabot exclusion prevents unsupported compiler upgrades.
+Before removing it, verify that the upgrade PR passes both the default
+CodeQL **Analyze (java-kotlin)** job and this build check from the repo root:
+
+```sh
+npm ci
+node scripts/build-webview-bundle.mjs
+cd intellij
+./gradlew --no-daemon check buildPlugin verifyPluginStructure
+```
+
+This requires Java 21. There are currently no JVM test sources; `check`
+alone is not evidence of runtime preview behavior.
+
 From the repo root:
 
 ```sh
