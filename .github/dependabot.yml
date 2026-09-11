@@ -27,6 +27,10 @@ updates:
     schedule:
       interval: "weekly"
     ignore:
+      # Remove once default CodeQL extraction supports the next Kotlin release
+      # and both Java/Kotlin analysis and the IntelliJ build pass on its PR.
+      - dependency-name: "jvm"
+        versions: [">=2.4.20"]
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
 
