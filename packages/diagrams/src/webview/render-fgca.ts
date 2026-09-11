@@ -12,6 +12,7 @@
  * `change` column (`hideChanges` / the layout's Goal → Activity collapse),
  * exactly as the extension preview does.
  */
+import { completionPercentSvg } from './completion-percent.js';
 import {
   layoutFGCAPreview,
   FGCA_NODE_W,
@@ -65,7 +66,6 @@ export function renderFgcaBody(
   const edgeStyle = bodyOptions.edgeStyle;
   const showCompletionPercent = bodyOptions.showCompletionPercent ?? true;
   const headerTruncate = Math.max(8, Math.floor((nodeWidth - 16) / 7));
-  const STALENESS_THRESHOLD_MS = 7 * 24 * 60 * 60 * 1000;
 
   const headerSvg = columns
     .map(({ col, x }) =>
@@ -103,20 +103,8 @@ export function renderFgcaBody(
       const typeBadge = n.type && n.col === 'activity'
         ? `<text class="text-id" x="${n.x + nodeWidth - 6}" y="${n.y + 10}" text-anchor="end" dominant-baseline="hanging" font-size="10">${escXml(n.type)}</text>`
         : '';
-      const progressBadge = showCompletionPercent && n.col === 'activity'
-        ? (() => {
-            if (n.progress) {
-              const computedAt = new Date(n.progress.computedAt);
-              const now = new Date();
-              const isStale = now.getTime() - computedAt.getTime() > STALENESS_THRESHOLD_MS;
-              const opacity = isStale ? ' opacity="0.5"' : '';
-              return `<text class="text-id" x="${n.x + nodeWidth - 6}" y="${n.y + 22}" text-anchor="end" dominant-baseline="hanging" font-size="10"${opacity}>${escXml(n.progress.percent + '%')}</text>`;
-            }
-            if (n.linked) {
-              return `<text class="text-id" x="${n.x + nodeWidth - 6}" y="${n.y + 22}" text-anchor="end" dominant-baseline="hanging" font-size="10">–%</text>`;
-            }
-            return '';
-          })()
+      const progressBadge = n.col === 'activity'
+        ? completionPercentSvg(n.progress, Boolean(n.linked), n.x + nodeWidth - 6, n.y + 22, showCompletionPercent)
         : '';
       return [
         `<g>`,

@@ -16,6 +16,7 @@
  * in `renderActivitiesNetworkBody` and is shared verbatim with the VS Code
  * preview's `networkSvg`.
  */
+import { completionPercentSvg } from './completion-percent.js';
 import { layoutActivities } from '../activities/layout.js';
 import { computeCpm } from '../activities/cpm.js';
 import type {
@@ -147,6 +148,7 @@ function activityNodeSvg(
   return [
     `<rect class="${cls}" x="${x}" y="${y}" width="${n.width}" height="${n.height}" rx="8"/>`,
     textSvg,
+    completionPercentSvg(n.data.progress, Boolean(n.data.link?.trim()), x + n.width - 8, y + 6),
     durLabel ? `<text class="text-secondary" x="${x + n.width - 8}" y="${y + n.height - 8}" text-anchor="end">${durLabel}</text>` : '',
   ].filter(Boolean).join('\n');
 }

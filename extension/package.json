@@ -416,6 +416,11 @@
           "default": "tree",
           "description": "DGA preview: 'tree' renders the Driver→Goal→Activity chain diagram; 'table' renders the chain flattened into a table with merged cells. Toggle live from the preview toolbar."
         },
+        "transitrix.showCompletionPercent.action": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show completion percent badges and missing-data placeholders in Action previews."
+        },
         "transitrix.showCompletionPercent.dgca": {
           "type": "boolean",
           "default": true,

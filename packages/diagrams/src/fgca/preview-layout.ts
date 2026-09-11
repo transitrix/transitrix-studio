@@ -30,6 +30,7 @@ export interface FGCAPreviewChange {
   activity_ids: Array<number | string>;
 }
 export interface FGCAPreviewActivity {
+  link?: string;
   id: number | string;
   name: string;
   goal_id?: number | string | null;
@@ -387,7 +388,7 @@ export function layoutFGCAPreview(
       ...changes.map(c => ({ id: `change_${c.id}`, label: c.name })),
       ...virtualChanges.map(v => ({ id: v.id, label: '–', virtual: true })),
     ],
-    activity: doc.activities.map(a => ({ id: `activity_${a.id}`, label: a.name, progress: a.progress, linked: a.goal_id != null })),
+    activity: doc.activities.map(a => ({ id: `activity_${a.id}`, label: a.name, progress: a.progress, linked: Boolean(a.link?.trim()) })),
   };
 
   // Build predecessor map: for each node, which node IDs in the previous column

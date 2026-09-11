@@ -33,6 +33,8 @@ export interface Activity {
   resources_cost?: number;
   effort?: number;
   link?: string;
+  /** Derived display metadata, loaded from the model sidecar. */
+  progress?: { percent: number; computedAt: string };
   description?: string;
   delivers_changes?: string[];
 }

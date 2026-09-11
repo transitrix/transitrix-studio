@@ -21,12 +21,16 @@ published:
   # Repository front page and documentation
   - README.md
   - CHANGELOG.md
+  - changelog/fragments/action-completion-percent.md
   - CONTRIBUTING.md
   - LICENSE
   - NOTICE
 
   # Published deliverable schemas (generated, committed)
   - schemas/**
+
+  # Regression coverage for the published completion reader
+  - tests/action-progress-reader.test.ts
 
   - publish-manifest.yaml
   - scripts/check-publish-manifest.mjs
