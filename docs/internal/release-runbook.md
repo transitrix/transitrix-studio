@@ -16,10 +16,20 @@ from CI.
 | VS Code extension → Open VSX (Cursor / VSCodium / Windsurf) | `.github/workflows/openvsx-publish.yml` | GitHub Release **published** (or `workflow_dispatch`); downloads the asset `attach-release-vsix.yml` attached rather than rebuilding |
 | IntelliJ plugin → JetBrains Marketplace | `.github/workflows/jetbrains-publish.yml` | GitHub Release **published** (plugin version derived from the release tag, `v` prefix stripped) |
 
-Secrets backing the automation (repo Actions secrets): `NPM_TOKEN`
-(read-write on **both** `@transitrix/diagrams` and `@transitrix/cli`;
-mind the expiry if it is a granular token), `VSCE_PAT`, `OVSX_PAT`, and
-the JetBrains signing set (`CERTIFICATE_CHAIN`, `PRIVATE_KEY`,
+npm uses GitHub Actions trusted publishing (OIDC), with no npm token secret.
+Configure a trusted publisher separately in the npm settings for
+`@transitrix/diagrams` and `@transitrix/cli`: organization/user `transitrix`,
+repository `transitrix-studio`, workflow filename `npm-publish.yml`, and no
+environment. The publish job runs on GitHub-hosted Ubuntu with Node 24 and
+npm 11, and alone receives `id-token: write`. Package repository URLs must
+continue to match this repository. See [npm trusted publishers](https://docs.npmjs.com/trusted-publishers/).
+
+A successful run that skips already-published versions does not verify OIDC
+publication. Confirm authentication and provenance on the next approved release
+that publishes a new package version; do not bump versions solely to test setup.
+
+Secrets backing the other automation (repo Actions secrets): `VSCE_PAT`,
+`OVSX_PAT`, and the JetBrains signing set (`CERTIFICATE_CHAIN`, `PRIVATE_KEY`,
 `PRIVATE_KEY_PASSWORD`, `PUBLISH_TOKEN`).
 
 The npm publish steps are idempotent: each compares the workspace version
