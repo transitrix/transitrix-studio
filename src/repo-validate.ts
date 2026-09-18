@@ -11,7 +11,7 @@
 // `validateRepoModel` so they stay testable and shared.
 
 import { execFileSync } from 'node:child_process';
-import { readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import * as path from 'node:path';
 import yaml from 'js-yaml';
 import { coerceDatesToIsoStrings } from '@transitrix/diagrams/yaml-normalize.js';
@@ -67,7 +67,7 @@ import { validateProcess } from './validator.js';
 
 /** Directory segments that are tooling/scaffolding, never canon content.
  *  Mirrors lint.py, which skips `.templates/` and `.validators/`. */
-const SKIP_SEGMENTS = new Set(['node_modules', '.templates', '.validators']);
+const SKIP_SEGMENTS = new Set(['node_modules', '.templates', '.validators', '.git']);
 
 /** Where the document-source walk looks: the three zone folders plus
  *  root-level views/ (normative layout), the legacy canon/views/ path,
@@ -126,7 +126,7 @@ function loadZoneDocs(root: string, zoneRelDir: string): RepoDoc[] {
   const docs: RepoDoc[] = [];
   let entries: string[] = [];
   try {
-    entries = readdirSync(path.join(root, zoneRelDir), { recursive: true }) as string[];
+    entries = modelPaths(root, zoneRelDir).paths.map(p => path.relative(zoneRelDir, p));
   } catch {
     return docs;
   }
@@ -154,7 +154,7 @@ export function loadRepoModel(root: string): RepoModelInput {
 
   let entries: string[] = [];
   try {
-    entries = readdirSync(path.join(root, 'canon'), { recursive: true }) as string[];
+    entries = modelPaths(root, 'canon').paths.map(p => path.relative('canon', p));
   } catch {
     return { elements, relations };
   }
@@ -184,7 +184,7 @@ export interface ViewFinding {
   notation: string;
   /** The validator rule code, e.g. 'GOALS-002'. 'YAML' for a parse failure. */
   ruleId: string;
-  severity: 'error' | 'warning';
+  severity: 'error' | 'warning' | 'info';
   message: string;
 }
 
@@ -203,12 +203,148 @@ export interface RepoScopeResult {
    *  'warning'`, informational only; never affects `repoScopeHasErrors`. */
   linkSuspicion: ViewFinding[];
   skipped: Array<{ file: string; notation: string }>;
+  coverage?: RepoCoverage;
 }
 
 export interface RepoValidateContext {
   catalog: ComplianceScanResult['catalog'];
   complianceCanon: ComplianceScanResult['complianceCanon'];
   pathById: ComplianceScanResult['pathById'];
+}
+
+export interface RepoCoverage {
+  discovered: number;
+  read: number;
+  validated: number;
+  unvalidated: number;
+  failed: number;
+  files: Array<{
+    file: string;
+    notation: string;
+    read: boolean;
+    status: 'validated' | 'unvalidated' | 'failed';
+  }>;
+  excluded: Array<{ path: string; reason: string }>;
+}
+
+/** Enumerate before dispatch; a nested manifest starts an independent catalogue. */
+function modelPaths(root: string, zone: string): {
+  paths: string[];
+  excluded: RepoCoverage['excluded'];
+} {
+  const paths: string[] = [];
+  const excluded: RepoCoverage['excluded'] = [];
+  function visit(rel: string): void {
+    if (shouldSkip(rel)) {
+      excluded.push({ path: rel, reason: 'tooling or template directory' });
+      return;
+    }
+    if (existsSync(path.join(root, rel, 'transitrix.yaml'))) {
+      excluded.push({ path: rel, reason: 'independent catalogue (transitrix.yaml)' });
+      return;
+    }
+    for (const entry of readdirSync(path.join(root, rel), { withFileTypes: true })) {
+      const child = `${rel}/${entry.name}`;
+      if (entry.isDirectory()) visit(child);
+      else if (isYaml(child) || /\.ttrs$|\.trs$/i.test(child)) paths.push(child);
+    }
+  }
+  const parts = zone.split('/');
+  for (let i = 1; i < parts.length; i++) {
+    const ancestor = parts.slice(0, i).join('/');
+    if (existsSync(path.join(root, ancestor, 'transitrix.yaml'))) {
+      return { paths, excluded: [{ path: ancestor, reason: 'independent catalogue (transitrix.yaml)' }] };
+    }
+  }
+  if (existsSync(path.join(root, zone))) visit(zone);
+  return { paths: paths.sort(), excluded };
+}
+
+function unvalidatedFinding(file: string, notation: string): ViewFinding {
+  return {
+    file, notation, ruleId: 'NOTATION-SKIP-001', severity: 'warning',
+    message: `Notation "${notation || 'undetermined'}" has no applicable validator in this scope; file is unvalidated.`,
+  };
+}
+
+function discoverModelFiles(root: string): { paths: string[]; excluded: RepoCoverage['excluded'] } {
+  const excluded: RepoCoverage['excluded'] = [];
+  const paths = new Set<string>();
+  for (const zone of ['canon', 'views', 'codex', 'field']) {
+    const inventory = modelPaths(root, zone);
+    for (const file of inventory.paths) paths.add(file);
+    excluded.push(...inventory.excluded);
+  }
+  for (const entry of readdirSync(root, { withFileTypes: true })) {
+    if (entry.isFile() && /\.transitrix\.ya?ml$|\.ttrs$|\.trs$/i.test(entry.name)) paths.add(entry.name);
+  }
+  return { paths: [...paths].sort(), excluded };
+}
+
+/** Account for every model path, including field primitives and missing headers.
+ * Existing sweeps remain responsible for their rules; only uncovered standalone
+ * validators are dispatched here. A syntax check alone never earns validation. */
+function completeRepoCoverage(
+  root: string, result: RepoScopeResult, ctx: RepoValidateContext,
+  inventory: ReturnType<typeof discoverModelFiles>,
+): RepoCoverage {
+  const coverage: RepoCoverage = {
+    discovered: 0, read: 0, validated: 0, unvalidated: 0, failed: 0, files: [], excluded: inventory.excluded,
+  };
+  const sweeps = complianceSweepPlan();
+  for (const file of inventory.paths) {
+    const record: RepoCoverage['files'][number] = { file, notation: '', read: false, status: 'failed' };
+    coverage.files.push(record);
+    try {
+      const text = readFileSync(path.join(root, file), 'utf-8');
+      record.read = true;
+      if (/\.ttrs$|\.trs$/i.test(file)) {
+        record.notation = 'documents';
+        record.status = 'validated'; // runDocumentSourceValidate dispatches these paths.
+        continue;
+      }
+      const data = loadNotationYaml(text);
+      const notation = resolveValidatorKey(data) ?? '';
+      record.notation = notation;
+      const inViews = file.startsWith('views/') || file.startsWith('canon/views/');
+      const inElements = file.startsWith('canon/elements/');
+      const swept = [...sweeps].some(([dir, notations]) =>
+        file.startsWith(`canon/${dir}/`) && notations.has(notation));
+      const canonChecked = (inElements && ['goal', 'action', 'activity'].includes(notation))
+        || (file.startsWith('canon/relations/') && notation === 'relation');
+      if (inViews) {
+        record.status = result.views.some(f => f.file === file && f.ruleId === 'PARSE')
+          ? 'failed' : result.skipped.some(s => s.file === file) ? 'unvalidated' : 'validated';
+      } else if (swept || canonChecked || (file.startsWith('codex/') && notation === 'codex')) {
+        record.status = 'validated';
+      } else {
+        const standalone = VALIDATOR_REGISTRATIONS.find(r => r.notation === notation && !r.canonicalViewExtension);
+        if (standalone) {
+          for (const finding of validateNotationDoc(notation, data, { catalog: ctx.catalog, filePath: file }).findings) {
+            result.views.push({ file, notation, ...finding });
+          }
+          record.status = 'validated';
+        } else {
+          record.status = 'unvalidated';
+        }
+      }
+      if (record.status === 'unvalidated' && !result.skipped.some(s => s.file === file)) {
+        result.skipped.push({ file, notation });
+        result.views.push(unvalidatedFinding(file, notation));
+      }
+    } catch (e) {
+      record.status = 'failed';
+      if (!result.views.some(f => f.file === file && f.ruleId === 'YAML')) {
+        result.views.push({ file, notation: record.notation, ruleId: 'YAML', severity: 'error', message: (e as Error).message });
+      }
+    }
+  }
+  coverage.discovered = coverage.files.length;
+  for (const record of coverage.files) {
+    if (record.read) coverage.read++;
+    coverage[record.status]++;
+  }
+  return coverage;
 }
 
 /** Collect parsed YAML under `<root>/canon/**` and `<root>/codex/**` for the
@@ -218,7 +354,7 @@ export function loadComplianceYamlDocs(root: string): ScannedYamlDoc[] {
   for (const zone of ['canon', 'codex'] as const) {
     let entries: string[] = [];
     try {
-      entries = readdirSync(path.join(root, zone), { recursive: true }) as string[];
+      entries = modelPaths(root, zone).paths.map(p => path.relative(zone, p));
     } catch {
       continue;
     }
@@ -265,45 +401,27 @@ export function detectMixedViewsLayout(root: string): string | null {
   } catch {
     // Expected: normative path may not exist
   }
-  return hasLegacy && hasNormative ? 'VIEWS-LAYOUT-001' : null;
+  return hasLegacy && hasNormative ? 'MIX-001' : null;
 }
 
 /** Collect the raw text of every YAML doc under the normative `<root>/views/**`
- *  or legacy `<root>/canon/views/**` layout. Normative layout takes precedence;
- *  mixed layouts are detected separately and reported as `VIEWS-LAYOUT-001`.
+ *  and legacy `<root>/canon/views/**` layouts. Both remain observable during
+ *  migration; mixed layouts are reported separately as `MIX-001`.
  *  Exported for `impact.ts` (transitrix-hq#89), which needs the same raw
  *  per-file walk to classify each view document's resolvability without
  *  duplicating this directory walk. */
 export function loadViewDocs(root: string): Array<{ path: string; text: string }> {
   const docs: Array<{ path: string; text: string }> = [];
 
-  // Try normative layout first (root-level views/)
-  let entries: string[] = [];
-  let viewsRoot = 'views';
-  let foundNormative = false;
-  try {
-    entries = readdirSync(path.join(root, 'views'), { recursive: true }) as string[];
-    foundNormative = true;
-  } catch {
-    // Normative path doesn't exist; try legacy
-    try {
-      entries = readdirSync(path.join(root, 'canon', 'views'), { recursive: true }) as string[];
-      viewsRoot = path.join('canon', 'views');
-    } catch {
-      return docs;
+  for (const viewsRoot of ['views', 'canon/views']) {
+    for (const rel of modelPaths(root, viewsRoot).paths) {
+      if (!isYaml(rel)) continue;
+      try {
+        docs.push({ path: rel, text: readFileSync(path.join(root, rel), 'utf-8') });
+      } catch {
+        // The repository inventory retains this path as a failed read.
+      }
     }
-  }
-
-  for (const rel of entries) {
-    if (typeof rel !== 'string' || !isYaml(rel) || shouldSkip(rel)) continue;
-    const fullRel = path.join(viewsRoot, rel);
-    let text: string;
-    try {
-      text = readFileSync(path.join(root, fullRel), 'utf-8');
-    } catch {
-      continue;
-    }
-    docs.push({ path: fullRel.replace(/\\/g, '/'), text });
   }
   return docs;
 }
@@ -324,9 +442,7 @@ export function loadDocumentSources(root: string): Array<{ path: string; text: s
       // The repository's own top level is read shallowly: its subdirectories
       // are either a zone this loop covers in its own right, or not model
       // content at all.
-      entries = readdirSync(zone === null ? root : path.join(root, zone), {
-        recursive: zone !== null,
-      }) as string[];
+      entries = zone === null ? readdirSync(root) : modelPaths(root, zone).paths.map(p => path.relative(zone, p));
     } catch {
       continue;
     }
@@ -413,10 +529,10 @@ export function runViewValidate(
   const mixedLayoutCode = detectMixedViewsLayout(root);
   if (mixedLayoutCode) {
     findings.push({
-      file: mixedLayoutCode === 'VIEWS-LAYOUT-001' ? 'views/' : 'canon/views/',
+      file: 'views/',
       notation: 'layout',
       ruleId: mixedLayoutCode,
-      severity: 'error',
+      severity: 'warning',
       message:
         'Repository contains both canon/views/ (legacy) and views/ (normative) layouts. ' +
         'Migrate all files to views/ and remove canon/views/. ' +
@@ -468,7 +584,11 @@ export function runViewValidate(
       continue;
     }
     const notation = notationOf(data);
-    if (!notation) continue; // not a notation document — ignore
+    if (!notation) {
+      findings.push(unvalidatedFinding(doc.path, ''));
+      skipped.push({ file: doc.path, notation: '' });
+      continue;
+    }
 
     // BPMN flow files validate through the IR pipeline (same as file scope),
     // not the diagram-notation dispatch.
@@ -476,7 +596,6 @@ export function runViewValidate(
       try {
         const report = validateProcess(parseYamlToIr(doc.text));
         for (const f of report.findings) {
-          if (f.severity === 'info') continue;
           findings.push({
             file: doc.path,
             notation,
@@ -551,7 +670,6 @@ export function runViewValidate(
 
     if (notation === 'compliance-impact' && ctx) {
       for (const f of validateNotationDoc(notation, data, validateOpts).findings) {
-        if (f.severity === 'info') continue;
         findings.push({
           file: doc.path,
           notation,
@@ -587,7 +705,6 @@ export function runViewValidate(
 
     if (notation === 'coverage-metric' && ctx) {
       for (const f of validateNotationDoc(notation, data, validateOpts).findings) {
-        if (f.severity === 'info') continue;
         findings.push({
           file: doc.path,
           notation,
@@ -613,7 +730,6 @@ export function runViewValidate(
     }
 
     for (const f of validateNotationDoc(notation, data, validateOpts).findings) {
-      if (f.severity === 'info') continue;
       findings.push({
         file: doc.path,
         notation,
@@ -631,7 +747,7 @@ function loadCodexDocs(root: string): Array<{ path: string; text: string }> {
   const docs: Array<{ path: string; text: string }> = [];
   let entries: string[] = [];
   try {
-    entries = readdirSync(path.join(root, 'codex'), { recursive: true }) as string[];
+    entries = modelPaths(root, 'codex').paths.map(p => path.relative('codex', p));
   } catch {
     return docs;
   }
@@ -669,7 +785,6 @@ export function runCodexValidate(root: string): ViewFinding[] {
     const key = resolveValidatorKey(data);
     if (key !== 'codex') continue;
     for (const f of validateNotationDoc('codex', data, { filePath: doc.path }).findings) {
-      if (f.severity === 'info') continue;
       findings.push({
         file: doc.path,
         notation: 'codex',
@@ -711,7 +826,7 @@ function sweepComplianceDir(
 ): void {
   let entries: string[] = [];
   try {
-    entries = readdirSync(path.join(root, 'canon', dir), { recursive: true }) as string[];
+    entries = modelPaths(root, `canon/${dir}`).paths.map(p => path.relative(`canon/${dir}`, p));
   } catch {
     entries = [];
   }
@@ -734,7 +849,6 @@ function sweepComplianceDir(
     const notation = notationOf(data);
     if (!notation || !notations.has(notation)) continue;
     for (const f of validateNotationDoc(notation, data, validateOpts).findings) {
-      if (f.severity === 'info') continue;
       findings.push({
         file: fullRel,
         notation,
@@ -1080,18 +1194,12 @@ export interface RunRepoValidateOptions {
 }
 
 export function runRepoValidate(root: string, options?: RunRepoValidateOptions): RepoScopeResult {
+  const inventory = discoverModelFiles(root);
   const ctx = buildRepoValidateContext(root);
   const model = loadRepoModel(root);
   const canon = validateRepoModel(model);
   const { findings: viewNotations, skipped } = runViewValidate(root, ctx, model);
-  let views = [...viewNotations, ...runDocumentSourceValidate(root)];
-
-  // If --strict is set, convert skipped notation warnings to errors
-  if (options?.strict) {
-    views = views.map((v) =>
-      v.ruleId === 'NOTATION-SKIP-001' ? { ...v, severity: 'error' as const } : v,
-    );
-  }
+  const views = [...viewNotations, ...runDocumentSourceValidate(root)];
 
   const codex = runCodexValidate(root);
   const compliance = [
@@ -1099,7 +1207,12 @@ export function runRepoValidate(root: string, options?: RunRepoValidateOptions):
     ...runGapDashboardWarnings(ctx),
   ];
   const linkSuspicion = runLinkSuspicionCheck(root, model);
-  return { canon, views, codex, compliance, linkSuspicion, skipped };
+  const result: RepoScopeResult = { canon, views, codex, compliance, linkSuspicion, skipped };
+  result.coverage = completeRepoCoverage(root, result, ctx, inventory);
+  if (options?.strict) {
+    result.views = result.views.map(v => v.ruleId === 'NOTATION-SKIP-001' ? { ...v, severity: 'error' } : v);
+  }
+  return result;
 }
 
 /** Load the canon model under `root` and resolve it into the element/relation
@@ -1167,6 +1280,7 @@ export function reportRepoFindings(
           compliance: { valid: complianceErrors.length === 0, findings: compliance },
           linkSuspicion,
           skipped,
+          ...(result.coverage ? { coverage: result.coverage } : {}),
           ...(model ? { model } : {}),
         },
         null,
@@ -1176,7 +1290,13 @@ export function reportRepoFindings(
     return;
   }
 
-  if (valid && skipped.length === 0 && linkSuspicion.length === 0) {
+  if (result.coverage) {
+    const c = result.coverage;
+    console.log(`Coverage: ${c.discovered} discovered, ${c.read} read, ${c.validated} validated, ${c.unvalidated} unvalidated, ${c.failed} failed.`);
+    for (const entry of c.excluded) console.log(`  Excluded ${entry.path}: ${entry.reason}`);
+  }
+
+  if (valid && canon.length === 0 && views.length === 0 && codex.length === 0 && compliance.length === 0 && skipped.length === 0 && linkSuspicion.length === 0) {
     console.log(`✓ ${root} — repo-scope validation passed`);
     if (model) {
       console.log(`  Resolved model: ${model.elements.length} element(s), ${model.relations.length} relation(s)`);
@@ -1268,6 +1388,8 @@ export function reportRepoFindings(
   }
 
   const parts: string[] = [];
+  const infoCount = [...views, ...codex, ...compliance].filter(f => f.severity === 'info').length;
+  if (infoCount > 0) parts.push(`${infoCount} informational finding${infoCount === 1 ? '' : 's'}`);
   if (canonErrors.length > 0) {
     parts.push(`\x1b[31m${canonErrors.length}\x1b[0m canon error${canonErrors.length === 1 ? '' : 's'}`);
   }
