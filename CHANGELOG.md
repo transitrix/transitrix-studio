@@ -1,5 +1,25 @@
 # Changelog
 
+## [3.7.4] — 2026-09-18
+
+### Fixed
+
+- **ACTION completion in previews.** Action, DGA and DGCA previews read completion percentages from the model's `analytics/action-progress.ndjson` sidecar. Action's Network, Gantt and Tree views share the seven-day freshness rule and the enabled-by-default completion control. Invalid or duplicate rows produce no percentage; missing-data placeholders require a tracker link.
+- **Repository validation coverage.** Reports discovered, read, validated, unvalidated, and failed file counts. Field primitives and unsupported or missing notation headers remain visible, with strict mode rejecting unvalidated files. Reads both view layouts during migration, reports the published `MIX-001` warning, excludes templates and independent catalogues, and retains warnings and informational findings in reports.
+
+### Changed
+
+- **Rendering and YAML dependencies updated.** Includes bpmn-js 18.28.0, PlantUML 1.2026.8, and js-yaml 4.3.2.
+- **Build and test dependencies updated.** Includes Vite 8.3.0, React DOM 19.3.0, Mocha 12.0.2, serialize-javascript 7.1.1, Testing Library DOM 10.4.2, and Node, VS Code, and React DOM type definitions.
+- **IntelliJ build tooling updated.** Uses IntelliJ Platform Gradle plugin 2.19.0; Kotlin stays at 2.4.10 for CodeQL compatibility.
+- **npm packages use trusted publishing with provenance.**
+- **Extension listing documentation contains the final images.**
+
+### Packages
+
+- `@transitrix/diagrams` 1.13.2 → 1.13.3 — completion display and tracker-link corrections.
+- `@transitrix/cli` 2.9.2 → 2.9.3 — repository validation coverage corrections, updated YAML dependency, and rebundled diagrams.
+
 ## [3.7.3] — 2026-09-08
 
 ### Added
