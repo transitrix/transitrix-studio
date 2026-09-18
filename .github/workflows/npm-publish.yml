@@ -9,11 +9,10 @@ name: npm — publish packages
 # bump only one package (or neither) stay green.
 #
 # Prerequisites (one-time maintainer setup):
-#   - NPM_TOKEN — npm access token with read-write permission on BOTH
-#     @transitrix/diagrams and @transitrix/cli (classic Automation token, or a
-#     granular token that lists both packages — mind the granular-token expiry).
-#     Create at: https://www.npmjs.com/settings/<user>/tokens
-#     Save as a repo Actions secret named NPM_TOKEN.
+#   Configure a GitHub Actions trusted publisher on EACH npm package:
+#   organization/user: transitrix; repository: transitrix-studio;
+#   workflow filename: npm-publish.yml; environment: leave empty.
+#   See https://docs.npmjs.com/trusted-publishers/
 #
 # Package versions come from each workspace's package.json and are versioned
 # independently from the VS Code extension. Bump them in the release PR when
@@ -44,7 +43,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
 
       - name: Check release package versions
         env:
@@ -55,6 +54,9 @@ jobs:
     name: Publish npm packages
     runs-on: ubuntu-latest
     needs: version-guards
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
       - name: Checkout
@@ -63,19 +65,13 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
           registry-url: https://registry.npmjs.org
 
-      - name: Verify NPM_TOKEN is set
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          if [ -z "$NPM_TOKEN" ]; then
-            echo "::error::NPM_TOKEN Actions secret is not set."
-            echo "::error::Create an npm token with read-write access to @transitrix/diagrams AND @transitrix/cli, and save it as a repo Actions secret named NPM_TOKEN."
-            exit 1
-          fi
+      # Trusted publishing requires npm >= 11.5.1 (Node >= 22.14.0).
+      - name: Install OIDC-capable npm
+        run: npm install --global npm@11
 
       - name: Install root dependencies
         run: npm ci
@@ -85,8 +81,6 @@ jobs:
 
       # Publish order matters: diagrams first, then cli (runbook convention).
       - name: Publish @transitrix/diagrams (skips if version already published)
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           LOCAL=$(node -p "require('./packages/diagrams/package.json').version")
           PUBLISHED=$(npm view "@transitrix/diagrams@$LOCAL" version 2>/dev/null || echo "")
@@ -97,8 +91,6 @@ jobs:
           fi
 
       - name: Publish @transitrix/cli (skips if version already published)
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           LOCAL=$(node -p "require('./packages/cli/package.json').version")
           PUBLISHED=$(npm view "@transitrix/cli@$LOCAL" version 2>/dev/null || echo "")
