@@ -488,7 +488,7 @@ describe('repo-scope views sweep — legacy canon/views/ path compatibility (tra
 
   it('does not report a mixed-layout error when only legacy path is present', () => {
     const { findings } = runViewValidate(root);
-    const mixedLayout = findings.filter((f) => f.ruleId === 'VIEWS-LAYOUT-001');
+    const mixedLayout = findings.filter((f) => f.ruleId === 'MIX-001');
     expect(mixedLayout).toEqual([]);
   });
 });
@@ -509,14 +509,14 @@ describe('repo-scope views sweep — mixed-layout detection (transitrix-hq#340)'
 
   it('detects when both canon/views/ and views/ are present', () => {
     const code = detectMixedViewsLayout(root);
-    expect(code).toBe('VIEWS-LAYOUT-001');
+    expect(code).toBe('MIX-001');
   });
 
-  it('reports VIEWS-LAYOUT-001 error when both layouts exist', () => {
+  it('reports MIX-001 warning when both layouts exist', () => {
     const { findings } = runViewValidate(root);
-    const mixed = findings.filter((f) => f.ruleId === 'VIEWS-LAYOUT-001');
+    const mixed = findings.filter((f) => f.ruleId === 'MIX-001');
     expect(mixed.length).toBe(1);
-    expect(mixed[0].severity).toBe('error');
+    expect(mixed[0].severity).toBe('warning');
     expect(mixed[0].message).toContain('both canon/views/');
     expect(mixed[0].message).toContain('views/');
     expect(mixed[0].message).toContain('Migrate all files');
@@ -529,16 +529,16 @@ describe('repo-scope views sweep — mixed-layout detection (transitrix-hq#340)'
       const code = detectMixedViewsLayout(tmpClean);
       expect(code).toBe(null);
       const { findings } = runViewValidate(tmpClean);
-      const mixed = findings.filter((f) => f.ruleId === 'VIEWS-LAYOUT-001');
+      const mixed = findings.filter((f) => f.ruleId === 'MIX-001');
       expect(mixed).toEqual([]);
     } finally {
       rmSync(tmpClean, { recursive: true, force: true });
     }
   });
 
-  it('runRepoValidate fails when both layouts are present', () => {
+  it('runRepoValidate retains a nonblocking migration warning when both layouts are present', () => {
     const result = runRepoValidate(root);
-    expect(repoScopeHasErrors(result)).toBe(true);
-    expect(result.views.some((f) => f.ruleId === 'VIEWS-LAYOUT-001')).toBe(true);
+    expect(repoScopeHasErrors(result)).toBe(false);
+    expect(result.views.some((f) => f.ruleId === 'MIX-001')).toBe(true);
   });
 });
