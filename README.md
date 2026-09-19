@@ -10,9 +10,27 @@ Text-first BPMN authoring: write your process as structured YAML, compile to val
 
 Transitrix Studio brings **text-first diagram authoring** to VS Code. Instead of dragging shapes in a GUI editor, you write YAML — structured, diffable, reviewable in pull requests. The compiler produces BPMN 2.0 XML with computed layout coordinates using the ELK (Eclipse Layout Kernel) engine.
 
-Studio previews the full Transitrix notation kit — **13 diagram notations** plus compliance and traceability views (assertion / requirement). See [`extension/README.md`](extension/README.md) for the authoritative per-format list shipping in the VSIX, and the methodology repo for the notation specs themselves: [github.com/transitrix/methodology](https://github.com/transitrix/methodology).
+Studio previews strategy, process, capability and catalogue models, with additional compliance and traceability views in VS Code. See the [extension's format guide](extension/README.md#17-notations-one-extension) and the [methodology's notation specifications](https://github.com/transitrix/methodology).
 
 > **Legacy identifiers.** The pre-rename `cervin` name is fully retired in extension **3.0+** and CLI **2.0+**. Use canonical `*.<short-name>.transitrix.yaml` suffixes (e.g. `*.bpmn.transitrix.yaml` for BPMN).
+
+## Features
+
+Available in **Studio 3.7.3** for VS Code and JetBrains, and the separately installed **CLI 2.9.2**, with the host differences below.
+
+- **Connect strategy to delivery.** Preview goal trees, driver–goal–change–activity chains (DGCA/DGA), activity networks and activity cards. VS Code also offers Gantt and critical-path views for planning work. [Notation guide](extension/README.md#17-notations-one-extension).
+- **Describe processes in text.** Preview process maps and stage-by-stage process blueprints. In VS Code, author BPMN in YAML and preview the diagram; the CLI compiles it to BPMN 2.0 XML with automatic layout. [BPMN quick start](#quick-start--bpmn).
+- **Explore capabilities and catalogues.** View capability maturity, applications, products, nested blocks and scenarios from structured YAML. These notation previews are available in both editor plugins. [Format overview](extension/README.md#17-notations-one-extension).
+- **Inspect compliance and traceability.** VS Code provides compliance impact and coverage views, a gap dashboard, and a requirement–verification matrix to inspect requirements, assertions and verification results in a Transitrix repository. These views need the corresponding model records. [Compliance validation](docs/validation.md#compliance-suite---scoperepo-518).
+- **Share diagrams and findings.** VS Code can save supported diagram previews as SVG or PNG, and export the gap dashboard and requirement–verification matrix as CSV. PNG clipboard copying is Windows-only. The CLI exports compliance reports as Markdown or PDF; PDF requires the optional WeasyPrint executable. [Preview exports](extension/README.md#17-notations-one-extension) · [CLI commands](docs/cli.md#commands).
+- **Create consistent model elements.** VS Code commands and the CLI scaffold goals, drivers, constraints and requirements with admission and lifecycle fields, checking IDs and references before writing. [Element creation](extension/README.md#creating-a-new-element).
+- **Check models in scripts and CI.** The CLI validates individual files or repository models and emits JSON findings for automated checks. It runs independently of either editor and requires Node.js 20 or newer. [CLI reference](docs/cli.md) · [Validation scope](docs/validation.md#validation-scope-file-vs-repo).
+
+**Choose your host:** the VS Code extension (also installable in compatible Cursor, VSCodium and Windsurf editors) opens recognised previews automatically and refreshes them **on save**; autosave can shorten the edit–preview loop. [Preview settings](extension/README.md#get-started-in-3-steps).
+
+The **JetBrains plugin** requires a compatible IDE with JCEF (platform builds 242–262). Open **Transitrix: Preview Notation** from the editor's context menu. Its read-only preview is a **snapshot: close and reopen it after editing**. It supports the strategy, process-map/blueprint, capability and catalogue notations above, but does not include BPMN, the VS Code compliance dashboards, or its SVG/PNG export commands. [JetBrains installation](intellij/README.md#installing-in-intellij-idea).
+
+The editor plugins bundle their renderers; the **CLI is a separate installation**, not a command added to your shell by installing an editor plugin. No DSM installation is required for the capabilities listed here. [Install the CLI](#cli).
 
 ## Install
 
