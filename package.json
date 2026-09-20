@@ -32,6 +32,7 @@
     "compile": "npm run build:diagrams && tsc --noEmit",
     "compile:extension": "tsc -p extension/tsconfig.json --noEmit",
     "build": "npm run build:diagrams && tsc -p tsconfig.build.json",
+    "build:viewer": "node packages/viewer/build.mjs",
     "build:diagrams": "npm --workspace packages/diagrams run build",
     "build:webview": "node scripts/build-webview.mjs",
     "build:webview-bundle": "node scripts/build-webview-bundle.mjs",

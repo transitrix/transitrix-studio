@@ -1,0 +1,6 @@
+@startuml
+participant Customer
+participant Service
+Customer -> Service : Request status
+Service --> Customer : Status available
+@enduml

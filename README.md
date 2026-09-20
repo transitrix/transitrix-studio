@@ -134,6 +134,10 @@ gh attestation verify --owner transitrix transitrix-studio-X.Y.Z.vsix
 
 See [SECURITY.md](SECURITY.md) for details on reporting vulnerabilities, security policies, and audit information.
 
+## Viewer prototype
+
+For MCP Apps integration from source, see the [read-only diagram viewer prototype](packages/viewer/README.md). It covers Goals and a bounded PlantUML sequence subset; desktop host compatibility is separate from released IDE support.
+
 ## Contributing
 
 Work for this repository is filed in [`transitrix/transitrix-hq`](https://github.com/transitrix/transitrix-hq), not in this repository's issue tracker. The headquarters repository is private; to report bugs, request features, or suggest improvements, open a pull request here or contact `hello@transitrix.com`.
