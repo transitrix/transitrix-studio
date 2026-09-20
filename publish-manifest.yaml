@@ -18,6 +18,9 @@ published:
   - packages/cli/**
   - packages/diagrams/**
 
+  # Reusable read-only viewer source, build entry, runtime adapter and usage examples
+  - packages/viewer/**
+
   # Repository front page and documentation
   - README.md
   - CHANGELOG.md
