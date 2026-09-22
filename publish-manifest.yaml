@@ -43,3 +43,5 @@ published:
   - tests/repo-validate-views.test.ts
   - tests/repo-validation-coverage.test.ts
   - changelog/fragments/repository-notation-coverage.md
+  - docs/validation.md
+  - changelog/fragments/whole-zone-enumeration.md

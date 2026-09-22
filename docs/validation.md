@@ -58,6 +58,29 @@ suite, see below):
   under the `views` array (not `canon`) when the document lives under
   `canon/views/**` — see below.
 
+### Whole-zone enumeration
+
+Repository validation enumerates files at every depth in `canon/`, `field/`,
+and `codex/`, including zone roots, hidden directories, and non-YAML files.
+Each file is validated, explicitly reported as unvalidated, or narrowly exempted.
+Nested catalogues with their own `transitrix.yaml` remain independent catalogues.
+
+Only a regular file named exactly `.gitkeep` containing zero bytes is placeholder
+metadata. It contributes no model records, references, or coverage counts, and
+may remain beside model content. A newline, space, BOM, comment, or other content
+removes the exemption; a symbolic link never qualifies.
+
+Unsupported files without admission metadata receive `ZONE-001` (an error in
+canon/field, a warning in codex). Unsupported files with admission metadata,
+including YAML front matter, receive `ZONE-003` errors. Empty model YAML receives
+`ZONE-002`; malformed YAML retains the error-severity `YAML` diagnostic at any
+depth, including hidden files and zone roots.
+
+Only `codex/sources/` is an archival boundary. Its files are excluded from model
+validation, but admission records there produce `ADMIT-012` errors.
+`canon/sources/`, `field/sources/`, and `codex/internal/sources/` receive ordinary
+zone checks. JSON output records exempt paths and reasons in `coverage.excluded`.
+
 ### Strategy-chain semantic rules (`GOALS-*` / `ACT-*` / `FGCA-*`)
 
 Ported from DSM's Go `Validate*` functions (`api02/internal/importer/
