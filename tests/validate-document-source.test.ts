@@ -223,13 +223,6 @@ describe('repo-scope sweep', () => {
     expect(runDocumentSourceValidate(root)).toEqual([]);
   });
 
-  it('skips tooling directories inside a zone', () => {
-    const root = makeRoot();
-    copyFixture(root, 'canon/node_modules/pkg/product.mrd.ttrs', 'product.mrd.ttrs');
-    copyFixture(root, 'canon/.templates/product.mrd.ttrs', 'product.mrd.ttrs');
-    expect(runDocumentSourceValidate(root)).toEqual([]);
-  });
-
   it('returns nothing for a repository with no document sources at all', () => {
     expect(runDocumentSourceValidate(makeRoot())).toEqual([]);
   });

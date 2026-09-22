@@ -11,7 +11,7 @@
 // `validateRepoModel` so they stay testable and shared.
 
 import { execFileSync } from 'node:child_process';
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync, lstatSync, readdirSync, readFileSync } from 'node:fs';
 import * as path from 'node:path';
 import yaml from 'js-yaml';
 import { coerceDatesToIsoStrings } from '@transitrix/diagrams/yaml-normalize.js';
@@ -131,7 +131,7 @@ function loadZoneDocs(root: string, zoneRelDir: string): RepoDoc[] {
     return docs;
   }
   for (const rel of entries) {
-    if (typeof rel !== 'string' || !isYaml(rel) || shouldSkip(rel)) continue;
+    if (typeof rel !== 'string' || !isYaml(rel)) continue;
     docs.push(readDoc(root, path.join(zoneRelDir, rel)));
   }
   return docs;
@@ -160,7 +160,7 @@ export function loadRepoModel(root: string): RepoModelInput {
   }
 
   for (const rel of entries) {
-    if (typeof rel !== 'string' || !isYaml(rel) || shouldSkip(rel)) continue;
+    if (typeof rel !== 'string' || !isYaml(rel)) continue;
     const segs = segments(rel);
     const zone = segs[0]; // first segment under canon/
     const fullRel = path.join('canon', rel);
@@ -231,11 +231,14 @@ export interface RepoCoverage {
 function modelPaths(root: string, zone: string): {
   paths: string[];
   excluded: RepoCoverage['excluded'];
+  findings: ViewFinding[];
 } {
   const paths: string[] = [];
   const excluded: RepoCoverage['excluded'] = [];
+  const findings: ViewFinding[] = [];
+  const wholeZone = /^(canon|field|codex)(\/|$)/.test(zone);
   function visit(rel: string): void {
-    if (shouldSkip(rel)) {
+    if (!wholeZone && shouldSkip(rel)) {
       excluded.push({ path: rel, reason: 'tooling or template directory' });
       return;
     }
@@ -246,18 +249,44 @@ function modelPaths(root: string, zone: string): {
     for (const entry of readdirSync(path.join(root, rel), { withFileTypes: true })) {
       const child = `${rel}/${entry.name}`;
       if (entry.isDirectory()) visit(child);
-      else if (isYaml(child) || /\.ttrs$|\.trs$/i.test(child)) paths.push(child);
+      else if (wholeZone || isYaml(child) || /\.ttrs$|\.trs$/i.test(child)) {
+        if (entry.isFile() && entry.name === '.gitkeep' && lstatSync(path.join(root, child)).size === 0) {
+          excluded.push({ path: child, reason: 'zero-byte regular .gitkeep placeholder' });
+        } else if (child.startsWith('codex/sources/')) {
+          try {
+            if (hasAdmission(readFileSync(path.join(root, child), 'utf-8'))) {
+              findings.push({ file: child, notation: '', ruleId: 'ADMIT-012', severity: 'error',
+                message: 'Admission records are not permitted in codex/sources archival material.' });
+            }
+            excluded.push({ path: child, reason: 'codex/sources archival material' });
+          } catch {
+            paths.push(child); // A failed read must remain observable.
+          }
+        } else paths.push(child);
+      }
     }
   }
   const parts = zone.split('/');
   for (let i = 1; i < parts.length; i++) {
     const ancestor = parts.slice(0, i).join('/');
     if (existsSync(path.join(root, ancestor, 'transitrix.yaml'))) {
-      return { paths, excluded: [{ path: ancestor, reason: 'independent catalogue (transitrix.yaml)' }] };
+      return { paths, findings, excluded: [{ path: ancestor, reason: 'independent catalogue (transitrix.yaml)' }] };
     }
   }
   if (existsSync(path.join(root, zone))) visit(zone);
-  return { paths: paths.sort(), excluded };
+  return { paths: paths.sort(), excluded, findings };
+}
+
+/** Admission metadata can accompany an unsupported format as YAML front matter. */
+function hasAdmission(text: string): boolean {
+  const frontMatter = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/.exec(text);
+  try {
+    return yaml.loadAll(frontMatter ? frontMatter[1] : text).some(doc =>
+      doc && typeof doc === 'object' && !Array.isArray(doc)
+      && ('zone' in doc || 'admitted_at' in doc || 'admitted_by' in doc || 'admission' in doc));
+  } catch {
+    return false;
+  }
 }
 
 function unvalidatedFinding(file: string, notation: string): ViewFinding {
@@ -267,18 +296,20 @@ function unvalidatedFinding(file: string, notation: string): ViewFinding {
   };
 }
 
-function discoverModelFiles(root: string): { paths: string[]; excluded: RepoCoverage['excluded'] } {
+function discoverModelFiles(root: string): ReturnType<typeof modelPaths> {
   const excluded: RepoCoverage['excluded'] = [];
+  const findings: ViewFinding[] = [];
   const paths = new Set<string>();
   for (const zone of ['canon', 'views', 'codex', 'field']) {
     const inventory = modelPaths(root, zone);
     for (const file of inventory.paths) paths.add(file);
     excluded.push(...inventory.excluded);
+    findings.push(...inventory.findings);
   }
   for (const entry of readdirSync(root, { withFileTypes: true })) {
     if (entry.isFile() && /\.transitrix\.ya?ml$|\.ttrs$|\.trs$/i.test(entry.name)) paths.add(entry.name);
   }
-  return { paths: [...paths].sort(), excluded };
+  return { paths: [...paths].sort(), excluded, findings };
 }
 
 /** Account for every model path, including field primitives and missing headers.
@@ -292,18 +323,33 @@ function completeRepoCoverage(
     discovered: 0, read: 0, validated: 0, unvalidated: 0, failed: 0, files: [], excluded: inventory.excluded,
   };
   const sweeps = complianceSweepPlan();
+  result.views.push(...inventory.findings);
   for (const file of inventory.paths) {
     const record: RepoCoverage['files'][number] = { file, notation: '', read: false, status: 'failed' };
     coverage.files.push(record);
     try {
       const text = readFileSync(path.join(root, file), 'utf-8');
       record.read = true;
+      if (!isYaml(file) && !/\.ttrs$|\.trs$/i.test(file)) {
+        const admitted = hasAdmission(text);
+        record.status = 'unvalidated';
+        result.views.push({ file, notation: '', ruleId: admitted ? 'ZONE-003' : 'ZONE-001',
+          severity: admitted || !file.startsWith('codex/') ? 'error' : 'warning',
+          message: admitted ? 'Admitted file uses an unsupported format.' : 'Zone file has no admission record or applicable validator.',
+        });
+        continue;
+      }
       if (/\.ttrs$|\.trs$/i.test(file)) {
         record.notation = 'documents';
         record.status = 'validated'; // runDocumentSourceValidate dispatches these paths.
         continue;
       }
       const data = loadNotationYaml(text);
+      if (data == null && /^(canon|field|codex)\//.test(file)) {
+        result.views.push({ file, notation: '', ruleId: 'ZONE-002', severity: 'error',
+          message: 'Model YAML must contain a document; only a zero-byte regular .gitkeep is placeholder metadata.' });
+        continue;
+      }
       const notation = resolveValidatorKey(data) ?? '';
       record.notation = notation;
       const inViews = file.startsWith('views/') || file.startsWith('canon/views/');
@@ -359,7 +405,7 @@ export function loadComplianceYamlDocs(root: string): ScannedYamlDoc[] {
       continue;
     }
     for (const rel of entries) {
-      if (typeof rel !== 'string' || !isYaml(rel) || shouldSkip(rel)) continue;
+      if (typeof rel !== 'string' || !isYaml(rel)) continue;
       const fullRel = path.join(zone, rel).replace(/\\/g, '/');
       try {
         const text = readFileSync(path.join(root, fullRel), 'utf-8');
@@ -447,7 +493,7 @@ export function loadDocumentSources(root: string): Array<{ path: string; text: s
       continue;
     }
     for (const rel of entries) {
-      if (typeof rel !== 'string' || !isDocumentSourcePath(rel) || shouldSkip(rel)) continue;
+      if (typeof rel !== 'string' || !isDocumentSourcePath(rel)) continue;
       const fullRel = (zone === null ? rel : path.join(zone, rel)).replace(/\\/g, '/');
       if (seen.has(fullRel)) continue;
       seen.add(fullRel);
@@ -752,7 +798,7 @@ function loadCodexDocs(root: string): Array<{ path: string; text: string }> {
     return docs;
   }
   for (const rel of entries) {
-    if (typeof rel !== 'string' || !isYaml(rel) || shouldSkip(rel)) continue;
+    if (typeof rel !== 'string' || !isYaml(rel)) continue;
     const fullRel = path.join('codex', rel);
     let text: string;
     try {
@@ -831,7 +877,7 @@ function sweepComplianceDir(
     entries = [];
   }
   for (const rel of entries) {
-    if (typeof rel !== 'string' || !isYaml(rel) || shouldSkip(rel)) continue;
+    if (typeof rel !== 'string' || !isYaml(rel)) continue;
     const fullRel = path.join('canon', dir, rel).replace(/\\/g, '/');
     let data: unknown;
     try {
