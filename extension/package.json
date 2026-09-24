@@ -622,6 +622,8 @@
       }
     ],
     "commands": [
+      { "command": "transitrixStudio.previewRequirementChain", "title": "Transitrix: Traceability Matrix" },
+      { "command": "transitrixStudio.previewRequirementsByRelease", "title": "Transitrix: Requirements by Release" },
       {
         "command": "transitrix.openPreview",
         "title": "Transitrix: Open Preview",

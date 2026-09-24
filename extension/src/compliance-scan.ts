@@ -108,10 +108,12 @@ export async function scanComplianceCanon(fromFile?: vscode.Uri): Promise<Scanne
       const bytes = await vscode.workspace.fs.readFile(uri);
       parsed = yaml.load(Buffer.from(bytes).toString('utf-8'));
     } catch {
+      canon.findings.push({ id: `${uri.fsPath}:load`, owner: uri.fsPath, field: '', code: 'LOAD',
+        message: 'Unreadable or malformed YAML record', reference: false, severity: 'error' });
       continue;
     }
     const dupBefore = canon.duplicateIds.length;
-    const id = ingestComplianceDoc(canon, parsed);
+    const id = ingestComplianceDoc(canon, parsed, uri.fsPath);
     const folderRoot = vscode.workspace.getWorkspaceFolder(uri)?.uri.fsPath;
     const shortPath = shortWorkspacePath(uri.fsPath, folderRoot);
     if (id) {
@@ -143,13 +145,12 @@ async function collectScanUris(scope: ComplianceScanScope): Promise<vscode.Uri[]
       const found = await vscode.workspace.findFiles(
         new vscode.RelativePattern(vscode.Uri.file(root), '**/*.{yaml,yml}'),
         undefined,
-        5000,
       );
       out.push(...found);
     }
     return out;
   }
-  return vscode.workspace.findFiles(WORKSPACE_COMPLIANCE_INCLUDE, WORKSPACE_COMPLIANCE_EXCLUDE, 5000);
+  return vscode.workspace.findFiles(WORKSPACE_COMPLIANCE_INCLUDE, WORKSPACE_COMPLIANCE_EXCLUDE);
 }
 
 // Notations `ingestComplianceDoc` actually classifies. Incomplete documents of
@@ -186,4 +187,49 @@ export async function openComplianceFile(fsPath: string): Promise<void> {
   if (!fsPath) return;
   const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(fsPath));
   await vscode.window.showTextDocument(doc, { viewColumn: vscode.ViewColumn.Beside, preserveFocus: false });
+}
+
+/** Complete catalogue enumeration for the release-scoped reports. Nested manifests
+ * are separate catalogues; failed reads are retained rather than counted as zero. */
+export async function scanRequirementChainCatalogue(root: string): Promise<{ canon: ComplianceCanon; snapshotId: string; sourceRevision?: string }> {
+  const { createHash } = await import('node:crypto');
+  const canon = emptyCanon();
+  const hash = createHash('sha256');
+  const read = async (uri: vscode.Uri) => {
+    const dirty = vscode.workspace.textDocuments.find(d => d.uri.toString() === uri.toString() && d.isDirty);
+    return dirty ? dirty.getText() : Buffer.from(await vscode.workspace.fs.readFile(uri)).toString('utf8');
+  };
+  const fail = (file: string, message: string) => canon.findings.push({ id: `${file}:load`, owner: file,
+    field: '', code: 'LOAD', message, reference: false, severity: 'error' });
+  // The manifest is mandatory: workspace-wide scope must never combine catalogues.
+  const manifest = await read(vscode.Uri.file(path.join(root, 'transitrix.yaml')));
+  hash.update(manifest);
+  const walk = async (dir: string, top = false): Promise<void> => {
+    let entries: [string, vscode.FileType][];
+    try { entries = await vscode.workspace.fs.readDirectory(vscode.Uri.file(dir)); }
+    catch (error) {
+      if (top && error instanceof vscode.FileSystemError && error.code === 'FileNotFound') return;
+      fail(path.relative(root, dir), 'Directory could not be enumerated'); return;
+    }
+    if (!top && entries.some(([name]) => name === 'transitrix.yaml')) return;
+    for (const [name, type] of entries.sort(([a], [b]) => a.localeCompare(b))) {
+      const file = path.join(dir, name), relative = path.relative(root, file);
+      if (type & vscode.FileType.SymbolicLink) { fail(relative, 'Symbolic link was not enumerated'); continue; }
+      if (type === vscode.FileType.Directory) { await walk(file); continue; }
+      if (!/\.ya?ml$/i.test(name)) continue;
+      try {
+        const content = await read(vscode.Uri.file(file));
+        hash.update(JSON.stringify([relative, content]));
+        ingestComplianceDoc(canon, yaml.load(content, { schema: yaml.JSON_SCHEMA }), file);
+      } catch { fail(relative, 'Unreadable or malformed YAML record'); hash.update(relative + ':unreadable'); }
+    }
+  };
+  for (const zone of ['canon', 'codex', 'field']) await walk(path.join(root, zone), true);
+  // Git's public extension API supplies the base revision without spawning a process.
+  const git = vscode.extensions.getExtension('vscode.git');
+  const repositories = git?.isActive ? git.exports.getAPI(1).repositories as Array<{ rootUri: vscode.Uri; state: { HEAD?: { commit?: string } } }> : [];
+  const repository = repositories.filter(r => { const rel = path.relative(r.rootUri.fsPath, root); return !rel.startsWith('..') && !path.isAbsolute(rel); })
+    .sort((a, b) => b.rootUri.fsPath.length - a.rootUri.fsPath.length)[0];
+  return { canon, snapshotId: `sha256:${hash.digest('hex')}`, sourceRevision: repository?.state.HEAD?.commit };
+
 }

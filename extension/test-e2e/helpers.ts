@@ -249,3 +249,15 @@ if (!CAPTURE_DIR) {
 export function ensureCaptureDir(): void {
   fs.mkdirSync(CAPTURE_DIR!, { recursive: true });
 }
+
+/** Supplies catalogue selections through the same dialogs as the command palette. */
+export async function withRequirementChainScope<T>(root: string, product: string, release: string, project: string, asAt: string, fn: () => Promise<T>): Promise<T> {
+  const win = extensionWindow();
+  const open = win.showOpenDialog, pick = win.showQuickPick, input = win.showInputBox;
+  const choices = [product, release, project];
+  win.showOpenDialog = (async () => [vscode.Uri.file(root)]) as typeof open;
+  win.showQuickPick = (async () => ({ id: choices.shift() })) as unknown as typeof pick;
+  win.showInputBox = (async () => asAt) as typeof input;
+  try { return await fn(); }
+  finally { win.showOpenDialog = open; win.showQuickPick = pick; win.showInputBox = input; }
+}

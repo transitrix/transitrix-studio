@@ -148,6 +148,31 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). By submitting a pull request, you agree 
 
 Created and maintained by [Valerii Korobeinikov](https://github.com/vkgeorgia).
 
+### Release-scoped requirement reports
+
+Run **Transitrix: Traceability Matrix** or **Transitrix: Requirements by Release**
+from the VS Code command palette. Select a catalogue folder containing
+`transitrix.yaml`, a product, a release, an optional project, and an as-at date.
+Both panels use the same snapshot. Missing membership or failed source reads
+produce incomplete populations with unknown totals and visible known IDs.
+
+The matrix supports exact ID/name focus, independent upstream/downstream walks,
+and adjacent stage pairs. The release report lists the six overlapping quality
+metrics and their requirement contributors; a contributor opens the same matrix.
+**Export shared projection** saves the populations, graph, findings and assignment
+provenance as JSON. Save/create/delete/rename refresh both panels together.
+The header identifies the content digest, available Git base revision and date;
+a failed refresh retains the previous snapshot marked stale.
+
+These reports implement the `requirement-chain/0.2` projection interface. Author
+explicit `product_scope`, `project_scope`, `project_product`, `required_for` and
+source/decomposition relations; release assignment does not imply membership.
+Requirement verification remains direct, release-qualified and lifecycle-aware.
+The existing repository-wide Requirement–Verification Matrix and its CSV export
+retain their ordering and coverage meanings. Projection interface support does
+not change the pinned methodology version or establish publication compatibility.
+
+
 ## License
 
 MIT — see [LICENSE](LICENSE).

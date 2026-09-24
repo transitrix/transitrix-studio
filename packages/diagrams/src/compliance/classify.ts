@@ -3,6 +3,8 @@
 // (webview previews) and the CLI scan (`export-compliance`), so the recognition
 // rules live once. Pure: takes a parsed YAML document, no IO.
 
+import { typeOfId } from '../typed-id.js';
+import type { ChainRecord, ChainFinding } from './types.js';
 import type { AssertionStatus } from '../assertion/types.js';
 import type { VerificationMethod, VerificationOutcome } from '../verification/types.js';
 import type { ValidationMethod, ValidationOutcome } from '../validation/types.js';
@@ -21,6 +23,8 @@ export interface ComplianceCodexDoc {
 
 /** The bucketed result of scanning a repo for compliance canon. */
 export interface ComplianceCanon {
+  records: ChainRecord[];
+  findings: ChainFinding[];
   products: ComplianceProduct[];
   requirements: IndexRequirement[];
   assertions: IndexAssertion[];
@@ -52,6 +56,8 @@ export interface ComplianceCanon {
 
 export function emptyCanon(): ComplianceCanon {
   return {
+    records: [],
+    findings: [],
     products: [],
     requirements: [],
     assertions: [],
@@ -92,7 +98,8 @@ function pushUnique<T extends { id: string }>(canon: ComplianceCanon, list: T[],
  * its id duplicates one already ingested into the same bucket (see
  * `canon.duplicateIds`).
  */
-export function ingestComplianceDoc(canon: ComplianceCanon, doc: unknown): string | null {
+export function ingestComplianceDoc(canon: ComplianceCanon, doc: unknown, sourcePath = ''): string | null {
+  retainChainRecord(canon, doc, sourcePath);
   if (doc === null || typeof doc !== 'object' || Array.isArray(doc)) return null;
   const d = doc as Record<string, unknown>;
   const id = str(d.id);
@@ -177,4 +184,20 @@ export function ingestComplianceDoc(canon: ComplianceCanon, doc: unknown): strin
     return pushUnique(canon, canon.codex, { id, name: str(d.name) ?? id, type: str(d.type), jurisdiction: str(d.jurisdiction) }) ? id : null;
   }
   return null;
+}
+
+/** Retain malformed values and cross-type duplicates without changing legacy buckets. */
+function retainChainRecord(canon: ComplianceCanon, doc: unknown, sourcePath: string): void {
+  if (!doc || typeof doc !== 'object' || Array.isArray(doc)) {
+    canon.findings.push({ id: `${sourcePath}:document`, owner: sourcePath, field: '',
+      code: 'INTAKE', message: 'Expected a document mapping', reference: false, severity: 'error' });
+    return;
+  }
+  const raw = structuredClone(doc) as Record<string, unknown>;
+  if (typeof raw.id !== 'string' || !raw.id.trim()) {
+    if ('id' in raw || 'zone' in raw || ['requirement', 'verification', 'need', 'product', 'release', 'relation', 'driver'].includes(String(raw.notation))) canon.findings.push({ id: `${sourcePath}:id`, owner: sourcePath,
+      field: 'id', code: 'INTAKE', message: 'Missing record identity', reference: false, severity: 'error' });
+    return;
+  }
+  canon.records.push({ id: raw.id, type: typeOfId(raw.id) ?? '', sourcePath, raw });
 }

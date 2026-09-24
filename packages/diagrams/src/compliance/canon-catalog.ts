@@ -62,7 +62,7 @@ export function buildComplianceScan(docs: ScannedYamlDoc[]): ComplianceScanResul
   const pathById = new Map<string, string>();
 
   for (const { path, data } of docs) {
-    const ingested = ingestComplianceDoc(complianceCanon, data);
+    const ingested = ingestComplianceDoc(complianceCanon, data, path);
     if (ingested) pathById.set(ingested, path);
     const admitted = admitDocumentToCatalog(catalogMap, data);
     if (admitted && !pathById.has(admitted)) pathById.set(admitted, path);
