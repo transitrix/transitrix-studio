@@ -691,6 +691,9 @@ describe('requirement-chain report controls', () => {
     await report().send({action:'count',value:'metric-failed'});
     expect(report().webview.html).toContain(`data-contributor="${R(3)}"`);
     await report().send({action:'drill',value:R(3)});
+    await report().send({action:'count',value:'metric-unassigned'});
+    expect(matrix().webview.html).not.toContain('No longer a contributor at this snapshot');
+    await report().send({action:'count',value:'metric-failed'});
     reportHost.scan.mockResolvedValue(reportScan(change(V(32),{outcome:'pass'}),'changed'));
     await send('refresh');
     expect(report().webview.html).not.toContain('data-contributor=');

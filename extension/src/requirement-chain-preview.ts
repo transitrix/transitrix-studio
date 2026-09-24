@@ -7,7 +7,7 @@ import { escXml, outcomeBadge } from './compliance-render.js';
 
 type Viewport = { x: number; y: number; columns: number; columnY: number };
 type ViewState = {
-  list?: string; focus?: string; direction: 'both' | 'upstream' | 'downstream'; pair?: number;
+  list?: string; reasonList?: string; focus?: string; direction: 'both' | 'upstream' | 'downstream'; pair?: number;
   reason: string; pages: Record<string, number>; viewport: Partial<Record<'matrix' | 'release', Viewport>>;
 };
 type SavedState = { scope?: ChainScope; asAt: string; contexts: Record<string, ViewState> };
@@ -92,7 +92,7 @@ export class RequirementChainPreview implements vscode.Disposable {
           const item = requirementReleaseCounts(this.snapshot.current)[this.view.list];
           if (!item || !m.value || !item.set.ids.includes(m.value) || !this.snapshot.current.nodes.some(n => n.id === m.value)) return;
           this.view.focus = m.value; this.view.pages = {}; this.view.direction = 'both'; this.view.pair = undefined;
-          this.view.reason = item.label + ' · ' + m.value; await this.show('matrix');
+          this.view.reasonList = this.view.list; this.view.reason = item.label + ' · ' + m.value; await this.show('matrix');
         } else if (m.action === 'open') {
           const node = this.snapshot.current?.nodes.find(n => n.id === m.value) ?? this.snapshot.current?.records.find(r => r.id === m.value);
           if (node?.sourcePath) await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(node.sourcePath));
@@ -225,7 +225,7 @@ export class RequirementChainPreview implements vscode.Disposable {
         <h2>Assignment and scope populations</h2>${table(['selected','product','here','other','invalid','unresolved'])}
         <h2>Context units</h2><p>Source documents, drivers, needs, definition parts and result parts in the equivalent unfocused matrix; these nodes are never summed as requirements.</p>${table([0,1,2,7,8].map(i => 'context-' + i))}
         <h2>Diagnostic units</h2><p>Distinct reference slots and finding records, separate from affected requirements.</p>${table(['selected-references','all-references','unattributable'])}${contributors}` :
-        `<p>${view.nodes.length} nodes · ${view.edges.length} edges · ${escXml(this.view.reason)}${this.view.reason && this.view.focus && selectedList && !selectedList.set.ids.includes(this.view.focus) ? ' · No longer a contributor at this snapshot' : ''}</p>
+        `<p>${view.nodes.length} nodes · ${view.edges.length} edges · ${escXml(this.view.reason)}${this.view.reason && this.view.focus && this.view.reasonList && Object.hasOwn(counts, this.view.reasonList) && !counts[this.view.reasonList].set.ids.includes(this.view.focus) ? ' · No longer a contributor at this snapshot' : ''}</p>
         ${button('focus', 'Focus / search')}${button('direction', 'Upstream', 'upstream')}${button('direction', 'Downstream', 'downstream')}${button('direction', 'Both', 'both')}
         ${button('pair', this.view.pair === undefined ? 'Adjacent pair' : 'Full matrix')}${button('left', '←', '', this.view.pair === undefined || this.view.pair === 0)}${button('right', '→', '', this.view.pair === undefined || this.view.pair === CHAIN_STAGES.length - 2)}${button('reset', 'Reset')}
         <p>${this.view.focus && !p.nodes.some(n => n.id === this.view.focus) ? 'Focused node is no longer in this snapshot; reset or search again.' : ''}</p><p>Focus: ${escXml(this.view.focus ?? 'selected population')} · ${this.view.direction}${this.view.focus && !p.populations.selected.ids.includes(this.view.focus) ? ' · Context focus; selected counts unchanged' : ''}</p><p>${this.view.pair === undefined ? 'Full matrix · 9 stages' : `Pair ${this.view.pair + 1} of ${CHAIN_STAGES.length - 1} · ${CHAIN_STAGES[this.view.pair]} → ${CHAIN_STAGES[this.view.pair + 1]}`}</p><div class="columns">${columns}</div><h2>Trace edges</h2>${edges}`;
