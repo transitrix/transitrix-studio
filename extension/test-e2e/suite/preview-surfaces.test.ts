@@ -332,8 +332,9 @@ describe('Packaged requirement reports: shared example and live controls', funct
     throw new Error(`Report did not reach expected state: ${d.text.slice(0, 1200)}`);
   }
   async function click(panel: vscode.WebviewPanel, action: string, value?: string) {
-    await reportDom(panel);
+    const before = await reportDom(panel);
     await reportDom(panel, 'click', `button[data-action="${action}"]${value === undefined ? '' : `[data-value="${value}"]`}`);
+    if (action !== 'open') await observe(panel, d => d.render !== before.render);
   }
   async function scope(product = PA, rel = A(2), project = JA) {
     await withRequirementChainScope(root, product, rel, project, '2026-09-24', async () => {
@@ -401,7 +402,7 @@ describe('Packaged requirement reports: shared example and live controls', funct
     const initial = await reportDom(matrix);
     assert.strictEqual(initial.nodes.length, 37);
     assert.ok(initial.text.includes('Selected requirements: 12 · Product requirements: 16'));
-    for (const text of [PA, A(2), JA, 'Evidence: absent', 'other release', 'unqualified', 'invalid definition', 'malformed or future execution', 'not_yet_run', 'inconclusive', 'pass', 'fail']) assert.ok(initial.text.includes(text), text);
+    for (const text of [PA, A(2), JA, 'Evidence: absent', 'other release', 'unqualified', 'invalid definition', 'malformed or future execution', 'Not yet run', 'Inconclusive', 'Pass', 'Fail']) assert.ok(initial.text.includes(text), text);
     assert.ok(!initial.nodes.includes(V(2) + '.result'));
     const down = [R(2),R(3),V(2)+'.definition',V(31)+'.definition',V(31)+'.result',V(32)+'.definition',V(32)+'.result'];
     const up = [R(2),R(1),N(1),DI,M];
@@ -499,7 +500,7 @@ describe('Packaged requirement reports: shared example and live controls', funct
         const records = [
           { ...docs.find(d=>d.id===R(2))!, id },
           ...docs.filter(d=>d.from===R(2) && ['product_scope','project_scope','required_for'].includes(String(d.type)))
-            .map((d,i)=>({...d,id:`REL-SCALE-${n}-${i}`,from:id})),
+            .map((d,i)=>({...d,id:`REL-SCALE-${n}-${i+1}`,from:id})),
         ];
         for (const record of records) { const target=file(String(record.id)); fs.writeFileSync(target,JSON.stringify(record)); added.push(target); }
       }

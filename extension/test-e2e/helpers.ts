@@ -288,6 +288,7 @@ function installReportDomProbe(webview: vscode.Webview): void {
           }
           if (m.op === 'scroll') { const c = document.querySelector('.columns'); c.scrollLeft = m.x; c.dispatchEvent(new Event('scroll')); }
           api.postMessage({probe: 'report-dom', id: m.id, value: {
+            render: document.querySelector('script[nonce]').nonce,
             text: document.body.innerText,
             nodes: Array.from(document.querySelectorAll('[data-node]')).map(n => n.dataset.node),
             contributors: Array.from(document.querySelectorAll('[data-contributor]')).map(n => n.dataset.contributor),
@@ -304,7 +305,7 @@ function installReportDomProbe(webview: vscode.Webview): void {
 }
 
 export interface ReportDom {
-  text: string; nodes: string[]; contributors: string[]; stages: number[];
+  render: string; text: string; nodes: string[]; contributors: string[]; stages: number[];
   counts: Record<string, string>; disabled: string[]; scroll: number;
 }
 let probeSerial = 0;
