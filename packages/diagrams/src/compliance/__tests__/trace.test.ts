@@ -158,7 +158,7 @@ describe('buildRequirementTrace — dangling target', () => {
 
 // Shared release and matrix oracle: source records are normalized through the public intake.
 import { emptyCanon, ingestComplianceDoc } from '../classify.js';
-import { buildRequirementChain, selectRequirementChain, RequirementChainSnapshot } from '../requirement-chain.js';
+import { buildRequirementChain, requirementReleaseCounts, selectRequirementChain, RequirementChainSnapshot } from '../requirement-chain.js';
 const R = (n: number) => `REQUIREMENT-CHAIN-${n}`;
 const V = (n: number) => `VERIFICATION-CHAIN-${n}`;
 const A = (n: number) => `RELEASE-ALPHA-${n}`;
@@ -568,6 +568,14 @@ describe('requirement-chain report controls', () => {
       expect(edgeIds.length).toBeLessThanOrEqual(40); edgeIds.forEach(id=>allEdges.add(id)); await send('page','edges:1');
     }
     expect([...allEdges].sort()).toEqual(expected.edges.map(e=>e.id).sort());
+    await controller.show('release'); await report().send({action:'count',value:'selected'});
+    const contributors = new Set<string>();
+    for (let i=0;i<4;i++) {
+      const pageIds=[...report().webview.html.matchAll(/data-contributor="([^"]+)"/g)].map(m=>m[1]);
+      expect(pageIds.length).toBeLessThanOrEqual(40); pageIds.forEach(id=>contributors.add(id));
+      await report().send({action:'page',value:'contributors:1'});
+    }
+    expect([...contributors].sort()).toEqual(project(docs).populations.selected.ids);
     const atEnd=displayedIds(); await send('page','stage-4:1'); expect(displayedIds()).toEqual(atEnd);
     await send('export'); expect(JSON.parse(reportHost.write.mock.calls[0][1].toString()).projection.populations.selected.ids).toHaveLength(137);
     controller.dispose(); const restored=new RequirementChainPreview(storage); await restored.show('matrix'); expect(displayedIds()).toEqual(atEnd);
@@ -624,6 +632,88 @@ describe('requirement-chain report controls', () => {
     expect(matrix().webview.html).not.toContain('Selected requirements: 0');
     chooseScope(PA,A(2),JA,'2026-09-24','replacement'); await send('scope');
     expect(displayedIds()).toHaveLength(37); expect(matrix().webview.html).toContain('replacement'); restored.dispose();
+  });
+  it('offers only releases belonging to the selected product and leaves project optional', async () => {
+    const {controller}=await start(); await controller.show('release');
+    expect(reportHost.pick.mock.calls[1][0].map((o:any)=>o.id)).toEqual(['',A(1),A(2),A(3)]);
+    chooseScope(PB,B(2),''); await send('scope');
+    expect(reportHost.pick.mock.calls[4][0].map((o:any)=>o.id)).toEqual(['',B(1),B(2)]);
+    expect(report().webview.html).toContain('Project: unselected');
+    expect(report().webview.html).toContain('Selected requirements: 1'); controller.dispose();
+  });
+  it('opens every count as its exact distinct list and every node as the equivalent matrix projection', async () => {
+    const {controller}=await start(); await controller.show('release');
+    const p=project(), counts=requirementReleaseCounts(p);
+    const listed=()=>[...report().webview.html.matchAll(/data-contributor="([^"]+)"/g)].map(m=>m[1]);
+    for(const [key,item] of Object.entries(counts)) {
+      expect(report().webview.html).toContain(`data-action="count" data-value="${key}"`);
+      await report().send({action:'count',value:key}); expect(listed()).toEqual(item.set.ids);
+      expect(new Set(listed()).size).toBe(listed().length);
+      for(const id of item.set.ids.filter(id=>p.nodes.some(n=>n.id===id))) {
+        await send('pair'); await send('direction','upstream');
+        await report().send({action:'drill',value:id});
+        expect(displayedIds()).toEqual(selectRequirementChain(p,id).nodes.map(n=>n.id));
+        expect(stageIndices()).toHaveLength(9); expect(matrix().webview.html).toContain(item.label);
+        expect(matrix().webview.html).toContain('Selected requirements: 12');
+        expect(matrix().webview.html).toContain('example-1');
+      }
+    }
+    expect([3,4,5,6].map(i=>counts['unassigned-'+i].set.ids)).toEqual([[],ids(9),[],[]]);
+    expect(counts['other'].set.ids).toEqual(ids(10)); expect(counts['invalid'].set.ids).toEqual(ids(11));
+    expect(counts['metric-noSource'].set.ids.filter(id=>counts['metric-broken'].set.ids.includes(id))).toEqual(ids(14,15));
+    expect(counts['unattributable'].set.ids).toContain(V(99)+'.verifies');
+    await report().send({action:'count',value:'selected-references'});
+    expect(listed()).toEqual([R(7)+'.parent',R(14)+'.parent',R(15)+'.parent',V(20)+'.evidence[0].ref'].sort());
+    expect(report().webview.html).toContain('Affected requirements:');
+    await report().send({action:'count',value:'unattributable'}); await send('open',V(99));
+    expect(reportHost.open).toHaveBeenLastCalledWith(V(99)+'.yaml'); controller.dispose();
+  });
+  it('keeps whole-product assignment counts outside the optional project filter and rejects stale or unrelated drills', async () => {
+    const {controller}=await start(); await controller.show('release');
+    chooseScope(PA,A(2),''); await send('scope');
+    await report().send({action:'count',value:'metric-noDefinition'});
+    expect(report().webview.html).toContain(`data-contributor="${R(13)}"`);
+    await report().send({action:'drill',value:R(13)});
+    expect(matrix().webview.html).toContain('Project: unselected');
+    chooseScope(PA,A(2),JB); await send('scope');
+    await report().send({action:'count',value:'metric-unassigned'});
+    expect(report().webview.html).toContain(`data-contributor="${R(9)}"`);
+    await report().send({action:'drill',value:R(9)});
+    expect(matrix().webview.html).toContain('Selected requirements: 1');
+    expect(matrix().webview.html).toContain('Context focus; selected counts unchanged');
+    const before=displayedIds();
+    for(const message of [{action:'drill',value:R(3)},{action:'count',value:'invalid-key'},
+      {action:'count',value:'__proto__'},{action:'count',value:'selected',snapshot:'old-snapshot'}]) await report().send(message);
+    expect(displayedIds()).toEqual(before); controller.dispose();
+  });
+  it('refreshes the open contributor list atomically, including empty and incomplete populations', async () => {
+    const {controller}=await start(); await controller.show('release');
+    await report().send({action:'count',value:'metric-failed'});
+    expect(report().webview.html).toContain(`data-contributor="${R(3)}"`);
+    reportHost.scan.mockResolvedValue(reportScan(change(V(32),{outcome:'pass'}),'changed'));
+    await send('refresh');
+    expect(report().webview.html).not.toContain('data-contributor=');
+    expect(report().webview.html).toContain('0 requirements · As at 2026-09-24 · changed');
+    expect(matrix().webview.html).toContain('changed');
+    reportHost.scan.mockResolvedValue(reportScan(chainExample().filter(d=>d.type!=='product_scope'),'incomplete'));
+    await send('refresh'); await report().send({action:'count',value:'metric-unassigned'});
+    expect(report().webview.html).toContain('Unknown (0 known; incomplete) requirements');
+    const counts=requirementReleaseCounts(project([], {complete:false}));
+    expect(Object.values(counts).every(c=>c.set.total===null)).toBe(true); controller.dispose();
+  });
+  it('wires release count and contributor buttons with the shared snapshot identity', async () => {
+    const {controller}=await start(); await controller.show('release');
+    const listeners=new Map<string,(event:any)=>void>(), messages: any[]=[];
+    const script=report().webview.html.match(/<script nonce="[^"]+">([\s\S]*?)<\/script>/)![1];
+    runInNewContext(script,{scrollX:0,scrollY:0,acquireVsCodeApi:()=>({getState:()=>undefined,setState:()=>{},postMessage:(m:any)=>messages.push(m)}),
+      requestAnimationFrame:(f:()=>void)=>f(),document:{querySelector:()=>null,addEventListener:()=>{}},
+      window:{scrollTo:()=>{},addEventListener:(key:string,f:any)=>listeners.set(key,f)}});
+    for(const [action,value] of [['count','metric-failed'],['drill',R(3)]]) {
+      listeners.get('click')!({target:{closest:()=>({disabled:false,dataset:{action,value}})}});
+      const message=messages.at(-1); expect(message).toMatchObject({action,value,snapshot:'example-1'});
+      await report().send(message);
+    }
+    expect(displayedIds()).toEqual(selectRequirementChain(project(),R(3)).nodes.map(n=>n.id)); controller.dispose();
   });
   it('wires browser buttons and viewport restoration without posting disabled controls', async () => {
     const {controller}=await start();

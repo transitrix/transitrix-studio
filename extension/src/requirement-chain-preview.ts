@@ -1,13 +1,13 @@
 import * as vscode from 'vscode';
 import * as path from 'node:path';
-import { buildComplianceIndex, RequirementChainSnapshot, selectRequirementChain, CHAIN_STAGES, chainDate,
+import { buildComplianceIndex, requirementReleaseCounts, RequirementChainSnapshot, selectRequirementChain, CHAIN_STAGES, chainDate,
   type ChainScope, type ChainSet } from '@transitrix/diagrams/compliance';
 import { scanRequirementChainCatalogue } from './compliance-scan.js';
 import { escXml, outcomeBadge } from './compliance-render.js';
 
 type Viewport = { x: number; y: number; columns: number; columnY: number };
 type ViewState = {
-  focus?: string; direction: 'both' | 'upstream' | 'downstream'; pair?: number;
+  list?: string; focus?: string; direction: 'both' | 'upstream' | 'downstream'; pair?: number;
   reason: string; pages: Record<string, number>; viewport: Partial<Record<'matrix' | 'release', Viewport>>;
 };
 type SavedState = { scope?: ChainScope; asAt: string; contexts: Record<string, ViewState> };
@@ -23,6 +23,7 @@ export class RequirementChainPreview implements vscode.Disposable {
   private asAt = new Date().toISOString().slice(0, 10);
   private view = emptyView();
   private contexts: Record<string, ViewState> = {};
+  private revealContributors = false;
   private pageLimits = new Map<string, number>();
   private subscriptions: vscode.Disposable[];
   private watcher?: vscode.FileSystemWatcher;
@@ -48,8 +49,8 @@ export class RequirementChainPreview implements vscode.Disposable {
         { enableScripts: true, retainContextWhenHidden: true });
       this.panels.set(kind, p);
       p.onDidDispose(() => this.panels.delete(kind));
-      p.webview.onDidReceiveMessage(async (m: { action?: string; value?: string; context?: string; viewport?: Viewport }) => {
-        if (!m || (m.context !== undefined && m.context !== this.contextKey())) return;
+      p.webview.onDidReceiveMessage(async (m: { action?: string; value?: string; context?: string; snapshot?: string; viewport?: Viewport }) => {
+        if (!m || (m.context !== undefined && m.context !== this.contextKey()) || (m.snapshot !== undefined && m.snapshot !== this.snapshot.current?.snapshotId)) return;
         if (m.action === 'viewport' && m.viewport) {
           if (['x', 'y', 'columns', 'columnY'].every(key => { const v = m.viewport![key as keyof Viewport]; return typeof v === 'number' && Number.isFinite(v) && v >= 0; })) {
             this.view.viewport[kind] = m.viewport; await this.saveState();
@@ -84,8 +85,14 @@ export class RequirementChainPreview implements vscode.Disposable {
           if (limit === undefined || !['-1', '1'].includes(step)) return;
           this.view.pages[key] = Math.max(0, Math.min(limit, (this.view.pages[key] ?? 0) + Number(step))); this.render();
         } else if (m.action === 'reset') { this.view = emptyView(); this.render(); }
-        else if (m.action === 'drill' && this.snapshot.current?.nodes.some(n => n.id === m.value)) {
-          this.view.focus = m.value; this.view.pages = {}; this.view.reason = 'Metric contributor'; await this.show('matrix');
+        else if (m.action === 'count' && this.snapshot.current && typeof m.value === 'string') {
+          if (!Object.hasOwn(requirementReleaseCounts(this.snapshot.current), m.value)) return;
+          this.view.list = m.value; this.view.pages.contributors = 0; this.revealContributors = true; this.render();
+        } else if (m.action === 'drill' && this.snapshot.current && this.view.list) {
+          const item = requirementReleaseCounts(this.snapshot.current)[this.view.list];
+          if (!item || !m.value || !item.set.ids.includes(m.value) || !this.snapshot.current.nodes.some(n => n.id === m.value)) return;
+          this.view.focus = m.value; this.view.pages = {}; this.view.direction = 'both'; this.view.pair = undefined;
+          this.view.reason = item.label + ' · ' + m.value; await this.show('matrix');
         } else if (m.action === 'open') {
           const node = this.snapshot.current?.nodes.find(n => n.id === m.value) ?? this.snapshot.current?.records.find(r => r.id === m.value);
           if (node?.sourcePath) await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(node.sourcePath));
@@ -104,15 +111,15 @@ export class RequirementChainPreview implements vscode.Disposable {
     let scan;
     try { scan = await scanRequirementChainCatalogue(root); }
     catch { void vscode.window.showErrorMessage('Cannot read transitrix.yaml in this catalogue.'); return false; }
-    const pick = async (type: string, prompt: string) => {
-      const options = scan.canon.records.filter(r => r.type === type && (type !== 'ACTION' || r.raw.type === 'Project'))
+    const pick = async (type: string, prompt: string, product?: string) => {
+      const options = scan.canon.records.filter(r => r.type === type && (type !== 'RELEASE' || r.raw.of === product) && (type !== 'ACTION' || r.raw.type === 'Project'))
         .map(r => ({ label: String(r.raw.name ?? r.id), description: r.id, id: r.id }));
       options.sort((a, b) => a.id.localeCompare(b.id));
       options.unshift({ label: `${prompt}: unselected`, description: '', id: '' });
       return (await vscode.window.showQuickPick(options, { title: prompt }))?.id;
     };
     const product = await pick('PRODUCT', 'Product'); if (product === undefined) return false;
-    const release = await pick('RELEASE', 'Release'); if (release === undefined) return false;
+    const release = await pick('RELEASE', 'Release', product); if (release === undefined) return false;
     const project = await pick('ACTION', 'Project (optional)'); if (project === undefined) return false;
     const asAt = await vscode.window.showInputBox({ title: 'As-at date', value: this.asAt,
       validateInput: v => chainDate(v) ? undefined : 'Use a valid YYYY-MM-DD date' });
@@ -177,8 +184,20 @@ export class RequirementChainPreview implements vscode.Disposable {
       }
       const view = selectRequirementChain(p, this.view.focus, this.view.direction);
       const visible = view.nodes.filter(n => this.view.pair === undefined || n.stage === this.view.pair || n.stage === this.view.pair + 1);
-      const labels: Record<string, string> = { broken: 'Broken references', noSource: 'No accepted source path', noDefinition: 'No valid verification definition', noResult: 'Verification without applicable executed result', failed: 'Applicable failed verification', unassigned: 'No effective assignment (whole product)' };
-      const metrics = Object.entries(p.metrics).map(([name, s]) => `<tr><th>${escXml(labels[name])}</th><td>${count(s)}</td><td>${s.ids.map(id => button('drill', id, id)).join(' ')}</td></tr>`).join('');
+      const counts = requirementReleaseCounts(p);
+      const countButton = (key: string) => button('count', count(counts[key].set), key);
+      const countRow = (key: string) => `<tr data-count="${key}"><th>${escXml(counts[key].label)}</th><td>${countButton(key)} ${counts[key].unit}</td></tr>`;
+      const table = (keys: string[]) => `<table><tbody>${keys.map(countRow).join('')}</tbody></table>`;
+      const selectedList = this.view.list && Object.hasOwn(counts, this.view.list) ? counts[this.view.list] : undefined;
+      const contributors = !selectedList ? '' : `<section id="contributors"><h2>${escXml(selectedList.label)} — contributing ${selectedList.unit}</h2>
+        <p>${count(selectedList.set)} ${selectedList.unit} · As at ${p.asAt} · ${escXml(p.snapshotId)}</p>
+        ${page(selectedList.set.ids, 'contributors', id => {
+          const node = p.nodes.find(n => n.id === id);
+          const findings = p.findings.filter(f => f.id === id || p.affectedRequirements[f.id]?.includes(id));
+          return `<article data-contributor="${escXml(id)}"><b>${escXml(node?.name ?? id)}</b><p>${escXml(id)}</p>
+            ${node ? button('drill', 'Open in matrix', id) : ''}
+            ${findings.map(f => `<p>${escXml(f.id)} · ${escXml(f.code)} · ${escXml(f.message)} · Affected requirements: ${escXml((p.affectedRequirements[f.id] ?? []).join(', ') || 'unattributable')}</p>${button('open', 'Open finding record', f.owner, !p.records.some(r => r.id === f.owner))}`).join('')}</article>`;
+        })}</section>`;
       const recordDetails = (n: typeof p.nodes[number]) => {
         if (n.stage < 7) return '';
         const raw = n.raw;
@@ -198,7 +217,14 @@ export class RequirementChainPreview implements vscode.Disposable {
         <small>Stored: ${escXml(e.storedFrom)} → ${escXml(e.storedTo)} · ${escXml(e.identities.join(', '))}</small>
         ${e.identities.map(id => { const record = p.records.find(r => id === r.id || id.startsWith(r.id + '.')); return button('open', id, record?.id ?? '', !record); }).join('')}</div>`);
       const names = (id?: string) => id ? `${p.records.find(n => n.id === id)?.raw.name ?? id} (${id})` : 'unselected';
-      const body = kind === 'release' ? `<table><tbody>${metrics}</tbody></table><h2>Requirement stages</h2><ul>${p.stages.slice(3, 7).map((s, i) => `<li>${CHAIN_STAGES[i + 3]}: ${count(s)} — ${escXml(s.ids.join(', '))}</li>`).join('')}</ul>` :
+      const body = kind === 'release' ? `<h2>Quality metrics</h2>
+        <p>The first five metrics use the selected release population, intersected with a project only when selected. The sixth uses the whole product. Categories overlap; never sum them into a defect total.</p>
+        ${table(Object.keys(counts).filter(key => key.startsWith('metric-')))}
+        <h2>Requirement stages</h2><p>Distinct requirements, not completion or coverage percentages. Optional skipped stages do not imply missing requirements.</p>${table([3,4,5,6].map(i => 'stage-' + i))}
+        <h2>No effective release assignment — whole product</h2><p>At the same as-at date, no effective attachment to any modelled release of this product. Independent of the selected project. Invalid assignments and unresolved membership are separate.</p>${table([3,4,5,6].map(i => 'unassigned-' + i))}
+        <h2>Assignment and scope populations</h2>${table(['selected','product','here','other','invalid','unresolved'])}
+        <h2>Context units</h2><p>Source documents, drivers, needs, definition parts and result parts in the equivalent unfocused matrix; these nodes are never summed as requirements.</p>${table([0,1,2,7,8].map(i => 'context-' + i))}
+        <h2>Diagnostic units</h2><p>Distinct reference slots and finding records, separate from affected requirements.</p>${table(['selected-references','all-references','unattributable'])}${contributors}` :
         `<p>${view.nodes.length} nodes · ${view.edges.length} edges · ${escXml(this.view.reason)}</p>
         ${button('focus', 'Focus / search')}${button('direction', 'Upstream', 'upstream')}${button('direction', 'Downstream', 'downstream')}${button('direction', 'Both', 'both')}
         ${button('pair', this.view.pair === undefined ? 'Adjacent pair' : 'Full matrix')}${button('left', '←', '', this.view.pair === undefined || this.view.pair === 0)}${button('right', '→', '', this.view.pair === undefined || this.view.pair === CHAIN_STAGES.length - 2)}${button('reset', 'Reset')}
@@ -212,16 +238,17 @@ export class RequirementChainPreview implements vscode.Disposable {
         <p>Selected requirements: ${count(p.populations.selected)} · Product requirements: ${count(p.populations.product)}</p>
         ${button('scope', 'Select scope')}${button('refresh', 'Refresh')}${button('export', 'Export shared projection')}
         <p>${escXml(p.scopeFindings.join('; '))}</p>${body}
-        <h2>Assignment provenance</h2><p>Here: ${count(p.assignments.here)} · Other release only: ${count(p.assignments.otherReleaseOnly)} · Unassigned: ${count(p.assignments.unassigned)} · Invalid: ${count(p.assignments.invalid)}</p>${page(p.assignments.provenance, 'assignments', a => `<pre>${escXml(JSON.stringify(a, null, 2))}</pre>`)}
+        <h2>Assignment provenance</h2><p>Direct obligations attach at depth 0; inherited obligations come from a same-product predecessor. The nearest active attachment is shown with all contributing relation IDs. Verification is never inherited from a parent requirement or predecessor release.</p><p>Here: ${count(p.assignments.here)} · Other release only: ${count(p.assignments.otherReleaseOnly)} · Unassigned: ${count(p.assignments.unassigned)} · Invalid: ${count(p.assignments.invalid)}</p>${page(p.assignments.provenance, 'assignments', a => `<pre>${escXml(JSON.stringify(a, null, 2))}</pre>`)}
         <h2>Reference findings</h2><p>Selected defective references: ${count(p.selectedReferences)} · Known inventory: ${count(p.defectiveReferences)} · Unattributable findings: ${count(p.unattributableFindings)}</p>
         <details><summary>All findings and affected requirements</summary>${page(p.findings, 'findings', f => `<p>${escXml(f.id)} · ${escXml(f.message)} · ${escXml((p.affectedRequirements[f.id] ?? []).join(', '))}</p>`)}</details>
         <script nonce="${nonce}">const api=acquireVsCodeApi();const key=${JSON.stringify(this.contextKey()).replace(/</g, '\\u003c')};
-        const prior=api.getState();const fallback=${JSON.stringify(this.view.viewport[kind] ?? { x: 0, y: 0, columns: 0, columnY: 0 })};
+        const snapshot=${JSON.stringify(p.snapshotId).replace(/</g, '\\u003c')};const prior=api.getState();const fallback=${JSON.stringify(this.view.viewport[kind] ?? { x: 0, y: 0, columns: 0, columnY: 0 })};
         const state=prior?.key===key?prior:fallback;const c=document.querySelector('.columns');
-        requestAnimationFrame(()=>{window.scrollTo(state.x,state.y);if(c){c.scrollLeft=state.columns;c.scrollTop=state.columnY;}});
+        requestAnimationFrame(()=>{window.scrollTo(state.x,state.y);if(c){c.scrollLeft=state.columns;c.scrollTop=state.columnY;}if(${kind === 'release' && this.revealContributors})document.querySelector('#contributors')?.scrollIntoView?.();});
         const save=()=>{const viewport={x:scrollX,y:scrollY,columns:c?.scrollLeft??0,columnY:c?.scrollTop??0};api.setState({key,...viewport});return viewport;};
         let queued=false;document.addEventListener('scroll',()=>{if(!queued){queued=true;requestAnimationFrame(()=>{queued=false;api.postMessage({action:'viewport',context:key,viewport:save()});});}},true);
-        window.addEventListener('click',e=>{const b=e.target.closest('button');if(b&&!b.disabled){api.postMessage({action:'viewport',context:key,viewport:save()});if(b.dataset.action==='reset')api.setState(undefined);api.postMessage({action:b.dataset.action,value:b.dataset.value,context:key});}});</script></body></html>`;
+        window.addEventListener('click',e=>{const b=e.target.closest('button');if(b&&!b.disabled){api.postMessage({action:'viewport',context:key,viewport:save()});if(b.dataset.action==='reset')api.setState(undefined);api.postMessage({action:b.dataset.action,value:b.dataset.value,context:key,snapshot});}});</script></body></html>`;
     }
+    this.revealContributors = false;
   }
 }

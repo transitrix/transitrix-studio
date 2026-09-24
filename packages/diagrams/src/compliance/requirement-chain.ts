@@ -381,6 +381,36 @@ export function selectRequirementChain(p: RequirementChainProjection, focus?: st
   return { nodes: p.nodes.filter(n => ids.has(n.id)), edges: p.edges.filter(e => edgeIds.has(e.id)) };
 }
 
+/** Count/list contract for the release report, derived solely from the shared snapshot. */
+export function requirementReleaseCounts(p: RequirementChainProjection) {
+  type Count = { label: string; unit: 'requirements' | 'references' | 'findings' | 'source documents' | 'drivers' | 'needs' | 'definition parts' | 'result parts'; set: ChainSet };
+  const counts: Record<string, Count> = {};
+  const add = (key: string, label: string, value: ChainSet, unit: Count['unit'] = 'requirements') => {
+    counts[key] = { label, unit, set: value };
+  };
+  const labels = { broken: 'Broken references', noSource: 'No accepted source path', noDefinition: 'No valid verification definition',
+    noResult: 'No applicable executed result (defined verification)', failed: 'Applicable failed verification', unassigned: 'No effective release assignment (whole product)' };
+  for (const key of Object.keys(labels) as (keyof typeof labels)[]) add('metric-' + key, labels[key], p.metrics[key]);
+  for (let stage = 3; stage <= 6; stage++) {
+    add('stage-' + stage, CHAIN_STAGES[stage], p.stages[stage]);
+    add('unassigned-' + stage, 'Unassigned: ' + CHAIN_STAGES[stage], set(p.metrics.unassigned.ids.filter(id => p.nodes.some(n => n.id === id && n.stage === stage)), p.metrics.unassigned.completeness === 'complete'));
+  }
+  add('selected', 'Selected requirements', p.populations.selected);
+  add('product', 'Product requirements', p.populations.product);
+  add('here', 'Assigned here (whole product)', p.assignments.here);
+  add('other', 'Other-release-only (whole product)', p.assignments.otherReleaseOnly);
+  add('invalid', 'Invalid or dangling assignment (whole product)', p.assignments.invalid);
+  add('unresolved', 'Unresolved membership (catalogue)', p.populations.unresolved);
+  add('selected-references', 'Selected defective references', p.selectedReferences, 'references');
+  add('all-references', 'Known reference inventory', p.defectiveReferences, 'references');
+  add('unattributable', 'Unattributable findings', p.unattributableFindings, 'findings');
+  const view = selectRequirementChain(p);
+  const contextUnits = { 0: 'source documents', 1: 'drivers', 2: 'needs', 7: 'definition parts', 8: 'result parts' } as const;
+  for (const stage of [0, 1, 2, 7, 8] as const) add('context-' + stage, CHAIN_STAGES[stage],
+    set(view.nodes.filter(n => n.stage === stage).map(n => n.id), p.populations.selected.completeness === 'complete'), contextUnits[stage]);
+  return freeze(counts);
+}
+
 /** Monotonic refresh gate shared by reports; late successes and failures cannot replace newer data. */
 export class RequirementChainSnapshot {
   private generation = 0;
