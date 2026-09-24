@@ -690,11 +690,13 @@ describe('requirement-chain report controls', () => {
     const {controller}=await start(); await controller.show('release');
     await report().send({action:'count',value:'metric-failed'});
     expect(report().webview.html).toContain(`data-contributor="${R(3)}"`);
+    await report().send({action:'drill',value:R(3)});
     reportHost.scan.mockResolvedValue(reportScan(change(V(32),{outcome:'pass'}),'changed'));
     await send('refresh');
     expect(report().webview.html).not.toContain('data-contributor=');
     expect(report().webview.html).toContain('0 requirements · As at 2026-09-24 · changed');
     expect(matrix().webview.html).toContain('changed');
+    expect(matrix().webview.html).toContain('No longer a contributor at this snapshot');
     reportHost.scan.mockResolvedValue(reportScan(chainExample().filter(d=>d.type!=='product_scope'),'incomplete'));
     await send('refresh'); await report().send({action:'count',value:'metric-unassigned'});
     expect(report().webview.html).toContain('Unknown (0 known; incomplete) requirements');
