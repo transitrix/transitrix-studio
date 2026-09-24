@@ -1,3 +1,4 @@
+import { RequirementChainPreview } from './requirement-chain-preview.js';
 import * as path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import * as vscode from 'vscode';
@@ -273,6 +274,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void |
   const singleProductPreview = new SingleProductPreview(context.extensionUri);
   const requirementTracePreview = new RequirementTracePreview(context.extensionUri);
   const gapDashboardPreview = new GapDashboardPreview(context.extensionUri);
+  const requirementChainPreview = new RequirementChainPreview();
+  context.subscriptions.push(requirementChainPreview);
   const requirementVerificationMatrixPreview = new RequirementVerificationMatrixPreview(context.extensionUri);
   const coverageMetricPreview = new CoverageMetricPreview(context.extensionUri);
   const plantumlPreview = new PlantUMLPreview(context.extensionUri);
@@ -491,6 +494,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void |
     vscode.commands.registerCommand('transitrixStudio.previewGapDashboard', () => gapDashboardPreview.showOrReveal()),
     vscode.commands.registerCommand('transitrixStudio.refreshGapDashboard', () => gapDashboardPreview.refresh()),
     vscode.commands.registerCommand('transitrixStudio.exportGapDashboardCsv', () => gapDashboardPreview.exportCsv()),
+    vscode.commands.registerCommand('transitrixStudio.previewRequirementChain', () => requirementChainPreview.show('matrix')),
+    vscode.commands.registerCommand('transitrixStudio.previewRequirementsByRelease', () => requirementChainPreview.show('release')),
     vscode.commands.registerCommand('transitrixStudio.previewRequirementVerificationMatrix', () => requirementVerificationMatrixPreview.showOrReveal()),
     vscode.commands.registerCommand('transitrixStudio.refreshRequirementVerificationMatrix', () => requirementVerificationMatrixPreview.refresh()),
     vscode.commands.registerCommand('transitrixStudio.exportRequirementVerificationMatrixCsv', () => requirementVerificationMatrixPreview.exportCsv()),

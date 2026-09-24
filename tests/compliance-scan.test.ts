@@ -1,8 +1,22 @@
 import { describe, it, expect, vi } from 'vitest';
 
-vi.mock('vscode', () => ({}));
+const scanFs = vi.hoisted(() => ({ files: new Map<string, string>(), directories: new Map<string, [string, number][]>(), dirty: [] as Array<{uri: {toString(): string}; isDirty: boolean; getText(): string}> }));
+vi.mock('vscode', () => ({
+  Uri: { file: (fsPath: string) => ({ fsPath, toString: () => fsPath }) },
+  FileType: { File: 1, Directory: 2, SymbolicLink: 64 },
+  FileSystemError: class extends Error { code = 'FileNotFound'; },
+  extensions: { getExtension: () => undefined },
+  workspace: {
+    get textDocuments() { return scanFs.dirty; },
+    fs: {
+      readDirectory: async (uri: {fsPath: string}) => { const entries=scanFs.directories.get(uri.fsPath); if (!entries) throw Error('unavailable'); return entries; },
+      readFile: async (uri: {fsPath: string}) => { const content=scanFs.files.get(uri.fsPath); if (content===undefined) throw Error('unavailable'); return Buffer.from(content); },
+    },
+  },
+}));
 import { join, sep } from 'node:path';
 import {
+  scanRequirementChainCatalogue,
   resolveComplianceScanScope,
   classifyScanMiss,
   shortWorkspacePath,
@@ -135,5 +149,37 @@ describe('complianceScanWarnings', () => {
       'Skipped — duplicate id "PRODUCT-1": canon/a.yaml',
       'Skipped — unrecognized notation "asssertion": canon/b.yaml',
     ]);
+  });
+});
+
+
+describe('release catalogue snapshot loader', () => {
+  function setup() {
+    scanFs.files.clear(); scanFs.directories.clear(); scanFs.dirty = [];
+    scanFs.files.set('/catalogue/transitrix.yaml', 'methodology_version: 3.1.0');
+    for (const zone of ['canon','codex','field']) scanFs.directories.set('/catalogue/'+zone, []);
+  }
+  it('enumerates more than 5000 files, includes Field, and hashes dirty document content', async () => {
+    setup();
+    const entries: [string, number][] = [];
+    for(let i=1;i<=5001;i++) { const name=`R${i}.yaml`; entries.push([name,1]); scanFs.files.set('/catalogue/canon/'+name, `id: REQUIREMENT-TEST-${i}\nnotation: requirement`); }
+    scanFs.directories.set('/catalogue/canon',entries);
+    scanFs.directories.set('/catalogue/field',[['source.yaml',1]]);
+    scanFs.files.set('/catalogue/field/source.yaml','id: OBSERVATION-TEST-1\nzone: field');
+    const first=await scanRequirementChainCatalogue('/catalogue'); expect(first.canon.records).toHaveLength(5002);
+    scanFs.dirty=[{uri:{toString:()=>'/catalogue/field/source.yaml'},isDirty:true,getText:()=> 'id: OBSERVATION-TEST-1\nzone: field\nsource_document: invalid'}];
+    const second=await scanRequirementChainCatalogue('/catalogue'); expect(second.snapshotId).not.toBe(first.snapshotId);
+    expect(second.canon.records.find(r=>r.id==='OBSERVATION-TEST-1')?.raw.source_document).toBe('invalid');
+  });
+  it('preserves failed parse/read/enumeration and ambiguous identity findings without an empty fallback', async () => {
+    setup(); scanFs.directories.set('/catalogue/canon',[['bad.yaml',1],['missing.yaml',1],['nested',2]]);
+    scanFs.files.set('/catalogue/canon/bad.yaml', 'invalid: [');
+    const result=await scanRequirementChainCatalogue('/catalogue'); expect(result.canon.findings).toHaveLength(3);
+  });
+  it('excludes nested catalogues and refuses a missing catalogue manifest', async () => {
+    setup(); scanFs.directories.set('/catalogue/canon',[['nested',2]]);
+    scanFs.directories.set('/catalogue/canon/nested',[['transitrix.yaml',1],['record.yaml',1]]);
+    expect((await scanRequirementChainCatalogue('/catalogue')).canon.records).toEqual([]);
+    scanFs.files.delete('/catalogue/transitrix.yaml'); await expect(scanRequirementChainCatalogue('/catalogue')).rejects.toThrow();
   });
 });

@@ -27,6 +27,7 @@ import {
   closeAllEditors,
   ensureExtensionActivated,
   withSaveDialogTarget,
+  withRequirementChainScope,
 } from '../helpers';
 
 const SHELL_LENGTH_FLOOR = 800;
@@ -197,5 +198,55 @@ describe('preview surfaces render real content (transitrix-hq#143)', function ()
     assert.match(text, /REQ-VERIF-COVERAGE-002/);
     assert.match(text, /REQUIREMENT-MATRIX-PASS-1/);
     assert.doesNotMatch(text, /VERIFICATION-MATRIX-DANGLING-1/);
+  });
+});
+
+describe('Release requirement report generation', function () {
+  this.timeout(60000);
+  it('both packaged report commands share provenance and refresh after a source save', async () => {
+    await ensureExtensionActivated();
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'requirement-reports-'));
+    const write = (id: string, fields: Record<string, unknown>) => {
+      const record = { id, notation: id.startsWith('REL-') ? 'relation' : id.split('-')[0].toLowerCase(), name: id, description: 'Example', zone: 'canon',
+        admitted_at: '2026-01-01', admitted_by: 'example', gate_checks: { uniqueness: 'pass' },
+        valid_from: '2026-01-01', valid_to: null, ...fields };
+      const file = path.join(root, 'canon', `${id}.yaml`); fs.writeFileSync(file, JSON.stringify(record)); return file;
+    };
+    for (const zone of ['canon', 'codex', 'field']) fs.mkdirSync(path.join(root, zone));
+    fs.writeFileSync(path.join(root, 'transitrix.yaml'), 'methodology_version: 3.1.0\n');
+    write('PRODUCT-REPORT-1', {}); write('RELEASE-REPORT-1', { of: 'PRODUCT-REPORT-1' }); write('ACTION-REPORT-1', { type: 'Project' });
+    const req = write('REQUIREMENT-REPORT-1', { level: 'system' });
+    write('REL-REPORT-1', { type: 'product_scope', from: 'REQUIREMENT-REPORT-1', to: 'PRODUCT-REPORT-1' });
+    write('REL-REPORT-2', { type: 'project_scope', from: 'REQUIREMENT-REPORT-1', to: 'ACTION-REPORT-1' });
+    write('REL-REPORT-3', { type: 'project_product', from: 'ACTION-REPORT-1', to: 'PRODUCT-REPORT-1' });
+    write('REL-REPORT-4', { type: 'required_for', from: 'REQUIREMENT-REPORT-1', to: 'RELEASE-REPORT-1' });
+    const panels: vscode.WebviewPanel[] = [];
+    try {
+      const capture = await withRequirementChainScope(root, 'PRODUCT-REPORT-1', 'RELEASE-REPORT-1', 'ACTION-REPORT-1', '2026-09-24', () => captureWebviewPanels(async () => {
+        await vscode.commands.executeCommand('transitrixStudio.previewRequirementChain');
+        await vscode.commands.executeCommand('transitrixStudio.previewRequirementsByRelease');
+      }));
+      panels.push(...capture.panels);
+      assert.strictEqual(panels.length, 2);
+      const initial = panels.map(p => p.webview.html);
+      const digest = (html: string) => html.match(/sha256:[a-f0-9]{64}/)?.[0];
+      assert.ok(digest(initial[0])); assert.strictEqual(digest(initial[0]), digest(initial[1]));
+      for (const html of initial) {
+        assert.ok(html.includes('Selected requirements: 1')); assert.ok(html.includes('2026-09-24'));
+        assert.ok(html.includes('REQUIREMENT-REPORT-1'));
+      }
+      assert.ok(initial[0].includes('Adjacent pair')); assert.ok(initial[1].includes('No valid verification definition'));
+      const doc = await vscode.workspace.openTextDocument(req);
+      const edit = new vscode.WorkspaceEdit();
+      edit.replace(doc.uri, new vscode.Range(doc.positionAt(0), doc.positionAt(doc.getText().length)), doc.getText().replace('"level":"system"', '"level":"software"'));
+      await vscode.workspace.applyEdit(edit); await doc.save();
+      const deadline = Date.now() + 15000;
+      while (Date.now() < deadline && digest(panels[0].webview.html) === digest(initial[0])) await new Promise(r => setTimeout(r, 100));
+      const refreshed = panels.map(p => p.webview.html);
+      assert.notStrictEqual(digest(refreshed[0]), digest(initial[0])); assert.strictEqual(digest(refreshed[0]), digest(refreshed[1]));
+      assert.ok(refreshed[1].includes('Software requirement: 1'));
+    } finally {
+      panels.forEach(p => p.dispose()); await closeAllEditors(); fs.rmSync(root, { recursive: true, force: true });
+    }
   });
 });

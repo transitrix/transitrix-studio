@@ -28,6 +28,8 @@ function push<K, V>(map: Map<K, V[]>, key: K, value: V): void {
  * (ELEMENT_PRIMITIVES.md §9).
  */
 export function buildComplianceIndex(input: ComplianceIndexInput): ComplianceIndex {
+  const recordsById = new Map<string, import('./types.js').ChainRecord[]>();
+  for (const record of input.records ?? []) push(recordsById, record.id, record);
   const requirementById = new Map<string, IndexRequirement>();
   const requirementsByLaw = new Map<string, IndexRequirement[]>();
   const assertionsByRequirement = new Map<string, IndexAssertion[]>();
@@ -59,6 +61,7 @@ export function buildComplianceIndex(input: ComplianceIndexInput): ComplianceInd
   }
 
   return {
+    recordsById, findings: input.findings ?? [],
     requirementById, requirementsByLaw, assertionsByRequirement, assertionsBySubject,
     requirementsByParent, verificationsByRequirement,
     needById, requirementsByNeed, validationsByNeed,

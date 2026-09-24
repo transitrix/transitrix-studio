@@ -81,3 +81,29 @@ describe('ingestComplianceDoc', () => {
     expect(canon.duplicateIds).toEqual([]);
   });
 });
+
+describe('lossless requirement-chain intake', () => {
+  it('retains raw malformed verification fields, source path and duplicates across legacy buckets', () => {
+    const canon = emptyCanon();
+    const doc = { id: 'VERIFICATION-RAW-1', notation: 'verification', protocol: null, outcome: ['invalid'], evidence: 'invalid',
+      verified_on: 'RELEASE-RAW-1', valid_from: false, valid_to: null };
+    ingestComplianceDoc(canon, doc, 'canon/verification.yaml');
+    expect(canon.verifications).toEqual([]);
+    expect(canon.records[0]).toMatchObject({ id: doc.id, type: 'VERIFICATION', sourcePath: 'canon/verification.yaml', raw: doc });
+    doc.protocol = null;
+    ingestComplianceDoc(canon, { ...doc, notation: 'product' }, 'canon/duplicate.yaml');
+    expect(canon.records).toHaveLength(2);
+  });
+  it('retains Field descriptors, REL fields, release predecessors and malformed-document findings', () => {
+    const canon = emptyCanon();
+    const docs = [
+      { id: 'OBSERVATION-RAW-1', zone: 'field', source_document: { title: 'Research', uri: 'https://example.org', revision: '1' } },
+      { id: 'REL-RAW-1', type: 'product_scope', from: 'REQUIREMENT-RAW-1', to: 'PRODUCT-RAW-1', valid_from: 'invalid' },
+      { id: 'RELEASE-RAW-2', of: 'PRODUCT-RAW-1', predecessor: 'RELEASE-RAW-1' },
+    ];
+    docs.forEach(d => ingestComplianceDoc(canon, d));
+    expect(canon.records.map(r => r.raw)).toEqual(docs);
+    ingestComplianceDoc(canon, null, 'broken.yaml');
+    expect(canon.findings).toContainEqual(expect.objectContaining({ owner: 'broken.yaml', code: 'INTAKE' }));
+  });
+});

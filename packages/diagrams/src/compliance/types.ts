@@ -176,6 +176,8 @@ export interface ObjectDetailInput {
 }
 
 export interface ComplianceIndexInput {
+  records?: ChainRecord[];
+  findings?: ChainFinding[];
   requirements: IndexRequirement[];
   assertions: IndexAssertion[];
   /** Optional — absent inputs (existing callers) simply index no verifications. */
@@ -188,6 +190,8 @@ export interface ComplianceIndexInput {
 
 /** The reverse-index — all maps are keyed by canonical id. */
 export interface ComplianceIndex {
+  recordsById: Map<string, ChainRecord[]>;
+  findings: ChainFinding[];
   requirementById: Map<string, IndexRequirement>;
   /** Codex artefact id → requirements whose `derived_from` names it. */
   requirementsByLaw: Map<string, IndexRequirement[]>;
@@ -312,4 +316,21 @@ export interface RequirementTrace {
 export interface TraceElementCatalog {
   /** id → human-readable name (or the id itself when unnamed). */
   nameById: Map<string, string>;
+}
+
+/** Lossless records retained beside the compatible legacy projections. */
+export interface ChainRecord {
+  id: string;
+  type: string;
+  sourcePath: string;
+  raw: Record<string, unknown>;
+}
+export interface ChainFinding {
+  id: string;
+  owner: string;
+  field: string;
+  code: string;
+  message: string;
+  reference: boolean;
+  severity: 'error' | 'warning';
 }
