@@ -274,7 +274,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void |
   const singleProductPreview = new SingleProductPreview(context.extensionUri);
   const requirementTracePreview = new RequirementTracePreview(context.extensionUri);
   const gapDashboardPreview = new GapDashboardPreview(context.extensionUri);
-  const requirementChainPreview = new RequirementChainPreview();
+  const requirementChainPreview = new RequirementChainPreview(context.workspaceState);
   context.subscriptions.push(requirementChainPreview);
   const requirementVerificationMatrixPreview = new RequirementVerificationMatrixPreview(context.extensionUri);
   const coverageMetricPreview = new CoverageMetricPreview(context.extensionUri);

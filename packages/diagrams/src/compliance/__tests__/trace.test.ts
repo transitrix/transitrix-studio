@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { buildComplianceIndex } from '../reverse-index.js';
 import { buildRequirementTrace, buildTraceElementCatalog } from '../trace.js';
 import type { ComplianceIndexInput } from '../types.js';
@@ -384,3 +384,252 @@ describe('requirement-chain independent controls', () => {
   });
 });
 import { buildRequirementVerificationMatrix } from '../../compliance-verification-matrix/index.js';
+
+// Exercise the shipped report controller with the same catalogue and oracle as
+// the projection tests above; UI actions must not invent a second population.
+const reportHost = vi.hoisted(() => ({
+  panels: new Map<string, { webview: { html: string }; send: (m: Record<string, unknown>) => Promise<void> }>(),
+  scan: vi.fn(), pick: vi.fn(), input: vi.fn(), folder: vi.fn(), open: vi.fn(), warning: vi.fn(), write: vi.fn(),
+  events: new Map<string, () => void>(),
+}));
+vi.mock('vscode', () => {
+  const disposable = () => ({ dispose() {} });
+  const event = (key: string) => (callback: () => void) => { reportHost.events.set(key, callback); return disposable(); };
+  return {
+    ViewColumn: { Active: 1 }, Uri: { file: (fsPath: string) => ({ fsPath }) },
+    RelativePattern: class { constructor(public base: string, public pattern: string) {} },
+    workspace: {
+      onDidSaveTextDocument: event('save'), onDidCreateFiles: event('create'),
+      onDidDeleteFiles: event('delete'), onDidRenameFiles: event('rename'),
+      createFileSystemWatcher: () => ({ ...disposable(), onDidChange: event('watch-change'), onDidCreate: event('watch-create'), onDidDelete: event('watch-delete') }),
+      openTextDocument: reportHost.open, fs: { writeFile: reportHost.write },
+    },
+    window: {
+      showOpenDialog: reportHost.folder, showQuickPick: reportHost.pick, showInputBox: reportHost.input,
+      showWarningMessage: reportHost.warning, showErrorMessage: reportHost.warning,
+      showTextDocument: vi.fn(), showSaveDialog: async () => ({ fsPath: 'report.json' }),
+      createWebviewPanel: (id: string) => {
+        let onDispose = () => {};
+        const panel = {
+          webview: { html: '', onDidReceiveMessage: (callback: typeof panel.send) => { panel.send = callback; return disposable(); } },
+          send: async (_: Record<string, unknown>) => {}, reveal() {},
+          dispose: () => onDispose(), onDidDispose: (callback: () => void) => { onDispose = callback; return disposable(); },
+        };
+        reportHost.panels.set(id, panel); return panel;
+      },
+    },
+  };
+});
+vi.mock('../../../../../extension/src/compliance-scan.js', () => ({ scanRequirementChainCatalogue: reportHost.scan }));
+import { RequirementChainPreview } from '../../../../../extension/src/requirement-chain-preview.js';
+import { runInNewContext } from 'node:vm';
+
+function memory() {
+  const values = new Map<string, unknown>();
+  return { keys: () => [...values.keys()], get: <T,>(key: string) => structuredClone(values.get(key)) as T,
+    update: async (key: string, value: unknown) => { values.set(key, structuredClone(value)); } };
+}
+function reportScan(docs = chainExample(), snapshotId = 'example-1') {
+  const canon = emptyCanon(); docs.forEach(d => ingestComplianceDoc(canon, d, `${d.id}.yaml`));
+  return { canon, snapshotId, sourceRevision: 'example-revision' };
+}
+const matrix = () => reportHost.panels.get('requirementChain-matrix')!;
+const report = () => reportHost.panels.get('requirementChain-release')!;
+const displayedIds = () => [...matrix().webview.html.matchAll(/data-node="([^"]+)"/g)].map(m => m[1]);
+const stageIndices = () => [...matrix().webview.html.matchAll(/data-stage="(\d+)"/g)].map(m => Number(m[1]));
+const send = (action: string, value?: string) => matrix().send({ action, value });
+function chooseScope(product = PA, release = A(2), projectId = JA, date = '2026-09-24', root = 'example') {
+  reportHost.folder.mockResolvedValueOnce([{ fsPath: root }]);
+  reportHost.pick.mockResolvedValueOnce({ id: product }).mockResolvedValueOnce({ id: release }).mockResolvedValueOnce({ id: projectId });
+  reportHost.input.mockResolvedValueOnce(date);
+}
+
+describe('requirement-chain report controls', () => {
+  beforeEach(() => {
+    vi.resetAllMocks(); reportHost.panels.clear(); reportHost.events.clear();
+    reportHost.scan.mockResolvedValue(reportScan());
+  });
+  async function start(storage = memory()) {
+    chooseScope(); const controller = new RequirementChainPreview(storage); await controller.show('matrix');
+    return { controller, storage };
+  }
+  it('renders the exact shared example, scope names, outcomes, provenance and navigable authored links', async () => {
+    const docs = chainExample();
+    for (const [id, name] of [[PA, 'Alpha product'], [A(2), 'Second release'], [JA, 'Alpha project']]) docs.find(d => d.id === id)!.name = name;
+    reportHost.scan.mockResolvedValue(reportScan(docs));
+    const { controller } = await start(); await controller.show('release');
+    expect(displayedIds()).toEqual(selectRequirementChain(project()).nodes.map(n => n.id));
+    const html = matrix().webview.html;
+    for (const name of ['Alpha product', 'Second release', 'Alpha project', 'example-revision', 'example-1', '2026-09-24']) {
+      expect(html).toContain(name); expect(report().webview.html).toContain(name);
+    }
+    for (const outcome of ['pass', 'fail', 'inconclusive', 'not_yet_run']) expect(html).toContain(`cmp-outcome-${outcome}`);
+    for (const text of ['Evidence: absent', 'other release', 'unqualified', 'malformed or future execution', 'invalid definition', 'Stored:', 'invalid reference']) expect(html).toContain(text);
+    expect(displayedIds()).not.toContain(V(2) + '.result');
+    await send('open', V(32) + '.result'); expect(reportHost.open).toHaveBeenLastCalledWith(V(32) + '.yaml');
+    const edge = project().edges.find(e => e.kind === 'source_trace')!;
+    const record = project().records.find(r => edge.identities.some(id => id.startsWith(r.id + '.')))!;
+    await send('open', record.id); expect(reportHost.open).toHaveBeenLastCalledWith(record.sourcePath);
+    const calls = reportHost.open.mock.calls.length; await send('open', 'missing'); expect(reportHost.open).toHaveBeenCalledTimes(calls);
+    await send('export'); const exported = JSON.parse(reportHost.write.mock.calls[0][1].toString()).projection;
+    expect(exported.populations.selected.ids).toEqual(ids(1,2,3,4,5,6,7,8,14,15,18,20));
+    expect(Object.values(exported.metrics).map((s: any) => s.ids)).toEqual(baseline);
+    controller.dispose();
+  });
+  it.each([
+    [R(2), 'downstream', [R(2), R(3), V(2)+'.definition', V(31)+'.definition', V(31)+'.result', V(32)+'.definition', V(32)+'.result']],
+    [R(2), 'upstream', [R(2), R(1), N(1), DI, M]],
+    [R(2), 'both', [R(2), R(3), V(2)+'.definition', V(31)+'.definition', V(31)+'.result', V(32)+'.definition', V(32)+'.result', R(1), N(1), DI, M]],
+    [V(32)+'.result', 'upstream', [V(32)+'.result', V(32)+'.definition', R(3), R(2), R(4), R(1), N(1), N(2), DI, DE, M]],
+    [R(14), 'both', [R(14), R(15)]],
+  ])('focus %s %s matches the exact oracle in full and every pair', async (focus, direction, expected) => {
+    const { controller } = await start(); reportHost.input.mockResolvedValueOnce(focus); await send('focus'); await send('direction', direction as string);
+    expect(displayedIds().sort()).toEqual((expected as string[]).slice().sort());
+    const scans = reportHost.scan.mock.calls.length;
+    await send('pair');
+    for (let i = 0; i < 8; i++) {
+      expect(stageIndices()).toEqual([i, i + 1]); expect(matrix().webview.html).toContain(`Pair ${i + 1} of 8`);
+      expect(displayedIds()).toEqual(selectRequirementChain(project(), focus as string, direction as any).nodes.filter(n => n.stage === i || n.stage === i+1).map(n => n.id));
+      if (i < 7) await send('right');
+    }
+    expect(matrix().webview.html).toMatch(/data-action="right"[^>]*disabled/);
+    await send('right'); expect(stageIndices()).toEqual([7,8]);
+    for (let i = 7; i > 0; i--) await send('left');
+    expect(matrix().webview.html).toMatch(/data-action="left"[^>]*disabled/);
+    await send('left'); expect(stageIndices()).toEqual([0,1]);
+    await send('pair'); expect(displayedIds().sort()).toEqual((expected as string[]).slice().sort());
+    expect(reportHost.scan).toHaveBeenCalledTimes(scans); controller.dispose();
+  });
+  it('preserves empty columns, continuations, scope and counts through reset and navigation', async () => {
+    const { controller } = await start(); reportHost.input.mockResolvedValueOnce(R(6)); await send('focus'); await send('direction','downstream'); await send('pair');
+    expect(stageIndices()).toEqual([0,1]); expect(matrix().webview.html.match(/Empty stage/g)).toHaveLength(2);
+    expect(matrix().webview.html).toContain('continues across hidden stages');
+    await send('reset'); expect(stageIndices()).toHaveLength(9); expect(displayedIds()).toHaveLength(37);
+    expect(matrix().webview.html).toContain(`Product: ${PA} (${PA})`); expect(matrix().webview.html).toContain('Selected requirements: 12');
+    await send('right'); expect(stageIndices()).toHaveLength(9); controller.dispose();
+  });
+  it('resolves exact names and verification parts, rejects unknown search and cancels without clearing focus', async () => {
+    const docs = chainExample(); docs.find(d => d.id === R(2))!.name = 'Named requirement'; docs.find(d => d.id === V(32))!.name = 'Failure evidence';
+    reportHost.scan.mockResolvedValue(reportScan(docs)); const { controller } = await start();
+    reportHost.input.mockResolvedValueOnce('Named requirement'); await send('focus'); expect(matrix().webview.html).toContain(`Focus: ${R(2)}`);
+    reportHost.input.mockResolvedValueOnce('unknown'); await send('focus'); expect(reportHost.warning).toHaveBeenCalled(); expect(matrix().webview.html).toContain(`Focus: ${R(2)}`);
+    reportHost.input.mockResolvedValueOnce(undefined); await send('focus'); expect(matrix().webview.html).toContain(`Focus: ${R(2)}`);
+    reportHost.input.mockResolvedValueOnce(V(32)); reportHost.pick.mockResolvedValueOnce({id:V(32)+'.result'}); await send('focus');
+    expect(matrix().webview.html).toContain(`Focus: ${V(32)}.result`);
+    reportHost.input.mockResolvedValueOnce(''); await send('focus'); expect(displayedIds()).toHaveLength(37); controller.dispose();
+  });
+  it('leaves absent context unselected and reports mismatched product/release and project membership', async () => {
+    const { controller } = await start();
+    for (const [product, release, projectId] of [['', '', ''], [PA, B(2), JA], [PB, B(2), JA]]) {
+      chooseScope(product, release, projectId); await send('scope');
+      expect(matrix().webview.html).toContain('Selected requirements: Unknown');
+      if (!product) expect(matrix().webview.html).toContain('Product: unselected');
+      if (!release) expect(matrix().webview.html).toContain('Release: unselected');
+      if (!projectId) expect(matrix().webview.html).toContain('Project: unselected');
+    }
+    chooseScope(PA,A(2),''); await send('scope'); expect(matrix().webview.html).toContain('Selected requirements: 13');
+    const prior=matrix().webview.html; reportHost.folder.mockResolvedValueOnce(undefined); await send('scope'); expect(matrix().webview.html).toBe(prior);
+    controller.dispose();
+  });
+  it('restores all context state across controller recreation and isolates workspaces, dates and catalogues', async () => {
+    const { controller, storage } = await start();
+    reportHost.input.mockResolvedValueOnce(R(2)); await send('focus'); await send('direction','downstream'); await send('pair'); await send('right');
+    await matrix().send({action:'viewport',viewport:{x:3,y:22,columns:80,columnY:150}});
+    controller.dispose(); const restored = new RequirementChainPreview(storage); await restored.show('matrix');
+    expect(stageIndices()).toEqual([1,2]); expect(matrix().webview.html).toContain(`Focus: ${R(2)} · downstream`);
+    expect(matrix().webview.html).toContain('"columnY":150'); expect(reportHost.folder).toHaveBeenCalledTimes(1);
+    chooseScope(PA,A(2),JA,'2026-09-23'); await send('scope'); expect(stageIndices()).toHaveLength(9);
+    chooseScope(PA,A(2),JA,'2026-09-24','other'); await send('scope'); expect(stageIndices()).toHaveLength(9);
+    chooseScope(); await send('scope'); expect(stageIndices()).toEqual([1,2]);
+    await matrix().send({action:'reset',context:'obsolete'}); expect(stageIndices()).toEqual([1,2]);
+    restored.dispose(); chooseScope(); const isolated = new RequirementChainPreview(memory()); await isolated.show('matrix');
+    expect(stageIndices()).toHaveLength(9); expect(matrix().webview.html).toContain('Focus: selected population'); isolated.dispose();
+  });
+  it('bounds cards and edges, visits every item deterministically and exports the full graph', async () => {
+    const docs = chainExample();
+    for (let n=100;n<225;n++) {
+      const copy = (id: string, next: string, extra: Raw = {}) => docs.push({...docs.find(d=>d.id===id)!,id:next,...extra});
+      copy(R(8),R(n),{level:'system',serves:N(1)});
+      for (const type of ['product_scope','project_scope','required_for']) {
+        const d=docs.find(d=>d.type===type&&d.from===R(8))!; docs.push({...d,id:`REL-LARGE-${type.replace('_','').toUpperCase()}-${n}`,from:R(n)});
+      }
+    }
+    reportHost.scan.mockResolvedValue(reportScan(docs)); const { controller, storage } = await start();
+    const expected = selectRequirementChain(project(docs)); const all = new Set<string>();
+    for(let i=0;i<4;i++) {
+      const current = displayedIds(); expect(current.filter(id=>expected.nodes.find(n=>n.id===id)?.stage===4).length).toBeLessThanOrEqual(40);
+      current.forEach(id=>all.add(id)); await send('page','stage-4:1');
+    }
+    expect([...all].sort()).toEqual(expected.nodes.map(n=>n.id).sort());
+    expect(matrix().webview.html).toContain(`of ${expected.nodes.filter(n=>n.stage===4).length}`);
+    const allEdges = new Set<string>();
+    for (let i=0; i<Math.ceil(expected.edges.length/40); i++) {
+      const edgeIds = [...matrix().webview.html.matchAll(/data-edge="([^"]+)"/g)].map(m=>m[1]);
+      expect(edgeIds.length).toBeLessThanOrEqual(40); edgeIds.forEach(id=>allEdges.add(id)); await send('page','edges:1');
+    }
+    expect([...allEdges].sort()).toEqual(expected.edges.map(e=>e.id).sort());
+    const atEnd=displayedIds(); await send('page','stage-4:1'); expect(displayedIds()).toEqual(atEnd);
+    await send('export'); expect(JSON.parse(reportHost.write.mock.calls[0][1].toString()).projection.populations.selected.ids).toHaveLength(137);
+    controller.dispose(); const restored=new RequirementChainPreview(storage); await restored.show('matrix'); expect(displayedIds()).toEqual(atEnd);
+    await send('page','stage-4:-1'); expect(displayedIds()).not.toEqual(atEnd); restored.dispose();
+  });
+  it.each(['save','create','delete','rename','watch-change','watch-create','watch-delete'])('publishes one changed snapshot to both panels on %s', async event => {
+    const {controller}=await start(); await controller.show('release');
+    const next=reportScan(change(V(32),{outcome:'pass'}),'example-2'); reportHost.scan.mockResolvedValue(next);
+    reportHost.events.get(event)!(); await vi.waitFor(()=>expect(matrix().webview.html).toContain('example-2'));
+    expect(report().webview.html).toContain('example-2'); await send('export');
+    expect(JSON.parse(reportHost.write.mock.calls[0][1].toString()).projection.metrics.failed.ids).toEqual([]); controller.dispose();
+  });
+  it('retains stale data after failure and ignores obsolete refreshes without losing focus', async () => {
+    const {controller}=await start(); await controller.show('release');
+    reportHost.input.mockResolvedValueOnce(R(2)); await send('focus');
+    reportHost.scan.mockRejectedValueOnce(Error('unavailable')); await send('refresh');
+    for(const panel of [matrix(),report()]) expect(panel.webview.html).toContain('STALE: refresh failed');
+    let finish!: (value: ReturnType<typeof reportScan>)=>void;
+    reportHost.scan.mockImplementationOnce(()=>new Promise(resolve=>{finish=resolve;})); const old=controller.refresh();
+    reportHost.scan.mockResolvedValueOnce(reportScan(undefined,'newest')); await controller.refresh(); finish(reportScan(undefined,'old')); await old;
+    for(const panel of [matrix(),report()]) {expect(panel.webview.html).toContain('newest'); expect(panel.webview.html).not.toContain('STALE:');}
+    expect(matrix().webview.html).toContain(`Focus: ${R(2)}`); controller.dispose();
+  });
+  it('keeps out-of-release focus contextual, exposes missing/malformed execution fields and rejects invalid controls', async () => {
+    const docs=change(V(31),{outcome:['pass'],evidence:null});
+    Object.assign(docs.find(d=>d.id===V(32))!,{outcome:undefined});
+    reportHost.scan.mockResolvedValue(reportScan(docs)); const {controller,storage}=await start();
+    expect(matrix().webview.html).toContain('Outcome: malformed'); expect(matrix().webview.html).toContain('Outcome: absent');
+    expect(matrix().webview.html).toContain('Evidence: malformed');
+    reportHost.input.mockResolvedValueOnce(R(10)); await send('focus');
+    expect(matrix().webview.html).toContain('other release or unassigned'); expect(matrix().webview.html).toContain('Context focus; selected counts unchanged');
+    expect(matrix().webview.html).toContain('Selected requirements: 12');
+    const before=displayedIds(); await send('direction','sideways'); await send('page','unknown:1'); await send('page','stage-4:99');
+    expect(displayedIds()).toEqual(before);
+    await matrix().send({action:'viewport',viewport:{x:0,y:-1,columns:0,columnY:0}});
+    const saved=storage.get<any>('requirementChain.views.v1'); expect(Object.values(saved.contexts).every((v:any)=>!v.viewport.matrix)).toBe(true);
+    reportHost.scan.mockResolvedValue(reportScan(docs.filter(d=>d.id!==R(10)),'removed')); await send('refresh');
+    expect(matrix().webview.html).toContain('Focused node is no longer in this snapshot'); controller.dispose();
+  });
+  it('reloads source edits made while both report panels were closed', async () => {
+    const {controller}=await start();
+    (matrix() as any).dispose();
+    reportHost.scan.mockResolvedValue(reportScan(change(R(8),{serves:N(1)}),'reopened'));
+    await controller.show('matrix'); expect(matrix().webview.html).toContain('reopened');
+    await controller.show('release'); expect(report().webview.html).toContain('reopened');
+    await send('export'); expect(JSON.parse(reportHost.write.mock.calls[0][1].toString()).projection.metrics.noSource.ids).toEqual(ids(5,14,15));
+    controller.dispose();
+  });
+  it('wires browser buttons and viewport restoration without posting disabled controls', async () => {
+    const {controller}=await start();
+    const script=matrix().webview.html.match(/<script nonce="[^"]+">([\s\S]*?)<\/script>/)![1];
+    const listeners=new Map<string,(event:any)=>void>(); const messages: unknown[]=[];
+    const columns={scrollLeft:0,scrollTop:0}; let state: unknown;
+    const context={scrollX:4,scrollY:12,acquireVsCodeApi:()=>({getState:()=>undefined,setState:(s:unknown)=>{state=s;},postMessage:(m:unknown)=>messages.push(m)}),
+      requestAnimationFrame:(f:()=>void)=>f(),document:{querySelector:()=>columns,addEventListener:(key:string,f:any)=>listeners.set(key,f)},
+      window:{scrollTo:vi.fn(),addEventListener:(key:string,f:any)=>listeners.set(key,f)}};
+    runInNewContext(script,context); expect(context.window.scrollTo).toHaveBeenCalledWith(0,0);
+    listeners.get('click')!({target:{closest:()=>({disabled:true,dataset:{action:'left'}})}}); expect(messages).toEqual([]);
+    columns.scrollLeft=55; columns.scrollTop=99;
+    listeners.get('scroll')!({}); expect(state).toMatchObject({x:4,y:12,columns:55,columnY:99});
+    listeners.get('click')!({target:{closest:()=>({disabled:false,dataset:{action:'pair',value:''}})}});
+    expect(messages.at(-1)).toMatchObject({action:'pair',value:''});
+    listeners.get('click')!({target:{closest:()=>({disabled:false,dataset:{action:'reset'}})}}); expect(state).toBeUndefined(); controller.dispose();
+  });
+});
