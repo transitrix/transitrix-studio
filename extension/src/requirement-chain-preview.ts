@@ -168,7 +168,13 @@ export class RequirementChainPreview implements vscode.Disposable {
     };
     const count = (s: ChainSet) => s.total === null ? `Unknown (${s.ids.length} known; incomplete)` : String(s.total);
     for (const [kind, panel] of this.panels) {
-      if (!p) { panel.webview.html = '<p>Catalogue unavailable. Use the command again to retry.</p>'; continue; }
+      if (!p) {
+        const nonce = Math.random().toString(36).slice(2);
+        panel.webview.html = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'nonce-${nonce}'"></head><body>
+          <p>Catalogue unavailable. Retry loading or select another scope.</p>${button('scope', 'Select scope')}${button('refresh', 'Refresh')}
+          <script nonce="${nonce}">const api=acquireVsCodeApi();window.addEventListener('click',e=>{const b=e.target.closest('button');if(b&&!b.disabled)api.postMessage({action:b.dataset.action});});</script></body></html>`;
+        continue;
+      }
       const view = selectRequirementChain(p, this.view.focus, this.view.direction);
       const visible = view.nodes.filter(n => this.view.pair === undefined || n.stage === this.view.pair || n.stage === this.view.pair + 1);
       const labels: Record<string, string> = { broken: 'Broken references', noSource: 'No accepted source path', noDefinition: 'No valid verification definition', noResult: 'Verification without applicable executed result', failed: 'Applicable failed verification', unassigned: 'No effective assignment (whole product)' };

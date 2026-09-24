@@ -616,6 +616,15 @@ describe('requirement-chain report controls', () => {
     await send('export'); expect(JSON.parse(reportHost.write.mock.calls[0][1].toString()).projection.metrics.noSource.ids).toEqual(ids(5,14,15));
     controller.dispose();
   });
+  it('allows a new scope when the persisted catalogue is no longer available', async () => {
+    const {controller,storage}=await start(); controller.dispose();
+    reportHost.scan.mockRejectedValueOnce(Error('removed catalogue'));
+    const restored=new RequirementChainPreview(storage); await restored.show('matrix');
+    expect(matrix().webview.html).toContain('Catalogue unavailable'); expect(matrix().webview.html).toContain('data-action="scope"');
+    expect(matrix().webview.html).not.toContain('Selected requirements: 0');
+    chooseScope(PA,A(2),JA,'2026-09-24','replacement'); await send('scope');
+    expect(displayedIds()).toHaveLength(37); expect(matrix().webview.html).toContain('replacement'); restored.dispose();
+  });
   it('wires browser buttons and viewport restoration without posting disabled controls', async () => {
     const {controller}=await start();
     const script=matrix().webview.html.match(/<script nonce="[^"]+">([\s\S]*?)<\/script>/)![1];
