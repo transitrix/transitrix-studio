@@ -75,7 +75,7 @@
     "@resvg/resvg-js": "^2.6.2",
     "@types/js-yaml": "^4.0.9",
     "@types/mocha": "^10.0.10",
-    "@types/node": "^22.20.2",
+    "@types/node": "^22.20.4",
     "@types/pixelmatch": "^5.2.6",
     "@types/pngjs": "^6.0.5",
     "@types/vscode": "^1.138.0",
