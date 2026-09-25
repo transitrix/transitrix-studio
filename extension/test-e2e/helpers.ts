@@ -277,10 +277,13 @@ function installReportDomProbe(webview: vscode.Webview): void {
     set: (html: string) => {
       const nonce = html.match(/<script nonce="([^"]+)"/)?.[1];
       const probe = `<script nonce="${nonce}">
-      window.addEventListener('message', event => {
+      window.addEventListener('message', async event => {
         const m = event.data;
         if (!m || m.probe !== 'report-dom') return;
         try {
+          // Let the report restore its viewport before observing or interacting.
+          // A new document nonce alone does not mean its first frame has run.
+          await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
           const button = m.selector ? document.querySelector(m.selector) : null;
           if (m.op === 'click') {
             if (!button || button.disabled) throw new Error('Missing or disabled button: ' + m.selector);
