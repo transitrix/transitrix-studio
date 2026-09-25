@@ -81,7 +81,7 @@
     "@types/vscode": "^1.138.0",
     "@vscode/test-electron": "^3.1.0",
     "@vscode/vsce": "^3.9.2",
-    "bpmn-js": "^18.28.0",
+    "bpmn-js": "^18.29.1",
     "bpmn-moddle": "^10.1.0",
     "esbuild": "^0.28.2",
     "mocha": "^12.0.2",
