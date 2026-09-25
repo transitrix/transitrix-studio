@@ -157,7 +157,19 @@ Both panels use the same snapshot. Missing membership or failed source reads
 produce incomplete populations with unknown totals and visible known IDs.
 
 The matrix supports exact ID/name focus, independent upstream/downstream walks,
-and adjacent stage pairs. The release report lists the six overlapping quality
+and adjacent stage pairs. Pair arrows move one stage at a time, with position and
+boundary indicators; empty stages and links across hidden stages remain visible.
+Cards display individual verification outcomes and evidence diagnostics. **Open
+record** and link-identity buttons navigate to the contributing source records.
+Stage cards, edges, assignments and findings use pages of 40 with visible totals;
+scroll the columns and use **Next page** to inspect every item. JSON export retains
+the complete projection regardless of the displayed page.
+
+Scope, date, focus, direction, pair position, pages and viewport are saved per
+workspace and context. **Reset** clears focus and presentation state while keeping
+the selected scope. Product, release and project can remain explicitly unselected;
+invalid combinations show diagnostics instead of inferred membership.
+The release report lists the six overlapping quality
 metrics and their requirement contributors; a contributor opens the same matrix.
 **Export shared projection** saves the populations, graph, findings and assignment
 provenance as JSON. Save/create/delete/rename refresh both panels together.
