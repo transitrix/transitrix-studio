@@ -1,5 +1,18 @@
 # Changelog
 
+## CLI 2.10.0-rc.0 / diagrams 1.14.0-rc.0 — Unpublished candidate
+
+### Fixed
+
+- Repository validation enumerates visible and hidden files throughout declared zones. Exactly zero-byte regular `.gitkeep` files receive explicit exclusion accounting; nonempty placeholders and unadmitted Markdown produce diagnostics. Malformed YAML remains an error, and archive and independent-catalogue boundaries are preserved.
+- Corrected the CLI package description encoding.
+
+### Added
+
+- Shared requirement-chain projection for compliance reports, including requirement classification and reverse-index data.
+
+These npm package candidates require review before publication. See the CLI package README for local tarball evaluation. The Studio extension remains at 3.7.4.
+
 ## [3.7.4] — 2026-09-18
 
 ### Fixed

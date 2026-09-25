@@ -51,6 +51,27 @@ PDF compliance export requires WeasyPrint on `PATH`
 
 ## Versioning
 
+### 2.10.0-rc.0 candidate
+
+This unpublished candidate bundles diagrams 1.14.0-rc.0. Repository validation
+accounts for every file in declared zones, including hidden files. Only an
+exactly zero-byte regular `.gitkeep` is excluded as a placeholder, with an
+explicit coverage entry. Nonempty placeholders and unadmitted Markdown are
+reported; malformed YAML remains an error. Archive and independent-catalogue
+boundaries continue to apply.
+
+The candidate also includes the shared requirement-chain projection used by
+compliance reports. It requires review before publication. To evaluate a supplied
+candidate tarball in a temporary project:
+
+```bash
+npm install --ignore-scripts /path/to/transitrix-cli-2.10.0-rc.0.tgz
+npx --no-install transitrix --version
+npx --no-install transitrix validate --scope=repo --root /path/to/model --json --include-model --strict
+```
+
+Existing published versions do not change when this candidate is built.
+
 `@transitrix/cli` ships on its own version line, independent of the
 Transitrix Studio extension and `@transitrix/diagrams`. The first published
 release is `1.0.0`.

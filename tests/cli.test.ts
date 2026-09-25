@@ -1,4 +1,5 @@
 import { spawnSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
@@ -6,6 +7,8 @@ import { describe, it, expect } from 'vitest'
 
 // Spawns the built CLI (dist/cli.js — produced by the `pretest` build step).
 const cliPath = join(dirname(fileURLToPath(import.meta.url)), '..', 'dist', 'cli.js')
+const cliVersion = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version
+const diagramsVersion = JSON.parse(readFileSync(new URL('../packages/diagrams/package.json', import.meta.url), 'utf8')).version
 
 function runCli(args: string[]): { status: number; stdout: string; stderr: string } {
   const r = spawnSync(process.execPath, [cliPath, ...args], { encoding: 'utf8' })
@@ -34,12 +37,12 @@ describe('CLI --version', () => {
   it('exits 0 and reports both the cli and bundled @transitrix/diagrams version', () => {
     const { status, stdout } = runCli(['--version'])
     expect(status).toBe(0)
-    expect(stdout).toMatch(/^transitrix \d+\.\d+\.\d+ \(bundles @transitrix\/diagrams \d+\.\d+\.\d+\)/)
+    expect(stdout.trim()).toBe(`transitrix ${cliVersion} (bundles @transitrix/diagrams ${diagramsVersion})`)
   })
 
   it('-v is an alias for --version', () => {
     const { status, stdout } = runCli(['-v'])
     expect(status).toBe(0)
-    expect(stdout).toMatch(/^transitrix \d+\.\d+\.\d+/)
+    expect(stdout.trim()).toBe(`transitrix ${cliVersion} (bundles @transitrix/diagrams ${diagramsVersion})`)
   })
 })
