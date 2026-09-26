@@ -45,6 +45,9 @@ jobs:
         with:
           node-version: 24
 
+      - name: Check npm channel selection
+        run: node --test scripts/npm-publish-tag.test.mjs
+
       - name: Check release package versions
         env:
           RELEASE_TAG: ${{ github.event.release.tag_name }}
@@ -79,24 +82,27 @@ jobs:
       - name: Build @transitrix/diagrams
         run: npm run build --workspace packages/diagrams
 
+      # Each package selects next for a prerelease and latest for a stable version.
       # Publish order matters: diagrams first, then cli (runbook convention).
       - name: Publish @transitrix/diagrams (skips if version already published)
         run: |
           LOCAL=$(node -p "require('./packages/diagrams/package.json').version")
+          DIST_TAG=$(node scripts/npm-publish-tag.mjs "$LOCAL")
           PUBLISHED=$(npm view "@transitrix/diagrams@$LOCAL" version 2>/dev/null || echo "")
           if [ "$PUBLISHED" = "$LOCAL" ]; then
             echo "@transitrix/diagrams@$LOCAL is already on the registry — skipping."
           else
-            npm publish --workspace packages/diagrams --access public
+            npm publish --workspace packages/diagrams --access public --tag "$DIST_TAG"
           fi
 
       - name: Publish @transitrix/cli (skips if version already published)
         run: |
           LOCAL=$(node -p "require('./packages/cli/package.json').version")
+          DIST_TAG=$(node scripts/npm-publish-tag.mjs "$LOCAL")
           PUBLISHED=$(npm view "@transitrix/cli@$LOCAL" version 2>/dev/null || echo "")
           if [ "$PUBLISHED" = "$LOCAL" ]; then
             echo "@transitrix/cli@$LOCAL is already on the registry — skipping."
           else
             # prepack (scripts/build-cli-package.mjs) assembles dist/ + schemas/.
-            npm publish --workspace packages/cli --access public
+            npm publish --workspace packages/cli --access public --tag "$DIST_TAG"
           fi

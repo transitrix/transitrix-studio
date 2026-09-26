@@ -45,3 +45,7 @@ published:
   - changelog/fragments/repository-notation-coverage.md
   - docs/validation.md
   - changelog/fragments/whole-zone-enumeration.md
+
+  # npm publishing requires channel selection and its fail-closed regression check
+  - scripts/npm-publish-tag.mjs
+  - scripts/npm-publish-tag.test.mjs
