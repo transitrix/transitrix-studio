@@ -39,6 +39,22 @@ describe('renderGoalsSvg', () => {
     expect(svg).toContain('Goal tree — Apollo');
   });
 
+  it.each([false, true])('reserves title space above every node (branched=%s)', (branched) => {
+    const tree: GoalTree = {
+      ...SIMPLE_TREE,
+      goals: branched
+        ? [...SIMPLE_TREE.goals, { id: 3, name: 'Train the crew', type: 'Tactic', level: 1, parent_id: 1 }]
+        : SIMPLE_TREE.goals,
+    };
+    const titled = renderGoalsSvg(tree, { treeName: 'Apollo' });
+    const plain = renderGoalsSvg(tree);
+    const titleY = Number(titled.match(/<text class="text-header"[^>]* y="([\d.]+)"/)![1]);
+    const nodeTops = (svg: string) => [...svg.matchAll(/<rect class="diagram-node[^>]* y="([\d.]+)"/g)].map(m => Number(m[1]));
+    expect(Math.min(...nodeTops(titled)) - titleY).toBeGreaterThanOrEqual(24);
+    expect(Math.min(...nodeTops(plain))).toBe(24);
+    expect(titled.match(/class="diagram-edge"/g)?.length).toBe(tree.goals.length - 1);
+  });
+
   it('escapes user-controlled strings (XML safety)', () => {
     const tree: GoalTree = {
       goal_types: [{ name: 'Strategy', level: 0 }],

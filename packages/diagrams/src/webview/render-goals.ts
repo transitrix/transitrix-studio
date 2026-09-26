@@ -56,7 +56,8 @@ export function renderGoalsSvg(tree: GoalTree, options: RenderGoalsOptions = {})
     ? `<text class="text-header" x="${PAD}" y="${PAD - 6}">${escXml(`Goal tree — ${treeName}`)}</text>`
     : '';
 
-  return renderGoalsLayoutSvg(layout, { curvature, entryCurvature, edgeStyle, title, embedCssTheme: 'transitrix' });
+  // Reserve a separate header row; the theme centers text on its y coordinate.
+  return renderGoalsLayoutSvg(layout, { curvature, entryCurvature, edgeStyle, title, topInset: title ? PAD : 0, embedCssTheme: 'transitrix' });
 }
 
 export interface RenderGoalsLayoutOptions {
