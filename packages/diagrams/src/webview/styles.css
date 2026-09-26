@@ -70,6 +70,14 @@ body {
   margin-left: 6px;
 }
 
+/* The bundled SVG renderer uses its light palette independently of IDE chrome.
+ * Give transparent SVG titles and edges a matching canvas. */
+.tx-svg-host {
+  background: #ffffff;
+  color: #0d2b35;
+  min-height: calc(100vh - 24px);
+}
+
 .tx-svg-host svg {
   max-width: 100%;
   height: auto;

@@ -4,6 +4,7 @@
  * tests are the only place the goals rendering path is exercised on the
  * webview-bundle side of the codebase.
  */
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 import type { GoalTree } from '../../goals/types.js';
@@ -125,4 +126,23 @@ describe('renderGoalsSvg', () => {
     expect(svg).toContain('GOAL-REVENUE-1');
     expect(svg).not.toMatch(/>\s*1\s*</);
   });
+});
+
+// Use the actual emitted title color and shipped host surface, not a mock theme.
+it('keeps the default SVG title readable on the JCEF canvas', () => {
+  const css = readFileSync(new URL('../styles.css', import.meta.url), 'utf8');
+  const svg = renderGoalsSvg(SIMPLE_TREE, { treeName: 'Contrast check' });
+  const foreground = svg.match(/--ts-header-text:(#[0-9a-f]{6})/i)![1];
+  const background = css.match(/\.tx-svg-host\s*\{[^}]*background:\s*(#[0-9a-f]{6})/i)![1];
+  const luminance = (hex: string) => {
+    const channels = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255)
+      .map(c => c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+    return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
+  };
+  const contrast = (a: string, b: string) => {
+    const values = [luminance(a), luminance(b)].sort((x, y) => y - x);
+    return (values[0] + 0.05) / (values[1] + 0.05);
+  };
+  expect(contrast(foreground, background)).toBeGreaterThanOrEqual(4.5);
+  expect(contrast(foreground, '#1e1f22')).toBeLessThan(4.5);
 });
