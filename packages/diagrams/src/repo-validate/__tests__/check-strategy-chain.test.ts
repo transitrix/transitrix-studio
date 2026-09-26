@@ -7,7 +7,7 @@ function el(path: string, data: Record<string, unknown> | null, parseError?: str
 }
 
 function emptyModel(): RepoModelInput {
-  return { elements: [], relations: [] };
+  return { elements: [], relations: [], methodologyVersion: '7.0.0' };
 }
 
 function goal(id: string, extra: Record<string, unknown> = {}): RepoDoc {
@@ -77,7 +77,7 @@ describe('checkStrategyChainSemantics — GOALS-010 (parent cycle)', () => {
   });
 });
 
-describe('checkStrategyChainSemantics — ACT-006 (predecessor cycle) / ACT-007 (self-predecessor)', () => {
+describe('checkStrategyChainSemantics — ACTION-008 (predecessor cycle) / ACTION-009 (self-predecessor)', () => {
   it('flags a predecessor cycle', () => {
     const model = emptyModel();
     model.elements.push(
@@ -86,7 +86,7 @@ describe('checkStrategyChainSemantics — ACT-006 (predecessor cycle) / ACT-007 
     );
     const findings = validateRepoModel(model);
     expect(findings).toHaveLength(1);
-    expect(findings[0]).toMatchObject({ scope: 'repo', ruleId: 'ACT-006' });
+    expect(findings[0]).toMatchObject({ scope: 'repo', ruleId: 'ACTION-008' });
   });
 
   it('does not flag an acyclic predecessor chain', () => {
@@ -100,42 +100,42 @@ describe('checkStrategyChainSemantics — ACT-006 (predecessor cycle) / ACT-007 
     model.elements.push(action('ACTION-SELF-1', { predecessors: ['ACTION-SELF-1'] }));
     const findings = validateRepoModel(model);
     const ruleIds = findings.map((f) => f.ruleId).sort();
-    expect(ruleIds).toEqual(['ACT-006', 'ACT-007']);
+    expect(ruleIds).toEqual(['ACTION-008', 'ACTION-009']);
     expect(findings.every((f) => f.id === 'ACTION-SELF-1')).toBe(true);
   });
 
-  it('flags ACT-005 for an unresolved predecessor (orphan — warning)', () => {
+  it('flags ACTION-007 for an unresolved predecessor (orphan — warning)', () => {
     const model = emptyModel();
     model.elements.push(action('ACTION-A-1', { predecessors: ['ACTION-MISSING'] }));
     const findings = validateRepoModel(model);
     expect(findings).toEqual([
-      expect.objectContaining({ scope: 'repo', id: 'ACTION-A-1', ruleId: 'ACT-005', severity: 'warning' }),
+      expect.objectContaining({ scope: 'repo', id: 'ACTION-A-1', ruleId: 'ACTION-007', severity: 'warning' }),
     ]);
   });
 
-  it('flags ACT-005 for an unresolved parent (orphan — warning)', () => {
+  it('flags ACTION-007 for an unresolved parent (orphan — warning)', () => {
     const model = emptyModel();
     model.elements.push(action('ACTION-A-1', { parent: 'ACTION-MISSING' }));
     const findings = validateRepoModel(model);
     expect(findings).toEqual([
-      expect.objectContaining({ scope: 'repo', id: 'ACTION-A-1', ruleId: 'ACT-005', severity: 'warning' }),
+      expect.objectContaining({ scope: 'repo', id: 'ACTION-A-1', ruleId: 'ACTION-007', severity: 'warning' }),
     ]);
   });
 
-  it('does not flag ACT-005 for a resolved predecessor/parent', () => {
+  it('does not flag ACTION-007 for a resolved predecessor/parent', () => {
     const model = emptyModel();
     model.elements.push(action('ACTION-ROOT-1'), action('ACTION-CHILD-1', { parent: 'ACTION-ROOT-1', predecessors: ['ACTION-ROOT-1'] }));
-    expect(validateRepoModel(model).filter((f) => f.ruleId === 'ACT-005')).toEqual([]);
+    expect(validateRepoModel(model).filter((f) => f.ruleId === 'ACTION-007')).toEqual([]);
   });
 });
 
-describe('checkStrategyChainSemantics — ACT-008 (dates)', () => {
+describe('checkStrategyChainSemantics — ACTION-010 (dates)', () => {
   it('flags end_date before start_date', () => {
     const model = emptyModel();
     model.elements.push(action('ACTION-A-1', { start_date: '2026-06-01', end_date: '2026-05-01' }));
     const findings = validateRepoModel(model);
     expect(findings).toHaveLength(1);
-    expect(findings[0]).toMatchObject({ scope: 'repo', id: 'ACTION-A-1', ruleId: 'ACT-008' });
+    expect(findings[0]).toMatchObject({ scope: 'repo', id: 'ACTION-A-1', ruleId: 'ACTION-010' });
     expect(findings[0].message).toContain('before');
   });
 
@@ -150,7 +150,7 @@ describe('checkStrategyChainSemantics — ACT-008 (dates)', () => {
     model.elements.push(action('ACTION-A-1', { start_date: '2026-02-30' }));
     const findings = validateRepoModel(model);
     expect(findings).toHaveLength(1);
-    expect(findings[0]).toMatchObject({ ruleId: 'ACT-008' });
+    expect(findings[0]).toMatchObject({ ruleId: 'ACTION-010' });
     expect(findings[0].message).toContain('not a valid');
   });
 
@@ -159,7 +159,7 @@ describe('checkStrategyChainSemantics — ACT-008 (dates)', () => {
     model.elements.push(action('ACTION-A-1', { end_date: '06/01/2026' }));
     const findings = validateRepoModel(model);
     expect(findings).toHaveLength(1);
-    expect(findings[0]).toMatchObject({ ruleId: 'ACT-008' });
+    expect(findings[0]).toMatchObject({ ruleId: 'ACTION-010' });
   });
 
   it('does not flag an action with no dates at all', () => {
@@ -169,13 +169,13 @@ describe('checkStrategyChainSemantics — ACT-008 (dates)', () => {
   });
 });
 
-describe('checkStrategyChainSemantics — ACT-009 (negative numeric fields)', () => {
+describe('checkStrategyChainSemantics — ACTION-011 (negative numeric fields)', () => {
   it('flags a negative duration', () => {
     const model = emptyModel();
     model.elements.push(action('ACTION-A-1', { duration: -3 }));
     const findings = validateRepoModel(model);
     expect(findings).toHaveLength(1);
-    expect(findings[0]).toMatchObject({ ruleId: 'ACT-009' });
+    expect(findings[0]).toMatchObject({ ruleId: 'ACTION-011' });
   });
 
   it('flags a negative duration_days (the field acme_corp actually uses)', () => {
@@ -183,7 +183,7 @@ describe('checkStrategyChainSemantics — ACT-009 (negative numeric fields)', ()
     model.elements.push(action('ACTION-A-1', { duration_days: -3 }));
     const findings = validateRepoModel(model);
     expect(findings).toHaveLength(1);
-    expect(findings[0]).toMatchObject({ ruleId: 'ACT-009' });
+    expect(findings[0]).toMatchObject({ ruleId: 'ACTION-011' });
   });
 
   it('flags a negative labor_cost / resources_cost / effort / score independently', () => {
@@ -193,7 +193,7 @@ describe('checkStrategyChainSemantics — ACT-009 (negative numeric fields)', ()
     );
     const findings = validateRepoModel(model);
     expect(findings).toHaveLength(4);
-    expect(findings.every((f) => f.ruleId === 'ACT-009')).toBe(true);
+    expect(findings.every((f) => f.ruleId === 'ACTION-011')).toBe(true);
   });
 
   it('does not flag non-negative numeric fields', () => {

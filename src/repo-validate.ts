@@ -1,3 +1,4 @@
+import { readMethodologyVersion } from './methodology-version.js';
 // `transitrix validate --scope=repo` handler (vkgeorgia/transitrix-studio#141).
 //
 // Lives in its own module — separate from cli.ts — because it imports the
@@ -156,7 +157,7 @@ export function loadRepoModel(root: string): RepoModelInput {
   try {
     entries = modelPaths(root, 'canon').paths.map(p => path.relative('canon', p));
   } catch {
-    return { elements, relations };
+    return { elements, relations, methodologyVersion: readMethodologyVersion(root) };
   }
 
   for (const rel of entries) {
@@ -171,7 +172,7 @@ export function loadRepoModel(root: string): RepoModelInput {
     }
   }
 
-  return { elements, relations };
+  return { elements, relations, methodologyVersion: readMethodologyVersion(root) };
 }
 
 /** A per-file notation finding from sweeping canon/views/**
@@ -207,6 +208,7 @@ export interface RepoScopeResult {
 }
 
 export interface RepoValidateContext {
+  methodologyVersion?: string;
   catalog: ComplianceScanResult['catalog'];
   complianceCanon: ComplianceScanResult['complianceCanon'];
   pathById: ComplianceScanResult['pathById'];
@@ -360,13 +362,13 @@ function completeRepoCoverage(
         || (file.startsWith('canon/relations/') && notation === 'relation');
       if (inViews) {
         record.status = result.views.some(f => f.file === file && f.ruleId === 'PARSE')
-          ? 'failed' : result.skipped.some(s => s.file === file) ? 'unvalidated' : 'validated';
+          ? 'failed' : (result.skipped.some(s => s.file === file) || result.views.some(f => f.file === file && f.ruleId === 'NOTATION-SKIP-001')) ? 'unvalidated' : 'validated';
       } else if (swept || canonChecked || (file.startsWith('codex/') && notation === 'codex')) {
         record.status = 'validated';
       } else {
         const standalone = VALIDATOR_REGISTRATIONS.find(r => r.notation === notation && !r.canonicalViewExtension);
         if (standalone) {
-          for (const finding of validateNotationDoc(notation, data, { catalog: ctx.catalog, filePath: file }).findings) {
+          for (const finding of validateNotationDoc(notation, data, { catalog: ctx.catalog, filePath: file, methodologyVersion: ctx.methodologyVersion }).findings) {
             result.views.push({ file, notation, ...finding });
           }
           record.status = 'validated';
@@ -376,7 +378,7 @@ function completeRepoCoverage(
       }
       if (record.status === 'unvalidated' && !result.skipped.some(s => s.file === file)) {
         result.skipped.push({ file, notation });
-        result.views.push(unvalidatedFinding(file, notation));
+        if (!result.views.some(f => f.file === file && f.ruleId === 'NOTATION-SKIP-001')) result.views.push(unvalidatedFinding(file, notation));
       }
     } catch (e) {
       record.status = 'failed';
@@ -424,6 +426,7 @@ export function buildRepoValidateContext(root: string): RepoValidateContext {
   const scan = buildComplianceScan(loadComplianceYamlDocs(root));
   return {
     catalog: scan.catalog,
+    methodologyVersion: readMethodologyVersion(root),
     complianceCanon: scan.complianceCanon,
     pathById: scan.pathById,
   };
@@ -708,6 +711,7 @@ export function runViewValidate(
 
     const validateOpts = {
       catalog: ctx?.catalog,
+      methodologyVersion: ctx?.methodologyVersion,
       processParentEdges:
         notation === 'process-blueprint'
           ? collectInEffectProcessParentEdges(ensureRepoModel())

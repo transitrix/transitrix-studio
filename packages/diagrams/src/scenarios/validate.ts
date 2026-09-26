@@ -38,6 +38,11 @@ export function validateScenario(input: unknown): ValidationResult {
   }
   if (errors.length > 0) return { valid: false, errors, warnings };
 
+  if (('view_config' in raw || 'view' in raw) && !('scenario' in raw)) {
+    return { valid: true, errors, warnings: [{ code: 'NOTATION-SKIP-001',
+      message: 'scenarios projection form is unsupported and remains unvalidated.' }] };
+  }
+
   const scn = raw['scenario'];
   if (!scn || typeof scn !== 'object') {
     errors.push({ code: 'SCN-002', message: 'Missing required field: scenario' });

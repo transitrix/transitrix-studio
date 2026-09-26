@@ -26,20 +26,25 @@ export function validateProductsCatalogue(input: unknown): ValidationResult {
 
   if (errors.length > 0) return { valid: false, errors, warnings };
 
+  if (('view_config' in raw || 'view' in raw) && !('products_catalogue' in raw)) {
+    return { valid: true, errors, warnings: [{ code: 'NOTATION-SKIP-001',
+      message: 'products projection form is unsupported and remains unvalidated.' }] };
+  }
+
   // PROD-002: catalogue header fields
   const cat = (raw['products_catalogue'] ?? {}) as Record<string, unknown>;
   if (!raw['products_catalogue'] || typeof raw['products_catalogue'] !== 'object') {
-    errors.push({ code: 'PROD-002', message: 'Missing required field: products_catalogue' });
+    errors.push({ code: 'SCHEMA_INVALID', message: 'Missing required field: products_catalogue' });
     return { valid: false, errors, warnings };
   }
   if (!cat['id'] || typeof cat['id'] !== 'string' || !(cat['id'] as string).trim()) {
     errors.push({ code: 'PROD-002', message: 'products_catalogue.id is required' });
   }
   if (!cat['name'] || typeof cat['name'] !== 'string' || !(cat['name'] as string).trim()) {
-    errors.push({ code: 'PROD-002', message: 'products_catalogue.name is required' });
+    errors.push({ code: 'SCHEMA_INVALID', message: 'products_catalogue.name is required' });
   }
   if (!cat['updated_at'] || typeof cat['updated_at'] !== 'string') {
-    errors.push({ code: 'PROD-002', message: 'products_catalogue.updated_at is required' });
+    errors.push({ code: 'SCHEMA_INVALID', message: 'products_catalogue.updated_at is required' });
   }
 
   if (errors.length > 0) return { valid: false, errors, warnings };
@@ -51,7 +56,7 @@ export function validateProductsCatalogue(input: unknown): ValidationResult {
 
   const products = cat['products'];
   if (!Array.isArray(products)) {
-    errors.push({ code: 'PROD-002', message: 'products_catalogue.products must be an array' });
+    errors.push({ code: 'SCHEMA_INVALID', message: 'products_catalogue.products must be an array' });
     return { valid: false, errors, warnings };
   }
 

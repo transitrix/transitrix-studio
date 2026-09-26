@@ -49,7 +49,7 @@ suite, see below):
   (self-reference, error) and `REL-008` (cycle in the child→parent graph,
   warning). lint.py ships this phase as a no-op stub; Studio is ahead of the
   Python tool here — these findings are TypeScript-only.
-- **Strategy-chain semantics** (`GOALS-009`..`011`, `ACT-005`..`009`,
+- **Strategy-chain semantics** (`GOALS-009`..`011`, `ACTION-007`..`011`,
   `FGCA-008`..`014`) — see below.
 - **Standalone-element envelope hygiene** (`GOAL-ELEM-002`/`003`,
   `ACTION-001`/`002`/`005`) — see below.
@@ -98,11 +98,11 @@ DSM's own `Issue.Severity` classification for that rule.
 | `GOALS-009` | warning | A GOAL's `parent` is set but does not resolve to a known GOAL (orphan). |
 | `GOALS-010` | error | A GOAL element's `parent` chain contains a cycle. |
 | `GOALS-011` | warning | A GOAL has no `parent` and `level` >= 1 (backlog — untethered from the tree until attached). |
-| `ACT-005` | warning | An ACTION's `predecessors` entry, or its `parent`, does not resolve to a known ACTION (orphan). |
-| `ACT-006` | error | An ACTION element's `predecessors` graph contains a cycle. |
-| `ACT-007` | error | An ACTION element lists itself in its own `predecessors`. |
-| `ACT-008` | error | An ACTION element's `start_date`/`end_date` is not a valid `YYYY-MM-DD` date, or `end_date` is before `start_date` (equal is allowed — e.g. a milestone). |
-| `ACT-009` | error | An ACTION element's `duration` (or the `duration_days` alias), `labor_cost`, `resources_cost`, `effort`, or `score` is negative. |
+| `ACTION-007` | warning | An ACTION's `predecessors` entry, or its `parent`, does not resolve to a known ACTION (orphan). |
+| `ACTION-008` | error | An ACTION element's `predecessors` graph contains a cycle. |
+| `ACTION-009` | error | An ACTION element lists itself in its own `predecessors`. |
+| `ACTION-010` | error | An ACTION element's `start_date`/`end_date` is not a valid `YYYY-MM-DD` date, or `end_date` is before `start_date` (equal is allowed — e.g. a milestone). |
+| `ACTION-011` | error | An ACTION element's `duration` (or the `duration_days` alias), `labor_cost`, `resources_cost`, `effort`, or `score` is negative under a methodology 7.0.0-or-later manifest. |
 | `FGCA-008` | error | A GOAL's `factors` references a DRIVER id that does not resolve to a DRIVER element. |
 | `FGCA-009` | error | A CHANGE's `goals` references a GOAL id that does not resolve to a GOAL element. |
 | `FGCA-010` | error | An ACTION's `delivers_changes` references a CHANGE id that does not resolve to a CHANGE element. |
@@ -1267,3 +1267,28 @@ Association rules govern the `associations` array in the process DSL, which conn
     "hint": "Verify the source element ID is correct and exists in the process"
   }
   ```
+
+### ACTION diagnostic compatibility
+
+Canonical and supported inline ACTION records use `ACTION-007` through
+`ACTION-011` for unresolved references, predecessor cycles, self references,
+planned dates, and negative numbers. Schedule `ACT-009` is the missing-anchor
+warning. Historical diagnostics are not rewritten or globally aliased.
+
+Negative values in `duration`, `duration_days`, `labor_cost`, `resources_cost`,
+`effort`, and `score` produce `ACTION-011` only when the catalogue's
+`transitrix.yaml` selects methodology 7.0.0 or later. Absent pins preserve earlier
+numeric compatibility. A document's `spec_version` does not select this boundary.
+Both duration fields are checked; scheduling still prefers `duration`.
+`sort` has no new sign restriction. Scores and sort values must be integers;
+other numeric fields allow finite fractions. Only duration fields allow null.
+Type violations use `SCHEMA_INVALID`, including non-array predecessors.
+
+Products and scenarios projections remain explicitly unvalidated, with
+`NOTATION-SKIP-001`; strict validation rejects them. Inline shape validation
+remains available. Missing external codex jurisdiction/effective date uses
+`CODEX-002`, not the retired identity.
+
+Inline DGCA requires nonempty collections (`DGCA-004`); array shape errors
+retain `FGCA-004`. The Changes layer may be disabled. Resolved projections may
+select empty collections without inheriting the inline nonempty requirement.

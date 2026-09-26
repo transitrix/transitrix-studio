@@ -1,3 +1,5 @@
+import { dirname } from 'node:path';
+import { readMethodologyVersion } from './methodology-version.js';
 // File-scope validation for diagram notations.
 // Group C (compliance suite): #518 Phase C1–C2.
 //
@@ -144,10 +146,13 @@ export function validateNotationDoc(
   data: unknown,
   options: ValidateNotationOptions = {},
 ): ValidationReport {
-  const result = VALIDATORS[notation](data, options);
+  const result = VALIDATORS[notation](data, {
+    ...options,
+    methodologyVersion: options.methodologyVersion ?? (options.filePath ? readMethodologyVersion(dirname(options.filePath)) : undefined),
+  });
   const findings: ValidationFinding[] = [
     ...result.errors.map(
-      (e): ValidationFinding => ({ ruleId: e.code, severity: 'error', message: e.message }),
+      (e): ValidationFinding => ({ ruleId: e.code, severity: 'error', message: e.code === 'SCHEMA_INVALID' ? `${options.filePath ?? notation}: ${notation}: ${e.message}` : e.message }),
     ),
     ...result.warnings.map(
       (w): ValidationFinding => ({ ruleId: w.code, severity: 'warning', message: w.message }),

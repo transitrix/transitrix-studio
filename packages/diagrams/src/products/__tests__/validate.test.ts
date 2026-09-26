@@ -52,10 +52,10 @@ describe('validateProductsCatalogue', () => {
     expect(r.errors.some(e => e.code === 'PROD-001')).toBe(true);
   });
 
-  it('PROD-002: rejects missing products_catalogue', () => {
+  it('SCHEMA_INVALID: rejects missing products_catalogue', () => {
     const r = validateProductsCatalogue({ notation: 'products' });
     expect(r.valid).toBe(false);
-    expect(r.errors.some(e => e.code === 'PROD-002')).toBe(true);
+    expect(r.errors.some(e => e.code === 'SCHEMA_INVALID')).toBe(true);
   });
 
   it('PROD-002: rejects missing catalogue id', () => {
@@ -65,25 +65,25 @@ describe('validateProductsCatalogue', () => {
     expect(r.errors.some(e => e.code === 'PROD-002' && e.message.includes('id'))).toBe(true);
   });
 
-  it('PROD-002: rejects missing catalogue name', () => {
+  it('SCHEMA_INVALID: rejects missing catalogue name', () => {
     const cat = { ...VALID_CATALOGUE.products_catalogue, name: '   ' };
     const r = validateProductsCatalogue({ ...VALID_CATALOGUE, products_catalogue: cat });
     expect(r.valid).toBe(false);
-    expect(r.errors.some(e => e.code === 'PROD-002' && e.message.includes('name'))).toBe(true);
+    expect(r.errors.some(e => e.code === 'SCHEMA_INVALID' && e.message.includes('name'))).toBe(true);
   });
 
-  it('PROD-002: rejects missing updated_at', () => {
+  it('SCHEMA_INVALID: rejects missing updated_at', () => {
     const { updated_at: _, ...cat } = VALID_CATALOGUE.products_catalogue;
     const r = validateProductsCatalogue({ ...VALID_CATALOGUE, products_catalogue: cat });
     expect(r.valid).toBe(false);
-    expect(r.errors.some(e => e.code === 'PROD-002' && e.message.includes('updated_at'))).toBe(true);
+    expect(r.errors.some(e => e.code === 'SCHEMA_INVALID' && e.message.includes('updated_at'))).toBe(true);
   });
 
-  it('PROD-002: rejects non-array products', () => {
+  it('SCHEMA_INVALID: rejects non-array products', () => {
     const cat = { ...VALID_CATALOGUE.products_catalogue, products: 'not-an-array' };
     const r = validateProductsCatalogue({ ...VALID_CATALOGUE, products_catalogue: cat });
     expect(r.valid).toBe(false);
-    expect(r.errors.some(e => e.code === 'PROD-002')).toBe(true);
+    expect(r.errors.some(e => e.code === 'SCHEMA_INVALID')).toBe(true);
   });
 
   it('PROD-003: rejects missing product_id', () => {
