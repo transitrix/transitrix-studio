@@ -121,11 +121,32 @@ jobs:
       - name: Update release notes with attestation verification command
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag }}
+          RELEASE_ID: ${{ steps.release.outputs.release-id }}
         shell: bash
         run: |
-          tag="${{ inputs.tag }}"
+          tag="$RELEASE_TAG"
+          if ! [[ "$RELEASE_ID" =~ ^[1-9][0-9]*$ ]]; then
+            echo "::error::missing or invalid release ID"
+            exit 1
+          fi
+          endpoint="/repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID"
+          verify_identity() {
+            # Require exactly one complete release object, including on readback.
+            if ! jq -es --arg id "$RELEASE_ID" --arg tag "$tag" --arg target "$GITHUB_SHA" '
+              length == 1 and (.[0] |
+                type == "object" and
+                (.id | type == "number") and (.id | tostring) == $id and
+                .tag_name == $tag and .target_commitish == $target and .draft == true)
+            ' <<<"$1" > /dev/null; then
+              echo "::error::release identity is missing or differs from the verified draft"
+              exit 1
+            fi
+          }
+
           vsix_name="transitrix-studio-${tag#v}.vsix"
-          release=$(gh api "/repos/${{ github.repository }}/releases/${{ steps.release.outputs.release-id }}")
+          release=$(gh api "$endpoint")
+          verify_identity "$release"
           current_body=$(echo "$release" | jq -r '.body')
           if ! echo "$current_body" | grep -q "gh attestation verify"; then
             extra=$(printf '%s\n' \
@@ -142,6 +163,10 @@ jobs:
               '' \
               'This release includes a Software Bill of Materials (SBOM) in CycloneDX format listing all components and dependencies. Download sbom.xml to audit the release contents.')
             new_body="${current_body}${extra}"
-            gh api -X PATCH "/repos/${{ github.repository }}/releases/${{ steps.release.outputs.release-id }}" \
-              -f body="$new_body"
+            gh api -X PATCH "$endpoint" \
+              -f body="$new_body" -f tag_name="$tag" \
+              -f target_commitish="$GITHUB_SHA" -F draft=true > /dev/null
           fi
+          release=$(gh api "$endpoint")
+          verify_identity "$release"
+          echo "Verified release identity after notes update"

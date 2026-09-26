@@ -115,7 +115,7 @@ export async function waitFor(
  */
 export async function captureWebviewPanels<T>(
   fn: () => Promise<T>,
-  opts: { settleMs?: number } = {},
+  opts: { settleMs?: number; reportDom?: boolean } = {},
 ): Promise<{ result: T; panels: vscode.WebviewPanel[] }> {
   // 15s, not a few hundred ms: `autoOpenPreviewForDocument` runs
   // fire-and-forget off `onDidChangeActiveTextEditor` (see extension.ts) —
@@ -135,6 +135,7 @@ export async function captureWebviewPanels<T>(
   (win as any).createWebviewPanel = (...args: unknown[]) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const panel = (original as any).apply(win, args);
+    if (opts.reportDom && String(args[0]).startsWith('requirementChain-')) installReportDomProbe(panel.webview);
     panels.push(panel);
     return panel;
   };
@@ -260,4 +261,82 @@ export async function withRequirementChainScope<T>(root: string, product: string
   win.showInputBox = (async () => asAt) as typeof input;
   try { return await fn(); }
   finally { win.showOpenDialog = open; win.showQuickPick = pick; win.showInputBox = input; }
+}
+
+/** Test-only DOM probe injected into the packaged report's real Chromium webview.
+ * It observes rendered DOM and clicks existing buttons; no controller is replaced.
+ */
+function installReportDomProbe(webview: vscode.Webview): void {
+  let owner: object | null = webview;
+  while (owner && !Object.getOwnPropertyDescriptor(owner, 'html')) owner = Object.getPrototypeOf(owner);
+  const descriptor = owner && Object.getOwnPropertyDescriptor(owner, 'html');
+  if (!descriptor?.get || !descriptor.set) throw new Error('Webview HTML accessor unavailable');
+  Object.defineProperty(webview, 'html', {
+    configurable: true,
+    get: () => descriptor.get!.call(webview),
+    set: (html: string) => {
+      const nonce = html.match(/<script nonce="([^"]+)"/)?.[1];
+      const probe = `<script nonce="${nonce}">
+      window.addEventListener('message', async event => {
+        const m = event.data;
+        if (!m || m.probe !== 'report-dom') return;
+        try {
+          // Let the report restore its viewport before observing or interacting.
+          // A new document nonce alone does not mean its first frame has run.
+          await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+          const button = m.selector ? document.querySelector(m.selector) : null;
+          if (m.op === 'click') {
+            if (!button || button.disabled) throw new Error('Missing or disabled button: ' + m.selector);
+            button.click();
+          }
+          if (m.op === 'scroll') { const c = document.querySelector('.columns'); c.scrollLeft = m.x; c.dispatchEvent(new Event('scroll')); }
+          api.postMessage({probe: 'report-dom', id: m.id, value: {
+            render: document.querySelector('script[nonce]').nonce,
+            text: document.body.innerText,
+            nodes: Array.from(document.querySelectorAll('[data-node]')).map(n => n.dataset.node),
+            contributors: Array.from(document.querySelectorAll('[data-contributor]')).map(n => n.dataset.contributor),
+            stages: Array.from(document.querySelectorAll('[data-stage]')).map(n => Number(n.dataset.stage)),
+            counts: Object.fromEntries(Array.from(document.querySelectorAll('[data-count]')).map(n => [n.dataset.count, n.querySelector('button').textContent])),
+            disabled: Array.from(document.querySelectorAll('button:disabled')).map(n => n.dataset.action),
+            scroll: document.querySelector('.columns')?.scrollLeft || 0
+          }});
+        } catch (error) { api.postMessage({probe: 'report-dom', id: m.id, error: String(error)}); }
+      });</script>`;
+      descriptor.set!.call(webview, nonce ? html.replace('</body>', probe + '</body>') : html);
+    },
+  });
+}
+
+export interface ReportDom {
+  render: string; text: string; nodes: string[]; contributors: string[]; stages: number[];
+  counts: Record<string, string>; disabled: string[]; scroll: number;
+}
+let probeSerial = 0;
+export async function reportDom(panel: vscode.WebviewPanel, op = 'read', selector?: string, x?: number): Promise<ReportDom> {
+  panel.reveal(undefined, true);
+  const id = ++probeSerial;
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => { subscription.dispose(); reject(new Error('Report DOM probe timed out')); }, 15000);
+    const subscription = panel.webview.onDidReceiveMessage(m => {
+      if (m?.probe !== 'report-dom' || m.id !== id) return;
+      clearTimeout(timer); subscription.dispose();
+      if (m.error) reject(new Error(m.error)); else resolve(m.value);
+    });
+    // A read may safely retry while Chromium loads a freshly rendered document.
+    const message = { probe: 'report-dom', id, op, selector, x };
+    void panel.webview.postMessage(message);
+    if (op === 'read') {
+      const retry = setInterval(() => { void panel.webview.postMessage(message); }, 100);
+      const stop = panel.webview.onDidReceiveMessage(m => {
+        if (m?.probe === 'report-dom' && m.id === id) { clearInterval(retry); stop.dispose(); }
+      });
+      setTimeout(() => { clearInterval(retry); stop.dispose(); }, 15000);
+    }
+  });
+}
+
+export async function withReportInput<T>(value: string, fn: () => Promise<T>): Promise<T> {
+  const win = extensionWindow(), original = win.showInputBox;
+  win.showInputBox = (async () => value) as typeof original;
+  try { return await fn(); } finally { win.showInputBox = original; }
 }

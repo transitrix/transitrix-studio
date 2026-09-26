@@ -152,7 +152,7 @@ Created and maintained by [Valerii Korobeinikov](https://github.com/vkgeorgia).
 
 Run **Transitrix: Traceability Matrix** or **Transitrix: Requirements by Release**
 from the VS Code command palette. Select a catalogue folder containing
-`transitrix.yaml`, a product, a release, an optional project, and an as-at date.
+`transitrix.yaml`, a product, one of its releases, an optional project, and an as-at date.
 Both panels use the same snapshot. Missing membership or failed source reads
 produce incomplete populations with unknown totals and visible known IDs.
 
@@ -169,8 +169,20 @@ Scope, date, focus, direction, pair position, pages and viewport are saved per
 workspace and context. **Reset** clears focus and presentation state while keeping
 the selected scope. Product, release and project can remain explicitly unselected;
 invalid combinations show diagnostics instead of inferred membership.
-The release report lists the six overlapping quality
-metrics and their requirement contributors; a contributor opens the same matrix.
+In the release report, click any stage, population or quality-metric count to
+open its exact contributor list, then **Open in matrix** for the selected record.
+The matrix preserves scope, date, snapshot and reason, with both trace directions
+visible. Product/release navigation leaves project unselected unless you choose it.
+The six quality categories overlap and must not be summed into a defect total.
+Counts are distinct IDs, never completion or coverage percentages. The first five
+metrics and requirement stages use the release/project intersection; no effective
+release assignment and its stage breakdown always use the whole product, at the
+same date, across all its modelled releases. Other-release-only, invalid assignments
+and unresolved membership are separate. Reference slots, unattributable findings
+and context nodes have separate units and clickable lists. Direct obligations
+attach to the selected release; inherited obligations retain their predecessor
+and relation identities. Verification outcomes are never inherited or aggregated
+into a single success verdict.
 **Export shared projection** saves the populations, graph, findings and assignment
 provenance as JSON. Save/create/delete/rename refresh both panels together.
 The header identifies the content digest, available Git base revision and date;
