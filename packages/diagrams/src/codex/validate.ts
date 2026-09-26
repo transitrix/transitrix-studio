@@ -2,7 +2,7 @@
 //
 // CODEX-001 — shape, zone, id grammar, admission envelope.
 // CODEX-002 — `type` field matches the id TYPE prefix when present.
-// CODEX-003 — external artefact frontmatter (jurisdiction, effective_date).
+// CODEX-002 — external artefact frontmatter (jurisdiction, effective_date).
 // CODEX-004 — internal artefact frontmatter (issuing_authority, effective_date for
 //             POLICY/INTERNAL_STANDARD; statement, rationale for PRINCIPLE — §4.1).
 // CODEX-005 — jurisdiction must match the parent folder under codex/external/
@@ -92,7 +92,7 @@ export function validateCodex(input: unknown, options: CodexValidateOptions = {}
   if (artefactType && (EXTERNAL_CODEX_TYPES as readonly string[]).includes(artefactType)) {
     const jurisdiction = typeof c.jurisdiction === 'string' ? c.jurisdiction.trim() : '';
     if (!jurisdiction) {
-      errors.push({ code: 'CODEX-003', message: 'jurisdiction is required for external codex artefacts.', path: 'jurisdiction' });
+      errors.push({ code: 'CODEX-002', message: 'jurisdiction is required for external codex artefacts.', path: 'jurisdiction' });
     } else if (options.folderJurisdiction && jurisdiction.toLowerCase() !== options.folderJurisdiction.toLowerCase()) {
       errors.push({
         code: 'CODEX-005',
@@ -101,7 +101,7 @@ export function validateCodex(input: unknown, options: CodexValidateOptions = {}
       });
     }
     if (typeof c.effective_date !== 'string' || c.effective_date.trim() === '') {
-      errors.push({ code: 'CODEX-003', message: 'effective_date is required for external codex artefacts.', path: 'effective_date' });
+      errors.push({ code: 'CODEX-002', message: 'effective_date is required for external codex artefacts.', path: 'effective_date' });
     }
   }
 

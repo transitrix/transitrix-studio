@@ -111,13 +111,13 @@ export function collectImpactViewResolutionFindings(
       const t = catalog.typeOf(id);
       if (t === undefined) {
         findings.push({
-          code: 'COMPIMP-REF',
+          code: 'COMPIMP-003',
           severity: 'error',
           message: `${path}: "${id}" does not resolve to an admitted artefact.`,
         });
       } else if (t !== expectedType) {
         findings.push({
-          code: 'COMPIMP-REF',
+          code: 'COMPIMP-003',
           severity: 'error',
           message: `${path}: "${id}" resolves to ${t}, not ${expectedType}.`,
         });
@@ -129,7 +129,7 @@ export function collectImpactViewResolutionFindings(
     const t = catalog.typeOf(id);
     if (t === undefined || t !== 'REQUIREMENT') {
       findings.push({
-        code: 'COMPIMP-REF',
+        code: 'COMPIMP-003',
         severity: 'error',
         message: `obligations.include: "${id}" does not resolve to an admitted REQUIREMENT.`,
       });
@@ -139,7 +139,7 @@ export function collectImpactViewResolutionFindings(
   for (const id of config.obligations.filter?.derived_from_codex ?? []) {
     if (!codexIds.has(id)) {
       findings.push({
-        code: 'COMPIMP-REF',
+        code: 'COMPIMP-003',
         severity: 'error',
         message: `obligations.filter.derived_from_codex: "${id}" does not resolve to an admitted codex artefact.`,
       });

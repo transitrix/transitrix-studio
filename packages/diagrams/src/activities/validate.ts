@@ -1,3 +1,4 @@
+import { validateActionFields } from './action-fields.js';
 import type {
   ActivityDoc,
   Activity,
@@ -7,6 +8,11 @@ import type {
 } from './types.js';
 import { isObject, str, reachesRootViaParent } from '../canon-resolver-utils.js';
 import { ACT_021_OMITTED_KEY } from './resolver.js';
+
+function validDate(value: string): boolean {
+  const date = new Date(value);
+  return DATE_RE.test(value) && Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value;
+}
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const VALID_WEEKDAYS = new Set(['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']);
@@ -61,7 +67,7 @@ function collectAct021FromAuthored(
   return out;
 }
 
-export function validateActivities(input: unknown): ActivityValidationResult {
+export function validateActivities(input: unknown, options: { methodologyVersion?: string } = {}): ActivityValidationResult {
   const errors: ActivityValidationError[] = [];
   const warnings: ActivityValidationWarning[] = [];
 
@@ -104,7 +110,7 @@ export function validateActivities(input: unknown): ActivityValidationResult {
     warnings.push(...collectAct021FromAuthored(raw, rawArray));
   }
 
-  // ACT-014 / ACT-015: project.calendar validation (run before per-activity loop;
+  // ACT-007 / ACT-008: project.calendar validation (run before per-activity loop;
   // surfaces clearly even when activities also have issues).
   if (raw.project && typeof raw.project === 'object') {
     const project = raw.project as Record<string, unknown>;
@@ -113,7 +119,7 @@ export function validateActivities(input: unknown): ActivityValidationResult {
       const calendar = cal as Record<string, unknown>;
       if (calendar.working_days !== undefined) {
         if (!Array.isArray(calendar.working_days)) {
-          errors.push({ code: 'ACT-014', message: 'project.calendar.working_days must be an array of weekday names', path: 'project.calendar.working_days' });
+          errors.push({ code: 'ACT-007', message: 'project.calendar.working_days must be an array of weekday names', path: 'project.calendar.working_days' });
         } else {
           const seen = new Set<string>();
           for (let i = 0; i < calendar.working_days.length; i++) {
@@ -121,13 +127,13 @@ export function validateActivities(input: unknown): ActivityValidationResult {
             const day = typeof raw === 'string' ? raw.toLowerCase() : '';
             if (!VALID_WEEKDAYS.has(day)) {
               errors.push({
-                code: 'ACT-014',
+                code: 'ACT-007',
                 message: `project.calendar.working_days[${i}] "${String(raw)}" must be one of: mon, tue, wed, thu, fri, sat, sun`,
                 path: `project.calendar.working_days[${i}]`,
               });
             } else if (seen.has(day)) {
               errors.push({
-                code: 'ACT-014',
+                code: 'ACT-007',
                 message: `project.calendar.working_days has duplicate entry "${day}"`,
                 path: `project.calendar.working_days[${i}]`,
               });
@@ -139,13 +145,13 @@ export function validateActivities(input: unknown): ActivityValidationResult {
       }
       if (calendar.holidays !== undefined) {
         if (!Array.isArray(calendar.holidays)) {
-          errors.push({ code: 'ACT-015', message: 'project.calendar.holidays must be an array of ISO 8601 dates', path: 'project.calendar.holidays' });
+          errors.push({ code: 'ACT-008', message: 'project.calendar.holidays must be an array of ISO 8601 dates', path: 'project.calendar.holidays' });
         } else {
           for (let i = 0; i < calendar.holidays.length; i++) {
             const h = calendar.holidays[i];
-            if (typeof h !== 'string' || !DATE_RE.test(h)) {
+            if (typeof h !== 'string' || !validDate(h)) {
               errors.push({
-                code: 'ACT-015',
+                code: 'ACT-008',
                 message: `project.calendar.holidays[${i}] "${String(h)}" must be an ISO 8601 date (YYYY-MM-DD)`,
                 path: `project.calendar.holidays[${i}]`,
               });
@@ -204,15 +210,8 @@ export function validateActivities(input: unknown): ActivityValidationResult {
       idSet.add(id);
     }
 
-    // ACT-009: non-negative numeric fields
-    const numericFields = ['duration', 'duration_days', 'labor_cost', 'resources_cost', 'effort', 'score', 'sort'] as const;
-    for (const field of numericFields) {
-      const val = act[field];
-      if (val !== undefined && val !== null) {
-        if (typeof val !== 'number' || val < 0) {
-          errors.push({ code: 'ACT-009', message: `Activity "${id}" field "${field}" must be a non-negative number, got ${String(val)}`, path });
-        }
-      }
+    for (const error of validateActionFields(act, options.methodologyVersion)) {
+      errors.push({ ...error, message: `Inline action actions[${i}].${error.path}: ${error.message}`, path: `actions[${i}].${error.path}` });
     }
 
     // ACT-011: warn if no duration (duration_days is accepted as an alias)
@@ -229,19 +228,23 @@ export function validateActivities(input: unknown): ActivityValidationResult {
     const a = doc.activities[i];
     const path = `activities[${i}]`;
 
-    // ACT-007: self-loop
+    // ACTION-009: self-loop
     if (Array.isArray(a.predecessors) && a.predecessors.includes(a.id)) {
-      errors.push({ code: 'ACT-007', message: `Activity "${a.id}" lists itself as a predecessor`, path });
+      errors.push({ code: 'ACTION-009', message: `Activity "${a.id}" lists itself as a predecessor`, path });
     }
 
-    // ACT-005: predecessor existence (intra-document)
+    if (typeof a.parent === 'string' && !idSet.has(a.parent)) {
+      warnings.push({ code: 'ACTION-007', message: `Action "${a.id}" parent "${a.parent}" does not resolve`, path: `${path}.parent` });
+    }
+
+    // ACTION-007: predecessor existence (intra-document)
     for (const predId of (a.predecessors ?? [])) {
       if (!idSet.has(predId)) {
-        errors.push({ code: 'ACT-005', message: `Activity "${a.id}" references unknown predecessor "${predId}"`, path });
+        warnings.push({ code: 'ACTION-007', message: `Activity "${a.id}" references unknown predecessor "${predId}"`, path });
       }
     }
 
-    // ACT-008: date format validation + end_date >= start_date.
+    // ACTION-010: date format validation + end_date >= start_date.
     // The orchestrator's pre-release review flagged that the raw lexicographic
     // string compare is only correct for strict YYYY-MM-DD, with no format
     // check applied. Now we validate the format first; the order compare runs
@@ -249,28 +252,28 @@ export function validateActivities(input: unknown): ActivityValidationResult {
     // be misleading).
     let startValid = true;
     let endValid = true;
-    if (a.start_date !== undefined) {
-      if (typeof a.start_date !== 'string' || !DATE_RE.test(a.start_date)) {
-        errors.push({ code: 'ACT-008', message: `Activity "${a.id}" start_date "${String(a.start_date)}" must be ISO 8601 YYYY-MM-DD`, path });
+    if (a.start_date !== undefined && a.start_date !== null) {
+      if (typeof a.start_date !== 'string' || !validDate(a.start_date)) {
+        errors.push({ code: 'ACTION-010', message: `Activity "${a.id}" start_date "${String(a.start_date)}" must be ISO 8601 YYYY-MM-DD`, path });
         startValid = false;
       }
     }
-    if (a.end_date !== undefined) {
-      if (typeof a.end_date !== 'string' || !DATE_RE.test(a.end_date)) {
-        errors.push({ code: 'ACT-008', message: `Activity "${a.id}" end_date "${String(a.end_date)}" must be ISO 8601 YYYY-MM-DD`, path });
+    if (a.end_date !== undefined && a.end_date !== null) {
+      if (typeof a.end_date !== 'string' || !validDate(a.end_date)) {
+        errors.push({ code: 'ACTION-010', message: `Activity "${a.id}" end_date "${String(a.end_date)}" must be ISO 8601 YYYY-MM-DD`, path });
         endValid = false;
       }
     }
     if (a.start_date && a.end_date && startValid && endValid) {
       if (a.end_date < a.start_date) {
-        errors.push({ code: 'ACT-008', message: `Activity "${a.id}" end_date "${a.end_date}" is before start_date "${a.start_date}"`, path });
+        errors.push({ code: 'ACTION-010', message: `Activity "${a.id}" end_date "${a.end_date}" is before start_date "${a.start_date}"`, path });
       }
     }
   }
 
   if (errors.length > 0) return { valid: false, errors, warnings };
 
-  // ACT-006: no cycles
+  // ACTION-008: no cycles
   const cycleError = detectCycle(doc.activities);
   if (cycleError) errors.push(cycleError);
 
@@ -375,7 +378,7 @@ export function validateActivities(input: unknown): ActivityValidationResult {
     }
   }
 
-  // ACT-019: Gantt view will not render when neither project.start_date nor
+  // ACT-009: Gantt view will not render when neither project.start_date nor
   // any per-activity pinned date pair is present. Network view is unaffected.
   const hasProjectStart = typeof doc.project?.start_date === 'string' && doc.project.start_date.length > 0;
   const hasPinnedActivity = doc.activities.some(
@@ -383,7 +386,7 @@ export function validateActivities(input: unknown): ActivityValidationResult {
   );
   if (!hasProjectStart && !hasPinnedActivity) {
     warnings.push({
-      code: 'ACT-019',
+      code: 'ACT-009',
       message: 'Gantt view will not render: project.start_date is absent and no activity has both start_date and end_date pinned. Network view is unaffected.',
     });
   }
@@ -408,7 +411,7 @@ function detectCycle(activities: Activity[]): ActivityValidationError | null {
   for (const a of activities) inDegree.set(a.id, 0);
   for (const a of activities) {
     for (const pred of (a.predecessors ?? [])) {
-      inDegree.set(a.id, (inDegree.get(a.id) ?? 0) + 1);
+      if (successors.has(pred)) inDegree.set(a.id, (inDegree.get(a.id) ?? 0) + 1);
     }
   }
 
@@ -430,7 +433,7 @@ function detectCycle(activities: Activity[]): ActivityValidationError | null {
 
   if (processed < activities.length) {
     const cycleNodes = activities.filter(a => (inDegree.get(a.id) ?? 0) > 0).map(a => a.id);
-    return { code: 'ACT-006', message: `Cycle detected in activity dependency graph involving: ${cycleNodes.join(', ')}` };
+    return { code: 'ACTION-008', message: `Cycle detected in activity dependency graph involving: ${cycleNodes.join(', ')}` };
   }
   return null;
 }

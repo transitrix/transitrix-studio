@@ -1,3 +1,4 @@
+import { validateActionFields } from '../activities/action-fields.js';
 // Strategy-chain semantic checks — the error-severity subset of DSM's Go
 // `Validate*` functions (`api02/internal/importer/{goals,activities,fgca}.go`
 // in transitrix-dsm), ported onto the standalone-element repo shape
@@ -5,9 +6,8 @@
 // can drop those Go functions without regressing the checks they enforce
 // today.
 //
-// Rule codes are DSM's own (`GOALS-010`, `ACT-006`..`009`, `FGCA-008`..`011`)
-// — not invented here — so DSM can map a CLI finding straight back onto its
-// import-log taxonomy (`RepoFinding.ruleId`).
+// ACTION identities follow the versioned element contract; schedule ACT codes
+// remain separate. Stored historical findings must retain their original codes.
 //
 // Scope — DSM's full rule set is now ported except GOALS-008 (see below).
 // `RepoFinding` grew a `severity` field precisely so DSM's warn-severity
@@ -43,20 +43,20 @@
 //
 // Ported (error-severity, blocking):
 //   GOALS-010 — GOAL `parent` chain contains a cycle.
-//   ACT-006   — ACTION `predecessors` graph contains a cycle.
-//   ACT-007   — ACTION lists itself as its own predecessor.
-//   ACT-008   — ACTION `start_date`/`end_date` unparseable, or end before start.
-//   ACT-009   — ACTION numeric field (`duration`/`duration_days`, `labor_cost`,
+//   ACTION-008   — ACTION `predecessors` graph contains a cycle.
+//   ACTION-009   — ACTION lists itself as its own predecessor.
+//   ACTION-010   — ACTION `start_date`/`end_date` unparseable, or end before start.
+//   ACTION-011   — ACTION numeric field (`duration`/`duration_days`, `labor_cost`,
 //               `resources_cost`, `effort`, `score`) is negative.
-//   FGCA-008  — GOAL.factors references an undefined DRIVER.
-//   FGCA-009  — CHANGE.goals references an undefined GOAL.
-//   FGCA-010  — ACTION.delivers_changes references an undefined CHANGE.
-//   FGCA-011  — ACTION.goals references an undefined GOAL.
+//   DGCA-REPO-008  — GOAL.factors references an undefined DRIVER.
+//   DGCA-REPO-009  — CHANGE.goals references an undefined GOAL.
+//   DGCA-REPO-010  — ACTION.delivers_changes references an undefined CHANGE.
+//   DGCA-REPO-011  — ACTION.goals references an undefined GOAL.
 //
 // Ported (warning-severity, advisory):
 //   GOALS-009 — GOAL.parent is set but does not resolve to a known GOAL (orphan).
 //   GOALS-011 — GOAL has no `parent` and `level` >= 1 (backlog).
-//   ACT-005   — ACTION.predecessors entry or ACTION.parent does not resolve
+//   ACTION-007   — ACTION.predecessors entry or ACTION.parent does not resolve
 //               to a known ACTION (orphan).
 //   FGCA-012  — a DRIVER is not referenced by any GOAL.factors (unreferenced).
 //   FGCA-013  — a GOAL is not referenced by any CHANGE.goals or ACTION.goals
@@ -244,34 +244,34 @@ function checkGoalParentResolution(goals: ChainElement[], findings: RepoFinding[
   }
 }
 
-/** ACT-007 — an ACTION cannot list itself as its own predecessor. */
+/** ACTION-009 — an ACTION cannot list itself as its own predecessor. */
 function checkActionSelfPredecessor(actions: ChainElement[], findings: RepoFinding[]): void {
   for (const a of actions) {
     if (readStringArray(a.data, 'predecessors').includes(a.id)) {
       findings.push({
         scope: PScope,
         id: a.id,
-        ruleId: 'ACT-007',
-        message: `ACT-007: action '${a.id}' lists itself as a predecessor.`,
+        ruleId: 'ACTION-009',
+        message: `ACTION-009: action '${a.id}' lists itself as a predecessor.`,
       });
     }
   }
 }
 
-/** ACT-006 — the ACTION `predecessors` graph must not contain a cycle. */
+/** ACTION-008 — the ACTION `predecessors` graph must not contain a cycle. */
 function checkActionPredecessorCycle(actions: ChainElement[], findings: RepoFinding[]): void {
   const cyc = findPredecessorCycle(actions);
   if (cyc) {
     findings.push({
       scope: PScope,
       id: cyc,
-      ruleId: 'ACT-006',
-      message: `ACT-006: predecessor graph contains a cycle involving action '${cyc}'.`,
+      ruleId: 'ACTION-008',
+      message: `ACTION-008: predecessor graph contains a cycle involving action '${cyc}'.`,
     });
   }
 }
 
-/** ACT-005 — an ACTION `predecessors` entry or `parent` that does not resolve
+/** ACTION-007 — an ACTION `predecessors` entry or `parent` that does not resolve
  *  to a known ACTION is an orphan reference (warning — advisory in DSM, same
  *  as the goal-parent orphan checks above). */
 function checkActionOrphanReferences(actions: ChainElement[], findings: RepoFinding[]): void {
@@ -282,9 +282,9 @@ function checkActionOrphanReferences(actions: ChainElement[], findings: RepoFind
         findings.push({
           scope: PScope,
           id: a.id,
-          ruleId: 'ACT-005',
+          ruleId: 'ACTION-007',
           severity: 'warning',
-          message: `ACT-005: action '${a.id}' predecessor '${p}' does not resolve to a known action.`,
+          message: `ACTION-007: action '${a.id}' predecessor '${p}' does not resolve to a known action.`,
         });
       }
     }
@@ -293,9 +293,9 @@ function checkActionOrphanReferences(actions: ChainElement[], findings: RepoFind
       findings.push({
         scope: PScope,
         id: a.id,
-        ruleId: 'ACT-005',
+        ruleId: 'ACTION-007',
         severity: 'warning',
-        message: `ACT-005: action '${a.id}' parent '${parent}' does not resolve to a known action.`,
+        message: `ACTION-007: action '${a.id}' parent '${parent}' does not resolve to a known action.`,
       });
     }
   }
@@ -316,34 +316,34 @@ function parseIsoDate(value: string): Date | undefined {
   return dt;
 }
 
-/** ACT-008 — `start_date`/`end_date` must be valid ISO dates, and `end_date`
+/** ACTION-010 — `start_date`/`end_date` must be valid ISO dates, and `end_date`
  *  must not be before `start_date` (equal is allowed — e.g. a milestone). */
 function checkActionDates(actions: ChainElement[], findings: RepoFinding[]): void {
   for (const a of actions) {
-    const startRaw = readString(a.data, 'start_date');
-    const endRaw = readString(a.data, 'end_date');
+    const startRaw = a.data.start_date == null ? undefined : a.data.start_date;
+    const endRaw = a.data.end_date == null ? undefined : a.data.end_date;
     let start: Date | undefined;
     let end: Date | undefined;
 
     if (startRaw !== undefined) {
-      start = parseIsoDate(startRaw);
+      start = typeof startRaw === 'string' ? parseIsoDate(startRaw) : undefined;
       if (!start) {
         findings.push({
           scope: PScope,
           id: a.id,
-          ruleId: 'ACT-008',
-          message: `ACT-008: action '${a.id}' start_date '${startRaw}' is not a valid YYYY-MM-DD date.`,
+          ruleId: 'ACTION-010',
+          message: `ACTION-010: action '${a.id}' start_date '${startRaw}' is not a valid YYYY-MM-DD date.`,
         });
       }
     }
     if (endRaw !== undefined) {
-      end = parseIsoDate(endRaw);
+      end = typeof endRaw === 'string' ? parseIsoDate(endRaw) : undefined;
       if (!end) {
         findings.push({
           scope: PScope,
           id: a.id,
-          ruleId: 'ACT-008',
-          message: `ACT-008: action '${a.id}' end_date '${endRaw}' is not a valid YYYY-MM-DD date.`,
+          ruleId: 'ACTION-010',
+          message: `ACTION-010: action '${a.id}' end_date '${endRaw}' is not a valid YYYY-MM-DD date.`,
         });
       }
     }
@@ -351,36 +351,24 @@ function checkActionDates(actions: ChainElement[], findings: RepoFinding[]): voi
       findings.push({
         scope: PScope,
         id: a.id,
-        ruleId: 'ACT-008',
-        message: `ACT-008: action '${a.id}' end_date '${endRaw}' is before start_date '${startRaw}'.`,
+        ruleId: 'ACTION-010',
+        message: `ACTION-010: action '${a.id}' end_date '${endRaw}' is before start_date '${startRaw}'.`,
       });
     }
   }
 }
 
-/** ACT-009 — numeric scheduling/cost fields must not be negative. `duration`
- *  and `duration_days` are both checked — the canonical field is `duration`
- *  (elements/24-action.md §2), but `duration_days` is an accepted alias in
- *  this codebase's document-form validator (activities/validate.ts) and is
- *  the field acme_corp's own ACTION elements actually use. */
-function checkActionNegativeNumbers(actions: ChainElement[], findings: RepoFinding[]): void {
-  const fields = ['duration', 'duration_days', 'labor_cost', 'resources_cost', 'effort', 'score'] as const;
+/** Shared ACTION type and versioned numeric checks. */
+function checkActionFields(actions: ChainElement[], findings: RepoFinding[], version?: string): void {
   for (const a of actions) {
-    for (const field of fields) {
-      const v = readFiniteNumber(a.data, field);
-      if (v !== undefined && v < 0) {
-        findings.push({
-          scope: PScope,
-          id: a.id,
-          ruleId: 'ACT-009',
-          message: `ACT-009: action '${a.id}' field '${field}' is negative (${v}).`,
-        });
-      }
+    for (const error of validateActionFields(a.data, version)) {
+      findings.push({ scope: PScope, id: a.id, ruleId: error.code,
+        message: `${a.doc.path}: canonical action '${a.id}' ${error.message}` });
     }
   }
 }
 
-/** FGCA-008..011 — inline strategy-chain cross-references must resolve within
+/** DGCA-REPO-008..011 — inline strategy-chain cross-references must resolve within
  *  the repo: GOAL.factors -> DRIVER, CHANGE.goals -> GOAL, ACTION.goals ->
  *  GOAL, ACTION.delivers_changes -> CHANGE (ELEMENT_PRIMITIVES.md §7.1-§7.4). */
 function checkStrategyChainReferences(
@@ -400,8 +388,8 @@ function checkStrategyChainReferences(
         findings.push({
           scope: PScope,
           id: g.id,
-          ruleId: 'FGCA-008',
-          message: `FGCA-008: goal '${g.id}' references undefined driver '${f}'.`,
+          ruleId: 'DGCA-REPO-008',
+          message: `DGCA-REPO-008: goal '${g.id}' references undefined driver '${f}'.`,
         });
       }
     }
@@ -412,8 +400,8 @@ function checkStrategyChainReferences(
         findings.push({
           scope: PScope,
           id: c.id,
-          ruleId: 'FGCA-009',
-          message: `FGCA-009: change '${c.id}' references undefined goal '${g}'.`,
+          ruleId: 'DGCA-REPO-009',
+          message: `DGCA-REPO-009: change '${c.id}' references undefined goal '${g}'.`,
         });
       }
     }
@@ -424,8 +412,8 @@ function checkStrategyChainReferences(
         findings.push({
           scope: PScope,
           id: a.id,
-          ruleId: 'FGCA-010',
-          message: `FGCA-010: action '${a.id}' references undefined change '${c}'.`,
+          ruleId: 'DGCA-REPO-010',
+          message: `DGCA-REPO-010: action '${a.id}' references undefined change '${c}'.`,
         });
       }
     }
@@ -434,8 +422,8 @@ function checkStrategyChainReferences(
         findings.push({
           scope: PScope,
           id: a.id,
-          ruleId: 'FGCA-011',
-          message: `FGCA-011: action '${a.id}' references undefined goal '${g}'.`,
+          ruleId: 'DGCA-REPO-011',
+          message: `DGCA-REPO-011: action '${a.id}' references undefined goal '${g}'.`,
         });
       }
     }
@@ -505,8 +493,8 @@ function checkStrategyChainOrphans(
 }
 
 /**
- * Run the strategy-chain semantic checks (GOALS-009..011, ACT-005..009,
- * FGCA-008..014 except GOALS-008 — see the module header) over the loaded
+ * Run the strategy-chain semantic checks (GOALS-009..011, ACTION-007..011,
+ * DGCA-REPO-008..014 except GOALS-008 — see the module header) over the loaded
  * element set and append findings. Called from `validateRepoModel` after the
  * structural phases. Pure, deterministic order.
  */
@@ -522,7 +510,24 @@ export function checkStrategyChainSemantics(input: RepoModelInput, findings: Rep
   checkActionPredecessorCycle(actions, findings);
   checkActionOrphanReferences(actions, findings);
   checkActionDates(actions, findings);
-  checkActionNegativeNumbers(actions, findings);
+  checkActionFields(actions, findings, input.methodologyVersion);
   checkStrategyChainReferences(goals, actions, drivers, changes, findings);
-  checkStrategyChainOrphans(goals, actions, drivers, changes, findings);
+  if (!usesCoverageObservations(input)) checkStrategyChainOrphans(goals, actions, drivers, changes, findings);
+}
+
+
+function usesCoverageObservations(input: RepoModelInput): boolean {
+  return /^\d+\./.test(input.methodologyVersion ?? '') && Number(input.methodologyVersion!.split('.')[0]) >= 5;
+}
+
+/** Removed FGCA orphan rules become visible coverage observations, not new aliases. */
+export function collectStrategyCoverageObservations(input: RepoModelInput): Array<{id: string; kind: 'unreferenced'; message: string}> {
+  if (!usesCoverageObservations(input)) return [];
+  const findings: RepoFinding[] = [];
+  checkStrategyChainOrphans(
+    collectByNotation(input.elements, isGoalNotation),
+    collectByNotation(input.elements, isActionNotation),
+    collectByNotation(input.elements, isDriverNotation),
+    collectByNotation(input.elements, isChangeNotation), findings);
+  return findings.map(f => ({ id: f.id, kind: 'unreferenced', message: f.message.replace(/^FGCA-01[234]: /, '') }));
 }

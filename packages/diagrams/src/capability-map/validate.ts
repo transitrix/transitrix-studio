@@ -1,3 +1,5 @@
+import type { ResolvedCapabilityAttributes } from './resolve-maturity.js';
+import { schemaFinding } from '../schema-finding.js';
 import type { CapabilityType } from './types.js';
 import type { ValidationError, ValidationWarning, ValidationResult } from '../validation-types.js';
 
@@ -11,31 +13,25 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 // canonical prefix do not break; migration is tracked separately.
 const CAP_ID_RE = /^(CAPABILITY-)?(V|H)\d+(\.\d+)*$/;
 
-export function validateCapabilityMap(input: unknown): ValidationResult {
+export function validateCapabilityMap(input: unknown, options: { resolvedAttributes?: ReadonlyMap<string, ResolvedCapabilityAttributes> } = {}): ValidationResult {
   const errors: ValidationError[] = [];
   const warnings: ValidationWarning[] = [];
 
-  if (!input || typeof input !== 'object') {
-    return { valid: false, errors: [{ code: 'CMAP-001', message: 'Input must be an object' }], warnings };
+  if (!input || typeof input !== 'object' || Array.isArray(input)) {
+    return { valid: false, errors: [schemaFinding('capability-map inline', '$', 'mapping', input)], warnings };
   }
   const raw = input as Record<string, unknown>;
 
-  // HDR-001/002 — DSM's own rule codes for the same header check CMAP-001
-  // already makes (api02/internal/importer/capabilities.go ValidateCapMap),
-  // added alongside it (not instead of it) so DSM can map a finding straight
-  // back onto its own import-log taxonomy while CMAP-001 stays the richer,
-  // pre-existing Studio-native code for this notation's own validator.
+  // Shared header rules have precedence over generic schema findings.
   if (!('notation' in raw)) {
-    errors.push({ code: 'CMAP-001', message: 'Missing required field: notation' });
     errors.push({ code: 'HDR-001', message: 'notation field is missing' });
   } else if (raw['notation'] !== 'capability-map') {
-    errors.push({ code: 'CMAP-001', message: `notation must be "capability-map", got "${raw['notation']}"` });
     errors.push({ code: 'HDR-002', message: `notation must be "capability-map", got "${raw['notation']}"` });
   }
   if (errors.length > 0) return { valid: false, errors, warnings };
 
   const map = raw['capability_map'];
-  if (!map || typeof map !== 'object') {
+  if (!map || typeof map !== 'object' || Array.isArray(map)) {
     errors.push({ code: 'CMAP-002', message: 'Missing required field: capability_map' });
     return { valid: false, errors, warnings };
   }
@@ -51,7 +47,7 @@ export function validateCapabilityMap(input: unknown): ValidationResult {
   if (errors.length > 0) return { valid: false, errors, warnings };
 
   if (!DATE_RE.test(m['assessment_date'] as string))
-    errors.push({ code: 'CMAP-007', message: `capability_map.assessment_date must be YYYY-MM-DD, got "${m['assessment_date']}"` });
+    errors.push(schemaFinding('capability-map inline', 'capability_map.assessment_date', 'YYYY-MM-DD string', m['assessment_date']));
 
   const caps = m['capabilities'];
   if (!Array.isArray(caps)) {
@@ -60,7 +56,7 @@ export function validateCapabilityMap(input: unknown): ValidationResult {
   }
 
   const seenIds = new Set<string>();
-  validateCapabilityTree(caps, 'capabilities', errors, seenIds);
+  validateCapabilityTree(caps, 'capabilities', errors, seenIds, warnings, options.resolvedAttributes);
 
   return { valid: errors.length === 0, errors, warnings };
 }
@@ -70,57 +66,65 @@ function validateCapabilityTree(
   pathPrefix: string,
   errors: ValidationError[],
   seenIds: Set<string>,
+  warnings: ValidationWarning[],
+  resolved?: ReadonlyMap<string, ResolvedCapabilityAttributes>,
 ): void {
   for (let i = 0; i < nodes.length; i++) {
     const rawNode = nodes[i];
     const nodePath = `${pathPrefix}[${i}]`;
 
-    if (!rawNode || typeof rawNode !== 'object') {
-      errors.push({ code: 'CMAP-003', message: `${nodePath} must be an object` });
+    if (!rawNode || typeof rawNode !== 'object' || Array.isArray(rawNode)) {
+      errors.push(schemaFinding('capability-map inline', `${nodePath}`, 'mapping', rawNode));
       continue;
     }
     const node = rawNode as Record<string, unknown>;
 
     if (!node['id'] || typeof node['id'] !== 'string' || !(node['id'] as string).trim()) {
-      errors.push({ code: 'CMAP-003', message: `${nodePath}: id is required` });
+      errors.push(schemaFinding('capability-map inline', `${nodePath}.id`, 'nonempty string', node['id']));
     } else {
       const id = node['id'] as string;
       if (seenIds.has(id)) {
-        errors.push({ code: 'CMAP-008', message: `Duplicate capability id: "${id}"` });
+        errors.push(schemaFinding('capability-map inline', `${nodePath}.id`, 'unique identifier', node['id']));
       }
       seenIds.add(id);
       if (!CAP_ID_RE.test(id)) {
-        errors.push({ code: 'CMAP-009', message: `${nodePath}: id "${id}" must match the canonical pattern CAPABILITY-V[n] or CAPABILITY-H[n] with optional .n segments (e.g. CAPABILITY-V1, CAPABILITY-V1.2, CAPABILITY-H1.3); the bare V[n] / H[n] form is also accepted for legacy compatibility` });
+        errors.push(schemaFinding('capability-map inline', `${nodePath}.id`, 'CAPABILITY-V[n] / CAPABILITY-H[n] (legacy V[n] / H[n]) with optional .n segments', node['id']));
       }
     }
 
     if (!node['name'] || typeof node['name'] !== 'string' || !(node['name'] as string).trim())
-      errors.push({ code: 'CMAP-003', message: `${nodePath}: name is required` });
+      errors.push(schemaFinding('capability-map inline', `${nodePath}.name`, 'nonempty string', node['name']));
 
-    if (node['current_maturity'] === undefined) {
-      errors.push({ code: 'CMAP-003', message: `${nodePath}: current_maturity is required` });
+    for (const field of ['current_maturity', 'target_maturity', 'target_date', 'owner_role']) {
+      if (node[field] !== undefined) errors.push({code: 'VERSIONED-004', path: `${nodePath}.${field}`,
+        message: `${nodePath}.${field} belongs in ${String(node['id'])}.history.yaml, not inline.`});
+    }
+    const currentMaturity = node['current_maturity'] ?? resolved?.get(String(node['id']))?.current_maturity;
+    if (currentMaturity === undefined && resolved === undefined) {
+      warnings.push({code: 'NOTATION-SKIP-001', path: `${nodePath}.current_maturity`,
+        message: `${nodePath}.current_maturity cannot be checked without the capability sidecar catalogue; this file remains unvalidated.`});
     } else {
-      const cm = node['current_maturity'];
+      const cm = currentMaturity;
       if (typeof cm !== 'number' || !Number.isInteger(cm) || cm < 1 || cm > 5)
-        errors.push({ code: 'CMAP-005', message: `${nodePath}: current_maturity must be an integer 1–5, got "${cm}"` });
+        errors.push(schemaFinding('capability-map inline', `${nodePath}.current_maturity`, 'integer in 1–5 from the sidecar at the assessment date', currentMaturity));
     }
 
     if (node['target_maturity'] !== undefined) {
       const tm = node['target_maturity'];
       if (typeof tm !== 'number' || !Number.isInteger(tm) || tm < 1 || tm > 5)
-        errors.push({ code: 'CMAP-006', message: `${nodePath}: target_maturity must be an integer 1–5, got "${tm}"` });
+        errors.push(schemaFinding('capability-map inline', `${nodePath}.target_maturity`, 'integer in 1–5', node['target_maturity']));
     }
 
     if (node['type'] !== undefined && !VALID_TYPES.has(node['type'] as CapabilityType))
-      errors.push({ code: 'CMAP-004', message: `${nodePath}: type "${node['type']}" must be one of: domain, supporting` });
+      errors.push(schemaFinding('capability-map inline', `${nodePath}.type`, `one of ${[...VALID_TYPES].join(", ")}`, node['type']));
 
     if (node['target_date'] !== undefined) {
       if (typeof node['target_date'] !== 'string' || !DATE_RE.test(node['target_date'] as string))
-        errors.push({ code: 'CMAP-007', message: `${nodePath}: target_date must be YYYY-MM-DD, got "${node['target_date']}"` });
+        errors.push(schemaFinding('capability-map inline', `${nodePath}.target_date`, 'YYYY-MM-DD string', node['target_date']));
     }
 
     if (node['applications'] !== undefined && !Array.isArray(node['applications']))
-      errors.push({ code: 'CMAP-003', message: `${nodePath}: applications must be an array` });
+      errors.push(schemaFinding('capability-map inline', `${nodePath}.applications`, 'array', node['applications']));
 
     // LIFECYCLE-001/004 — DSM's own rule codes (capabilities.go
     // ValidateCapMap/validateCapMapNodes) for `valid_from`/`valid_to`, the
@@ -157,9 +161,9 @@ function validateCapabilityTree(
 
     if (node['children'] !== undefined) {
       if (!Array.isArray(node['children'])) {
-        errors.push({ code: 'CMAP-003', message: `${nodePath}: children must be an array` });
+        errors.push(schemaFinding('capability-map inline', `${nodePath}.children`, 'array', node['children']));
       } else {
-        validateCapabilityTree(node['children'] as unknown[], `${nodePath}.children`, errors, seenIds);
+        validateCapabilityTree(node['children'] as unknown[], `${nodePath}.children`, errors, seenIds, warnings, resolved);
       }
     }
   }

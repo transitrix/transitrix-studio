@@ -92,9 +92,9 @@ describe('validateCodex', () => {
     expect(r.errors.some((e) => e.code === 'CODEX-002')).toBe(true);
   });
 
-  it('CODEX-003 requires jurisdiction on external artefacts', () => {
+  it('CODEX-002 requires jurisdiction on external artefacts', () => {
     const r = validateCodex({ ...VALID_EXTERNAL, jurisdiction: '' });
-    expect(r.errors.some((e) => e.code === 'CODEX-003' && e.path === 'jurisdiction')).toBe(true);
+    expect(r.errors.some((e) => e.code === 'CODEX-002' && e.path === 'jurisdiction')).toBe(true);
   });
 
   it('CODEX-005 enforces folder jurisdiction match', () => {

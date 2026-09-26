@@ -1,3 +1,6 @@
+import { resolveCapabilityAttributes } from '@transitrix/diagrams/capability-map/resolve-maturity.js';
+import { collectStrategyCoverageObservations } from '@transitrix/diagrams/repo-validate/check-strategy-chain.js';
+import { readMethodologyVersion } from './methodology-version.js';
 // `transitrix validate --scope=repo` handler (vkgeorgia/transitrix-studio#141).
 //
 // Lives in its own module — separate from cli.ts — because it imports the
@@ -156,7 +159,7 @@ export function loadRepoModel(root: string): RepoModelInput {
   try {
     entries = modelPaths(root, 'canon').paths.map(p => path.relative('canon', p));
   } catch {
-    return { elements, relations };
+    return { elements, relations, methodologyVersion: readMethodologyVersion(root) };
   }
 
   for (const rel of entries) {
@@ -171,7 +174,7 @@ export function loadRepoModel(root: string): RepoModelInput {
     }
   }
 
-  return { elements, relations };
+  return { elements, relations, methodologyVersion: readMethodologyVersion(root) };
 }
 
 /** A per-file notation finding from sweeping canon/views/**
@@ -193,6 +196,7 @@ export interface ViewFinding {
  *  their notation has no single-file validator (aggregate views like
  *  compliance-impact / coverage-metric). */
 export interface RepoScopeResult {
+  observations?: ReturnType<typeof collectStrategyCoverageObservations>;
   canon: RepoFinding[];
   views: ViewFinding[];
   /** Per-file codex artefact findings from `codex/**` (#518 Phase C2). */
@@ -207,6 +211,7 @@ export interface RepoScopeResult {
 }
 
 export interface RepoValidateContext {
+  methodologyVersion?: string;
   catalog: ComplianceScanResult['catalog'];
   complianceCanon: ComplianceScanResult['complianceCanon'];
   pathById: ComplianceScanResult['pathById'];
@@ -360,13 +365,13 @@ function completeRepoCoverage(
         || (file.startsWith('canon/relations/') && notation === 'relation');
       if (inViews) {
         record.status = result.views.some(f => f.file === file && f.ruleId === 'PARSE')
-          ? 'failed' : result.skipped.some(s => s.file === file) ? 'unvalidated' : 'validated';
+          ? 'failed' : (result.skipped.some(s => s.file === file) || result.views.some(f => f.file === file && f.ruleId === 'NOTATION-SKIP-001')) ? 'unvalidated' : 'validated';
       } else if (swept || canonChecked || (file.startsWith('codex/') && notation === 'codex')) {
         record.status = 'validated';
       } else {
         const standalone = VALIDATOR_REGISTRATIONS.find(r => r.notation === notation && !r.canonicalViewExtension);
         if (standalone) {
-          for (const finding of validateNotationDoc(notation, data, { catalog: ctx.catalog, filePath: file }).findings) {
+          for (const finding of validateNotationDoc(notation, data, { catalog: ctx.catalog, filePath: file, methodologyVersion: ctx.methodologyVersion }).findings) {
             result.views.push({ file, notation, ...finding });
           }
           record.status = 'validated';
@@ -376,7 +381,7 @@ function completeRepoCoverage(
       }
       if (record.status === 'unvalidated' && !result.skipped.some(s => s.file === file)) {
         result.skipped.push({ file, notation });
-        result.views.push(unvalidatedFinding(file, notation));
+        if (!result.views.some(f => f.file === file && f.ruleId === 'NOTATION-SKIP-001')) result.views.push(unvalidatedFinding(file, notation));
       }
     } catch (e) {
       record.status = 'failed';
@@ -424,6 +429,7 @@ export function buildRepoValidateContext(root: string): RepoValidateContext {
   const scan = buildComplianceScan(loadComplianceYamlDocs(root));
   return {
     catalog: scan.catalog,
+    methodologyVersion: readMethodologyVersion(root),
     complianceCanon: scan.complianceCanon,
     pathById: scan.pathById,
   };
@@ -708,6 +714,10 @@ export function runViewValidate(
 
     const validateOpts = {
       catalog: ctx?.catalog,
+      methodologyVersion: ctx?.methodologyVersion,
+      capabilityAttributes: notation === 'capability-map'
+        ? resolveCapabilityAttributes(ensureRepoModel().elements.map(e => e.data),
+          String((data as {capability_map?: {assessment_date?: unknown}})?.capability_map?.assessment_date ?? '')) : undefined,
       processParentEdges:
         notation === 'process-blueprint'
           ? collectInEffectProcessParentEdges(ensureRepoModel())
@@ -1253,7 +1263,7 @@ export function runRepoValidate(root: string, options?: RunRepoValidateOptions):
     ...runGapDashboardWarnings(ctx),
   ];
   const linkSuspicion = runLinkSuspicionCheck(root, model);
-  const result: RepoScopeResult = { canon, views, codex, compliance, linkSuspicion, skipped };
+  const result: RepoScopeResult = { canon, views, codex, compliance, linkSuspicion, skipped, observations: collectStrategyCoverageObservations(model) };
   result.coverage = completeRepoCoverage(root, result, ctx, inventory);
   if (options?.strict) {
     result.views = result.views.map(v => v.ruleId === 'NOTATION-SKIP-001' ? { ...v, severity: 'error' } : v);
@@ -1321,6 +1331,7 @@ export function reportRepoFindings(
           root,
           valid,
           findings: canon,
+          observations: result.observations ?? [],
           views: { valid: viewErrors.length === 0, findings: views },
           codex: { valid: codexErrors.length === 0, findings: codex },
           compliance: { valid: complianceErrors.length === 0, findings: compliance },
@@ -1340,6 +1351,11 @@ export function reportRepoFindings(
     const c = result.coverage;
     console.log(`Coverage: ${c.discovered} discovered, ${c.read} read, ${c.validated} validated, ${c.unvalidated} unvalidated, ${c.failed} failed.`);
     for (const entry of c.excluded) console.log(`  Excluded ${entry.path}: ${entry.reason}`);
+  }
+
+  if (result.observations?.length) {
+    console.log('Coverage observations:');
+    for (const observation of result.observations) console.log(`  ${observation.id}: ${observation.message}`);
   }
 
   if (valid && canon.length === 0 && views.length === 0 && codex.length === 0 && compliance.length === 0 && skipped.length === 0 && linkSuspicion.length === 0) {

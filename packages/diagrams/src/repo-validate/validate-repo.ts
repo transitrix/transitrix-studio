@@ -135,6 +135,7 @@ function checkReferentialIntegrity(input: RepoModelInput, findings: RepoFinding[
       findings.push({
         scope: PScope,
         id: relId,
+        ruleId: 'REL-002',
         message: `Referential integrity: relation '${relId || doc.path}' endpoint '${fromId}' (from) does not resolve to a known element.`,
       });
     }
@@ -142,6 +143,7 @@ function checkReferentialIntegrity(input: RepoModelInput, findings: RepoFinding[
       findings.push({
         scope: PScope,
         id: relId,
+        ruleId: 'REL-002',
         message: `Referential integrity: relation '${relId || doc.path}' endpoint '${toId}' (to) does not resolve to a known element.`,
       });
     }

@@ -45,7 +45,7 @@ describe('collectImpactViewResolutionFindings', () => {
       catalog,
       complianceCanon,
     );
-    expect(findings.some((f) => f.code === 'COMPIMP-REF' && f.message.includes('PRODUCT-MISSING-1'))).toBe(true);
+    expect(findings.some((f) => f.code === 'COMPIMP-003' && f.message.includes('PRODUCT-MISSING-1'))).toBe(true);
     expect(findings.some((f) => f.message.includes('REQUIREMENT-MISSING-1'))).toBe(true);
     expect(findings.some((f) => f.message.includes('LAW-MISSING-1'))).toBe(true);
   });
@@ -74,7 +74,7 @@ describe('collectCoverageViewResolutionFindings', () => {
       catalog,
       complianceCanon,
     );
-    expect(findings.some((f) => f.code === 'COVMET-REF')).toBe(true);
+    expect(findings.some((f) => f.code === 'COVMET-003')).toBe(true);
     expect(findings).toHaveLength(2);
   });
 });
