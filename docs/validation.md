@@ -1267,3 +1267,13 @@ Association rules govern the `associations` array in the process DSL, which conn
     "hint": "Verify the source element ID is correct and exists in the process"
   }
   ```
+
+### Authored numeric risk degrees
+
+RISK `likelihood`, `impact`, and `residual` accept the existing `low`, `medium`,
+and `high` values or finite numbers. Numeric degrees require a `risk_scale`
+mapping with a nonempty `id`, finite inclusive `min`/`max` bounds (`min < max`),
+and `direction: higher` or `lower` indicating which direction means more risk.
+The adopter defines this ordinal scale; fractions and zero are allowed within
+its bounds. The validator reports invalid degrees/scales as `RISK-002` and
+preserves authored values. It does not calculate risk or map numbers to words.

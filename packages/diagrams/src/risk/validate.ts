@@ -3,7 +3,7 @@
 // Codes:
 //   RISK-001 — shape / id grammar / required envelope + per-type fields
 //              (likelihood, impact, residual, owner_role, threatens).
-//   RISK-002 — likelihood / impact / residual outside {low, medium, high}.
+//   RISK-002 — invalid qualitative/numeric degree or adopter scale.
 //   RISK-003 — threatens is empty, or an entry does not resolve to an
 //              admitted element in canon (no TYPE restriction — any core
 //              element may be threatened).
@@ -62,13 +62,27 @@ export function validateRisk(input: unknown, options: RiskValidateOptions = {}):
     errors.push({ code: 'RISK-001', message: 'valid_to is required (an ISO date string or null).', path: 'valid_to' });
   }
 
-  // likelihood / impact / residual — required (RISK-001) + enum (RISK-002).
-  for (const f of ['likelihood', 'impact', 'residual'] as const) {
+  // Authored numeric degrees use one explicitly declared adopter scale.
+  const fields = ['likelihood', 'impact', 'residual'] as const;
+  const scale = r.risk_scale as Record<string, unknown> | undefined;
+  const finite = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
+  const validScale = scale !== null && typeof scale === 'object' && !Array.isArray(scale)
+    && typeof scale.id === 'string' && scale.id.trim().length > 0
+    && finite(scale.min) && finite(scale.max) && scale.min < scale.max
+    && (scale.direction === 'higher' || scale.direction === 'lower');
+  if ((scale !== undefined || fields.some(f => typeof r[f] === 'number')) && !validScale) {
+    errors.push({ code: 'RISK-002', message: 'risk_scale requires id, finite min < max, and direction higher or lower.', path: 'risk_scale' });
+  }
+  for (const f of fields) {
     const v = r[f];
     if (v === undefined || v === null || v === '') {
       errors.push({ code: 'RISK-001', message: `${f} is required.`, path: f });
-    } else if (!(RISK_LEVELS as readonly string[]).includes(v as string)) {
-      errors.push({ code: 'RISK-002', message: `${f} "${String(v)}" must be one of ${RISK_LEVELS.join(', ')}.`, path: f });
+    } else if (typeof v === 'number') {
+      if (!finite(v) || (validScale && (v < (scale!.min as number) || v > (scale!.max as number)))) {
+        errors.push({ code: 'RISK-002', message: `${f} must be finite and within risk_scale bounds.`, path: f });
+      }
+    } else if (!(RISK_LEVELS as readonly unknown[]).includes(v)) {
+      errors.push({ code: 'RISK-002', message: `${f} must be low, medium, high, or a number with risk_scale.`, path: f });
     }
   }
 
