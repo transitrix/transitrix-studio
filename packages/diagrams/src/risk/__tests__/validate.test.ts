@@ -130,3 +130,26 @@ describe('validateRisk — RISK-COVERAGE-001 (untreated risk, warning)', () => {
     expect(warnCodes(valid())).not.toContain('RISK-COVERAGE-001');
   });
 });
+
+
+describe('numeric authored risk degrees', () => {
+  const risk_scale = { id: 'adopter-v1', min: 0, max: 100, direction: 'higher' };
+  it('accepts bounded numbers including zero and fractions without changing input', () => {
+    const input = { ...valid(), likelihood: 0, impact: 99.5, residual: 25, risk_scale };
+    const before = JSON.stringify(input);
+    expect(codes(input)).not.toContain('RISK-002');
+    expect(JSON.stringify(input)).toBe(before);
+  });
+  it('accepts reverse scales and mixed qualitative degrees', () => {
+    expect(codes({ ...valid(), impact: 2, risk_scale: { ...risk_scale, min: 1, max: 5, direction: 'lower' } })).not.toContain('RISK-002');
+  });
+  it.each([-1, 101, Infinity, NaN, true, '42'])('rejects invalid degree %s', likelihood => {
+    expect(codes({ ...valid(), likelihood, risk_scale })).toContain('RISK-002');
+  });
+  it.each([undefined, null, [], {}, { ...risk_scale, id: '' }, { ...risk_scale, min: 100 }, { ...risk_scale, max: Infinity }, { ...risk_scale, direction: 'unknown' }])('rejects missing or malformed scale %#', scale => {
+    expect(codes({ ...valid(), likelihood: 3, risk_scale: scale })).toContain('RISK-002');
+  });
+  it('checks supplied scales even for qualitative degrees', () => {
+    expect(codes({ ...valid(), risk_scale: {} })).toContain('RISK-002');
+  });
+});

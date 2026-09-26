@@ -314,6 +314,10 @@ export interface ReportDom {
 let probeSerial = 0;
 export async function reportDom(panel: vscode.WebviewPanel, op = 'read', selector?: string, x?: number): Promise<ReportDom> {
   panel.reveal(undefined, true);
+  // A freshly replaced document may not have installed its message listener.
+  // Establish readiness with the retryable read before sending a one-shot action.
+  // Never retry clicks: a delivered action may have already changed the report.
+  if (op !== 'read') await reportDom(panel);
   const id = ++probeSerial;
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => { subscription.dispose(); reject(new Error('Report DOM probe timed out')); }, 15000);
