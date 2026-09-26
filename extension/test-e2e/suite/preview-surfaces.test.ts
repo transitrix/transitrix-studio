@@ -244,7 +244,8 @@ describe('Release requirement report generation', function () {
       while (Date.now() < deadline && digest(panels[0].webview.html) === digest(initial[0])) await new Promise(r => setTimeout(r, 100));
       const refreshed = panels.map(p => p.webview.html);
       assert.notStrictEqual(digest(refreshed[0]), digest(initial[0])); assert.strictEqual(digest(refreshed[0]), digest(refreshed[1]));
-      assert.ok(refreshed[1].includes('Software requirement: 1'));
+      assert.match(refreshed[1], /data-count="stage-5"[^]*?data-action="count" data-value="stage-5"[^>]*>1<\/button>/);
+      assert.match(refreshed[1], /data-count="stage-4"[^]*?data-action="count" data-value="stage-4"[^>]*>0<\/button>/);
     } finally {
       panels.forEach(p => p.dispose()); await closeAllEditors(); fs.rmSync(root, { recursive: true, force: true });
     }
