@@ -40,6 +40,9 @@ published:
 
   # Repository validator shipped in the CLI, its regression tests, and release note
   - src/repo-validate.ts
+  - src/methodology-version.ts
+  - tests/diagnostic-contract.test.ts
+  - changelog/fragments/diagnostic-contract.md
   - tests/repo-validate-views.test.ts
   - tests/repo-validation-coverage.test.ts
   - changelog/fragments/repository-notation-coverage.md
