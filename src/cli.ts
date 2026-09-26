@@ -597,8 +597,10 @@ async function handleValidateCommand(argv: string[]): Promise<void> {
     const includeModel = argv.includes('--include-model');
     const model = includeModel ? buildRepoModel(repoRoot) : undefined;
     reportRepoFindings(repoRoot, result, useJson, model);
+    // Let stdout drain before terminating: --include-model can exceed a pipe
+    // buffer even when validation returns findings and a nonzero status.
     if (repoScopeHasErrors(result)) {
-      process.exit(1);
+      process.exitCode = 1;
     }
     return;
   }

@@ -26,7 +26,11 @@ describe('CLI validate --scope=repo --include-model', () => {
   })
 
   it('emits resolved element and relation records with --include-model', () => {
-    const { stdout } = runCli(['validate', '--scope=repo', '--root', acmeCorpRoot, '--json', '--include-model'])
+    const { status, stdout } = runCli(['validate', '--scope=repo', '--root', acmeCorpRoot, '--json', '--include-model'])
+    // The fixture has real findings and a model larger than a pipe buffer.
+    // A nonzero exit must still deliver the complete JSON to consumers.
+    expect(status).toBe(1)
+    expect(Buffer.byteLength(stdout)).toBeGreaterThan(65_536)
     const output = JSON.parse(stdout)
     expect(Array.isArray(output.model.elements)).toBe(true)
     expect(Array.isArray(output.model.relations)).toBe(true)
