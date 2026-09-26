@@ -1292,3 +1292,13 @@ remains available. Missing external codex jurisdiction/effective date uses
 Inline DGCA requires nonempty collections (`DGCA-004`); array shape errors
 retain `FGCA-004`. The Changes layer may be disabled. Resolved projections may
 select empty collections without inheriting the inline nonempty requirement.
+
+### Authored numeric risk degrees
+
+RISK `likelihood`, `impact`, and `residual` accept the existing `low`, `medium`,
+and `high` values or finite numbers. Numeric degrees require a `risk_scale`
+mapping with a nonempty `id`, finite inclusive `min`/`max` bounds (`min < max`),
+and `direction: higher` or `lower` indicating which direction means more risk.
+The adopter defines this ordinal scale; fractions and zero are allowed within
+its bounds. The validator reports invalid degrees/scales as `RISK-002` and
+preserves authored values. It does not calculate risk or map numbers to words.

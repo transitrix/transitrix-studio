@@ -24,6 +24,8 @@ published:
   # Repository front page and documentation
   - README.md
   - CHANGELOG.md
+  - changelog/fragments/jetbrains-svg-canvas.md
+  - changelog/fragments/goals-title-spacing.md
   - changelog/fragments/action-completion-percent.md
   - CONTRIBUTING.md
   - LICENSE

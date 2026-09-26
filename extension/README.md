@@ -6,6 +6,25 @@ You leave with a decision you can keep true. Not a report of one — the model t
 
 ![Transitrix Studio in action — a goals-tree YAML file on the left, its live preview on the right, redrawing as a new goal is added and typed](https://raw.githubusercontent.com/transitrix/transitrix-studio/77620e5/extension/docs/listing.gif)
 
+
+## Goals and DGCA in VS Code
+
+Write goals and plans in YAML, save the file, and inspect the diagram beside the source. These screenshots use Transitrix Studio 3.7.3. Open an image at full size to read the labels and identifiers.
+
+[A YAML goals model beside its preview in VS Code.](https://raw.githubusercontent.com/transitrix/transitrix-studio/2b267940743604e0cf7eecab272a473d80d897f7/extension/docs/vscode-goals-before.png)
+
+[![A YAML goals model beside its preview in VS Code.](https://raw.githubusercontent.com/transitrix/transitrix-studio/2b267940743604e0cf7eecab272a473d80d897f7/extension/docs/vscode-goals-before.png)](https://raw.githubusercontent.com/transitrix/transitrix-studio/2b267940743604e0cf7eecab272a473d80d897f7/extension/docs/vscode-goals-before.png)
+
+[Improve quality appears as a new child goal.](https://raw.githubusercontent.com/transitrix/transitrix-studio/2b267940743604e0cf7eecab272a473d80d897f7/extension/docs/vscode-goals-after.png)
+
+[![Improve quality appears as a new child goal.](https://raw.githubusercontent.com/transitrix/transitrix-studio/2b267940743604e0cf7eecab272a473d80d897f7/extension/docs/vscode-goals-after.png)](https://raw.githubusercontent.com/transitrix/transitrix-studio/2b267940743604e0cf7eecab272a473d80d897f7/extension/docs/vscode-goals-after.png)
+
+[A DGCA model connects a driver, goal, change and action.](https://raw.githubusercontent.com/transitrix/transitrix-studio/2b267940743604e0cf7eecab272a473d80d897f7/extension/docs/vscode-dgca.png)
+
+[![A DGCA model connects a driver, goal, change and action.](https://raw.githubusercontent.com/transitrix/transitrix-studio/2b267940743604e0cf7eecab272a473d80d897f7/extension/docs/vscode-dgca.png)](https://raw.githubusercontent.com/transitrix/transitrix-studio/2b267940743604e0cf7eecab272a473d80d897f7/extension/docs/vscode-dgca.png)
+
+The standalone DGCA example shows a warning because no canon root is attached; the four-node chain is still rendered.
+
 ## Why text-native diagrams?
 
 Diagrams hidden in proprietary binary files don't survive contact with version control. They are hard to diff, hard to review, hard to merge. They drift from the truth they once described.

@@ -4,7 +4,14 @@
 import type { GateChecks } from '../requirement/types.js';
 
 /** Likelihood / impact / residual severity vocabulary (§7.26). */
-export type RiskLevel = 'low' | 'medium' | 'high';
+export type RiskLevel = 'low' | 'medium' | 'high' | number;
+
+export interface RiskScale {
+  id: string;
+  min: number;
+  max: number;
+  direction: 'higher' | 'lower';
+}
 
 export const RISK_LEVELS: readonly RiskLevel[] = ['low', 'medium', 'high'];
 
@@ -12,6 +19,7 @@ export interface Risk {
   notation: 'risk';
   id: string;
   name: string;
+  risk_scale?: RiskScale;
   likelihood: RiskLevel;
   impact: RiskLevel;
   residual: RiskLevel;
