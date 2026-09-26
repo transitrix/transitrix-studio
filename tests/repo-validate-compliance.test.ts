@@ -507,9 +507,9 @@ describe('repo-scope compliance-impact build-time (#518 C3)', () => {
     rmSync(root, { recursive: true, force: true });
   });
 
-  it('surfaces COMPIMP-REF for unresolved view config refs', () => {
+  it('surfaces COMPIMP-003 for unresolved view config refs', () => {
     const result = runRepoValidate(root);
     const bad = result.views.filter((f) => f.file.endsWith('bad-ref.compliance-impact.transitrix.yaml'));
-    expect(bad.some((f) => f.ruleId === 'COMPIMP-REF')).toBe(true);
+    expect(bad.some((f) => f.ruleId === 'COMPIMP-003')).toBe(true);
   });
 });

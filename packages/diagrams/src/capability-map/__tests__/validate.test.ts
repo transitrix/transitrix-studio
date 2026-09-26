@@ -38,25 +38,35 @@ const VALID_MAP = {
 
 describe('validateCapabilityMap', () => {
   it('passes on valid input', () => {
-    const r = validateCapabilityMap(VALID_MAP);
+    const authored = structuredClone(VALID_MAP);
+    const resolved = new Map<string, {current_maturity: number}>();
+    function separate(nodes: any[]) {
+      for (const node of nodes) {
+        resolved.set(node.id, {current_maturity: node.current_maturity});
+        for (const field of ['current_maturity', 'target_maturity', 'target_date']) delete node[field];
+        if (node.children) separate(node.children);
+      }
+    }
+    separate(authored.capability_map.capabilities);
+    const r = validateCapabilityMap(authored, {resolvedAttributes: resolved});
     expect(r.valid).toBe(true);
     expect(r.errors).toHaveLength(0);
   });
 
-  it('CMAP-001: rejects non-object input', () => {
+  it('SCHEMA_INVALID: rejects non-object input', () => {
     const r = validateCapabilityMap(null);
-    expect(r.errors[0].code).toBe('CMAP-001');
+    expect(r.errors[0].code).toBe('SCHEMA_INVALID');
   });
 
-  it('CMAP-001: rejects missing notation', () => {
+  it('HDR-001: rejects missing notation', () => {
     const { notation: _, ...rest } = VALID_MAP;
     const r = validateCapabilityMap(rest);
-    expect(r.errors.some(e => e.code === 'CMAP-001')).toBe(true);
+    expect(r.errors.some(e => e.code === 'HDR-001')).toBe(true);
   });
 
-  it('CMAP-001: rejects wrong notation value', () => {
+  it('HDR-002: rejects wrong notation value', () => {
     const r = validateCapabilityMap({ ...VALID_MAP, notation: 'goals' });
-    expect(r.errors.some(e => e.code === 'CMAP-001')).toBe(true);
+    expect(r.errors.some(e => e.code === 'HDR-002')).toBe(true);
   });
 
   it('CMAP-002: rejects missing capability_map', () => {
@@ -75,75 +85,75 @@ describe('validateCapabilityMap', () => {
     expect(r.errors.some(e => e.code === 'CMAP-002')).toBe(true);
   });
 
-  it('CMAP-003: rejects capability missing id/name/current_maturity', () => {
+  it('SCHEMA_INVALID: rejects capability missing id/name/current_maturity', () => {
     const map = { ...VALID_MAP.capability_map, capabilities: [{}] };
-    const r = validateCapabilityMap({ ...VALID_MAP, capability_map: map });
-    expect(r.errors.filter(e => e.code === 'CMAP-003').length).toBeGreaterThanOrEqual(3);
+    const r = validateCapabilityMap({ ...VALID_MAP, capability_map: map }, {resolvedAttributes: new Map()});
+    expect(r.errors.filter(e => e.code === 'SCHEMA_INVALID').length).toBeGreaterThanOrEqual(3);
   });
 
-  it('CMAP-004: rejects invalid type', () => {
+  it('SCHEMA_INVALID: rejects invalid type', () => {
     const map = {
       ...VALID_MAP.capability_map,
       capabilities: [{ id: 'V1', name: 'X', type: 'core', current_maturity: 2 }],
     };
     const r = validateCapabilityMap({ ...VALID_MAP, capability_map: map });
-    expect(r.errors.some(e => e.code === 'CMAP-004')).toBe(true);
+    expect(r.errors.some(e => e.code === 'SCHEMA_INVALID')).toBe(true);
   });
 
-  it('CMAP-004: accepts type domain/supporting', () => {
+  it('SCHEMA_INVALID: accepts type domain/supporting', () => {
     for (const type of ['domain', 'supporting']) {
       const map = {
         ...VALID_MAP.capability_map,
         capabilities: [{ id: 'V1', name: 'X', type, current_maturity: 2 }],
       };
       const r = validateCapabilityMap({ ...VALID_MAP, capability_map: map });
-      expect(r.errors.some(e => e.code === 'CMAP-004')).toBe(false);
+      expect(r.errors.some(e => e.code === 'SCHEMA_INVALID')).toBe(false);
     }
   });
 
-  it('CMAP-005: rejects current_maturity out of range', () => {
+  it('SCHEMA_INVALID: rejects current_maturity out of range', () => {
     const map = {
       ...VALID_MAP.capability_map,
       capabilities: [{ id: 'V1', name: 'X', current_maturity: 6 }],
     };
     const r = validateCapabilityMap({ ...VALID_MAP, capability_map: map });
-    expect(r.errors.some(e => e.code === 'CMAP-005')).toBe(true);
+    expect(r.errors.some(e => e.code === 'SCHEMA_INVALID')).toBe(true);
   });
 
-  it('CMAP-005: rejects non-integer current_maturity', () => {
+  it('SCHEMA_INVALID: rejects non-integer current_maturity', () => {
     const map = {
       ...VALID_MAP.capability_map,
       capabilities: [{ id: 'V1', name: 'X', current_maturity: 2.5 }],
     };
     const r = validateCapabilityMap({ ...VALID_MAP, capability_map: map });
-    expect(r.errors.some(e => e.code === 'CMAP-005')).toBe(true);
+    expect(r.errors.some(e => e.code === 'SCHEMA_INVALID')).toBe(true);
   });
 
-  it('CMAP-006: rejects target_maturity out of range', () => {
+  it('SCHEMA_INVALID: rejects target_maturity out of range', () => {
     const map = {
       ...VALID_MAP.capability_map,
       capabilities: [{ id: 'V1', name: 'X', current_maturity: 2, target_maturity: 0 }],
     };
     const r = validateCapabilityMap({ ...VALID_MAP, capability_map: map });
-    expect(r.errors.some(e => e.code === 'CMAP-006')).toBe(true);
+    expect(r.errors.some(e => e.code === 'SCHEMA_INVALID')).toBe(true);
   });
 
-  it('CMAP-007: rejects malformed assessment_date', () => {
+  it('SCHEMA_INVALID: rejects malformed assessment_date', () => {
     const map = { ...VALID_MAP.capability_map, assessment_date: '08-05-2026' };
     const r = validateCapabilityMap({ ...VALID_MAP, capability_map: map });
-    expect(r.errors.some(e => e.code === 'CMAP-007')).toBe(true);
+    expect(r.errors.some(e => e.code === 'SCHEMA_INVALID')).toBe(true);
   });
 
-  it('CMAP-007: rejects malformed target_date on a node', () => {
+  it('SCHEMA_INVALID: rejects malformed target_date on a node', () => {
     const map = {
       ...VALID_MAP.capability_map,
       capabilities: [{ id: 'V1', name: 'X', current_maturity: 2, target_date: 'tomorrow' }],
     };
     const r = validateCapabilityMap({ ...VALID_MAP, capability_map: map });
-    expect(r.errors.some(e => e.code === 'CMAP-007')).toBe(true);
+    expect(r.errors.some(e => e.code === 'SCHEMA_INVALID')).toBe(true);
   });
 
-  it('CMAP-008: rejects duplicate capability id across the tree', () => {
+  it('SCHEMA_INVALID: rejects duplicate capability id across the tree', () => {
     const map = {
       ...VALID_MAP.capability_map,
       capabilities: [
@@ -151,37 +161,37 @@ describe('validateCapabilityMap', () => {
       ],
     };
     const r = validateCapabilityMap({ ...VALID_MAP, capability_map: map });
-    expect(r.errors.some(e => e.code === 'CMAP-008')).toBe(true);
+    expect(r.errors.some(e => e.code === 'SCHEMA_INVALID')).toBe(true);
   });
 
-  it('CMAP-009: rejects malformed capability id', () => {
+  it('SCHEMA_INVALID: rejects malformed capability id', () => {
     const map = {
       ...VALID_MAP.capability_map,
       capabilities: [{ id: 'X1', name: 'A', current_maturity: 2 }],
     };
     const r = validateCapabilityMap({ ...VALID_MAP, capability_map: map });
-    expect(r.errors.some(e => e.code === 'CMAP-009')).toBe(true);
+    expect(r.errors.some(e => e.code === 'SCHEMA_INVALID')).toBe(true);
   });
 
-  it('CMAP-009: accepts V/H ids with dotted levels', () => {
+  it('SCHEMA_INVALID: accepts V/H ids with dotted levels', () => {
     for (const id of ['V1', 'V1.2', 'V1.2.3', 'H1', 'H1.2', 'H10.20.30']) {
       const map = {
         ...VALID_MAP.capability_map,
         capabilities: [{ id, name: 'A', current_maturity: 2 }],
       };
       const r = validateCapabilityMap({ ...VALID_MAP, capability_map: map });
-      expect(r.errors.some(e => e.code === 'CMAP-009')).toBe(false);
+      expect(r.errors.some(e => e.code === 'SCHEMA_INVALID')).toBe(false);
     }
   });
 
-  it('CMAP-009: accepts the canonical CAPABILITY- prefix', () => {
+  it('SCHEMA_INVALID: accepts the canonical CAPABILITY- prefix', () => {
     for (const id of ['CAPABILITY-V1', 'CAPABILITY-V1.2', 'CAPABILITY-V1.2.3', 'CAPABILITY-H1', 'CAPABILITY-H1.2']) {
       const map = {
         ...VALID_MAP.capability_map,
         capabilities: [{ id, name: 'A', current_maturity: 2 }],
       };
       const r = validateCapabilityMap({ ...VALID_MAP, capability_map: map });
-      expect(r.errors.some(e => e.code === 'CMAP-009')).toBe(false);
+      expect(r.errors.some(e => e.code === 'SCHEMA_INVALID')).toBe(false);
     }
   });
 
@@ -194,8 +204,8 @@ describe('validateCapabilityMap', () => {
       }],
     };
     const r = validateCapabilityMap({ ...VALID_MAP, capability_map: map });
-    expect(r.errors.some(e => e.code === 'CMAP-009')).toBe(true);
-    expect(r.errors.some(e => e.code === 'CMAP-005')).toBe(true);
+    expect(r.errors.some(e => e.code === 'SCHEMA_INVALID')).toBe(true);
+    expect(r.errors.some(e => e.code === 'SCHEMA_INVALID')).toBe(true);
   });
 
   it('accepts empty capabilities array', () => {
@@ -209,7 +219,7 @@ describe('validateCapabilityMap', () => {
     const map = { ...VALID_MAP.capability_map, capabilities: [null] };
     const r = validateCapabilityMap({ ...VALID_MAP, capability_map: map });
     expect(r.valid).toBe(false);
-    expect(r.errors.some(e => e.code === 'CMAP-003')).toBe(true);
+    expect(r.errors.some(e => e.code === 'SCHEMA_INVALID')).toBe(true);
   });
 
   it('[blocker] tolerates a null child capability without throwing', () => {
@@ -219,22 +229,20 @@ describe('validateCapabilityMap', () => {
     };
     const r = validateCapabilityMap({ ...VALID_MAP, capability_map: map });
     expect(r.valid).toBe(false);
-    expect(r.errors.some(e => e.code === 'CMAP-003')).toBe(true);
+    expect(r.errors.some(e => e.code === 'SCHEMA_INVALID')).toBe(true);
   });
 
   // DSM rule codes (api02/internal/importer/capabilities.go), ported alongside
   // the pre-existing CMAP-*/native codes above — see the module header note.
-  it('HDR-001: rejects missing notation alongside CMAP-001', () => {
+  it('HDR-001: rejects missing notation without a duplicate schema finding', () => {
     const { notation: _, ...rest } = VALID_MAP;
     const r = validateCapabilityMap(rest);
-    expect(r.errors.some(e => e.code === 'HDR-001')).toBe(true);
-    expect(r.errors.some(e => e.code === 'CMAP-001')).toBe(true);
+    expect(r.errors.map(e => e.code)).toEqual(['HDR-001']);
   });
 
-  it('HDR-002: rejects wrong notation value alongside CMAP-001', () => {
+  it('HDR-002: rejects wrong notation value without a duplicate schema finding', () => {
     const r = validateCapabilityMap({ ...VALID_MAP, notation: 'goals' });
-    expect(r.errors.some(e => e.code === 'HDR-002')).toBe(true);
-    expect(r.errors.some(e => e.code === 'CMAP-001')).toBe(true);
+    expect(r.errors.map(e => e.code)).toEqual(['HDR-002']);
   });
 
   it('does not flag HDR-001/002 on valid input', () => {
@@ -295,12 +303,13 @@ describe('capability-map examples (regression)', () => {
   const files = fs.readdirSync(EXAMPLES_DIR).filter(f => f.endsWith('.yaml'));
   expect(files.length).toBeGreaterThan(0);
   for (const file of files) {
-    it(`validates tests/fixtures/notation-corpus/capability-map/${file}`, () => {
+    it(`reports historical inline sidecar fields in ${file}`, () => {
       const text = fs.readFileSync(path.join(EXAMPLES_DIR, file), 'utf8');
       const parsed = yaml.load(text);
       const r = validateCapabilityMap(parsed);
-      expect(r.errors).toEqual([]);
-      expect(r.valid).toBe(true);
+      expect(r.errors.length).toBeGreaterThan(0);
+      expect(r.errors.every(e => e.code === 'VERSIONED-004')).toBe(true);
+      expect(r.valid).toBe(false);
     });
   }
 });

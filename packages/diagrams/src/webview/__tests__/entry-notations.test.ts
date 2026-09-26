@@ -54,6 +54,13 @@ describe('webview/entry — Step 4 notation coverage', () => {
       const source = readFileSync(path.join(EXAMPLES, fx.file), 'utf8');
       const r = render(fx.kind, source);
       expect(r.notation).toBe(fx.kind);
+      if (fx.kind === 'capability-map') {
+        expect(r.status).toBe('error');
+        expect(r.errors.length).toBeGreaterThan(0);
+        expect(r.errors.every(e => e.code === 'VERSIONED-004')).toBe(true);
+        expect(r.svg).toBe('');
+        return;
+      }
       expect(r.errors).toEqual([]);
       expect(r.status).toBe('ok');
       expect(r.svg.length).toBeGreaterThan(0);

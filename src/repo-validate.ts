@@ -1,3 +1,5 @@
+import { resolveCapabilityAttributes } from '@transitrix/diagrams/capability-map/resolve-maturity.js';
+import { collectStrategyCoverageObservations } from '@transitrix/diagrams/repo-validate/check-strategy-chain.js';
 import { readMethodologyVersion } from './methodology-version.js';
 // `transitrix validate --scope=repo` handler (vkgeorgia/transitrix-studio#141).
 //
@@ -194,6 +196,7 @@ export interface ViewFinding {
  *  their notation has no single-file validator (aggregate views like
  *  compliance-impact / coverage-metric). */
 export interface RepoScopeResult {
+  observations?: ReturnType<typeof collectStrategyCoverageObservations>;
   canon: RepoFinding[];
   views: ViewFinding[];
   /** Per-file codex artefact findings from `codex/**` (#518 Phase C2). */
@@ -712,6 +715,9 @@ export function runViewValidate(
     const validateOpts = {
       catalog: ctx?.catalog,
       methodologyVersion: ctx?.methodologyVersion,
+      capabilityAttributes: notation === 'capability-map'
+        ? resolveCapabilityAttributes(ensureRepoModel().elements.map(e => e.data),
+          String((data as {capability_map?: {assessment_date?: unknown}})?.capability_map?.assessment_date ?? '')) : undefined,
       processParentEdges:
         notation === 'process-blueprint'
           ? collectInEffectProcessParentEdges(ensureRepoModel())
@@ -1257,7 +1263,7 @@ export function runRepoValidate(root: string, options?: RunRepoValidateOptions):
     ...runGapDashboardWarnings(ctx),
   ];
   const linkSuspicion = runLinkSuspicionCheck(root, model);
-  const result: RepoScopeResult = { canon, views, codex, compliance, linkSuspicion, skipped };
+  const result: RepoScopeResult = { canon, views, codex, compliance, linkSuspicion, skipped, observations: collectStrategyCoverageObservations(model) };
   result.coverage = completeRepoCoverage(root, result, ctx, inventory);
   if (options?.strict) {
     result.views = result.views.map(v => v.ruleId === 'NOTATION-SKIP-001' ? { ...v, severity: 'error' } : v);
@@ -1325,6 +1331,7 @@ export function reportRepoFindings(
           root,
           valid,
           findings: canon,
+          observations: result.observations ?? [],
           views: { valid: viewErrors.length === 0, findings: views },
           codex: { valid: codexErrors.length === 0, findings: codex },
           compliance: { valid: complianceErrors.length === 0, findings: compliance },
@@ -1344,6 +1351,11 @@ export function reportRepoFindings(
     const c = result.coverage;
     console.log(`Coverage: ${c.discovered} discovered, ${c.read} read, ${c.validated} validated, ${c.unvalidated} unvalidated, ${c.failed} failed.`);
     for (const entry of c.excluded) console.log(`  Excluded ${entry.path}: ${entry.reason}`);
+  }
+
+  if (result.observations?.length) {
+    console.log('Coverage observations:');
+    for (const observation of result.observations) console.log(`  ${observation.id}: ${observation.message}`);
   }
 
   if (valid && canon.length === 0 && views.length === 0 && codex.length === 0 && compliance.length === 0 && skipped.length === 0 && linkSuspicion.length === 0) {

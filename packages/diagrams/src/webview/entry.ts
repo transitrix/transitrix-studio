@@ -275,10 +275,14 @@ function dispatchValidate(kind: NotationKind, doc: unknown): RenderResult {
       return renderFromValidation('scenarios', validateScenario(doc), () =>
         renderScenarioHtml((doc as ScenarioFile).scenario),
       );
-    case 'capability-map':
-      return renderFromValidation('capability-map', validateCapabilityMap(doc), () =>
+    case 'capability-map': {
+      const validation = validateCapabilityMap(doc);
+      const unresolved = validation.warnings.find(w => w.code === 'NOTATION-SKIP-001');
+      if (validation.valid && unresolved) return errorResult('capability-map', unresolved.code, unresolved.message);
+      return renderFromValidation('capability-map', validation, () =>
         renderCapabilityMapHtml((doc as CapabilityMapFile).capability_map),
       );
+    }
     default:
       return errorResult(
         kind,

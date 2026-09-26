@@ -38,9 +38,9 @@ export function validateScenario(input: unknown): ValidationResult {
   }
   if (errors.length > 0) return { valid: false, errors, warnings };
 
-  if (('view_config' in raw || 'view' in raw) && !('scenario' in raw)) {
+  if (('view_config' in raw || 'view' in raw || 'scenarios' in raw) && !('scenario' in raw)) {
     return { valid: true, errors, warnings: [{ code: 'NOTATION-SKIP-001',
-      message: 'scenarios projection form is unsupported and remains unvalidated.' }] };
+      message: 'scenarios projection or scenario-set form is unsupported and remains unvalidated.' }] };
   }
 
   const scn = raw['scenario'];

@@ -117,13 +117,13 @@ export function collectCoverageViewResolutionFindings(
     const t = catalog.typeOf(id);
     if (t === undefined) {
       findings.push({
-        code: 'COVMET-REF',
+        code: 'COVMET-003',
         severity: 'error',
         message: `subjects.products: "${id}" does not resolve to an admitted artefact.`,
       });
     } else if (t !== 'PRODUCT') {
       findings.push({
-        code: 'COVMET-REF',
+        code: 'COVMET-003',
         severity: 'error',
         message: `subjects.products: "${id}" resolves to ${t}, not PRODUCT.`,
       });
@@ -133,7 +133,7 @@ export function collectCoverageViewResolutionFindings(
   for (const id of config.regimes?.include ?? []) {
     if (!codexIds.has(id)) {
       findings.push({
-        code: 'COVMET-REF',
+        code: 'COVMET-003',
         severity: 'error',
         message: `regimes.include: "${id}" does not resolve to an admitted codex artefact.`,
       });

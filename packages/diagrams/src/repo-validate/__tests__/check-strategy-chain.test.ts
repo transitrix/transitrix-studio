@@ -6,8 +6,9 @@ function el(path: string, data: Record<string, unknown> | null, parseError?: str
   return { path, data, parseError };
 }
 
+// Legacy warning parity fixtures select 4.x; numeric boundary fixtures select 7.x.
 function emptyModel(): RepoModelInput {
-  return { elements: [], relations: [], methodologyVersion: '7.0.0' };
+  return { elements: [], relations: [], methodologyVersion: '4.0.0' };
 }
 
 function goal(id: string, extra: Record<string, unknown> = {}): RepoDoc {
@@ -171,7 +172,7 @@ describe('checkStrategyChainSemantics — ACTION-010 (dates)', () => {
 
 describe('checkStrategyChainSemantics — ACTION-011 (negative numeric fields)', () => {
   it('flags a negative duration', () => {
-    const model = emptyModel();
+    const model = { ...emptyModel(), methodologyVersion: '7.0.0' };
     model.elements.push(action('ACTION-A-1', { duration: -3 }));
     const findings = validateRepoModel(model);
     expect(findings).toHaveLength(1);
@@ -179,7 +180,7 @@ describe('checkStrategyChainSemantics — ACTION-011 (negative numeric fields)',
   });
 
   it('flags a negative duration_days (the field acme_corp actually uses)', () => {
-    const model = emptyModel();
+    const model = { ...emptyModel(), methodologyVersion: '7.0.0' };
     model.elements.push(action('ACTION-A-1', { duration_days: -3 }));
     const findings = validateRepoModel(model);
     expect(findings).toHaveLength(1);
@@ -187,7 +188,7 @@ describe('checkStrategyChainSemantics — ACTION-011 (negative numeric fields)',
   });
 
   it('flags a negative labor_cost / resources_cost / effort / score independently', () => {
-    const model = emptyModel();
+    const model = { ...emptyModel(), methodologyVersion: '7.0.0' };
     model.elements.push(
       action('ACTION-A-1', { labor_cost: -1, resources_cost: -2, effort: -3, score: -4 }),
     );
@@ -197,19 +198,19 @@ describe('checkStrategyChainSemantics — ACTION-011 (negative numeric fields)',
   });
 
   it('does not flag non-negative numeric fields', () => {
-    const model = emptyModel();
+    const model = { ...emptyModel(), methodologyVersion: '7.0.0' };
     model.elements.push(action('ACTION-A-1', { duration_days: 30, labor_cost: 0, effort: 100, score: 5 }));
     expect(validateRepoModel(model)).toEqual([]);
   });
 });
 
-describe('checkStrategyChainSemantics — FGCA-008..011 (strategy-chain cross-references)', () => {
-  it('flags GOAL.factors referencing an undefined driver (FGCA-008)', () => {
+describe('checkStrategyChainSemantics — DGCA-REPO-008..011 (strategy-chain cross-references)', () => {
+  it('flags GOAL.factors referencing an undefined driver (DGCA-REPO-008)', () => {
     const model = emptyModel();
     model.elements.push(goal('GOAL-A-1', { factors: ['DRIVER-MISSING'] }));
     const findings = validateRepoModel(model);
     const errors = findings.filter((f) => f.severity !== 'warning');
-    expect(errors).toEqual([expect.objectContaining({ id: 'GOAL-A-1', ruleId: 'FGCA-008' })]);
+    expect(errors).toEqual([expect.objectContaining({ id: 'GOAL-A-1', ruleId: 'DGCA-REPO-008' })]);
     // GOAL-A is also unreferenced by any change/action — FGCA-013 warning.
     expect(findings.filter((f) => f.ruleId === 'FGCA-013')).toHaveLength(1);
   });
@@ -232,30 +233,30 @@ describe('checkStrategyChainSemantics — FGCA-008..011 (strategy-chain cross-re
     expect(findings.filter((f) => f.severity !== 'warning')).toEqual([]);
   });
 
-  it('flags CHANGE.goals referencing an undefined goal (FGCA-009)', () => {
+  it('flags CHANGE.goals referencing an undefined goal (DGCA-REPO-009)', () => {
     const model = emptyModel();
     model.elements.push(change('CHANGE-A', { goals: ['GOAL-MISSING'] }));
     const findings = validateRepoModel(model);
     const errors = findings.filter((f) => f.severity !== 'warning');
-    expect(errors).toEqual([expect.objectContaining({ id: 'CHANGE-A', ruleId: 'FGCA-009' })]);
+    expect(errors).toEqual([expect.objectContaining({ id: 'CHANGE-A', ruleId: 'DGCA-REPO-009' })]);
     // CHANGE-A is also unreferenced by any action — FGCA-014 warning.
     expect(findings.filter((f) => f.ruleId === 'FGCA-014')).toHaveLength(1);
   });
 
-  it('flags ACTION.delivers_changes referencing an undefined change (FGCA-010)', () => {
+  it('flags ACTION.delivers_changes referencing an undefined change (DGCA-REPO-010)', () => {
     const model = emptyModel();
     model.elements.push(action('ACTION-A-1', { delivers_changes: ['CHANGE-MISSING'] }));
     const findings = validateRepoModel(model);
     expect(findings).toHaveLength(1);
-    expect(findings[0]).toMatchObject({ id: 'ACTION-A-1', ruleId: 'FGCA-010' });
+    expect(findings[0]).toMatchObject({ id: 'ACTION-A-1', ruleId: 'DGCA-REPO-010' });
   });
 
-  it('flags ACTION.goals referencing an undefined goal (FGCA-011)', () => {
+  it('flags ACTION.goals referencing an undefined goal (DGCA-REPO-011)', () => {
     const model = emptyModel();
     model.elements.push(action('ACTION-A-1', { goals: ['GOAL-MISSING'] }));
     const findings = validateRepoModel(model);
     expect(findings).toHaveLength(1);
-    expect(findings[0]).toMatchObject({ id: 'ACTION-A-1', ruleId: 'FGCA-011' });
+    expect(findings[0]).toMatchObject({ id: 'ACTION-A-1', ruleId: 'DGCA-REPO-011' });
   });
 
   it('accepts a fully-resolved strategy chain end to end (driver -> goal -> change -> action)', () => {

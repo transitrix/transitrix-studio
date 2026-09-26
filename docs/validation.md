@@ -1302,3 +1302,31 @@ and `direction: higher` or `lower` indicating which direction means more risk.
 The adopter defines this ordinal scale; fractions and zero are allowed within
 its bounds. The validator reports invalid degrees/scales as `RISK-002` and
 preserves authored values. It does not calculate risk or map numbers to words.
+
+
+### Diagnostic conformance and capability history
+
+Current results use `COMPIMP-003`, `COVMET-003`, `REL-002` and
+`DGCA-REPO-008` through `DGCA-REPO-011` for their published reference rules.
+Inline Applications, Products and Capability Map schema failures use
+`SCHEMA_INVALID` with form, field, expected type and actual value. Products
+projection codes are never reused for inline item status/type errors.
+
+For catalogues selecting Methodology 5 or later, unreferenced drivers, goals
+and changes appear in JSON `observations` and the human-readable coverage
+section. They are no longer emitted under removed `FGCA-012` through
+`FGCA-014` codes. Older/unversioned catalogue diagnostics retain their legacy
+compatibility behavior; stored historical results are not rewritten.
+
+Capability Map maturity and other time-varying attributes belong in the
+capability's `.history.yaml` sidecar. Repo validation resolves current maturity
+at `capability_map.assessment_date`; inline storage produces `VERSIONED-004`.
+Missing required resolved maturity remains a schema error. Single-file
+validation without the sidecar catalogue explicitly reports that check as
+unvalidated, rather than demanding an inline copy. Existing inline maturity
+examples are historical rejection fixtures, not current authoring templates.
+
+The published `scenarios[]` set form is explicitly unvalidated until its
+validator exists, as are unsupported projection forms. Strict repo validation
+rejects these gaps. Successful file accounting is not a claim that every
+published notation or form has a complete validator.

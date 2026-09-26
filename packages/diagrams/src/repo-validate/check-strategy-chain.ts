@@ -48,10 +48,10 @@ import { validateActionFields } from '../activities/action-fields.js';
 //   ACTION-010   — ACTION `start_date`/`end_date` unparseable, or end before start.
 //   ACTION-011   — ACTION numeric field (`duration`/`duration_days`, `labor_cost`,
 //               `resources_cost`, `effort`, `score`) is negative.
-//   FGCA-008  — GOAL.factors references an undefined DRIVER.
-//   FGCA-009  — CHANGE.goals references an undefined GOAL.
-//   FGCA-010  — ACTION.delivers_changes references an undefined CHANGE.
-//   FGCA-011  — ACTION.goals references an undefined GOAL.
+//   DGCA-REPO-008  — GOAL.factors references an undefined DRIVER.
+//   DGCA-REPO-009  — CHANGE.goals references an undefined GOAL.
+//   DGCA-REPO-010  — ACTION.delivers_changes references an undefined CHANGE.
+//   DGCA-REPO-011  — ACTION.goals references an undefined GOAL.
 //
 // Ported (warning-severity, advisory):
 //   GOALS-009 — GOAL.parent is set but does not resolve to a known GOAL (orphan).
@@ -368,7 +368,7 @@ function checkActionFields(actions: ChainElement[], findings: RepoFinding[], ver
   }
 }
 
-/** FGCA-008..011 — inline strategy-chain cross-references must resolve within
+/** DGCA-REPO-008..011 — inline strategy-chain cross-references must resolve within
  *  the repo: GOAL.factors -> DRIVER, CHANGE.goals -> GOAL, ACTION.goals ->
  *  GOAL, ACTION.delivers_changes -> CHANGE (ELEMENT_PRIMITIVES.md §7.1-§7.4). */
 function checkStrategyChainReferences(
@@ -388,8 +388,8 @@ function checkStrategyChainReferences(
         findings.push({
           scope: PScope,
           id: g.id,
-          ruleId: 'FGCA-008',
-          message: `FGCA-008: goal '${g.id}' references undefined driver '${f}'.`,
+          ruleId: 'DGCA-REPO-008',
+          message: `DGCA-REPO-008: goal '${g.id}' references undefined driver '${f}'.`,
         });
       }
     }
@@ -400,8 +400,8 @@ function checkStrategyChainReferences(
         findings.push({
           scope: PScope,
           id: c.id,
-          ruleId: 'FGCA-009',
-          message: `FGCA-009: change '${c.id}' references undefined goal '${g}'.`,
+          ruleId: 'DGCA-REPO-009',
+          message: `DGCA-REPO-009: change '${c.id}' references undefined goal '${g}'.`,
         });
       }
     }
@@ -412,8 +412,8 @@ function checkStrategyChainReferences(
         findings.push({
           scope: PScope,
           id: a.id,
-          ruleId: 'FGCA-010',
-          message: `FGCA-010: action '${a.id}' references undefined change '${c}'.`,
+          ruleId: 'DGCA-REPO-010',
+          message: `DGCA-REPO-010: action '${a.id}' references undefined change '${c}'.`,
         });
       }
     }
@@ -422,8 +422,8 @@ function checkStrategyChainReferences(
         findings.push({
           scope: PScope,
           id: a.id,
-          ruleId: 'FGCA-011',
-          message: `FGCA-011: action '${a.id}' references undefined goal '${g}'.`,
+          ruleId: 'DGCA-REPO-011',
+          message: `DGCA-REPO-011: action '${a.id}' references undefined goal '${g}'.`,
         });
       }
     }
@@ -494,7 +494,7 @@ function checkStrategyChainOrphans(
 
 /**
  * Run the strategy-chain semantic checks (GOALS-009..011, ACTION-007..011,
- * FGCA-008..014 except GOALS-008 — see the module header) over the loaded
+ * DGCA-REPO-008..014 except GOALS-008 — see the module header) over the loaded
  * element set and append findings. Called from `validateRepoModel` after the
  * structural phases. Pure, deterministic order.
  */
@@ -512,5 +512,22 @@ export function checkStrategyChainSemantics(input: RepoModelInput, findings: Rep
   checkActionDates(actions, findings);
   checkActionFields(actions, findings, input.methodologyVersion);
   checkStrategyChainReferences(goals, actions, drivers, changes, findings);
-  checkStrategyChainOrphans(goals, actions, drivers, changes, findings);
+  if (!usesCoverageObservations(input)) checkStrategyChainOrphans(goals, actions, drivers, changes, findings);
+}
+
+
+function usesCoverageObservations(input: RepoModelInput): boolean {
+  return /^\d+\./.test(input.methodologyVersion ?? '') && Number(input.methodologyVersion!.split('.')[0]) >= 5;
+}
+
+/** Removed FGCA orphan rules become visible coverage observations, not new aliases. */
+export function collectStrategyCoverageObservations(input: RepoModelInput): Array<{id: string; kind: 'unreferenced'; message: string}> {
+  if (!usesCoverageObservations(input)) return [];
+  const findings: RepoFinding[] = [];
+  checkStrategyChainOrphans(
+    collectByNotation(input.elements, isGoalNotation),
+    collectByNotation(input.elements, isActionNotation),
+    collectByNotation(input.elements, isDriverNotation),
+    collectByNotation(input.elements, isChangeNotation), findings);
+  return findings.map(f => ({ id: f.id, kind: 'unreferenced', message: f.message.replace(/^FGCA-01[234]: /, '') }));
 }
