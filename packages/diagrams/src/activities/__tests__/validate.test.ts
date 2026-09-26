@@ -136,22 +136,22 @@ describe('validateActivities', () => {
     expect(r.warnings.some(x => x.code === 'ACT-021')).toBe(false);
   });
 
-  it('ACT-005 — rejects unknown predecessor reference', () => {
+  it('ACTION-007 — warns for unknown predecessor reference', () => {
     const r = validateActivities({
       notation: 'action',
       actions: [{ id: 'A-001', name: 'Task', duration: 1, predecessors: ['MISSING'] }],
     });
-    expect(r.valid).toBe(false);
-    expect(r.errors.some(e => e.code === 'ACT-005')).toBe(true);
+    expect(r.valid).toBe(true);
+    expect(r.warnings.some(e => e.code === 'ACTION-007')).toBe(true);
   });
 
-  it('ACT-005 — passes when predecessor exists', () => {
+  it('ACTION-007 — passes when predecessor exists', () => {
     const r = validateActivities(minimalValid);
     expect(r.valid).toBe(true);
-    expect(r.errors.some(e => e.code === 'ACT-005')).toBe(false);
+    expect(r.errors.some(e => e.code === 'ACTION-007')).toBe(false);
   });
 
-  it('ACT-006 — rejects cyclic dependency', () => {
+  it('ACTION-008 — rejects cyclic dependency', () => {
     const r = validateActivities({
       notation: 'action',
       actions: [
@@ -160,19 +160,19 @@ describe('validateActivities', () => {
       ],
     });
     expect(r.valid).toBe(false);
-    expect(r.errors.some(e => e.code === 'ACT-006')).toBe(true);
+    expect(r.errors.some(e => e.code === 'ACTION-008')).toBe(true);
   });
 
-  it('ACT-007 — rejects self-loop', () => {
+  it('ACTION-009 — rejects self-loop', () => {
     const r = validateActivities({
       notation: 'action',
       actions: [{ id: 'A-001', name: 'Task', duration: 1, predecessors: ['A-001'] }],
     });
     expect(r.valid).toBe(false);
-    expect(r.errors.some(e => e.code === 'ACT-007')).toBe(true);
+    expect(r.errors.some(e => e.code === 'ACTION-009')).toBe(true);
   });
 
-  it('ACT-008 — rejects end_date before start_date', () => {
+  it('ACTION-010 — rejects end_date before start_date', () => {
     const r = validateActivities({
       notation: 'action',
       actions: [
@@ -180,20 +180,20 @@ describe('validateActivities', () => {
       ],
     });
     expect(r.valid).toBe(false);
-    expect(r.errors.some(e => e.code === 'ACT-008')).toBe(true);
+    expect(r.errors.some(e => e.code === 'ACTION-010')).toBe(true);
   });
 
-  it('ACT-008 — accepts end_date equal to start_date', () => {
+  it('ACTION-010 — accepts end_date equal to start_date', () => {
     const r = validateActivities({
       notation: 'action',
       actions: [
         { id: 'A-001', name: 'Task', duration: 0, start_date: '2026-06-01', end_date: '2026-06-01' },
       ],
     });
-    expect(r.errors.some(e => e.code === 'ACT-008')).toBe(false);
+    expect(r.errors.some(e => e.code === 'ACTION-010')).toBe(false);
   });
 
-  it('ACT-008 — rejects non-ISO start_date format', () => {
+  it('ACTION-010 — rejects non-ISO start_date format', () => {
     const r = validateActivities({
       notation: 'action',
       actions: [
@@ -201,10 +201,10 @@ describe('validateActivities', () => {
       ],
     });
     expect(r.valid).toBe(false);
-    expect(r.errors.some(e => e.code === 'ACT-008' && /start_date/.test(e.message))).toBe(true);
+    expect(r.errors.some(e => e.code === 'ACTION-010' && /start_date/.test(e.message))).toBe(true);
   });
 
-  it('ACT-008 — rejects non-ISO end_date format', () => {
+  it('ACTION-010 — rejects non-ISO end_date format', () => {
     const r = validateActivities({
       notation: 'action',
       actions: [
@@ -212,12 +212,12 @@ describe('validateActivities', () => {
       ],
     });
     expect(r.valid).toBe(false);
-    expect(r.errors.some(e => e.code === 'ACT-008' && /end_date/.test(e.message))).toBe(true);
+    expect(r.errors.some(e => e.code === 'ACTION-010' && /end_date/.test(e.message))).toBe(true);
   });
 
-  it('ACT-008 — does not raise the order-compare error when dates are malformed', () => {
+  it('ACTION-010 — does not raise the order-compare error when dates are malformed', () => {
     // If start_date and end_date are both wrongly formatted, the file already
-    // has two ACT-008 format errors — adding a third "end < start" complaint
+    // has two ACTION-010 format errors — adding a third "end < start" complaint
     // on top would be misleading because the lexicographic compare is
     // meaningless on non-ISO strings.
     const r = validateActivities({
@@ -226,25 +226,25 @@ describe('validateActivities', () => {
         { id: 'A-001', name: 'Task', duration: 5, start_date: 'tomorrow', end_date: 'yesterday' },
       ],
     });
-    expect(r.errors.filter(e => e.code === 'ACT-008').length).toBe(2);
+    expect(r.errors.filter(e => e.code === 'ACTION-010').length).toBe(2);
     expect(r.errors.every(e => /must be ISO 8601 YYYY-MM-DD/.test(e.message))).toBe(true);
   });
 
-  it('ACT-009 — rejects negative duration', () => {
+  it('ACTION-011 — rejects negative duration', () => {
     const r = validateActivities({
       notation: 'action',
       actions: [{ id: 'A-001', name: 'Task', duration: -1 }],
-    });
+    }, { methodologyVersion: '7.0.0' });
     expect(r.valid).toBe(false);
-    expect(r.errors.some(e => e.code === 'ACT-009')).toBe(true);
+    expect(r.errors.some(e => e.code === 'ACTION-011')).toBe(true);
   });
 
-  it('ACT-009 — accepts zero duration', () => {
+  it('ACTION-011 — accepts zero duration', () => {
     const r = validateActivities({
       notation: 'action',
       actions: [{ id: 'A-001', name: 'Milestone', duration: 0 }],
     });
-    expect(r.errors.some(e => e.code === 'ACT-009')).toBe(false);
+    expect(r.errors.some(e => e.code === 'ACTION-011')).toBe(false);
   });
 
   it('ACT-010 — rejects singular "goal:" field', () => {
@@ -329,49 +329,49 @@ describe('validateActivities', () => {
     expect(r.errors).toHaveLength(0);
   });
 
-  // ── Project block + calendar (ACT-014, ACT-015) ───────────────────────────
+  // ── Project block + calendar (ACT-007, ACT-008) ───────────────────────────
 
-  it('ACT-014 — rejects unknown weekday in working_days', () => {
+  it('ACT-007 — rejects unknown weekday in working_days', () => {
     const r = validateActivities({
       ...minimalValid,
       project: { start_date: '2026-06-01', calendar: { working_days: ['mon', 'funday'] } },
     });
     expect(r.valid).toBe(false);
-    expect(r.errors.some(e => e.code === 'ACT-014' && /funday/.test(e.message))).toBe(true);
+    expect(r.errors.some(e => e.code === 'ACT-007' && /funday/.test(e.message))).toBe(true);
   });
 
-  it('ACT-014 — rejects duplicate weekday entries', () => {
+  it('ACT-007 — rejects duplicate weekday entries', () => {
     const r = validateActivities({
       ...minimalValid,
       project: { calendar: { working_days: ['mon', 'tue', 'mon'] } },
     });
     expect(r.valid).toBe(false);
-    expect(r.errors.some(e => e.code === 'ACT-014' && /duplicate/i.test(e.message))).toBe(true);
+    expect(r.errors.some(e => e.code === 'ACT-007' && /duplicate/i.test(e.message))).toBe(true);
   });
 
-  it('ACT-014 — accepts mixed-case weekday names', () => {
+  it('ACT-007 — accepts mixed-case weekday names', () => {
     const r = validateActivities({
       ...minimalValid,
       project: { start_date: '2026-06-01', calendar: { working_days: ['MON', 'Tue', 'wed', 'thu', 'fri'] } },
     });
-    expect(r.errors.some(e => e.code === 'ACT-014')).toBe(false);
+    expect(r.errors.some(e => e.code === 'ACT-007')).toBe(false);
   });
 
-  it('ACT-015 — rejects non-ISO holiday date', () => {
+  it('ACT-008 — rejects non-ISO holiday date', () => {
     const r = validateActivities({
       ...minimalValid,
       project: { start_date: '2026-06-01', calendar: { holidays: ['2026-07-04', 'July 4 2026'] } },
     });
     expect(r.valid).toBe(false);
-    expect(r.errors.some(e => e.code === 'ACT-015' && /July 4 2026/.test(e.message))).toBe(true);
+    expect(r.errors.some(e => e.code === 'ACT-008' && /July 4 2026/.test(e.message))).toBe(true);
   });
 
-  it('ACT-015 — accepts an array of ISO dates', () => {
+  it('ACT-008 — accepts an array of ISO dates', () => {
     const r = validateActivities({
       ...minimalValid,
       project: { start_date: '2026-06-01', calendar: { holidays: ['2026-07-04', '2026-12-25'] } },
     });
-    expect(r.errors.some(e => e.code === 'ACT-015')).toBe(false);
+    expect(r.errors.some(e => e.code === 'ACT-008')).toBe(false);
   });
 
   // ── Milestone date equality (ACT-016) ─────────────────────────────────────
@@ -444,26 +444,26 @@ describe('validateActivities', () => {
     expect(r.warnings.some(w => w.code === 'ACT-018')).toBe(false);
   });
 
-  // ── Gantt-renderability notice (ACT-019) ──────────────────────────────────
+  // ── Gantt-renderability notice (ACT-009) ──────────────────────────────────
 
-  it('ACT-019 — warns when neither project.start_date nor pinned dates exist', () => {
+  it('ACT-009 — warns when neither project.start_date nor pinned dates exist', () => {
     const r = validateActivities(minimalValid);
-    expect(r.warnings.some(w => w.code === 'ACT-019')).toBe(true);
+    expect(r.warnings.some(w => w.code === 'ACT-009')).toBe(true);
   });
 
-  it('ACT-019 — no warning when project.start_date is set', () => {
+  it('ACT-009 — no warning when project.start_date is set', () => {
     const r = validateActivities({ ...minimalValid, project: { start_date: '2026-06-01' } });
-    expect(r.warnings.some(w => w.code === 'ACT-019')).toBe(false);
+    expect(r.warnings.some(w => w.code === 'ACT-009')).toBe(false);
   });
 
-  it('ACT-019 — no warning when every activity has pinned dates', () => {
+  it('ACT-009 — no warning when every activity has pinned dates', () => {
     const r = validateActivities({
       notation: 'action',
       actions: [
         { id: 'A-1', name: 'A', duration: 3, start_date: '2026-06-01', end_date: '2026-06-04' },
       ],
     });
-    expect(r.warnings.some(w => w.code === 'ACT-019')).toBe(false);
+    expect(r.warnings.some(w => w.code === 'ACT-009')).toBe(false);
   });
 
   it('[blocker] tolerates a null element in actions[] without throwing', () => {

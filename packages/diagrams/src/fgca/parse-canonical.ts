@@ -1,3 +1,4 @@
+import { RESOLVED_DGCA } from './projection-origin.js';
 /**
  * Canonical-form FGCA parser + validator.
  *
@@ -166,6 +167,15 @@ export function parseCanonicalFGCA(
   if (activitiesRaw === null) errors.push({ code: 'FGCA-004', message: 'actions must be an array', path: 'actions' });
 
   if (errors.length > 0) return { valid: false, errors, warnings };
+
+  if (!(input as { [RESOLVED_DGCA]?: boolean })[RESOLVED_DGCA]) {
+    for (const [field, values] of [['factors', factorsRaw], ['goals', goalsRaw], ['actions', activitiesRaw], ['changes', changesRaw]] as const) {
+      if (field === 'changes' && isDgcaChangesLayerOff(raw)) continue;
+      if (values?.length === 0) errors.push({ code: 'DGCA-004', path: field,
+        message: `Inline DGCA ${field} must be nonempty.` });
+    }
+    if (errors.length > 0) return { valid: false, errors, warnings };
+  }
 
   // From here we know all four arrays exist.
   const factors = factorsRaw!;
@@ -435,7 +445,10 @@ export function parseCanonicalFGA(
   // changes. Per-layer / per-ref checks all reuse the FGCA implementation;
   // codes are remapped on the way out. FGCA-009 / 010 / 014 (changes-related)
   // are unreachable here because `changes` is empty.
-  const synth = { ...raw, notation: 'dgca', id: 'DGCA-FROM-DGA-1', changes: [] };
+  const vc = raw.view_config && typeof raw.view_config === 'object' ? raw.view_config as Record<string, unknown> : {};
+  const layers = vc.layers && typeof vc.layers === 'object' ? vc.layers as Record<string, unknown> : {};
+  const synth = { ...raw, notation: 'dgca', id: 'DGCA-FROM-DGA-1', changes: [],
+    view_config: { ...vc, layers: { ...layers, changes: 'off' } } };
   const r = parseCanonicalFGCA(synth, outOfScopeGoalIds, outOfScopeFactorIds, progressData);
   const remap: Record<string, string> = {
     'FGCA-001': 'FGA-001',

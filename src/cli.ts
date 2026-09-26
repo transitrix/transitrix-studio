@@ -678,6 +678,14 @@ async function handleValidateCommand(argv: string[]): Promise<void> {
     const isUnresolvableProjection = projectionInfo ? projectionInfo.check(data) : false;
     if (isFileValidatableNotation(validatorKey) && !isUnresolvableProjection) {
       const report = validateNotationDoc(validatorKey, data, { filePath: src, template });
+      if (strict) {
+        for (const finding of report.findings) {
+          if (finding.ruleId === 'NOTATION-SKIP-001') finding.severity = 'error';
+        }
+        report.summary.errorCount = report.findings.filter(f => f.severity === 'error').length;
+        report.summary.warningCount = report.findings.filter(f => f.severity === 'warning').length;
+        report.isValid = report.summary.errorCount === 0;
+      }
       emitFileReport(src, report, useJson, validatorKey);
       if (!report.isValid) {
         process.exit(1);

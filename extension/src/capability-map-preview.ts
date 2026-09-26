@@ -252,7 +252,7 @@ export class CapabilityMapPreview {
         if (raw['view'] === 'tree') viewMode = 'tree';
       }
 
-      const v = validateCapabilityMap(parsed);
+      const v = validateCapabilityMap(parsed, { resolvedAttributes: resolved.byId });
       if (!v.valid) {
         errorMsg = v.errors.map(e => `${e.code}: ${e.message}`).join('\n');
       } else {

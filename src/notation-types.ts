@@ -20,6 +20,8 @@ export interface NotationValidationResult {
 }
 
 export interface ValidateNotationOptions {
+  methodologyVersion?: string;
+  capabilityAttributes?: ReadonlyMap<string, import('@transitrix/diagrams/capability-map/resolve-maturity.js').ResolvedCapabilityAttributes>;
   /** Repo-relative or absolute path — used for codex folder-jurisdiction checks. */
   filePath?: string;
   /** Admitted canon catalogue — enables catalogue-aware checks (e.g. REQ-002, ASSERT-002..005). */

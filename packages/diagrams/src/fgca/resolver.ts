@@ -1,3 +1,4 @@
+import { RESOLVED_DGCA } from './projection-origin.js';
 /**
  * FGCA canon resolver — assembles a flat canonical FGCA document from a
  * view_config projection and a canon element/relation store (VP-3).
@@ -182,6 +183,7 @@ export function resolveFGCA(
   }
 
   return {
+    [RESOLVED_DGCA]: true,
     notation: 'dgca',
     id: viewDoc['id'],
     name: viewDoc['name'],

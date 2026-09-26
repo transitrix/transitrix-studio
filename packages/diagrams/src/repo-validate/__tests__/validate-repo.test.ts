@@ -795,7 +795,7 @@ describe('validateRepoModel — process_parent (REL-007 / REL-008 / endpoints)',
     expect(findings[0].message).toContain('from');
   });
 
-  it('does not emit endpoint findings for unknown process_parent endpoints', () => {
+  it('reports unknown process_parent endpoints once with the published REL-002 identity', () => {
     const model = processModel();
     model.relations.push(
       el('canon/relations/REL-MISS.yaml', {
@@ -807,7 +807,7 @@ describe('validateRepoModel — process_parent (REL-007 / REL-008 / endpoints)',
       }),
     );
     const findings = validateRepoModel(model);
-    expect(findings.every((f) => f.ruleId !== 'REL-002')).toBe(true);
+    expect(findings.filter((f) => f.ruleId === 'REL-002')).toHaveLength(2);
     expect(findings.some((f) => f.message.includes('PROCESS-UNKNOWN-99'))).toBe(true);
   });
 });

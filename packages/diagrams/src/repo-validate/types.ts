@@ -74,6 +74,8 @@ export interface RepoDoc {
  *  canon zone exactly as `lint.py` partitions them (`canon/elements/**` vs
  *  `canon/relations/**`). */
 export interface RepoModelInput {
+  /** Catalogue manifest version; document spec_version never selects compatibility. */
+  methodologyVersion?: string;
   /** Documents found under `canon/elements/**`. */
   elements: RepoDoc[];
   /** Documents found under `canon/relations/**`. */

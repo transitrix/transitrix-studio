@@ -25,6 +25,12 @@ const VALID = {
 };
 
 describe('parseCanonicalFGCA', () => {
+  it('distinguishes empty inline collections from historical shape failures', () => {
+    const result = parseCanonicalFGCA({ ...VALID, factors: [], goals: [], changes: [], actions: [] });
+    expect(result.errors.filter(e => e.code === 'DGCA-004')).toHaveLength(4);
+    expect(result.errors.some(e => e.code === 'FGCA-004')).toBe(false);
+  });
+
   it('accepts a valid canonical document', () => {
     const r = parseCanonicalFGCA(VALID);
     expect(r.valid).toBe(true);

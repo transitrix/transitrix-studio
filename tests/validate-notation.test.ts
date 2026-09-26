@@ -179,12 +179,20 @@ describe('validate-notation — the view notation corpus validates clean (#258)'
     if (GENERIC_SWEEP_EXCLUDED.has(notation)) continue;
     for (const file of viewFixtures(notation)) {
       const name = file.slice(corpusRoot.length + 1).replace(/\\/g, '/');
-      it(`${name} → valid`, () => {
+      it(`${name} → documented validation outcome`, () => {
         const data = loadNotationYaml(readFileSync(file, 'utf8'));
         const report = validateNotationDoc(notation, data);
         const errors = report.findings.filter((f) => f.severity === 'error');
-        expect(errors, JSON.stringify(errors, null, 2)).toEqual([]);
-        expect(report.isValid).toBe(true);
+        if (notation === 'capability-map') {
+          // These historical fixtures inline time-varying values. Keep them as
+          // rejection cases; a separate sidecar fixture exercises acceptance.
+          expect(errors.length).toBeGreaterThan(0);
+          expect(errors.every(f => f.ruleId === 'VERSIONED-004')).toBe(true);
+          expect(report.isValid).toBe(false);
+        } else {
+          expect(errors, JSON.stringify(errors, null, 2)).toEqual([]);
+          expect(report.isValid).toBe(true);
+        }
       });
     }
   }

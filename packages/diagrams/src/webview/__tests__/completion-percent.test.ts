@@ -14,7 +14,7 @@ describe('completion percentage contract', () => {
   });
   for (const notation of ['dgca', 'dga']) {
     it(`${notation} uses tracker links independently of goals and renders validated progress`, () => {
-      const input = { notation, id: `${notation.toUpperCase()}-TEST-1`, name: 'Test',
+      const input = { notation, id: `${notation.toUpperCase()}-TEST-1`, name: 'Test', view_config: { layers: { changes: 'off' } },
         factors: [{ id: 'DRIVER-TEST-1', name: 'Driver', type: 'external' }],
         goals: [{ id: 'GOAL-TEST-1', name: 'Goal', factors: ['DRIVER-TEST-1'] }], changes: [],
         actions: [
