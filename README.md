@@ -6,6 +6,25 @@ Text-first BPMN authoring: write your process as structured YAML, compile to val
 
 ![Transitrix Studio in action — a goals-tree YAML file on the left, its live preview on the right, redrawing as a new goal is added and typed](https://raw.githubusercontent.com/transitrix/transitrix-studio/main/extension/docs/listing.gif)
 
+
+## Goals and DGCA in VS Code
+
+Write goals and plans in YAML, save the file, and inspect the diagram beside the source. These screenshots use Transitrix Studio 3.7.3. Open an image at full size to read the labels and identifiers.
+
+[A YAML goals model beside its preview in VS Code.](https://raw.githubusercontent.com/transitrix/transitrix-studio/2b267940743604e0cf7eecab272a473d80d897f7/extension/docs/vscode-goals-before.png)
+
+[![A YAML goals model beside its preview in VS Code.](https://raw.githubusercontent.com/transitrix/transitrix-studio/2b267940743604e0cf7eecab272a473d80d897f7/extension/docs/vscode-goals-before.png)](https://raw.githubusercontent.com/transitrix/transitrix-studio/2b267940743604e0cf7eecab272a473d80d897f7/extension/docs/vscode-goals-before.png)
+
+[Improve quality appears as a new child goal.](https://raw.githubusercontent.com/transitrix/transitrix-studio/2b267940743604e0cf7eecab272a473d80d897f7/extension/docs/vscode-goals-after.png)
+
+[![Improve quality appears as a new child goal.](https://raw.githubusercontent.com/transitrix/transitrix-studio/2b267940743604e0cf7eecab272a473d80d897f7/extension/docs/vscode-goals-after.png)](https://raw.githubusercontent.com/transitrix/transitrix-studio/2b267940743604e0cf7eecab272a473d80d897f7/extension/docs/vscode-goals-after.png)
+
+[A DGCA model connects a driver, goal, change and action.](https://raw.githubusercontent.com/transitrix/transitrix-studio/2b267940743604e0cf7eecab272a473d80d897f7/extension/docs/vscode-dgca.png)
+
+[![A DGCA model connects a driver, goal, change and action.](https://raw.githubusercontent.com/transitrix/transitrix-studio/2b267940743604e0cf7eecab272a473d80d897f7/extension/docs/vscode-dgca.png)](https://raw.githubusercontent.com/transitrix/transitrix-studio/2b267940743604e0cf7eecab272a473d80d897f7/extension/docs/vscode-dgca.png)
+
+The standalone DGCA example shows a warning because no canon root is attached; the four-node chain is still rendered.
+
 ## What this is
 
 Transitrix Studio brings **text-first diagram authoring** to VS Code. Instead of dragging shapes in a GUI editor, you write YAML — structured, diffable, reviewable in pull requests. The compiler produces BPMN 2.0 XML with computed layout coordinates using the ELK (Eclipse Layout Kernel) engine.
