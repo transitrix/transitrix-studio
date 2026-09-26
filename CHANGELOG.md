@@ -1,6 +1,38 @@
 # Changelog
 
-## CLI 2.10.0-rc.0 / diagrams 1.14.0-rc.0 — Unpublished candidate
+## [3.8.0] — 2026-09-26
+
+### Added
+
+- Traceability Matrix retains navigation context, supports directional focus and
+  adjacent-column views, and refreshes after source changes. (#675, #677)
+- Release requirement reports share projections, counts, provenance and metric
+  drill-downs with the matrix. (#674, #676, #677)
+- Risk degrees accept numbers on explicit adopter-defined scales while keeping
+  qualitative values valid; no automatic calculation is required. (#690)
+- Read-only diagram viewer prototype. (#671)
+
+### Changed
+
+- README examples now include native goals and DGCA screenshots. (#689)
+- Release-note updates are pinned to verified draft identity; npm prereleases use
+  the next channel. (#684, #685)
+- Updated BPMN and development dependencies. (#678–#682)
+
+### Packages
+
+- `@transitrix/cli` 2.10.0 and `@transitrix/diagrams` 1.14.0.
+
+### Fixed
+
+- Reserve a separate header row in the JetBrains goals preview so the diagram title cannot overlap the topmost nodes.
+- Repository validation now reports unsupported files throughout canon, field, and codex, including hidden paths and zone roots. Only regular zero-byte `.gitkeep` files qualify as placeholders; archival admission checks remain confined to `codex/sources/`.
+
+### JetBrains preview readability
+
+SVG previews now have an opaque light canvas matching the renderer palette. Diagram titles and edges remain readable when the surrounding preview uses a dark background.
+
+## CLI 2.10.0-rc.0 / diagrams 1.14.0-rc.0 — 2026-09-26
 
 ### Fixed
 
@@ -11,7 +43,7 @@
 
 - Shared requirement-chain projection for compliance reports, including requirement classification and reverse-index data.
 
-These npm package candidates require review before publication. See the CLI package README for local tarball evaluation. The Studio extension remains at 3.7.4.
+These npm prereleases were published on the `next` channel; stable `latest` was preserved. They precede the additional numeric risk authoring and editor fixes in 3.8.0.
 
 ## [3.7.4] — 2026-09-18
 
