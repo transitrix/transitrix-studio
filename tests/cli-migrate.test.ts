@@ -177,7 +177,7 @@ describe.skipIf(!hasRecipes)('transitrix migrate (requires methodology repo)', (
 
   it('migrates 0.5→0.6: activities file matches fixtures/after', () => {
     const tmp = makeTempRepo('0.5.0');
-    const { status } = runCli(['migrate', '--recipes', recipesDir, tmp]);
+    const { status } = runCli(['migrate', '--recipes', recipesDir, '--to', '0.6', tmp]);
     expect(status).toBe(0);
 
     const got = lf(readFileSync(join(tmp, 'canon/views/launch.activities.transitrix.yaml'), 'utf8'));
@@ -187,7 +187,7 @@ describe.skipIf(!hasRecipes)('transitrix migrate (requires methodology repo)', (
 
   it('migrates 0.5→0.6: role file matches fixtures/after', () => {
     const tmp = makeTempRepo('0.5.0');
-    runCli(['migrate', '--recipes', recipesDir, tmp]);
+    runCli(['migrate', '--recipes', recipesDir, '--to', '0.6', tmp]);
 
     const got = lf(readFileSync(join(tmp, 'canon/elements/02_business/roles/ROLE-OPS-1.yaml'), 'utf8'));
     const want = lf(readFileSync(join(fixtureBase56, 'after/canon/elements/02_business/roles/ROLE-OPS-1.yaml'), 'utf8'));
@@ -196,7 +196,7 @@ describe.skipIf(!hasRecipes)('transitrix migrate (requires methodology repo)', (
 
   it('migrates 0.5→0.6: project-card renamed to activity-card', () => {
     const tmp = makeTempRepo('0.5.0');
-    runCli(['migrate', '--recipes', recipesDir, tmp]);
+    runCli(['migrate', '--recipes', recipesDir, '--to', '0.6', tmp]);
 
     expect(existsSync(join(tmp, 'canon/views/eu.project-card.transitrix.yaml'))).toBe(false);
     expect(existsSync(join(tmp, 'canon/views/eu.activity-card.transitrix.yaml'))).toBe(true);
@@ -208,12 +208,17 @@ describe.skipIf(!hasRecipes)('transitrix migrate (requires methodology repo)', (
 
   it('updates transitrix.yaml methodology_version to latest reachable on success', () => {
     const tmp = makeTempRepo('0.5.0');
-    const { status } = runCli(['migrate', '--recipes', recipesDir, tmp]);
+    // Bound the available recipe set: adding unrelated later recipes must not
+    // change the expected endpoint of this chain-selection regression.
+    const chain = mkdtempSync(join(tmpdir(), 'tx-recipe-chain-'));
+    temps.push(chain);
+    cpSync(join(recipesDir, '0.5-to-0.6'), join(chain, '0.5-to-0.6'), { recursive: true });
+    if (has67Recipe) cpSync(join(recipesDir, '0.6-to-0.7'), join(chain, '0.6-to-0.7'), { recursive: true });
+    const { status } = runCli(['migrate', '--recipes', chain, tmp]);
     expect(status).toBe(0);
 
     const yaml = readFileSync(join(tmp, 'transitrix.yaml'), 'utf8');
-    // 0.5→0.6→0.7 chain: ends at 0.7.0 when both recipes are present
-    expect(yaml).toMatch(/methodology_version: 0\.[67]\.0/);
+    expect(yaml).toContain(`methodology_version: ${has67Recipe ? '0.7.0' : '0.6.0'}`);
   });
 
   it('auto-detects from-version from transitrix.yaml', () => {
