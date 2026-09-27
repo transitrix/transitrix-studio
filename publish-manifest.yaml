@@ -68,3 +68,6 @@ published:
   - vendor/methodology/document-renderer/provenance/parse-recipe.mjs
   - vendor/methodology/document-renderer/provenance/ids.mjs
   - vendor/methodology/document-renderer/provenance/syntax.mjs
+
+  # CI regression test for the dependency merge workflow
+  - .github/tests/test_dependabot_merge.py
