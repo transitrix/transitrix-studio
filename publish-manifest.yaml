@@ -54,3 +54,14 @@ published:
   # npm publishing requires channel selection and its fail-closed regression check
   - scripts/npm-publish-tag.mjs
   - scripts/npm-publish-tag.test.mjs
+
+  # Read-only document checker shipped in CLI/editor and its consumer contract
+  - src/document-provenance.ts
+  - docs/document-provenance.md
+  - vendor/methodology/document-renderer/provenance/VENDORED.json
+  - vendor/methodology/document-renderer/provenance/provenance.mjs
+  - vendor/methodology/document-renderer/provenance/provenance.d.mts
+  - vendor/methodology/document-renderer/provenance/provenance-result.schema.json
+  - vendor/methodology/document-renderer/provenance/parse-recipe.mjs
+  - vendor/methodology/document-renderer/provenance/ids.mjs
+  - vendor/methodology/document-renderer/provenance/syntax.mjs
