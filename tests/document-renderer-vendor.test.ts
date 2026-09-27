@@ -51,6 +51,20 @@ const EXPECTED_FILES = [
 ];
 
 describe('vendor/methodology/document-renderer — integrity', () => {
+  it('pins the isolated provenance checker and its complete import closure', () => {
+    const dir = path.join(VENDOR_DIR, 'provenance');
+    const pin = JSON.parse(readFileSync(path.join(dir, 'VENDORED.json'), 'utf8'));
+    expect(pin.source_ref).toBe('4a8c3028fc98290bbbef7a67d38ce851549590a4');
+    expect(pin.contract_version).toBe('document-provenance/1');
+    expect(Object.keys(pin.files).sort()).toEqual([
+      'ids.mjs', 'parse-recipe.mjs', 'provenance-result.schema.json', 'provenance.mjs', 'syntax.mjs',
+    ]);
+    for (const [name, hash] of Object.entries(pin.files)) {
+      const raw = readFileSync(path.join(dir, name));
+      expect(createHash('sha256').update(raw).digest('hex'), name).toBe(hash);
+    }
+  });
+
   it('VENDORED.json pins exactly the eight files the renderer needs', () => {
     const pin = loadPin();
     expect(Object.keys(pin.files).sort()).toEqual([...EXPECTED_FILES].sort());

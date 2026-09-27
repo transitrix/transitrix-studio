@@ -938,6 +938,10 @@
         "title": "Transitrix: Refresh coverage-metric view",
         "category": "Transitrix",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "transitrix.checkDocumentProvenance",
+        "title": "Transitrix: Check Document Provenance"
       }
     ],
     "menus": {
@@ -1031,6 +1035,11 @@
           "when": "activeWebviewPanelId == coverageMetricPreview",
           "command": "transitrixStudio.refreshCoverageMetric",
           "group": "navigation@-9"
+        },
+        {
+          "command": "transitrix.checkDocumentProvenance",
+          "when": "resourceExtname == .ttrs",
+          "group": "navigation"
         }
       ]
     }

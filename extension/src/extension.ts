@@ -27,6 +27,7 @@ import { GapDashboardPreview } from './gap-dashboard-preview.js';
 import { RequirementVerificationMatrixPreview } from './requirement-verification-matrix-preview.js';
 import { CoverageMetricPreview } from './coverage-metric-preview.js';
 import { PlantUMLPreview, isPumlFile } from './plantuml-preview.js';
+import { CHECK_DOCUMENT_COMMAND, checkDocumentProvenanceCommand } from './document-provenance-command.js';
 import { TtrsPreview, isTtrsFile } from './ttrs-preview.js';
 import { openComplianceFile } from './compliance-scan.js';
 import type { LayoutMetrics, ValidationReport } from './types.js';
@@ -412,6 +413,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void |
   //     command since they aren't bound to a specific open file).
   context.subscriptions.push(
     vscode.commands.registerTextEditorCommand('transitrix.openPreview', openPreviewHandler),
+    vscode.commands.registerCommand(CHECK_DOCUMENT_COMMAND, checkDocumentProvenanceCommand),
     vscode.commands.registerCommand(NEW_GOAL_ELEMENT_COMMAND, () => newGoalElementCommand()),
     vscode.commands.registerCommand(NEW_DRIVER_ELEMENT_COMMAND, () => newDriverElementCommand()),
     vscode.commands.registerCommand(NEW_CONSTRAINT_ELEMENT_COMMAND, () => newConstraintElementCommand()),

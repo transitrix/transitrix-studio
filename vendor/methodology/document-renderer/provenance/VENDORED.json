@@ -1,0 +1,11 @@
+{
+  "source_ref": "4a8c3028fc98290bbbef7a67d38ce851549590a4",
+  "contract_version": "document-provenance/1",
+  "files": {
+    "provenance.mjs": "bfff0475cc14c7a5026ec594cf3956bcde81ae748f7d35f04ff908efc03e1e4e",
+    "parse-recipe.mjs": "0708154b705efcf673129a0b8c26194c44c57c58b6ac84ef6ee65700932b3cdd",
+    "ids.mjs": "f007b6b1d266b661dcb2a47c91e61c61466af06add68e09f3d8576d05059b084",
+    "syntax.mjs": "ffc5b7eb4f399c49a921d1d02388ae5ff6c0d57df408b44cbffdded57b7f6708",
+    "provenance-result.schema.json": "6d959c423cb20c3a89abfa0b88db24a2192092bd1dcb5ca55b9c488c146df0fb"
+  }
+}
