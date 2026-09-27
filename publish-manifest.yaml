@@ -37,6 +37,9 @@ published:
   # Regression coverage for the published completion reader
   - tests/action-progress-reader.test.ts
 
+  # Regression coverage for packaged report webview verification
+  - tests/report-dom-probe.test.ts
+
   - publish-manifest.yaml
   - scripts/check-publish-manifest.mjs
 
