@@ -10,7 +10,7 @@ WORKFLOW = Path(__file__).resolve().parents[1] / "workflows/dependabot-auto-merg
 TEXT = WORKFLOW.read_text()
 SCRIPT = "\n".join(line[10:] for line in TEXT.split("        run: |\n", 1)[1].splitlines())
 HEAD = "a" * 40
-REQUIRED = ["Diff + PR-metadata blocklist", "PR description policy", "merge-guard-tests"]
+REQUIRED = ["Diff + PR-metadata blocklist", "PR description policy", "Build & Test with Metrics Regression", "merge-guard-tests"]
 GREEN = [{"name": name, "bucket": "pass"} for name in REQUIRED]
 FAKE_GH = r'''#!/usr/bin/env python3
 import json, os, pathlib, sys

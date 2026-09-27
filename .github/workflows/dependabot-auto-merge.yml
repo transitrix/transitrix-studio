@@ -59,7 +59,7 @@ jobs:
 
           # Require the always-triggered checks, even before GitHub has queued
           # every workflow. A nonempty list containing only this job is not CI.
-          required='["Diff + PR-metadata blocklist", "PR description policy", "merge-guard-tests"]'
+          required='["Diff + PR-metadata blocklist", "PR description policy", "Build & Test with Metrics Regression", "merge-guard-tests"]'
           deadline=$((SECONDS + 3600))
           while (( SECONDS < deadline )); do
             assert_head
