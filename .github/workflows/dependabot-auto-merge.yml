@@ -20,10 +20,19 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  checks: read
 
 jobs:
+  merge-guard-tests:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 .github/tests/test_dependabot_merge.py
+
   auto-merge:
-    if: github.actor == 'dependabot[bot]'
+    if: github.actor == 'dependabot[bot]' && github.event.pull_request.user.login == 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
       - name: Fetch Dependabot metadata
@@ -33,53 +42,54 @@ jobs:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
 
       - name: Wait for checks, then merge on green
-        if: steps.metadata.outputs.update-type != 'version-update:semver-major'
+        if: contains(fromJSON('["version-update:semver-patch","version-update:semver-minor"]'), steps.metadata.outputs.update-type)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_URL: ${{ github.event.pull_request.html_url }}
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
         run: |
           set -euo pipefail
 
-          # Poll until every check *other than this job* is terminal.
-          # Exclude name "auto-merge" (this workflow) so we cannot wait on ourselves.
+          [[ "$EXPECTED_HEAD" =~ ^[0-9a-f]{40}$ ]] || exit 1
+          assert_head() {
+            gh pr view "$PR_URL" --json headRefOid,state,isDraft | jq -e \
+              --arg head "$EXPECTED_HEAD" \
+              '.headRefOid == $head and .state == "OPEN" and .isDraft == false' >/dev/null
+          }
+
+          # Require the always-triggered checks, even before GitHub has queued
+          # every workflow. A nonempty list containing only this job is not CI.
+          required='["Diff + PR-metadata blocklist", "PR description policy", "merge-guard-tests"]'
           deadline=$((SECONDS + 3600))
           while (( SECONDS < deadline )); do
-            json="$(gh pr checks "$PR_URL" --json name,bucket 2>/dev/null || true)"
-            if [[ -z "$json" || "$json" == "[]" ]]; then
-              echo "No checks reported yet; waiting…"
-              sleep 15
-              continue
-            fi
+            assert_head
+            # gh pr checks returns 8 for pending checks and 1 for failures.
+            # Keep their JSON for classification; other errors stop the run.
+            rc=0
+            json="$(gh pr checks "$PR_URL" --json name,bucket)" || rc=$?
+            [[ "$rc" == 0 || "$rc" == 1 || "$rc" == 8 ]] || exit "$rc"
+            printf '%s' "$json" | jq -e 'type == "array" and all(.[];
+              (.name | type == "string") and (.bucket | type == "string"))' >/dev/null
+            other="$(printf '%s' "$json" | jq '[.[] | select(.name != "auto-merge")]')"
 
-            pending="$(printf '%s' "$json" | jq -r '
-              [.[] | select(.name != "auto-merge") | select(.bucket == "pending")] | length
-            ')"
-            failing="$(printf '%s' "$json" | jq -r '
-              [.[] | select(.name != "auto-merge") | select(.bucket == "fail" or .bucket == "cancel")]
-              | map("\(.name) (\(.bucket))") | .[]
-            ')"
-
-            if [[ -n "$failing" ]]; then
-              echo "Failing / cancelled checks:"
-              echo "$failing"
+            # Only explicit passes qualify. Skipped, cancelled, failed and
+            # unknown results cannot stand in for successful execution.
+            if printf '%s' "$other" | jq -e 'any(.[]; .bucket != "pass" and .bucket != "pending")' >/dev/null; then
+              echo "A non-self check did not pass; refusing merge."
               exit 1
             fi
-
-            if [[ "$pending" == "0" ]]; then
-              echo "All non-self checks are terminal and green."
-              printf '%s' "$json" | jq -r '
-                .[] | select(.name != "auto-merge") | "\(.bucket)\t\(.name)"
-              '
-              break
+            if [[ "$rc" == 0 || "$rc" == 8 ]] && printf '%s' "$other" | jq -e --argjson required "$required" '
+              . as $checks | length > 0 and
+              all(.[]; .bucket == "pass") and
+              all($required[]; . as $name | any($checks[]; .name == $name))' >/dev/null; then
+              # Detect pushes during polling, then let the merge API enforce
+              # this same SHA atomically if a push races the final read.
+              assert_head
+              gh pr merge --squash --delete-branch --match-head-commit "$EXPECTED_HEAD" "$PR_URL"
+              exit 0
             fi
-
-            echo "Waiting on $pending other check(s)…"
+            echo "Waiting for all required checks to pass…"
             sleep 15
           done
-
-          if (( SECONDS >= deadline )); then
-            echo "Timed out waiting for checks after 1h"
-            exit 1
-          fi
-
-          gh pr merge --squash --delete-branch "$PR_URL"
+          echo "Timed out waiting for checks after 1h"
+          exit 1
