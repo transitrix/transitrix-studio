@@ -320,22 +320,25 @@ export async function reportDom(panel: vscode.WebviewPanel, op = 'read', selecto
   if (op !== 'read') await reportDom(panel);
   const id = ++probeSerial;
   return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => { subscription.dispose(); reject(new Error('Report DOM probe timed out')); }, 15000);
+    const cleanup = () => { clearTimeout(timer); clearInterval(retry); subscription.dispose(); };
+    const timer = setTimeout(() => {
+      cleanup();
+      reject(new Error(`Report DOM probe timed out: ${panel.viewType} ${op} ${selector ?? ''} (visible=${panel.visible})`));
+    }, 15000);
     const subscription = panel.webview.onDidReceiveMessage(m => {
       if (m?.probe !== 'report-dom' || m.id !== id) return;
-      clearTimeout(timer); subscription.dispose();
+      cleanup();
       if (m.error) reject(new Error(m.error)); else resolve(m.value);
     });
-    // A read may safely retry while Chromium loads a freshly rendered document.
     const message = { probe: 'report-dom', id, op, selector, x };
+    const retry = setInterval(() => {
+      // Source edits can reveal an editor after the initial reveal. Hidden
+      // webviews suspend the animation frames the DOM probe awaits.
+      if (!panel.visible) panel.reveal(undefined, true);
+      // Reads may retry across document replacement; actions must run once.
+      if (op === 'read') void panel.webview.postMessage(message);
+    }, 100);
     void panel.webview.postMessage(message);
-    if (op === 'read') {
-      const retry = setInterval(() => { void panel.webview.postMessage(message); }, 100);
-      const stop = panel.webview.onDidReceiveMessage(m => {
-        if (m?.probe === 'report-dom' && m.id === id) { clearInterval(retry); stop.dispose(); }
-      });
-      setTimeout(() => { clearInterval(retry); stop.dispose(); }, 15000);
-    }
   });
 }
 

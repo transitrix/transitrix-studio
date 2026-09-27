@@ -47,6 +47,7 @@ import {
 } from './validate-fix.js';
 import { handleExportComplianceCommand } from './export-compliance.js';
 import { handleRenderCommand } from './render-document.js';
+import { handleProvenanceCommand } from './document-provenance.js';
 import { computeStagedImpact, reportImpact, offerDocumentRegeneration } from './impact.js';
 import { transitrixPackageVersion } from './package-version.js';
 import { bundledDiagramsVersion } from './diagrams-version.js';
@@ -127,6 +128,7 @@ function printUsage(): void {
               each/trace/row-field construct is reported as coverage not
               determined, never as unaffected. --root sets the repo to check
               (default cwd).
+  check-document — compares retained document evidence (read-only JSON; --help for options)
   render    — renders a .ttrs document end to end (Pass 1 + Pass 2 + Markdown
               + PDF + a run-record) and writes <basename>.md, <basename>.pdf
               and <basename>.run-record.json alongside the source (or into
@@ -934,6 +936,8 @@ try {
     await handleExportComplianceCommand(process.argv.slice(3));
   } else if (subcommand === 'impact') {
     await handleImpactCommand(process.argv.slice(3));
+  } else if (subcommand === 'check-document') {
+    await handleProvenanceCommand(process.argv.slice(3));
   } else if (subcommand === 'render') {
     await handleRenderCommand(process.argv.slice(3));
   } else if (subcommand === 'migrate') {

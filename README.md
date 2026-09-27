@@ -123,6 +123,8 @@ transitrix validate input.bpmn.transitrix.yaml --json
 transitrix serve                     # local web UI at http://localhost:8765
 ```
 
+Read-only [document provenance checks](docs/document-provenance.md) compare retained run records, recipes and issued output in the CLI and VS Code.
+
 Full command reference: **[`docs/cli.md`](docs/cli.md)**. The VS Code extension does not put the CLI on your `PATH` — use `@transitrix/cli` or a clone build for terminal workflows.
 
 ## Repository layout
