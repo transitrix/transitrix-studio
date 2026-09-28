@@ -64,11 +64,15 @@
     "transitrix": "./dist/cli.js"
   },
   "dependencies": {
+    "@unicode/unicode-15.1.0": "2.0.7",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
     "elkjs": "^0.12.0",
     "js-yaml": "^4.3.2",
-    "xmlbuilder2": "^4.0.3"
+    "mdast-util-from-markdown": "2.0.2",
+    "micromark": "4.0.2",
+    "xmlbuilder2": "^4.0.3",
+    "yaml": "2.8.1"
   },
   "devDependencies": {
     "@plantuml/core": "^1.2026.8",

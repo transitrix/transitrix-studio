@@ -1,4 +1,5 @@
 import { RequirementChainPreview } from './requirement-chain-preview.js';
+import { reviewRequirementAdvisories } from './requirement-advisories.js';
 import * as path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import * as vscode from 'vscode';
@@ -497,6 +498,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void |
     vscode.commands.registerCommand('transitrixStudio.refreshGapDashboard', () => gapDashboardPreview.refresh()),
     vscode.commands.registerCommand('transitrixStudio.exportGapDashboardCsv', () => gapDashboardPreview.exportCsv()),
     vscode.commands.registerCommand('transitrixStudio.previewRequirementChain', () => requirementChainPreview.show('matrix')),
+    vscode.commands.registerCommand('transitrixStudio.reviewRequirementAdvisories', reviewRequirementAdvisories),
     vscode.commands.registerCommand('transitrixStudio.previewRequirementsByRelease', () => requirementChainPreview.show('release')),
     vscode.commands.registerCommand('transitrixStudio.previewRequirementVerificationMatrix', () => requirementVerificationMatrixPreview.showOrReveal()),
     vscode.commands.registerCommand('transitrixStudio.refreshRequirementVerificationMatrix', () => requirementVerificationMatrixPreview.refresh()),

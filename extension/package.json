@@ -942,6 +942,10 @@
       {
         "command": "transitrix.checkDocumentProvenance",
         "title": "Transitrix: Check Document Provenance"
+      },
+      {
+        "command": "transitrixStudio.reviewRequirementAdvisories",
+        "title": "Transitrix: Review Requirement Language (Opt-in)"
       }
     ],
     "menus": {
