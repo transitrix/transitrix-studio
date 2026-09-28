@@ -43,7 +43,7 @@ function mapScalar(source: string, node: Scalar): MappedField | undefined {
   };
   if (token.type === 'block-scalar') {
     offset += token.props.reduce((sum, p) => sum + ('source' in p ? p.source.length : 0), 0);
-    const header = 'source' in token.props[0] ? token.props[0].source : ''; 
+    const header = 'source' in token.props[0] ? token.props[0].source : '';
     const explicit = /[1-9]/.exec(header);
     const indent = explicit ? token.indent + Number(explicit[0]) : /^ *(?=\S)/m.exec(raw)?.[0].length ?? 0;
     let pos = 0;
