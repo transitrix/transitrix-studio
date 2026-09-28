@@ -30,6 +30,11 @@ export interface RenderGoalsOptions {
   entryCurvature?: number;
   edgeStyle?: EdgeStyle;
   nodeSizePreset?: NodeSizePreset;
+  /**
+   * Theme CSS embedded via {@link renderGoalsLayoutSvg}.
+   * Defaults to `'transitrix'` for self-contained host-neutral SVG.
+   */
+  embedCssTheme?: ThemeId;
 }
 
 /**
@@ -38,7 +43,14 @@ export interface RenderGoalsOptions {
  * with the shared theme CSS embedded so the output is self-contained.
  */
 export function renderGoalsSvg(tree: GoalTree, options: RenderGoalsOptions = {}): string {
-  const { treeName = '', curvature = DEFAULT_EDGE_CURVATURE, entryCurvature, edgeStyle, nodeSizePreset = 'normal' } = options;
+  const {
+    treeName = '',
+    curvature = DEFAULT_EDGE_CURVATURE,
+    entryCurvature,
+    edgeStyle,
+    nodeSizePreset = 'normal',
+    embedCssTheme = 'transitrix',
+  } = options;
   const nodeSize = resolveGoalsNodeSize(parseNodeSizePreset(nodeSizePreset));
 
   const layout: GoalTreeLayout = layoutGoalTree(tree, {
@@ -57,7 +69,14 @@ export function renderGoalsSvg(tree: GoalTree, options: RenderGoalsOptions = {})
     : '';
 
   // Reserve a separate header row; the theme centers text on its y coordinate.
-  return renderGoalsLayoutSvg(layout, { curvature, entryCurvature, edgeStyle, title, topInset: title ? PAD : 0, embedCssTheme: 'transitrix' });
+  return renderGoalsLayoutSvg(layout, {
+    curvature,
+    entryCurvature,
+    edgeStyle,
+    title,
+    topInset: title ? PAD : 0,
+    embedCssTheme,
+  });
 }
 
 export interface RenderGoalsLayoutOptions {

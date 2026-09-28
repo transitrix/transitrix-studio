@@ -1,0 +1,10 @@
+{
+  "id": "transitrix-studio",
+  "name": "Transitrix Studio",
+  "version": "0.1.0",
+  "minAppVersion": "1.0.0",
+  "description": "Read-only preview of self-contained Transitrix Goals diagrams in Markdown code blocks.",
+  "author": "Transitrix",
+  "authorUrl": "https://github.com/transitrix/transitrix-studio",
+  "isDesktopOnly": true
+}

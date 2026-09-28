@@ -1,0 +1,38 @@
+{
+  "name": "@transitrix/obsidian-plugin",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Read-only Transitrix Goals preview for Obsidian Desktop Markdown notes.",
+  "license": "MIT",
+  "homepage": "https://github.com/transitrix/transitrix-studio/tree/main/packages/obsidian-plugin#readme",
+  "bugs": {
+    "url": "https://github.com/transitrix/transitrix-studio/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/transitrix/transitrix-studio.git",
+    "directory": "packages/obsidian-plugin"
+  },
+  "main": "dist/main.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc --noEmit && node esbuild.config.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "package": "node scripts/package-plugin.mjs"
+  },
+  "dependencies": {
+    "@transitrix/diagrams": "*",
+    "js-yaml": "^4.3.2"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "jsdom": "^29.1.1",
+    "obsidian": "1.8.7",
+    "typescript": "^5.8.3",
+    "vitest": "^4.1.11"
+  }
+}

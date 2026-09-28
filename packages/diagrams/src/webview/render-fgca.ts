@@ -24,7 +24,7 @@ import {
 import type { FGCADoc } from '../fgca/validate.js';
 import { previewEdgePath, DEFAULT_EDGE_CURVATURE, type EdgeStyle } from '../edge-path.js';
 import { parseNodeSizePreset, resolveDgcaNodeSize, type NodeSizePreset } from '../node-size-presets.js';
-import { generateSvgEmbedCss } from '../theme/index.js';
+import { generateSvgEmbedCss, type ThemeId } from '../theme/index.js';
 import { emitCenteredTextSvg, layoutCenteredEntityText, truncateLine } from './entity-text-layout.js';
 import { escXml } from './render-util.js';
 
@@ -137,6 +137,11 @@ export interface RenderFgcaOptions {
   scopeCaption?: boolean;
   /** Show completion percent badges on action nodes. */
   showCompletionPercent?: boolean;
+  /**
+   * Theme CSS embedded as `<style>` so the SVG is self-contained.
+   * Defaults to `'transitrix'`. VS Code live preview uses body emitters + webview CSS instead.
+   */
+  embedCssTheme?: ThemeId;
 }
 
 export function renderFgcaSvg(doc: FGCADoc, options: RenderFgcaOptions = {}): string {
@@ -150,6 +155,7 @@ export function renderFgcaSvg(doc: FGCADoc, options: RenderFgcaOptions = {}): st
     layoutOptions,
     scopeCaption = false,
     showCompletionPercent = true,
+    embedCssTheme = 'transitrix',
   } = options;
   const hideChanges = variant === 'dga' || doc.hideChanges === true;
   const nodeSize = resolveDgcaNodeSize(parseNodeSizePreset(nodeSizePreset));
@@ -180,7 +186,7 @@ export function renderFgcaSvg(doc: FGCADoc, options: RenderFgcaOptions = {}): st
     ? `<text class="text-caption" x="${PAD}" y="${height + 16}">${escXml('This diagram is shown for the selected goal scope. Actions on it may also serve goals outside that scope.')}</text>`
     : '';
 
-  const embedCss = generateSvgEmbedCss('transitrix');
+  const embedCss = generateSvgEmbedCss(embedCssTheme);
 
   // Calculate final height including caption if present
   const finalHeight = scopeCaption ? height + 24 : height;

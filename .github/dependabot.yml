@@ -1,9 +1,9 @@
 version: 2
 updates:
   # npm workspace root — "workspaces": ["packages/*"] in the root package.json means
-  # Dependabot's native workspace detection also covers packages/cli and
-  # packages/diagrams from this one entry; listing them separately risks duplicate
-  # or conflicting PRs against the same lockfile.
+  # Dependabot's native workspace detection also covers packages/cli,
+  # packages/diagrams and packages/obsidian-plugin from this one entry; listing
+  # them separately risks duplicate or conflicting PRs against the same lockfile.
   - package-ecosystem: "npm"
     directory: "/"
     schedule:

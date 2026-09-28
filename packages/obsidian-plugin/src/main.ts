@@ -1,0 +1,81 @@
+import { MarkdownRenderChild, type MarkdownPostProcessorContext, Plugin } from 'obsidian';
+
+import {
+  DEFAULT_SVG_DISPLAY_SETTINGS,
+  normalizeSvgDisplaySettings,
+  type SvgDisplaySettings,
+} from './goals-display-settings.js';
+import { GOALS_CODE_BLOCK_LANGUAGE } from './notations/goals.js';
+import { NOTATION_HANDLERS } from './notations/registry.js';
+import type { NotationHandler } from './notations/types.js';
+import { TransitrixSettingTab } from './settings-tab.js';
+import type { SvgBlockView } from './svg-block-view.js';
+
+export { GOALS_CODE_BLOCK_LANGUAGE };
+
+class TransitrixSvgChild extends MarkdownRenderChild {
+  private readonly view: SvgBlockView<unknown>;
+
+  constructor(
+    containerEl: HTMLElement,
+    private readonly source: string,
+    private readonly plugin: TransitrixStudioPlugin,
+    private readonly handler: NotationHandler,
+  ) {
+    super(containerEl);
+    this.view = handler.createView(containerEl) as SvgBlockView<unknown>;
+  }
+
+  override onload(): void {
+    if (this.handler.usesDisplaySettings) {
+      this.plugin.registerSvgView(this.view);
+    }
+    void this.view.update(this.source, this.handler.getDisplay(this.plugin));
+  }
+
+  override onunload(): void {
+    if (this.handler.usesDisplaySettings) {
+      this.plugin.unregisterSvgView(this.view);
+    }
+    this.view.destroy();
+  }
+}
+
+export default class TransitrixStudioPlugin extends Plugin {
+  settings: SvgDisplaySettings = { ...DEFAULT_SVG_DISPLAY_SETTINGS };
+  private readonly svgViews = new Set<SvgBlockView<unknown>>();
+
+  override async onload(): Promise<void> {
+    this.settings = normalizeSvgDisplaySettings(await this.loadData());
+    this.addSettingTab(new TransitrixSettingTab(this.app, this));
+
+    for (const handler of NOTATION_HANDLERS) {
+      this.registerMarkdownCodeBlockProcessor(
+        handler.language,
+        (source: string, el: HTMLElement, ctx: MarkdownPostProcessorContext) => {
+          ctx.addChild(new TransitrixSvgChild(el, source, this, handler));
+        },
+      );
+    }
+  }
+
+  registerSvgView(view: SvgBlockView<unknown>): void {
+    this.svgViews.add(view);
+  }
+
+  unregisterSvgView(view: SvgBlockView<unknown>): void {
+    this.svgViews.delete(view);
+  }
+
+  async updateDisplaySettings(patch: Partial<SvgDisplaySettings>): Promise<void> {
+    this.settings = normalizeSvgDisplaySettings({ ...this.settings, ...patch });
+    await this.saveData(this.settings);
+    await this.refreshSvgViews();
+  }
+
+  private async refreshSvgViews(): Promise<void> {
+    await Promise.all(
+      [...this.svgViews].map((view) => view.applyDisplay(this.settings as never)),
+    );
+  }
+}

@@ -30,4 +30,12 @@ describe('renderFgcaSvg', () => {
     expect(svg).toContain('CHANGE-SHIP-1');
     expect(svg).toContain('Stand up shipping');
   });
+
+  it('embeds light theme CSS by default and dark when embedCssTheme is transitrix-dark', () => {
+    const light = renderFgcaSvg(DOC_WITH_VIRTUAL_CHANGE);
+    const dark = renderFgcaSvg(DOC_WITH_VIRTUAL_CHANGE, { embedCssTheme: 'transitrix-dark' });
+    expect(light).toContain('<style>');
+    expect(light).not.toContain('#0a1628');
+    expect(dark).toContain('#0a1628');
+  });
 });
