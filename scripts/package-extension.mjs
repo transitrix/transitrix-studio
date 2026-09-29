@@ -15,6 +15,9 @@ import { spawn } from 'node:child_process';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createHash } from 'node:crypto';
+import os from 'node:os';
+import { mediaReviewSuites } from './verify-extension-packaging.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const extensionDir = path.join(root, 'extension');
@@ -96,6 +99,28 @@ const vsceArgs = ['--no-install', 'vsce', 'package'];
 vsceArgs.push('-o', '../output');
 
 await run(npx, vsceArgs, { cwd: extensionDir });
+
+const manifest = JSON.parse(await fs.readFile(path.join(extensionDir, 'package.json'), 'utf8'));
+const vsix = path.join(outputDir, `${manifest.name}-${manifest.version}.vsix`);
+const reviewDir = await fs.mkdtemp(path.join(os.tmpdir(), 'listing-review-'));
+try {
+  // Reuse the renderer and editing regression suites for every candidate.
+  // The transient review is neither shipped nor uploaded as a public artifact.
+  const reportPath = path.join(reviewDir, 'tests.json');
+  await run(process.execPath, [
+    path.join(root, 'node_modules/vitest/vitest.mjs'), 'run',
+    ...mediaReviewSuites, '--maxWorkers=2', '--reporter=json', `--outputFile=${reportPath}`,
+  ], { cwd: path.join(root, 'packages/diagrams') });
+  const reviewPath = path.join(reviewDir, 'review.json');
+  await fs.writeFile(reviewPath, JSON.stringify({
+    packageSha256: createHash('sha256').update(await fs.readFile(vsix)).digest('hex'),
+    tests: JSON.parse(await fs.readFile(reportPath, 'utf8')),
+  }));
+  await run(process.execPath, [path.join(root, 'scripts/verify-extension-packaging.mjs'),
+    '--vsix', vsix, '--review', reviewPath], { cwd: root });
+} finally {
+  await fs.rm(reviewDir, { recursive: true, force: true });
+}
 
 const vsixFiles = (await fs.readdir(outputDir)).filter((f) => f.endsWith('.vsix'));
 console.log('\nBuild complete. Artifacts in output/:');

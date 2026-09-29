@@ -1,5 +1,26 @@
 # Transitrix Studio — changelog
 
+## 3.8.1 — 2026-09-29
+
+### Fixed
+
+- The Marketplace README now distinguishes historical screenshot provenance from
+  the installed extension version and exposes the released requirement-report
+  feature list. Packaging verifies the archived listing before release.
+
+## 3.8.0 — 2026-09-26
+
+### Added
+
+- **Transitrix: Traceability Matrix** follows explicit requirement chains upstream,
+  downstream or both, with exact focus, full and adjacent-stage views, retained
+  navigation, source links, refresh and JSON export.
+- **Transitrix: Requirements by Release** reports stage counts and six clickable
+  distinct-requirement metrics: broken references, no accepted source, no
+  verification definition, no applicable result, failed verification and no
+  effective release assignment. It shares scope, snapshot and provenance with the
+  matrix.
+
 ## Unreleased
 
 ### Changed

@@ -58,6 +58,9 @@ published:
   - scripts/npm-publish-tag.mjs
   - scripts/npm-publish-tag.test.mjs
 
+  # Release-package listing guard and its positive/negative regression cases
+  - scripts/verify-extension-packaging.test.mjs
+
   # Read-only document checker shipped in CLI/editor and its consumer contract
   - src/document-provenance.ts
   - docs/document-provenance.md

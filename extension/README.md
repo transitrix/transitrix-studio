@@ -9,7 +9,7 @@ You leave with a decision you can keep true. Not a report of one — the model t
 
 ## Goals and DGCA in VS Code
 
-Write goals and plans in YAML, save the file, and inspect the diagram beside the source. These screenshots use Transitrix Studio 3.7.3. Open an image at full size to read the labels and identifiers.
+Write goals and plans in YAML, save the file, and inspect the diagram beside the source. These historical screenshots were captured on September 26, 2026, in VS Code 1.139.1 with Transitrix Studio 3.7.3. The capture version is separate from the current extension version shown in the listing and installed package. Open an image at full size to read the labels and identifiers.
 
 [A YAML goals model beside its preview in VS Code.](https://raw.githubusercontent.com/transitrix/transitrix-studio/2b267940743604e0cf7eecab272a473d80d897f7/extension/docs/vscode-goals-before.png)
 
@@ -57,6 +57,35 @@ Transitrix flips that:
 | Compliance | **Coverage metric** | Law coverage stats with RAG status |
 | Compliance | **Gap dashboard** | Open gaps: unasserted requirements, stale assertions |
 | Compliance | **Requirement–verification matrix** | Repository-wide requirement rows with related test results and coverage gaps |
+
+## Release-scoped requirement reports
+
+Studio includes two repository reports in VS Code-compatible editors in addition
+to the 17 notation previews above. Open them from the Command Palette:
+
+- **Transitrix: Traceability Matrix** follows an explicitly modelled requirement
+  chain upstream, downstream or in both directions. Focus by exact ID/name, view
+  the full nine-stage matrix or two adjacent stages, move one stage at a time and
+  open the contributing records. Focus, direction, pair position and viewport are
+  retained when the model refreshes.
+- **Transitrix: Requirements by Release** shows distinct requirement counts by
+  stage and six clickable quality metrics: broken references, no accepted source,
+  no verification definition, no applicable executed result, failed
+  verification and no effective release assignment. Each count opens its exact
+  contributors and can carry the selected requirement back into the matrix.
+
+Select a catalogue containing `transitrix.yaml`, a Product, one of its Releases,
+an optional Project and an as-at date. The reports share one projection and show
+the source revision and snapshot identity. Unknown or unresolved scope is shown as
+incomplete, never as zero. Direct and inherited release assignments, requirements
+assigned only to another release, invalid assignments and product requirements with
+no effective release stay distinguishable. The six quality categories can overlap
+and must not be added into a single defect total.
+
+Use **Export shared projection** to save the complete populations, graph, findings
+and assignment provenance as JSON. These reports are separate from the existing
+repository-wide **Requirement–verification matrix**, whose CSV export and coverage
+semantics remain unchanged.
 
 Every preview ships with a toolbar: title toggle, discrete zoom (50–200%), save as SVG, save as PNG (2× for crisp output), and copy PNG to clipboard (Windows today; macOS / Linux planned). BPMN also has a **presentation** export (Command Palette: “Save BPMN as presentation SVG/PNG”) — a denser automatic layout with 20 px labels that fits a 1780 px frame. It is not the live preview.
 
