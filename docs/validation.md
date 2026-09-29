@@ -1330,3 +1330,28 @@ The published `scenarios[]` set form is explicitly unvalidated until its
 validator exists, as are unsupported projection forms. Strict repo validation
 rejects these gaps. Successful file accounting is not a claim that every
 published notation or form has a complete validator.
+
+### Standalone primitives, Field evidence and history coverage
+
+The CLI validates standalone `assessment`, `capability`, `product`, `role` and
+`scenario` forms against their published primitive contracts. Repository scope
+also resolves references and checks subtype-dependent references. These singular
+forms are distinct from plural view notations.
+
+Field `draft` and `observation` validation checks identity, admission and source
+evidence; payload text remains opaque. Both explicit `notation` and the existing
+`zone: field` plus uppercase `type` envelope are recognised. Supported provenance
+forms are captured-source records (`captured_by`, `captured_on`, `setting`) and
+versioned imports (`source_revision`, `original_path`, `source_hash`,
+`captured_on`). Other nonempty evidence forms remain unvalidated and produce
+`NOTATION-SKIP-001`; these implementation forms do not redefine the methodology.
+Repository scope rejects duplicate Field IDs.
+
+Headerless `.history.yaml`/`.history.yml` files receive raw shape, date, duplicate,
+value and target-lifecycle checks before any permissive parsing. Capability and
+application history attributes are supported. Unknown target schemas, or a
+file-only check without target context, remain unvalidated.
+
+Raw archives under `codex/**/sources/` are accounted for as exclusions, consistent
+with co-located `snapshot_file` references. Admission there remains an ADMIT-012
+error; `canon/sources/` and `field/sources/` gain no exemption.

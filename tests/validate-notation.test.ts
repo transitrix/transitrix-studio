@@ -147,7 +147,7 @@ describe('validate-notation — dispatch (#258, #518 C1)', () => {
   });
 
   it('isRegisteredNotation accepts element short names with no CLI validator yet', () => {
-    for (const n of ['capability', 'process', 'application', 'role', 'rule', 'goal']) {
+    for (const n of ['process', 'application', 'rule', 'goal']) {
       expect(isFileValidatableNotation(n)).toBe(false);
       expect(isRegisteredNotation(n)).toBe(true);
     }

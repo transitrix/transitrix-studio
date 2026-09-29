@@ -12,3 +12,5 @@ gate_checks:
   completeness: pass
 valid_from: "2026-01-01"
 valid_to: null
+
+type: digital_product
