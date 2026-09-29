@@ -9,11 +9,6 @@ on:
       - "packages/**"
       - "scripts/build-compiler-bundle.mjs"
       - "scripts/build-extension-bundle.mjs"
-      - "scripts/package-extension.mjs"
-      - "scripts/verify-extension-packaging.mjs"
-      - "package.json"
-      - "package-lock.json"
-      - ".github/workflows/build-vsix.yml"
       - "scripts/prep-test-out-commonjs.mjs"
       - ".github/workflows/extension-e2e.yml"
   push:
@@ -21,11 +16,6 @@ on:
     paths:
       - "extension/**"
       - "packages/**"
-      - "scripts/package-extension.mjs"
-      - "scripts/verify-extension-packaging.mjs"
-      - "package.json"
-      - "package-lock.json"
-      - ".github/workflows/build-vsix.yml"
 
 permissions:
   contents: read
