@@ -21,6 +21,8 @@ export interface NotationValidationResult {
 
 export interface ValidateNotationOptions {
   methodologyVersion?: string;
+  /** Loaded admitted primitives, for subtype and temporal reference checks. */
+  documents?: ReadonlyMap<string, Record<string, unknown>>;
   capabilityAttributes?: ReadonlyMap<string, import('@transitrix/diagrams/capability-map/resolve-maturity.js').ResolvedCapabilityAttributes>;
   /** Repo-relative or absolute path — used for codex folder-jurisdiction checks. */
   filePath?: string;

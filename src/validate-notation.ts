@@ -60,6 +60,7 @@ export const CANONICAL_NOTATION_FILE_EXTENSIONS: readonly string[] =
  *  names. Used by the validate command to give a helpful error when a canonical
  *  extension file is missing its `notation:` field. */
 export function inferNotationFromFilename(filePath: string): string | undefined {
+  if (/\.history\.ya?ml$/i.test(filePath)) return 'history';
   const lower = filePath.replace(/\\/g, '/').toLowerCase();
   for (const notation of NOTATIONS_WITH_CANONICAL_VIEW_EXTENSION) {
     if (lower.endsWith(`.${notation}.transitrix.yaml`)) return notation;
@@ -94,9 +95,9 @@ export function isFileValidatableNotation(notation: string): boolean {
  *  short name with no CLI validator of its own. */
 const REGISTERED_NOT_YET_VALIDATABLE_NOTATIONS: readonly string[] = [
   // Element TYPE short names with no standalone-file CLI validator yet.
-  'assessment', 'capability', 'process', 'product', 'role', 'rule',
+  'process', 'rule',
   'registry', 'application', 'release', 'business-object', 'equipment',
-  'term', 'step', 'goal', 'scenario',
+  'term', 'step', 'goal',
   // Native view notations with no file-scope CLI validator of their own —
   // 'bpmn' is dispatched through the separate BPMN/IR path (cli.ts special-
   // cases it ahead of this registry) rather than through VALIDATORS.
@@ -127,6 +128,10 @@ export function notationOf(data: unknown): string | undefined {
 export function resolveValidatorKey(data: unknown): string | undefined {
   const notation = notationOf(data);
   if (notation && isFileValidatableNotation(notation)) return notation;
+  if (!notation && data && typeof data === 'object') {
+    const d = data as Record<string, unknown>;
+    if (d.zone === 'field' && (d.type === 'DRAFT' || d.type === 'OBSERVATION')) return d.type.toLowerCase();
+  }
   if (isCodexDoc(data)) return 'codex';
   return notation;
 }

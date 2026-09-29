@@ -44,7 +44,7 @@ describe('transitrix validate — HDR-002 rejects an unregistered notation (tran
   });
 
   it('still gives the soft "not yet validated" notice for a recognised-but-unimplemented notation', () => {
-    const file = writeFixture('role.yaml', 'notation: role\nid: ROLE-X-1\nname: X\n');
+    const file = writeFixture('rule.yaml', 'notation: rule\nid: RULE-X-1\nname: X\n');
     const { status, stdout } = runCli(['validate', file, '--json']);
     expect(status).toBe(0);
     const parsed = JSON.parse(stdout);

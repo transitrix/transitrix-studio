@@ -257,13 +257,13 @@ function modelPaths(root: string, zone: string): {
       else if (wholeZone || isYaml(child) || /\.ttrs$|\.trs$/i.test(child)) {
         if (entry.isFile() && entry.name === '.gitkeep' && lstatSync(path.join(root, child)).size === 0) {
           excluded.push({ path: child, reason: 'zero-byte regular .gitkeep placeholder' });
-        } else if (child.startsWith('codex/sources/')) {
+        } else if (/^codex\/(?:[^/]+\/)*sources\//.test(child)) {
           try {
             if (hasAdmission(readFileSync(path.join(root, child), 'utf-8'))) {
               findings.push({ file: child, notation: '', ruleId: 'ADMIT-012', severity: 'error',
-                message: 'Admission records are not permitted in codex/sources archival material.' });
+                message: 'Admission records are not permitted in codex sources archival material.' });
             }
-            excluded.push({ path: child, reason: 'codex/sources archival material' });
+            excluded.push({ path: child, reason: 'codex sources archival material' });
           } catch {
             paths.push(child); // A failed read must remain observable.
           }
@@ -328,7 +328,15 @@ function completeRepoCoverage(
     discovered: 0, read: 0, validated: 0, unvalidated: 0, failed: 0, files: [], excluded: inventory.excluded,
   };
   const sweeps = complianceSweepPlan();
+  const documents = new Map<string, Record<string, unknown>>();
+  for (const [id, file] of ctx.pathById) {
+    try {
+      const data = loadNotationYaml(readFileSync(path.join(root, file), 'utf8'));
+      if (data && typeof data === 'object' && !Array.isArray(data)) documents.set(id, data as Record<string, unknown>);
+    } catch { /* Parse and read failures remain in the normal coverage inventory. */ }
+  }
   result.views.push(...inventory.findings);
+  const fieldIds = new Map<string, string>();
   for (const file of inventory.paths) {
     const record: RepoCoverage['files'][number] = { file, notation: '', read: false, status: 'failed' };
     coverage.files.push(record);
@@ -355,7 +363,15 @@ function completeRepoCoverage(
           message: 'Model YAML must contain a document; only a zero-byte regular .gitkeep is placeholder metadata.' });
         continue;
       }
-      const notation = resolveValidatorKey(data) ?? '';
+      if (file.startsWith('field/') && data && typeof data === 'object' && !Array.isArray(data)) {
+        const id = (data as Record<string, unknown>).id;
+        if (typeof id === 'string') {
+          const previous = fieldIds.get(id);
+          if (previous) result.views.push({file, notation: resolveValidatorKey(data) ?? '', ruleId:'SCHEMA_INVALID', severity:'error', message:`Field identity: id: expected unique ID; actual ${id} also occurs in ${previous}.`});
+          else fieldIds.set(id, file);
+        }
+      }
+      const notation = /\.history\.ya?ml$/i.test(file) ? 'history' : resolveValidatorKey(data) ?? '';
       record.notation = notation;
       const inViews = file.startsWith('views/') || file.startsWith('canon/views/');
       const inElements = file.startsWith('canon/elements/');
@@ -371,10 +387,10 @@ function completeRepoCoverage(
       } else {
         const standalone = VALIDATOR_REGISTRATIONS.find(r => r.notation === notation && !r.canonicalViewExtension);
         if (standalone) {
-          for (const finding of validateNotationDoc(notation, data, { catalog: ctx.catalog, filePath: file, methodologyVersion: ctx.methodologyVersion }).findings) {
+          for (const finding of validateNotationDoc(notation, data, { catalog: ctx.catalog, documents, filePath: file, methodologyVersion: ctx.methodologyVersion }).findings) {
             result.views.push({ file, notation, ...finding });
           }
-          record.status = 'validated';
+          record.status = result.views.some(f => f.file === file && f.ruleId === 'NOTATION-SKIP-001') ? 'unvalidated' : 'validated';
         } else {
           record.status = 'unvalidated';
         }
