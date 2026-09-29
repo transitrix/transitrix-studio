@@ -7,15 +7,22 @@
 - Listing screenshots explicitly identify their historical capture version,
   separately from the installed extension version. Packaging verifies the
   archived listing and retained-media compatibility before release.
+- The packaged feature list and changelog now identify **Traceability Matrix**
+  and **Requirements by Release**, their command-palette entry points and the six
+  release-quality metrics delivered in 3.8.0.
 
 ## [3.8.0] — 2026-09-26
 
 ### Added
 
-- Traceability Matrix retains navigation context, supports directional focus and
-  adjacent-column views, and refreshes after source changes. (#675, #677)
-- Release requirement reports share projections, counts, provenance and metric
-  drill-downs with the matrix. (#674, #676, #677)
+- **Transitrix: Traceability Matrix** adds release-scoped upstream/downstream
+  traversal, exact focus, full or adjacent-column views, retained navigation,
+  source links and refresh after model changes. (#674, #675, #677)
+- **Transitrix: Requirements by Release** adds stage counts, exact drill-downs and
+  six distinct-requirement quality metrics: broken references, no accepted source,
+  no verification definition, no applicable result, failed verification and no
+  effective release assignment. It shares scope, snapshot and provenance with the
+  matrix. (#674, #676, #677)
 - Risk degrees accept numbers on explicit adopter-defined scales while keeping
   qualitative values valid; no automatic calculation is required. (#690)
 - Read-only diagram viewer prototype. (#671)

@@ -49,7 +49,7 @@
     "ui:build": "vite build --config ui/vite.config.ts",
     "ui:preview": "npm run build && npm run ui:build && vite preview --config ui/vite.config.ts",
     "bump-extension-version": "node scripts/bump-extension-version.mjs",
-    "verify-extension-packaging": "node scripts/verify-extension-packaging.mjs",
+    "verify-extension-packaging": "node --test scripts/verify-extension-packaging.test.mjs && node scripts/verify-extension-packaging.mjs",
     "check:no-cervin-yaml": "node scripts/check-no-cervin-yaml.mjs",
     "package-extension": "node scripts/package-extension.mjs",
     "build:cli-package": "node scripts/build-cli-package.mjs",

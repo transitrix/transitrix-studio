@@ -58,6 +58,35 @@ Transitrix flips that:
 | Compliance | **Gap dashboard** | Open gaps: unasserted requirements, stale assertions |
 | Compliance | **Requirement–verification matrix** | Repository-wide requirement rows with related test results and coverage gaps |
 
+## Release-scoped requirement reports
+
+Studio includes two repository reports in VS Code-compatible editors in addition
+to the 17 notation previews above. Open them from the Command Palette:
+
+- **Transitrix: Traceability Matrix** follows an explicitly modelled requirement
+  chain upstream, downstream or in both directions. Focus by exact ID/name, view
+  the full nine-stage matrix or two adjacent stages, move one stage at a time and
+  open the contributing records. Focus, direction, pair position and viewport are
+  retained when the model refreshes.
+- **Transitrix: Requirements by Release** shows distinct requirement counts by
+  stage and six clickable quality metrics: broken references, no accepted source,
+  no verification definition, no applicable executed result, failed
+  verification and no effective release assignment. Each count opens its exact
+  contributors and can carry the selected requirement back into the matrix.
+
+Select a catalogue containing `transitrix.yaml`, a Product, one of its Releases,
+an optional Project and an as-at date. The reports share one projection and show
+the source revision and snapshot identity. Unknown or unresolved scope is shown as
+incomplete, never as zero. Direct and inherited release assignments, requirements
+assigned only to another release, invalid assignments and product requirements with
+no effective release stay distinguishable. The six quality categories can overlap
+and must not be added into a single defect total.
+
+Use **Export shared projection** to save the complete populations, graph, findings
+and assignment provenance as JSON. These reports are separate from the existing
+repository-wide **Requirement–verification matrix**, whose CSV export and coverage
+semantics remain unchanged.
+
 Every preview ships with a toolbar: title toggle, discrete zoom (50–200%), save as SVG, save as PNG (2× for crisp output), and copy PNG to clipboard (Windows today; macOS / Linux planned). BPMN also has a **presentation** export (Command Palette: “Save BPMN as presentation SVG/PNG”) — a denser automatic layout with 20 px labels that fits a 1780 px frame. It is not the live preview.
 
 The preview opens automatically when a recognised file becomes the active editor, and refreshes **on save — not on every keystroke.** That's deliberate: re-rendering mid-edit would burn CPU and flash parse errors on every intermediate state of a structural change. It also means an edit with no save behind it looks, at a glance, like a broken preview — the toolbar's small "as of last save" label is the tell that nothing's wrong, the file just hasn't been saved yet.

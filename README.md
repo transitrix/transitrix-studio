@@ -40,7 +40,7 @@ Updated for **Studio 3.8.0** in VS Code-compatible editors, the separately insta
 - **Connect strategy to delivery.** Preview goal trees, driver–goal–change–activity chains (DGCA/DGA), activity networks and activity cards. VS Code also offers Gantt and critical-path views, plus completion percentages when model progress records are available. [Notation guide](extension/README.md#17-notations-one-extension).
 - **Describe processes in text.** Preview process maps and stage-by-stage process blueprints. In VS Code, author BPMN in YAML and preview the diagram; the CLI compiles it to BPMN 2.0 XML with automatic layout. [BPMN quick start](#quick-start--bpmn).
 - **Explore capabilities and catalogues.** Preview applications, products, nested blocks and supported inline scenarios. In VS Code, capability maturity is read from dated history records as of the current date. Catalogue previews depend on the supported document form. [Format overview](extension/README.md#17-notations-one-extension) · [Capability history](docs/validation.md#diagnostic-conformance-and-capability-history).
-- **Trace requirements and review release coverage.** In VS Code, open **Transitrix: Traceability Matrix** to follow links upstream or downstream, focus on a selected element and compare adjacent columns. **Transitrix: Requirements by Release** shows scope-specific counts with drill-down lists. Both reports share product, project, release and date selection, retain navigation context and refresh after model changes. They require the corresponding model records. [Requirements reports](#release-scoped-requirement-reports).
+- **Trace requirements and review release coverage.** In VS Code, open **Transitrix: Traceability Matrix** to follow links upstream or downstream, focus on a selected element and compare adjacent columns. **Transitrix: Requirements by Release** shows stage counts plus six distinct-requirement quality metrics: broken references, no accepted source, no verification definition, no applicable result, failed verification and no effective release assignment. Every count opens its exact contributors and links back to the matrix. Both reports share product, project, release and date selection, retain navigation context and refresh after model changes. They require the corresponding model records. [Requirements reports](#release-scoped-requirement-reports).
 - **Inspect compliance and verification.** VS Code provides compliance impact and coverage views, a gap dashboard, and a separate requirement–verification matrix for requirements, assertions and verification results. These views need the corresponding model records. [Compliance validation](docs/validation.md#compliance-suite---scoperepo-518).
 - **Record numerical risk degrees.** Author likelihood, impact and residual risk as numbers on an explicit adopter-defined scale in Methodology 7.0.0 models, and check them with the CLI. Existing qualitative values remain supported. [Numeric risk authoring](docs/validation.md#authored-numeric-risk-degrees).
 - **Share diagrams and findings.** VS Code saves supported diagram previews as SVG or PNG. Export the gap dashboard and requirement–verification matrix as CSV, or the Traceability Matrix and Requirements by Release snapshot as JSON. PNG clipboard copying is Windows-only. The CLI exports compliance reports as Markdown or PDF; PDF requires the optional WeasyPrint executable. [Preview exports](extension/README.md#17-notations-one-extension) · [CLI commands](docs/cli.md#commands).
@@ -52,6 +52,53 @@ Updated for **Studio 3.8.0** in VS Code-compatible editors, the separately insta
 The **JetBrains plugin** requires a compatible IDE with JCEF (platform builds 242–262). Open **Transitrix: Preview Notation** from the editor's context menu. Its read-only preview is a **snapshot: close and reopen it after editing**. It supports strategy, process-map/blueprint and supported catalogue previews, but does not include BPMN, the VS Code requirements/compliance reports or SVG/PNG export commands. Capability history requires the VS Code or repository-validation context; JetBrains cannot resolve it for a standalone preview. [JetBrains installation](intellij/README.md#installing-in-intellij-idea).
 
 The editor plugins bundle their renderers; the **CLI is a separate installation**, not a command added to your shell by installing an editor plugin. No DSM installation is required for the capabilities listed here. [Install the CLI](#cli).
+
+## Release-scoped requirement reports
+
+Run **Transitrix: Traceability Matrix** or **Transitrix: Requirements by Release**
+from the VS Code command palette. Select a catalogue folder containing
+`transitrix.yaml`, a product, one of its releases, an optional project, and an as-at date.
+Both panels use the same snapshot. Missing membership or failed source reads
+produce incomplete populations with unknown totals and visible known IDs.
+
+The matrix supports exact ID/name focus, independent upstream/downstream walks,
+and adjacent stage pairs. Pair arrows move one stage at a time, with position and
+boundary indicators; empty stages and links across hidden stages remain visible.
+Cards display individual verification outcomes and evidence diagnostics. **Open
+record** and link-identity buttons navigate to the contributing source records.
+Stage cards, edges, assignments and findings use pages of 40 with visible totals;
+scroll the columns and use **Next page** to inspect every item. JSON export retains
+the complete projection regardless of the displayed page.
+
+**Requirements by Release** reports stage counts and six overlapping quality
+categories: broken references, no accepted source path, no valid verification
+definition, no applicable executed result, failed verification and no
+effective release assignment. Counts use distinct requirement IDs and must not be
+summed into one defect total. Click a count for its exact contributors, then
+**Open in matrix** to inspect a requirement in the same scope.
+
+Scope, date, focus, direction, pair position, pages and viewport are saved per
+workspace and context. **Reset** clears focus and presentation state while keeping
+the selected scope. Product, release and project can remain explicitly unselected;
+invalid combinations show diagnostics instead of inferred membership. The first
+five metrics and requirement stages use the release/project intersection; no
+effective release assignment and its stage breakdown use the whole product at the
+same date. Other-release-only, invalid assignments and unresolved membership remain
+separate. Direct obligations attach to the selected release; inherited obligations
+retain their predecessor and relation identities. Verification outcomes are never
+inherited or aggregated into a single success verdict.
+
+**Export shared projection** saves the populations, graph, findings and assignment
+provenance as JSON. Save/create/delete/rename refresh both panels together. The
+header identifies the content digest, available Git base revision and date; a failed
+refresh retains the previous snapshot marked stale.
+
+These reports implement the `requirement-chain/0.2` projection interface. Author
+explicit `product_scope`, `project_scope`, `project_product`, `required_for` and
+source/decomposition relations; release assignment does not imply membership.
+Requirement verification remains direct, release-qualified and lifecycle-aware.
+The existing repository-wide Requirement–Verification Matrix and its CSV export are
+a separate report and retain their ordering and coverage meanings.
 
 ## Install
 
@@ -170,55 +217,6 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). By submitting a pull request, you agree 
 ## Author
 
 Created and maintained by [Valerii Korobeinikov](https://github.com/vkgeorgia).
-
-### Release-scoped requirement reports
-
-Run **Transitrix: Traceability Matrix** or **Transitrix: Requirements by Release**
-from the VS Code command palette. Select a catalogue folder containing
-`transitrix.yaml`, a product, one of its releases, an optional project, and an as-at date.
-Both panels use the same snapshot. Missing membership or failed source reads
-produce incomplete populations with unknown totals and visible known IDs.
-
-The matrix supports exact ID/name focus, independent upstream/downstream walks,
-and adjacent stage pairs. Pair arrows move one stage at a time, with position and
-boundary indicators; empty stages and links across hidden stages remain visible.
-Cards display individual verification outcomes and evidence diagnostics. **Open
-record** and link-identity buttons navigate to the contributing source records.
-Stage cards, edges, assignments and findings use pages of 40 with visible totals;
-scroll the columns and use **Next page** to inspect every item. JSON export retains
-the complete projection regardless of the displayed page.
-
-Scope, date, focus, direction, pair position, pages and viewport are saved per
-workspace and context. **Reset** clears focus and presentation state while keeping
-the selected scope. Product, release and project can remain explicitly unselected;
-invalid combinations show diagnostics instead of inferred membership.
-In the release report, click any stage, population or quality-metric count to
-open its exact contributor list, then **Open in matrix** for the selected record.
-The matrix preserves scope, date, snapshot and reason, with both trace directions
-visible. Product/release navigation leaves project unselected unless you choose it.
-The six quality categories overlap and must not be summed into a defect total.
-Counts are distinct IDs, never completion or coverage percentages. The first five
-metrics and requirement stages use the release/project intersection; no effective
-release assignment and its stage breakdown always use the whole product, at the
-same date, across all its modelled releases. Other-release-only, invalid assignments
-and unresolved membership are separate. Reference slots, unattributable findings
-and context nodes have separate units and clickable lists. Direct obligations
-attach to the selected release; inherited obligations retain their predecessor
-and relation identities. Verification outcomes are never inherited or aggregated
-into a single success verdict.
-**Export shared projection** saves the populations, graph, findings and assignment
-provenance as JSON. Save/create/delete/rename refresh both panels together.
-The header identifies the content digest, available Git base revision and date;
-a failed refresh retains the previous snapshot marked stale.
-
-These reports implement the `requirement-chain/0.2` projection interface. Author
-explicit `product_scope`, `project_scope`, `project_product`, `required_for` and
-source/decomposition relations; release assignment does not imply membership.
-Requirement verification remains direct, release-qualified and lifecycle-aware.
-The existing repository-wide Requirement–Verification Matrix and its CSV export
-retain their ordering and coverage meanings. Projection interface support does
-not change the pinned methodology version or establish publication compatibility.
-
 
 ## License
 

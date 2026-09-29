@@ -20,9 +20,40 @@ export const mediaReviewSuites = [
   'src/webview/__tests__/render-fgca.test.ts',
 ];
 
-export function verifyListing(readme, manifest, review, packageSha256) {
+const REQUIREMENT_REPORT_TERMS = [
+  'Transitrix: Traceability Matrix',
+  'Transitrix: Requirements by Release',
+  'broken references',
+  'no accepted source',
+  'no verification definition',
+  'no applicable',
+  'failed verification',
+  'no effective release',
+];
+
+export function verifyListing(readme, manifest, review, packageSha256, changelog) {
   if (!/^\d+\.\d+\.\d+(?:-[\w.-]+)?$/.test(manifest.version)) {
     throw new Error('Invalid packaged extension version');
+  }
+  if (!/requirement traceability/i.test(manifest.description ?? '')) {
+    throw new Error('Packaged description omits requirement traceability');
+  }
+  const foldedReadme = readme.toLowerCase().replace(/\s+/g, ' ');
+  for (const term of REQUIREMENT_REPORT_TERMS) {
+    if (!foldedReadme.includes(term.toLowerCase())) {
+      throw new Error(`Packaged feature list omits: ${term}`);
+    }
+  }
+  if (changelog !== undefined) {
+    if (!changelog.includes(`## ${manifest.version}`)) {
+      throw new Error(`Packaged changelog omits version ${manifest.version}`);
+    }
+    const foldedChangelog = changelog.toLowerCase().replace(/\s+/g, ' ');
+    for (const term of REQUIREMENT_REPORT_TERMS) {
+      if (!foldedChangelog.includes(term.toLowerCase())) {
+        throw new Error(`Packaged changelog omits: ${term}`);
+      }
+    }
   }
   // Ignore fenced examples and explicitly historical sections. Only assertions
   // about the current extension release are compared with its manifest.
@@ -70,7 +101,7 @@ async function readPackagedListing(vsix) {
       zip.on('error', reject);
       zip.on('end', () => resolve(files));
       zip.on('entry', entry => {
-        if (!['extension/package.json', 'extension/readme.md'].includes(entry.fileName.toLowerCase())) return zip.readEntry();
+        if (!['extension/package.json', 'extension/readme.md', 'extension/changelog.md'].includes(entry.fileName.toLowerCase())) return zip.readEntry();
         if (files.has(entry.fileName.toLowerCase()) || entry.uncompressedSize > 2 * 1024 * 1024) {
           zip.close();
           return reject(new Error('Duplicate or oversized packaged listing entry'));
@@ -134,11 +165,13 @@ async function main() {
   if (args.length) {
     const files = await readPackagedListing(args[1]);
     const readme = files.get('extension/readme.md');
+    const changelog = files.get('extension/changelog.md');
     const manifest = JSON.parse(files.get('extension/package.json'));
     if (!readme) throw new Error('Missing packaged README');
+    if (!changelog) throw new Error('Missing packaged changelog');
     const sha256 = createHash('sha256').update(fs.readFileSync(args[1])).digest('hex');
     const review = JSON.parse(fs.readFileSync(args[3], 'utf8'));
-    verifyListing(readme, manifest, review, sha256);
+    verifyListing(readme, manifest, review, sha256, changelog);
     verifyListing(fs.readFileSync(path.join(root, 'README.md'), 'utf8'), manifest, review, sha256);
     if (manifest.version !== JSON.parse(fs.readFileSync(path.join(extRoot, 'package.json'), 'utf8')).version) {
       throw new Error('Packaged version differs from source manifest');
