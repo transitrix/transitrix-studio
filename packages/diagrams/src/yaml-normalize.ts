@@ -15,14 +15,23 @@
  * A bare `2026-06-01` parses to midnight UTC and round-trips to
  * `"2026-06-01"` regardless of `process.env.TZ`.
  *
- * Walks in place and returns the same reference for convenience.
+ * Walks in place and returns the same reference for convenience. Shared
+ * object graphs from YAML aliases (and cycles) are visited once via WeakSet
+ * so diamond / recursive anchors cannot amplify the walk into a hang.
  */
 export function coerceDatesToIsoStrings<T>(value: T): T {
+  return walk(value, new WeakSet<object>());
+}
+
+function walk<T>(value: T, seen: WeakSet<object>): T {
   if (value === null || value === undefined) return value;
   if (value instanceof Date) {
     return dateToIsoYmd(value) as unknown as T;
   }
   if (typeof value !== 'object') return value;
+
+  if (seen.has(value as object)) return value;
+  seen.add(value as object);
 
   if (Array.isArray(value)) {
     for (let i = 0; i < value.length; i++) {
@@ -30,7 +39,7 @@ export function coerceDatesToIsoStrings<T>(value: T): T {
       if (v instanceof Date) {
         value[i] = dateToIsoYmd(v) as unknown as typeof v;
       } else if (v !== null && typeof v === 'object') {
-        coerceDatesToIsoStrings(v);
+        walk(v, seen);
       }
     }
     return value;
@@ -42,7 +51,7 @@ export function coerceDatesToIsoStrings<T>(value: T): T {
     if (v instanceof Date) {
       obj[key] = dateToIsoYmd(v);
     } else if (v !== null && typeof v === 'object') {
-      coerceDatesToIsoStrings(v);
+      walk(v, seen);
     }
   }
   return value;

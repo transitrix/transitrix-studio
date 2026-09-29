@@ -49,6 +49,14 @@ export default class TransitrixStudioPlugin extends Plugin {
     this.settings = normalizeSvgDisplaySettings(await this.loadData());
     this.addSettingTab(new TransitrixSettingTab(this.app, this));
 
+    // Follow Obsidian: re-embed when the host light/dark class flips.
+    this.registerEvent(
+      this.app.workspace.on('css-change', () => {
+        if (this.settings.theme !== 'obsidian') return;
+        void this.refreshSvgViews();
+      }),
+    );
+
     for (const handler of NOTATION_HANDLERS) {
       this.registerMarkdownCodeBlockProcessor(
         handler.language,

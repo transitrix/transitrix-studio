@@ -52,7 +52,7 @@ npm run test:obsidian-plugin
 npm run package:obsidian-plugin
 ```
 
-`build:obsidian-plugin` compiles `@transitrix/diagrams` then bundles `packages/obsidian-plugin/dist/main.js`.
+`build:obsidian-plugin`, `typecheck:obsidian-plugin` and `test:obsidian-plugin` all compile `@transitrix/diagrams` first (its package exports resolve to `dist/`), then run the plugin workspace script.
 `package:obsidian-plugin` copies `manifest.json`, `styles.css` and `main.js` to `output/obsidian-plugin/` (gitignored).
 
 ## Install into a dedicated test vault

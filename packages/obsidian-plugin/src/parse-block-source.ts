@@ -6,6 +6,18 @@ import { isRecord, type BlockDiagnostic, type BlockRenderResult } from './block-
 /** Bound so a note cannot dump unbounded YAML into layout. */
 export const MAX_BLOCK_BYTES = 32 * 1024;
 
+/**
+ * Nesting depth cap for `js-yaml` load (aliases do not inflate depth).
+ * Combined with cycle-aware `coerceDatesToIsoStrings`, keeps Reading-view
+ * parse/normalize from hanging on adversarial fences.
+ */
+export const MAX_YAML_DEPTH = 50;
+
+/** Runtime options — `maxDepth` exists in js-yaml 4.3+; @types lag slightly. */
+const YAML_LOAD_OPTIONS = {
+  maxDepth: MAX_YAML_DEPTH,
+} as yaml.LoadOptions;
+
 export interface ParseBlockSourceCodes {
   invalidSource: string;
   oversize: string;
@@ -69,7 +81,7 @@ export function parseSelfContainedBlockSource(
 
   let doc: unknown;
   try {
-    doc = coerceDatesToIsoStrings(yaml.load(source));
+    doc = coerceDatesToIsoStrings(yaml.load(source, YAML_LOAD_OPTIONS));
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return fail('YAML_PARSE', message);

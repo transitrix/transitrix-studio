@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Read-only Transitrix Goals preview for Obsidian Desktop Markdown notes.",
+  "description": "Read-only Transitrix diagram preview for Obsidian Desktop Markdown notes (Goals, DGCA/DGA, Action, Action Card, Blocks, Process Blueprint).",
   "license": "MIT",
   "homepage": "https://github.com/transitrix/transitrix-studio/tree/main/packages/obsidian-plugin#readme",
   "bugs": {

@@ -74,6 +74,35 @@ describe('TransitrixStudioPlugin Markdown processor', () => {
     unloadBlocks(mounted);
   });
 
+  it('re-renders open Goals blocks when Follow Obsidian host theme changes', async () => {
+    const plugin = new TransitrixStudioPlugin();
+    await plugin.onload();
+    await plugin.updateDisplaySettings({ theme: 'obsidian' });
+    const harness = plugin as unknown as Plugin;
+    document.body.classList.remove('theme-dark');
+    document.documentElement.classList.remove('theme-dark');
+
+    const parent = document.createElement('div');
+    document.body.appendChild(parent);
+    const mounted = mountPluginBlocks(harness, goalsDemo, parent);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const before = decodeURIComponent(parent.querySelector('img')!.src);
+    expect(before).not.toContain('#0a1628');
+
+    document.body.classList.add('theme-dark');
+    harness.app.workspace.trigger('css-change');
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const after = decodeURIComponent(parent.querySelector('img')!.src);
+    expect(after).toContain('#0a1628');
+
+    unloadBlocks(mounted);
+    document.body.classList.remove('theme-dark');
+  });
+
   it('re-renders open DGCA blocks when node size changes', async () => {
     const plugin = new TransitrixStudioPlugin();
     await plugin.onload();

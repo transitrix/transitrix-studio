@@ -21,7 +21,36 @@ type Processor = (
   ctx: MarkdownPostProcessorContext,
 ) => void | Promise<void>;
 
-export class App {}
+export class Workspace {
+  private readonly listeners = new Map<string, Set<() => void>>();
+
+  on(event: string, callback: () => void): EventRef {
+    let set = this.listeners.get(event);
+    if (!set) {
+      set = new Set();
+      this.listeners.set(event, set);
+    }
+    set.add(callback);
+    return {
+      off: () => {
+        set?.delete(callback);
+      },
+    };
+  }
+
+  /** Test helper: fire a workspace event (e.g. `css-change`). */
+  trigger(event: string): void {
+    for (const cb of this.listeners.get(event) ?? []) cb();
+  }
+}
+
+export interface EventRef {
+  off(): void;
+}
+
+export class App {
+  workspace = new Workspace();
+}
 
 export class PluginSettingTab {
   containerEl: HTMLElement;
@@ -78,6 +107,7 @@ export class Plugin {
   readonly app = new App();
   private data: unknown = {};
   settingTabs: PluginSettingTab[] = [];
+  private readonly eventRefs: EventRef[] = [];
 
   registerMarkdownCodeBlockProcessor(language: string, handler: Processor): void {
     this.processors.set(language, handler);
@@ -85,6 +115,10 @@ export class Plugin {
 
   addSettingTab(tab: PluginSettingTab): void {
     this.settingTabs.push(tab);
+  }
+
+  registerEvent(ref: EventRef): void {
+    this.eventRefs.push(ref);
   }
 
   async loadData(): Promise<unknown> {
