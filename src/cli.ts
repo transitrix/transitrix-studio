@@ -48,6 +48,7 @@ import {
 import { handleExportComplianceCommand } from './export-compliance.js';
 import { handleRenderCommand } from './render-document.js';
 import { handleProvenanceCommand } from './document-provenance.js';
+import { handleAdvisoriesCommand } from './requirement-advisories/local.js';
 import { computeStagedImpact, reportImpact, offerDocumentRegeneration } from './impact.js';
 import { transitrixPackageVersion } from './package-version.js';
 import { bundledDiagramsVersion } from './diagrams-version.js';
@@ -84,6 +85,7 @@ function printVersion(): void {
 function printUsage(): void {
   console.error(`Transitrix Studio CLI — usage:
        transitrix --version | -v
+       transitrix advisories <external-request.json> [--help]
        transitrix serve [--port 8765] [--host 127.0.0.1]
        transitrix <input.yaml> <output.bpmn|.svg|.png> [--profile=default|presentation] [--no-metrics] [--no-validate]
        transitrix [--ext=.bpmn.transitrix.yaml] <input.yaml> <output.bpmn|.svg|.png> [--profile=default|presentation] [--no-metrics] [--no-validate]
@@ -930,6 +932,8 @@ try {
     }
   } else if (subcommand === 'metrics') {
     await handleMetricsCommand(process.argv.slice(3));
+  } else if (subcommand === 'advisories') {
+    await handleAdvisoriesCommand(process.argv.slice(3));
   } else if (subcommand === 'validate') {
     await handleValidateCommand(process.argv.slice(3));
   } else if (subcommand === 'export-compliance') {
