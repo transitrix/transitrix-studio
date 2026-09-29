@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.8.1] — Unreleased
+
+### Fixed
+
+- Listing screenshots explicitly identify their historical capture version,
+  separately from the installed extension version. Packaging verifies the
+  archived listing and retained-media compatibility before release.
+
 ## [3.8.0] — 2026-09-26
 
 ### Added

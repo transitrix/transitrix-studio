@@ -9,7 +9,7 @@ You leave with a decision you can keep true. Not a report of one — the model t
 
 ## Goals and DGCA in VS Code
 
-Write goals and plans in YAML, save the file, and inspect the diagram beside the source. These screenshots use Transitrix Studio 3.7.3. Open an image at full size to read the labels and identifiers.
+Write goals and plans in YAML, save the file, and inspect the diagram beside the source. These historical screenshots were captured on September 26, 2026, in VS Code 1.139.1 with Transitrix Studio 3.7.3. The capture version is separate from the current extension version shown in the listing and installed package. Open an image at full size to read the labels and identifiers.
 
 [A YAML goals model beside its preview in VS Code.](https://raw.githubusercontent.com/transitrix/transitrix-studio/2b267940743604e0cf7eecab272a473d80d897f7/extension/docs/vscode-goals-before.png)
 

@@ -1,6 +1,6 @@
 {
   "name": "transitrix-studio",
-  "version": "3.8.0",
+  "version": "3.8.1",
   "private": true,
   "workspaces": [
     "packages/*"
@@ -90,6 +90,7 @@
     "tsx": "^4.23.15",
     "typescript": "^5.8.3",
     "vite": "^8.3.0",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.11",
+    "yauzl": "^3.4.0"
   }
 }
