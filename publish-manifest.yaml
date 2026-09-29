@@ -79,3 +79,15 @@ published:
 
   # CI regression test for the dependency merge workflow
   - .github/tests/test_dependabot_merge.py
+
+  # Standalone validators shipped by the CLI, conformance tests and release note
+  - src/validators/assessment.ts
+  - src/validators/capability.ts
+  - src/validators/draft.ts
+  - src/validators/history.ts
+  - src/validators/observation.ts
+  - src/validators/product.ts
+  - src/validators/role.ts
+  - src/validators/scenario.ts
+  - tests/standalone-validation.test.ts
+  - changelog/fragments/standalone-validation.md
