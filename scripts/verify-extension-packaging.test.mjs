@@ -26,7 +26,7 @@ These historical screenshots were captured on September 26, 2026, in VS Code 1.1
 ${inventory}`;
 const changelog = `# Changelog
 
-## ${version} — Unreleased
+## ${version} — 2026-09-29
 ${inventory}`;
 
 test('packaged listing exposes the released requirement reports', () => {
