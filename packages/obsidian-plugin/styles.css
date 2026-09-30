@@ -6,9 +6,9 @@
 
 .transitrix-goals-block__frame,
 .transitrix-svg-block__frame {
-  background: #f7f4ee;
+  background: var(--background-secondary);
   border: 1px solid var(--background-modifier-border);
-  border-radius: 6px;
+  border-radius: var(--radius-s, 4px);
   padding: 8px;
 }
 
@@ -21,24 +21,49 @@
 
 .transitrix-goals-block__error,
 .transitrix-goals-block__warnings,
+.transitrix-goals-block__empty,
 .transitrix-svg-block__error,
-.transitrix-svg-block__warnings {
+.transitrix-svg-block__warnings,
+.transitrix-svg-block__empty {
   margin: 0;
   padding: 10px 12px;
-  white-space: pre-wrap;
-  font-family: var(--font-monospace);
-  font-size: 0.85em;
+  border-radius: var(--radius-s, 4px);
+  border: 1px solid var(--background-modifier-border);
 }
 
 .transitrix-goals-block__error,
-.transitrix-svg-block__error {
+.transitrix-svg-block__error,
+.transitrix-goals-block__empty,
+.transitrix-svg-block__empty {
   color: var(--text-error);
   background: var(--background-modifier-error);
-  border-radius: 6px;
 }
 
 .transitrix-goals-block__warnings,
 .transitrix-svg-block__warnings {
   color: var(--text-muted);
+  background: var(--background-secondary);
   margin-bottom: 8px;
+}
+
+.transitrix-goals-block__error-title,
+.transitrix-goals-block__warnings-title,
+.transitrix-goals-block__empty-title,
+.transitrix-svg-block__error-title,
+.transitrix-svg-block__warnings-title,
+.transitrix-svg-block__empty-title {
+  font-weight: var(--font-semibold, 600);
+  margin-bottom: 6px;
+}
+
+.transitrix-goals-block__error-detail,
+.transitrix-goals-block__warnings-detail,
+.transitrix-goals-block__empty-detail,
+.transitrix-svg-block__error-detail,
+.transitrix-svg-block__warnings-detail,
+.transitrix-svg-block__empty-detail {
+  margin: 0;
+  white-space: pre-wrap;
+  font-family: var(--font-monospace);
+  font-size: 0.85em;
 }

@@ -23,7 +23,7 @@ class TransitrixSvgChild extends MarkdownRenderChild {
     private readonly handler: NotationHandler,
   ) {
     super(containerEl);
-    this.view = handler.createView(containerEl) as SvgBlockView<unknown>;
+    this.view = handler.createView(containerEl);
   }
 
   override onload(): void {
@@ -67,6 +67,10 @@ export default class TransitrixStudioPlugin extends Plugin {
     }
   }
 
+  override onunload(): void {
+    this.svgViews.clear();
+  }
+
   registerSvgView(view: SvgBlockView<unknown>): void {
     this.svgViews.add(view);
   }
@@ -82,8 +86,7 @@ export default class TransitrixStudioPlugin extends Plugin {
   }
 
   private async refreshSvgViews(): Promise<void> {
-    await Promise.all(
-      [...this.svgViews].map((view) => view.applyDisplay(this.settings as never)),
-    );
+    const views = [...this.svgViews];
+    await Promise.all(views.map((view) => view.applyDisplay(this.settings as never)));
   }
 }

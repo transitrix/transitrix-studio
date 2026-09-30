@@ -84,10 +84,16 @@ class SettingExtraButton {
   onClick(_cb: () => void | Promise<void>): this { return this; }
 }
 
+class SettingButton {
+  setButtonText(_text: string): this { return this; }
+  onClick(_cb: () => void | Promise<void>): this { return this; }
+}
+
 export class Setting {
   constructor(public containerEl: HTMLElement) {}
   setName(_name: string): this { return this; }
   setDesc(_desc: string): this { return this; }
+  setHeading(): this { return this; }
   addDropdown(cb: (dropdown: SettingDropdown) => void): this {
     cb(new SettingDropdown());
     return this;
@@ -98,6 +104,10 @@ export class Setting {
   }
   addExtraButton(cb: (btn: SettingExtraButton) => void): this {
     cb(new SettingExtraButton());
+    return this;
+  }
+  addButton(cb: (btn: SettingButton) => void): this {
+    cb(new SettingButton());
     return this;
   }
 }

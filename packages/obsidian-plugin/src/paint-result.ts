@@ -1,7 +1,16 @@
-import { formatBlockDiagnostics, type BlockRenderResult } from './block-types.js';
+import 'obsidian';
+
+import { formatBlockDiagnostics, type BlockDiagnostic, type BlockRenderResult } from './block-types.js';
 
 function svgToImageDataUri(svg: string): string {
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+}
+
+/** Goals/Blocks empty layouts emit a zero-size SVG placeholder rather than "". */
+function isEmptySvg(svg: string): boolean {
+  const trimmed = svg.trim();
+  if (!trimmed) return true;
+  return /\bwidth="0"/.test(trimmed) && /\bheight="0"/.test(trimmed);
 }
 
 export interface PaintSvgBlockOptions {
@@ -20,35 +29,61 @@ export function paintSvgBlockResult(
   options: PaintSvgBlockOptions,
 ): void {
   const { cssBlockClass, imageAlt } = options;
-  containerEl.replaceChildren();
-  containerEl.classList.add(cssBlockClass);
+  containerEl.empty();
+  containerEl.addClass(cssBlockClass);
 
   if (!result.ok) {
-    const errorEl = document.createElement('pre');
-    errorEl.className = `${cssBlockClass}__error`;
-    errorEl.textContent = formatBlockDiagnostics(result.errors);
-    containerEl.appendChild(errorEl);
+    buildMessagePanel(containerEl, cssBlockClass, 'error', 'Could not render diagram', result.errors);
     return;
   }
 
   if (result.warnings.length > 0) {
-    const warnEl = document.createElement('pre');
-    warnEl.className = `${cssBlockClass}__warnings`;
-    warnEl.textContent = formatBlockDiagnostics(result.warnings);
-    containerEl.appendChild(warnEl);
+    buildMessagePanel(
+      containerEl,
+      cssBlockClass,
+      'warnings',
+      'Diagram rendered with warnings',
+      result.warnings,
+    );
   }
 
-  const frame = document.createElement('div');
-  frame.className = `${cssBlockClass}__frame`;
-  const img = document.createElement('img');
-  img.className = `${cssBlockClass}__image`;
-  img.alt = imageAlt;
+  if (isEmptySvg(result.svg)) {
+    buildMessagePanel(containerEl, cssBlockClass, 'empty', 'Diagram is empty', [
+      { code: 'EMPTY', message: 'The document produced no drawable content.' },
+    ]);
+    return;
+  }
+
+  const frame = containerEl.createDiv({ cls: `${cssBlockClass}__frame` });
+  const img = frame.createEl('img', {
+    cls: `${cssBlockClass}__image`,
+    attr: { alt: imageAlt },
+  });
   img.src = svgToImageDataUri(result.svg);
-  frame.appendChild(img);
-  containerEl.appendChild(frame);
 }
 
 export function clearSvgBlockHost(containerEl: HTMLElement, cssBlockClass: string): void {
-  containerEl.replaceChildren();
-  containerEl.classList.remove(cssBlockClass);
+  containerEl.empty();
+  containerEl.removeClass(cssBlockClass);
+}
+
+function buildMessagePanel(
+  parent: HTMLElement,
+  cssBlockClass: string,
+  kind: 'error' | 'warnings' | 'empty',
+  title: string,
+  items: BlockDiagnostic[],
+): void {
+  const panel = parent.createDiv({ cls: `${cssBlockClass}__${kind}` });
+  if (kind === 'error' || kind === 'empty') {
+    panel.setAttribute('role', 'alert');
+  }
+
+  panel.createDiv({
+    cls: `${cssBlockClass}__${kind}-title`,
+    text: title,
+  });
+
+  const detail = panel.createEl('pre', { cls: `${cssBlockClass}__${kind}-detail` });
+  detail.textContent = formatBlockDiagnostics(items);
 }

@@ -8,11 +8,13 @@ import {
 import type { EdgeStyle } from '@transitrix/diagrams/edge-path.js';
 import type { NodeSizePreset } from '@transitrix/diagrams/node-size-presets.js';
 
-/** Reading-view fences that use the shared SVG display knobs (not Theme). */
-const SVG_DISPLAY_NOTATIONS =
-  'Goals, DGCA, DGA, Action (network), Nested Blocks / grid, Process Blueprint. Action Card uses Theme only.';
+/** Delay before committing slider changes so dragging does not re-render every tick. */
+const CURVATURE_DEBOUNCE_MS = 200;
 
 export class TransitrixSettingTab extends PluginSettingTab {
+  private curvatureTimer: number | null = null;
+  private pendingCurvature: number | null = null;
+
   constructor(
     app: App,
     private readonly plugin: TransitrixStudioPlugin,
@@ -23,18 +25,13 @@ export class TransitrixSettingTab extends PluginSettingTab {
   display(): void {
     const { containerEl } = this;
     containerEl.empty();
-    containerEl.createEl('h2', { text: 'Transitrix Studio' });
 
     const settings = this.plugin.settings;
 
-    containerEl.createEl('h3', { text: 'General' });
-    containerEl.createEl('p', {
-      text: 'Applies to every Reading-view diagram fence that embeds Studio theme CSS.',
-    });
-
+    // General settings stay at the top without a section heading (Obsidian guidelines).
     new Setting(containerEl)
       .setName('Theme')
-      .setDesc('Goals, DGCA/DGA, Action, Action Card, Nested Blocks, Process Blueprint.')
+      .setDesc('CSS theme embedded in every diagram fence.')
       .addDropdown((dropdown) => {
         dropdown
           .addOption('transitrix', 'Transitrix light')
@@ -46,14 +43,11 @@ export class TransitrixSettingTab extends PluginSettingTab {
           });
       });
 
-    containerEl.createEl('h3', { text: 'SVG display' });
-    containerEl.createEl('p', {
-      text: `Layout knobs for SVG Reading-view fences: ${SVG_DISPLAY_NOTATIONS}`,
-    });
+    new Setting(containerEl).setName('SVG display').setHeading();
 
     new Setting(containerEl)
       .setName('Node size')
-      .setDesc('Goals, DGCA/DGA, Action, Nested Blocks, Process Blueprint.')
+      .setDesc('Width of nodes in diagram fences.')
       .addDropdown((dropdown) => {
         dropdown
           .addOption('compact', 'Compact')
@@ -67,7 +61,7 @@ export class TransitrixSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName('Edge style')
-      .setDesc('Goals, DGCA, DGA. Action uses its own default path style.')
+      .setDesc('How edges are drawn. Action networks keep their own path style.')
       .addDropdown((dropdown) => {
         dropdown
           .addOption('straight', 'Straight')
@@ -81,14 +75,14 @@ export class TransitrixSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName('Edge curvature')
-      .setDesc('Goals, DGCA/DGA, Action. 0 = straighter, 1 = default, higher = stronger arc.')
+      .setDesc('How strongly curved edges bend (0 = straighter, 1 = default).')
       .addSlider((slider) => {
         slider
           .setLimits(0, 3, 0.1)
           .setValue(settings.curvature)
           .setDynamicTooltip()
-          .onChange(async (value) => {
-            await this.plugin.updateDisplaySettings({ curvature: value });
+          .onChange((value) => {
+            this.scheduleCurvatureUpdate(value);
           });
       })
       .addExtraButton((btn) => {
@@ -96,12 +90,57 @@ export class TransitrixSettingTab extends PluginSettingTab {
           .setIcon('reset')
           .setTooltip('Reset to default')
           .onClick(async () => {
+            this.cancelPendingCurvature();
             await this.plugin.updateDisplaySettings({
               curvature: DEFAULT_SVG_DISPLAY_SETTINGS.curvature,
             });
             this.display();
           });
       });
+
+    new Setting(containerEl)
+      .setName('Reset display')
+      .setDesc('Restore theme, node size, edge style, and curvature to defaults.')
+      .addButton((btn) => {
+        btn.setButtonText('Reset').onClick(async () => {
+          this.cancelPendingCurvature();
+          await this.plugin.updateDisplaySettings({ ...DEFAULT_SVG_DISPLAY_SETTINGS });
+          this.display();
+        });
+      });
+  }
+
+  hide(): void {
+    void this.flushCurvatureUpdate();
+  }
+
+  private scheduleCurvatureUpdate(value: number): void {
+    this.pendingCurvature = value;
+    this.clearCurvatureTimer();
+    this.curvatureTimer = window.setTimeout(() => {
+      this.curvatureTimer = null;
+      void this.flushCurvatureUpdate();
+    }, CURVATURE_DEBOUNCE_MS);
+  }
+
+  private async flushCurvatureUpdate(): Promise<void> {
+    this.clearCurvatureTimer();
+    if (this.pendingCurvature === null) return;
+    const value = this.pendingCurvature;
+    this.pendingCurvature = null;
+    await this.plugin.updateDisplaySettings({ curvature: value });
+  }
+
+  private cancelPendingCurvature(): void {
+    this.clearCurvatureTimer();
+    this.pendingCurvature = null;
+  }
+
+  private clearCurvatureTimer(): void {
+    if (this.curvatureTimer !== null) {
+      window.clearTimeout(this.curvatureTimer);
+      this.curvatureTimer = null;
+    }
   }
 }
 
