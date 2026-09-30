@@ -26,7 +26,7 @@ import type {
 } from '../activities/types.js';
 import { horizontalCubicEdgePath, bowedCubicEdgePath, DEFAULT_EDGE_CURVATURE } from '../edge-path.js';
 import { parseNodeSizePreset, resolveActionNodeSize, type NodeSizePreset } from '../node-size-presets.js';
-import { generateSvgEmbedCss } from '../theme/index.js';
+import { generateSvgEmbedCss, type ThemeId } from '../theme/index.js';
 import { emitCenteredTextSvg, layoutCenteredEntityText } from './entity-text-layout.js';
 import { escXml } from './render-util.js';
 
@@ -235,6 +235,11 @@ export interface RenderActivitiesOptions {
    * Action name in the view header.
    */
   suppressProjectNodes?: boolean;
+  /**
+   * Theme CSS embedded as `<style>` so the SVG is self-contained.
+   * Defaults to `'transitrix'`. VS Code live preview uses body emitters + webview CSS instead.
+   */
+  embedCssTheme?: ThemeId;
 }
 
 /**
@@ -259,6 +264,7 @@ export function renderActivitiesSvg(doc: ActivityDoc, options: RenderActivitiesO
     curvature = DEFAULT_EDGE_CURVATURE,
     entryCurvature,
     suppressProjectNodes = true,
+    embedCssTheme = 'transitrix',
   } = options;
   const nodeSize = resolveActionNodeSize(parseNodeSizePreset(nodeSizePreset));
   const layoutGaps: ActivitiesLayoutOptions = {
@@ -300,7 +306,7 @@ export function renderActivitiesSvg(doc: ActivityDoc, options: RenderActivitiesO
   // drop the SVG into the DOM and styling resolves without any cooperation from
   // the host stylesheet. Matches what the VS Code path produces via
   // `prepareSvgForExport`.
-  const embedCss = generateSvgEmbedCss('transitrix') + ACTIVITIES_NETWORK_CSS;
+  const embedCss = generateSvgEmbedCss(embedCssTheme) + ACTIVITIES_NETWORK_CSS;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
 <style>${embedCss}</style>

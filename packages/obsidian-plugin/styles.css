@@ -1,0 +1,44 @@
+.transitrix-goals-block,
+.transitrix-svg-block {
+  margin: 0.75em 0;
+  overflow-x: auto;
+}
+
+.transitrix-goals-block__frame,
+.transitrix-svg-block__frame {
+  background: #f7f4ee;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  padding: 8px;
+}
+
+.transitrix-goals-block__image,
+.transitrix-svg-block__image {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.transitrix-goals-block__error,
+.transitrix-goals-block__warnings,
+.transitrix-svg-block__error,
+.transitrix-svg-block__warnings {
+  margin: 0;
+  padding: 10px 12px;
+  white-space: pre-wrap;
+  font-family: var(--font-monospace);
+  font-size: 0.85em;
+}
+
+.transitrix-goals-block__error,
+.transitrix-svg-block__error {
+  color: var(--text-error);
+  background: var(--background-modifier-error);
+  border-radius: 6px;
+}
+
+.transitrix-goals-block__warnings,
+.transitrix-svg-block__warnings {
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}

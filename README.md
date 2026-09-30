@@ -51,6 +51,8 @@ Updated for **Studio 3.8.0** in VS Code-compatible editors, the separately insta
 
 The **JetBrains plugin** requires a compatible IDE with JCEF (platform builds 242–262). Open **Transitrix: Preview Notation** from the editor's context menu. Its read-only preview is a **snapshot: close and reopen it after editing**. It supports strategy, process-map/blueprint and supported catalogue previews, but does not include BPMN, the VS Code requirements/compliance reports or SVG/PNG export commands. Capability history requires the VS Code or repository-validation context; JetBrains cannot resolve it for a standalone preview. [JetBrains installation](intellij/README.md#installing-in-intellij-idea).
 
+An **Obsidian Desktop** plugin (source under [`packages/obsidian-plugin/`](packages/obsidian-plugin/)) previews self-contained diagram YAML in Reading-view SVG code blocks (Goals, DGCA/DGA, Action, Action Card, Blocks, Process Blueprint). It is a local build, not a community-catalog listing. [Obsidian plugin](packages/obsidian-plugin/README.md).
+
 The editor plugins bundle their renderers; the **CLI is a separate installation**, not a command added to your shell by installing an editor plugin. No DSM installation is required for the capabilities listed here. [Install the CLI](#cli).
 
 ## Release-scoped requirement reports

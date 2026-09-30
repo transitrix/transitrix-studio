@@ -21,12 +21,16 @@ published:
   # Reusable read-only viewer source, build entry, runtime adapter and usage examples
   - packages/viewer/**
 
+  # Obsidian Desktop plugin — source, local-install build, tests and usage examples
+  - packages/obsidian-plugin/**
+
   # Repository front page and documentation
   - README.md
   - CHANGELOG.md
   - changelog/fragments/jetbrains-svg-canvas.md
   - changelog/fragments/goals-title-spacing.md
   - changelog/fragments/action-completion-percent.md
+  - changelog/fragments/obsidian-goals-preview.md
   - CONTRIBUTING.md
   - LICENSE
   - NOTICE

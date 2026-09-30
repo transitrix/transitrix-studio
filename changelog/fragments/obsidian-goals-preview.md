@@ -1,0 +1,6 @@
+### Added
+
+- **Obsidian SVG diagram preview (local plugin).** Reading view renders self-contained Transitrix YAML in Markdown code blocks for Goals, DGCA/DGA, Action, Action Card, Nested Blocks/grid, and Process Blueprint via the shared Studio parser, validator and SVG renderer. Install from a local build; not listed in the Obsidian community catalog. Live Preview, vault/canon projections, HTML catalogues, BPMN, compliance and MCP are out of scope.
+- **Obsidian SVG display settings.** Shared plugin settings (node size, edge style, curvature, theme) for Reading-view SVG fences. Theme embeds via `embedCssTheme` on shared SVG renderers. Action Card uses theme only. Theme mode “Follow Obsidian” refreshes open diagrams on the host `css-change` event.
+- **SVG embedCssTheme on host-neutral renderers.** `renderFgcaSvg`, `renderActivitiesSvg`, `renderActivityCardSvg`, and `renderProcessBlueprintSvg` accept optional `embedCssTheme` (default `transitrix`); high-level Goals/Blocks wrappers pass it through. VS Code live preview unchanged (body emitters + webview CSS).
+- **Safer YAML normalize for shared graphs.** `coerceDatesToIsoStrings` walks with a `WeakSet` so YAML alias diamonds/cycles cannot amplify the sync walk; Obsidian fence loading also caps nesting via `maxDepth`.

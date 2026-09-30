@@ -197,3 +197,12 @@ describe('renderActivitiesSvg — skip-edge arcs over an intermediate node', () 
     expect(y2).toBe(y3);
   });
 });
+
+describe('renderActivitiesSvg — embedCssTheme', () => {
+  it('embeds dark theme tokens when embedCssTheme is transitrix-dark', () => {
+    const light = renderActivitiesSvg(BASE_DOC);
+    const dark = renderActivitiesSvg(BASE_DOC, { embedCssTheme: 'transitrix-dark' });
+    expect(light).not.toContain('#0a1628');
+    expect(dark).toContain('#0a1628');
+  });
+});

@@ -41,6 +41,11 @@ export interface RenderBlocksOptions {
   title?: string;
   nodeSizePreset?: NodeSizePreset;
   layoutOptions?: BlocksLayoutOptions;
+  /**
+   * Theme CSS embedded via {@link renderBlocksLayoutSvg}.
+   * Defaults to `'transitrix'` for self-contained host-neutral SVG.
+   */
+  embedCssTheme?: ThemeId;
 }
 
 /**
@@ -133,7 +138,7 @@ ${parts.join('\n')}
  * with the shared theme CSS embedded so the output is self-contained.
  */
 export function renderBlocksSvg(doc: BlocksFile, options: RenderBlocksOptions = {}): string {
-  const { title = '', nodeSizePreset = 'normal', layoutOptions } = options;
+  const { title = '', nodeSizePreset = 'normal', layoutOptions, embedCssTheme = 'transitrix' } = options;
   const leaf = resolveBlocksLeafSize(parseNodeSizePreset(nodeSizePreset));
 
   const layout: BlocksLayout = layoutNestedBlocks(doc, {
@@ -150,7 +155,7 @@ export function renderBlocksSvg(doc: BlocksFile, options: RenderBlocksOptions = 
     ? `<text class="text-header" x="${PAD}" y="${PAD - 6}">${escXml(`Nested Blocks — ${title}`)}</text>`
     : '';
 
-  return renderBlocksLayoutSvg(layout, { title: titleSvg, embedCssTheme: 'transitrix' });
+  return renderBlocksLayoutSvg(layout, { title: titleSvg, embedCssTheme });
 }
 
 /**
@@ -285,11 +290,16 @@ ${body}
 export interface RenderGridOptions {
   title?: string;
   layoutOptions?: GridLayoutOptions;
+  /**
+   * Theme CSS embedded via {@link renderGridLayoutSvg}.
+   * Defaults to `'transitrix'` for self-contained host-neutral SVG.
+   */
+  embedCssTheme?: ThemeId;
 }
 
 /** Host-neutral grid (matrix subset) renderer (IntelliJ/UI). */
 export function renderGridSvg(doc: GridFile, options: RenderGridOptions = {}): string {
-  const { title = '', layoutOptions } = options;
+  const { title = '', layoutOptions, embedCssTheme = 'transitrix' } = options;
   const layout = layoutGrid(doc, layoutOptions);
 
   if (layout.columns.length === 0 || layout.rows.length === 0) {
@@ -300,5 +310,5 @@ export function renderGridSvg(doc: GridFile, options: RenderGridOptions = {}): s
     ? `<text class="text-header" x="${PAD}" y="${PAD - 6}">${escXml(`Nested Blocks — ${title}`)}</text>`
     : '';
 
-  return renderGridLayoutSvg(layout, { title: titleSvg, embedCssTheme: 'transitrix' });
+  return renderGridLayoutSvg(layout, { title: titleSvg, embedCssTheme });
 }

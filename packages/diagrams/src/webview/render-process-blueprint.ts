@@ -21,7 +21,7 @@ import {
   resolveProcessBlueprintSize,
   type NodeSizePreset,
 } from '../node-size-presets.js';
-import { generateSvgEmbedCss } from '../theme/index.js';
+import { generateSvgEmbedCss, type ThemeId } from '../theme/index.js';
 import {
   layoutCenteredPillText,
   layoutLeftCellLines,
@@ -206,13 +206,18 @@ export interface RenderProcessBlueprintOptions {
   title?: string;
   nodeSizePreset?: NodeSizePreset;
   layoutOptions?: ProcessBlueprintLayoutOptions;
+  /**
+   * Theme CSS embedded as `<style>` so the SVG is self-contained.
+   * Defaults to `'transitrix'`. VS Code live preview uses body emitters + webview CSS instead.
+   */
+  embedCssTheme?: ThemeId;
 }
 
 export function renderProcessBlueprintSvg(
   doc: ProcessBlueprintFile,
   options: RenderProcessBlueprintOptions = {},
 ): string {
-  const { title = '', nodeSizePreset = 'normal', layoutOptions } = options;
+  const { title = '', nodeSizePreset = 'normal', layoutOptions, embedCssTheme = 'transitrix' } = options;
   const sizing = resolveProcessBlueprintSize(parseNodeSizePreset(nodeSizePreset));
 
   const layout: ProcessBlueprintLayout = layoutProcessBlueprint(doc, {
@@ -236,7 +241,7 @@ export function renderProcessBlueprintSvg(
     ? `<text class="text-header" x="${PAD}" y="${PAD - 6}">${escXml(title)}</text>`
     : '';
 
-  const embedCss = generateSvgEmbedCss('transitrix') + BP_EMBED_CSS;
+  const embedCss = generateSvgEmbedCss(embedCssTheme) + BP_EMBED_CSS;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
 <style>${embedCss}</style>

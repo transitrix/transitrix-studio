@@ -56,6 +56,32 @@ describe('coerceDatesToIsoStrings', () => {
     expect(arr[1]).toBe('x');
     expect((arr[2] as { d: unknown }).d).toBe('2026-06-02');
   });
+
+  it('visits shared alias graphs once (no exponential hang)', () => {
+    // Diamond DAG of shared object refs — the shape js-yaml builds for nested
+    // YAML aliases. Without a WeakSet the walk revisits each node on every path.
+    let node: Record<string, unknown> = { d: new Date(Date.UTC(2026, 5, 1)) };
+    for (let i = 0; i < 20; i++) {
+      node = { a: node, b: node };
+    }
+    const started = Date.now();
+    coerceDatesToIsoStrings(node);
+    expect(Date.now() - started).toBeLessThan(500);
+    // Walk to a leaf through one path and confirm Date was coerced.
+    let cur: unknown = node;
+    for (let i = 0; i < 20; i++) cur = (cur as { a: unknown }).a;
+    expect((cur as { d: unknown }).d).toBe('2026-06-01');
+  });
+
+  it('tolerates cyclic object graphs without stack overflow', () => {
+    const cycle: Record<string, unknown> = {
+      d: new Date(Date.UTC(2026, 0, 2)),
+    };
+    cycle.self = cycle;
+    coerceDatesToIsoStrings(cycle);
+    expect(cycle.d).toBe('2026-01-02');
+    expect(cycle.self).toBe(cycle);
+  });
 });
 
 describe('coerceDatesToIsoStrings — js-yaml integration', () => {

@@ -31,7 +31,7 @@ import type {
   ResolvedActivityCard,
   ResolvedMilestone,
 } from '../activity-card/types.js';
-import { generateSvgEmbedCss } from '../theme/index.js';
+import { generateSvgEmbedCss, type ThemeId } from '../theme/index.js';
 import { escXml } from './render-util.js';
 
 const PAD = 24;
@@ -39,6 +39,11 @@ const EMPTY_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" 
 
 export interface RenderActivityCardOptions {
   title?: string;
+  /**
+   * Theme CSS embedded as `<style>` so the SVG is self-contained.
+   * Defaults to `'transitrix'`. VS Code live preview uses body emitters + webview CSS instead.
+   */
+  embedCssTheme?: ThemeId;
 }
 
 function truncate(text: string, maxChars: number): string {
@@ -241,7 +246,7 @@ export function renderActivityCardSvg(
   // §5.1 class convention the layout applies; keeps the import meaningful.
   void ARCHIMATE_CLASS;
 
-  const { title = '' } = options;
+  const { title = '', embedCssTheme = 'transitrix' } = options;
   const resolved = resolveSingleDoc(doc);
   const layout = layoutActivityCard(resolved);
 
@@ -259,7 +264,7 @@ export function renderActivityCardSvg(
     ? `<text class="text-header" x="${PAD}" y="${PAD + 14}">${escXml(`Activity Card — ${title}`)}</text>`
     : '';
 
-  const embedCss = generateSvgEmbedCss('transitrix');
+  const embedCss = generateSvgEmbedCss(embedCssTheme);
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
 <style>${embedCss}</style>
