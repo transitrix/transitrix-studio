@@ -74,7 +74,7 @@
     "elkjs": "^0.12.0",
     "js-yaml": "^4.3.2",
     "mdast-util-from-markdown": "2.0.3",
-    "micromark": "4.0.2",
+    "micromark": "4.0.3",
     "xmlbuilder2": "^4.0.3",
     "yaml": "2.9.1"
   },
