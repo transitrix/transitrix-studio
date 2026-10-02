@@ -77,9 +77,15 @@ jobs:
             # Verify the producer before treating that one aggregate as advisory;
             # an identically named check from any other app still fails closed.
             codeql_advisory=false
+            trusted_codeql_count=0
             if codeql_ids="$(gh api "repos/$REPOSITORY/commits/$EXPECTED_HEAD/check-runs" --paginate \
               --jq '.check_runs[] | select(.name == "CodeQL" and .conclusion == "neutral" and .app.slug == "github-advanced-security") | .id' \
-              )" && [[ -n "$codeql_ids" ]]; then
+              )"; then
+              trusted_codeql_count="$(printf '%s\n' "$codeql_ids" | awk 'NF { count++ } END { print count + 0 }')"
+            fi
+            skipped_codeql_count="$(printf '%s' "$other" | jq '[.[] |
+              select(.name == "CodeQL" and .bucket == "skipping")] | length')"
+            if (( skipped_codeql_count > 0 && skipped_codeql_count == trusted_codeql_count )); then
               codeql_advisory=true
             fi
             gate="$(printf '%s' "$other" | jq --argjson codeql_advisory "$codeql_advisory" '[.[] |

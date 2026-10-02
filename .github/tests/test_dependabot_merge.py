@@ -69,6 +69,10 @@ class Gate(unittest.TestCase):
     def test_unverified_codeql_skip_does_not_merge(self):
         self.assertIsNone(self.run_gate(GREEN + CODEQL_SKIPPED, CHECK_RC="1")[1])
 
+    def test_same_name_codeql_collision_does_not_merge(self):
+        rows = GREEN + CODEQL_SKIPPED + CODEQL_SKIPPED
+        self.assertIsNone(self.run_gate(rows, CHECK_RC="1", TRUSTED_CODEQL="1")[1])
+
     def test_empty_self_missing_and_pending_do_not_merge(self):
         for rows in [[], [{"name":"auto-merge","bucket":"pending"}], GREEN[:-1],
                      GREEN + [{"name":"e2e","bucket":"pending"}]]:
