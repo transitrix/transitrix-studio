@@ -88,8 +88,38 @@ describe('GoalsBlockView', () => {
     const view = new GoalsBlockView(host);
     await view.update('this is not yaml: [');
     expect(host.querySelector('img')).toBeNull();
-    expect(host.querySelector('.transitrix-goals-block__error')?.textContent).toMatch(/YAML_PARSE/);
+    const error = host.querySelector('.transitrix-goals-block__error');
+    expect(error?.getAttribute('role')).toBe('alert');
+    expect(error?.textContent).toMatch(/Could not render diagram/);
+    expect(error?.textContent).toMatch(/YAML_PARSE/);
     view.destroy();
+  });
+
+  it('surfaces unexpected render failures without throwing', async () => {
+    const host = document.createElement('div');
+    const { SvgBlockView } = await import('../svg-block-view.js');
+    const view = new SvgBlockView(host, {
+      cssBlockClass: 'transitrix-goals-block',
+      imageAlt: 'test',
+      defaultDisplay: {},
+      render: () => {
+        throw new Error('boom');
+      },
+    });
+    await view.update('anything');
+    expect(host.querySelector('.transitrix-goals-block__error')?.textContent).toMatch(/RENDER/);
+    expect(host.querySelector('.transitrix-goals-block__error')?.textContent).toMatch(/boom/);
+    view.destroy();
+  });
+
+  it('ignores paints after destroy', async () => {
+    const host = document.createElement('div');
+    const view = new GoalsBlockView(host);
+    const pending = view.update(VALID);
+    view.destroy();
+    await pending;
+    expect(host.childNodes.length).toBe(0);
+    expect(host.classList.contains('transitrix-goals-block')).toBe(false);
   });
 
   it('does not execute or insert hostile markup into the host document', async () => {
@@ -114,6 +144,25 @@ goals:
     const src = decodeURIComponent(host.querySelector('img')!.getAttribute('src')!);
     expect(src).not.toContain('<script>document.body.dataset.pwned="1"</script>');
     expect(src).toContain('&lt;script&gt;');
+    view.destroy();
+  });
+
+  it('shows an empty-state panel for zero-size SVG placeholders', async () => {
+    const host = document.createElement('div');
+    const { SvgBlockView } = await import('../svg-block-view.js');
+    const view = new SvgBlockView(host, {
+      cssBlockClass: 'transitrix-goals-block',
+      imageAlt: 'test',
+      defaultDisplay: {},
+      render: () => ({
+        ok: true,
+        svg: '<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" viewBox="0 0 0 0"></svg>',
+        warnings: [],
+      }),
+    });
+    await view.update('anything');
+    expect(host.querySelector('img')).toBeNull();
+    expect(host.querySelector('.transitrix-goals-block__empty')?.textContent).toMatch(/Diagram is empty/);
     view.destroy();
   });
 

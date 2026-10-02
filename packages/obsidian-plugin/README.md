@@ -1,72 +1,81 @@
-# Transitrix Studio — Obsidian plugin (first slice)
+# Transitrix Studio
 
-Read-only preview of **self-contained** Transitrix diagram YAML inside Obsidian Desktop Markdown notes. The plugin reuses the Studio parser, validator and SVG renderer from `@transitrix/diagrams`. It is not published to the Obsidian community catalog.
+Preview **self-contained** Transitrix diagram YAML as SVG inside Obsidian Desktop notes (Reading view).
 
-## Scope
+The plugin reuses the Studio parser, validator, and SVG renderer. It does not walk the vault, call network APIs, or rewrite notes.
 
-| In this slice | Not in this slice |
-| --- | --- |
-| Reading view SVG fences listed below | Live Preview |
-| Inline self-contained YAML only | Vault / canon projections (`view_config`-only, `sources`) |
-| Shared Studio SVG render path | HTML catalogues, BPMN, compliance, MCP |
-| Shared SVG display settings (node size, edge style, curvature, theme) | Spacing / scope UI |
-| Extensible SVG notation registry (`src/notations/`) | Mobile (untested) |
-| Desktop (`isDesktopOnly`); local folder install from a build | Community plugin release |
+## Requirements
 
-### Supported code block languages
+- Obsidian Desktop 1.0.0 or newer (`isDesktopOnly`)
+- Restricted mode off so community plugins can load
 
-| Language | Notation |
+## Supported fences
+
+| Language | Diagram |
 | --- | --- |
 | `transitrix-goals` | Goals tree |
 | `transitrix-dgca` | DGCA chain |
 | `transitrix-dga` | DGA chain |
 | `transitrix-action` | Action network (PSND) |
-| `transitrix-action-card` | Action Card (shell + milestones; no vault/canon fill) |
-| `transitrix-blocks` | Nested blocks or grid (e.g. RACI) |
+| `transitrix-action-card` | Action Card (shell + milestones) |
+| `transitrix-blocks` | Nested blocks or grid (for example RACI) |
 | `transitrix-process-blueprint` | Process Blueprint |
 
-`minAppVersion` is **1.0.0** because this slice only calls `Plugin.registerMarkdownCodeBlockProcessor`, `MarkdownRenderChild` / `MarkdownPostProcessorContext.addChild`, and `PluginSettingTab` / `Setting`, which are documented 1.0 APIs.
+Example:
 
-## Display settings
+````markdown
+```transitrix-goals
+notation: goals
+spec_version: "0.1"
+id: GOALS-SERVICE-1
+name: Reliable service
+goal_types:
+  - { name: Strategy, level: 0 }
+goals:
+  - { id: GOAL-SERVICE-1, name: Deliver reliable service, type: Strategy, level: 0 }
+```
+````
 
-Under **Settings → Transitrix Studio**:
+Open the note in **Reading view** to see the SVG. Live Preview is not supported yet.
 
-| Section | Setting | Values | Used by |
-| --- | --- | --- | --- |
-| General | Theme | Transitrix light / dark / Follow Obsidian | All SVG fences (Goals, DGCA/DGA, Action, Action Card, Nested Blocks, Process Blueprint) |
-| SVG display | Node size | compact / normal / wide | Goals, DGCA/DGA, Action, Nested Blocks, Process Blueprint |
-| SVG display | Edge style | straight / bezier / polyline | Goals, DGCA, DGA (Action keeps its own path style) |
-| SVG display | Edge curvature | 0–3 (default 1) | Goals, DGCA/DGA, Action |
+Repository projections (`view_config`-only documents or `sources`) are rejected. Put a self-contained document in the fence.
 
-**SVG display** covers: Goals, DGCA, DGA, Action (network), Nested Blocks / grid, Process Blueprint. Action Card uses Theme only. Changes re-render open Reading-view blocks that opt in.
+## Settings
 
-## Commands (from the repository root)
+**Settings → Transitrix Studio**
 
-Node.js 20 or newer. After a clone:
+| Setting | Effect |
+| --- | --- |
+| Theme | Transitrix light / dark, or follow Obsidian |
+| Node size | compact / normal / wide |
+| Edge style | straight / bezier / polyline (Goals, DGCA, DGA) |
+| Edge curvature | 0–3 (Goals, DGCA/DGA, Action) |
+
+Action Card uses Theme only. Changing settings refreshes open Reading-view diagrams.
+
+## Manual install (from this monorepo)
+
+From the repository root:
 
 ```sh
 npm ci
-npm run build:obsidian-plugin
-npm run typecheck:obsidian-plugin
-npm run test:obsidian-plugin
 npm run package:obsidian-plugin
 ```
 
-`build:obsidian-plugin`, `typecheck:obsidian-plugin` and `test:obsidian-plugin` all compile `@transitrix/diagrams` first (its package exports resolve to `dist/`), then run the plugin workspace script.
-`package:obsidian-plugin` copies `manifest.json`, `styles.css` and `main.js` to `output/obsidian-plugin/` (gitignored).
+Copy `output/obsidian-plugin/manifest.json`, `main.js`, and `styles.css` into:
 
-## Install into a dedicated test vault
+`.obsidian/plugins/transitrix-studio/`
 
-1. Build and package as above.
-2. In the test vault create `.obsidian/plugins/transitrix-studio/`.
-3. Copy `output/obsidian-plugin/manifest.json`, `main.js` and `styles.css` into that folder.
-4. Enable **Transitrix Studio** under Settings → Community plugins (restricted mode off).
-5. Copy demos from `packages/obsidian-plugin/demo/` into the vault and open them in Reading view.
+Enable **Transitrix Studio** under Settings → Community plugins.
 
-## Markdown
+Demo notes live in `demo/`.
 
-See `demo/goals-preview.md`, `demo/fgca-preview.md`, and `demo/svg-notations-preview.md` for worked fences.
+## Privacy and safety
 
-Repository projection docs are rejected (`view_config`-only / `sources` where applicable). Action Card without a vault still paints the card shell and milestones; motivation chain and child activities stay empty until a future vault-aware slice.
+- Diagrams render as `<img>` with a `data:image/svg+xml` URL — YAML is never injected as HTML into the note DOM.
+- Invalid or oversize fences show an in-place error panel instead of crashing the note.
+- Source notes are never modified.
 
-Source notes are never rewritten. Rendered SVG is shown as an image (`data:image/svg+xml`), not injected as HTML.
+## License
+
+MIT — see the repository root `LICENSE`.

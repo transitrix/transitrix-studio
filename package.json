@@ -37,7 +37,7 @@
     "build:obsidian-plugin": "npm run build:diagrams && npm --workspace packages/obsidian-plugin run build",
     "typecheck:obsidian-plugin": "npm run build:diagrams && npm --workspace packages/obsidian-plugin run typecheck",
     "test:obsidian-plugin": "npm run build:diagrams && npm --workspace packages/obsidian-plugin test",
-    "package:obsidian-plugin": "npm run build:obsidian-plugin && npm --workspace packages/obsidian-plugin run package",
+    "package:obsidian-plugin": "npm run build:diagrams && npm --workspace packages/obsidian-plugin run package",
     "build:webview": "node scripts/build-webview.mjs",
     "build:webview-bundle": "node scripts/build-webview-bundle.mjs",
     "extension:bundle": "node scripts/build-extension-bundle.mjs",

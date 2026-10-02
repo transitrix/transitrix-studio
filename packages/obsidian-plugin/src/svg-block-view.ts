@@ -17,6 +17,7 @@ export class SvgBlockView<TDisplay> {
   private generation = 0;
   private source = '';
   private display: TDisplay;
+  private destroyed = false;
 
   constructor(
     private readonly containerEl: HTMLElement,
@@ -26,12 +27,13 @@ export class SvgBlockView<TDisplay> {
   }
 
   async update(source: string, display: TDisplay = this.display): Promise<void> {
+    if (this.destroyed) return;
     this.source = source;
     this.display = display;
     const generation = ++this.generation;
-    const result = this.options.render(source, display);
+    const result = this.safeRender(source, display);
     await Promise.resolve();
-    if (generation !== this.generation) return;
+    if (this.destroyed || generation !== this.generation) return;
     paintSvgBlockResult(this.containerEl, result, {
       cssBlockClass: this.options.cssBlockClass,
       imageAlt: this.options.imageAlt,
@@ -40,6 +42,7 @@ export class SvgBlockView<TDisplay> {
 
   /** Re-render the last source with new display settings (settings tab changes). */
   async applyDisplay(display: TDisplay): Promise<void> {
+    if (this.destroyed) return;
     if (!this.source) {
       this.display = display;
       return;
@@ -48,8 +51,22 @@ export class SvgBlockView<TDisplay> {
   }
 
   destroy(): void {
+    this.destroyed = true;
     this.generation += 1;
     this.source = '';
     clearSvgBlockHost(this.containerEl, this.options.cssBlockClass);
+  }
+
+  private safeRender(source: string, display: TDisplay): BlockRenderResult {
+    try {
+      return this.options.render(source, display);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      return {
+        ok: false,
+        errors: [{ code: 'RENDER', message: `Unexpected render failure: ${message}` }],
+        warnings: [],
+      };
+    }
   }
 }
