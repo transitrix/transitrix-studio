@@ -29,23 +29,31 @@ elif args[:1] == ["api"]:
     trusted_used = False
     runs = []
     mapping = {
-        "pass": ("completed", "success"),
-        "pending": ("in_progress", None),
-        "fail": ("completed", "failure"),
-        "cancel": ("completed", "cancelled"),
-        "skipping": ("completed", "neutral"),
-        "unexpected": ("completed", "unexpected"),
+        "pass": ("COMPLETED", "SUCCESS"),
+        "pending": ("IN_PROGRESS", None),
+        "waiting": ("WAITING", None),
+        "requested": ("REQUESTED", None),
+        "fail": ("COMPLETED", "FAILURE"),
+        "cancel": ("COMPLETED", "CANCELLED"),
+        "skipping": ("COMPLETED", "NEUTRAL"),
+        "unexpected": ("COMPLETED", "UNEXPECTED"),
     }
     for row in rows:
+        if row.get("kind") == "status":
+            state = {"pass": "SUCCESS", "pending": "PENDING", "fail": "FAILURE", "cancel": "ERROR"}[row["bucket"]]
+            runs.append({"__typename": "StatusContext", "context": row["name"], "state": state})
+            continue
         status, conclusion = mapping[row["bucket"]]
         app = "github-actions"
         if row["name"] == "CodeQL" and row["bucket"] == "skipping" and trusted_available and not trusted_used:
             app = "github-advanced-security"
             trusted_used = True
-        runs.append({"name": row["name"], "status": status, "conclusion": conclusion, "app": {"slug": app}})
-    response = {"total_count": len(runs), "check_runs": runs}
+        runs.append({"__typename": "CheckRun", "name": row["name"], "status": status,
+                     "conclusion": conclusion, "checkSuite": {"app": {"slug": app}}})
+    contexts = {"totalCount": len(runs), "nodes": runs}
     if os.environ.get("MALFORMED") == "1":
-        response = {"total_count": len(runs) + 1, "check_runs": runs}
+        contexts["totalCount"] += 1
+    response = {"data": {"repository": {"object": {"statusCheckRollup": {"contexts": contexts}}}}}
     print(json.dumps(response))
 elif args[:2] == ["pr", "merge"]:
     pathlib.Path(os.environ["MERGE"]).write_text(json.dumps(args))
@@ -92,6 +100,21 @@ class Gate(unittest.TestCase):
     def test_same_name_codeql_collision_does_not_merge(self):
         rows = GREEN + CODEQL_SKIPPED + CODEQL_SKIPPED
         self.assertIsNone(self.run_gate(rows, TRUSTED_CODEQL="1")[1])
+
+    def test_legacy_status_contexts_remain_in_the_gate(self):
+        passing = GREEN + [{"name":"legacy-ci","bucket":"pass","kind":"status"}]
+        self.assertIsNotNone(self.run_gate(passing)[1])
+        for bucket in ["pending", "fail", "cancel"]:
+            with self.subTest(bucket=bucket):
+                rows = GREEN + [{"name":"legacy-ci","bucket":bucket,"kind":"status"}]
+                self.assertIsNone(self.run_gate(rows)[1])
+
+    def test_waiting_and_requested_checks_keep_polling(self):
+        for bucket in ["waiting", "requested"]:
+            with self.subTest(bucket=bucket):
+                rc, args = self.run_gate(GREEN + [{"name":"e2e","bucket":bucket}])
+                self.assertEqual(rc, 88)
+                self.assertIsNone(args)
 
     def test_empty_self_missing_and_pending_do_not_merge(self):
         for rows in [[], [{"name":"auto-merge","bucket":"pending"}], GREEN[:-1],

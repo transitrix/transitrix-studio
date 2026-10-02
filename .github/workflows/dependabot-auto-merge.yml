@@ -61,47 +61,65 @@ jobs:
           # Require the always-triggered checks, even before GitHub has queued
           # every workflow. A nonempty list containing only this job is not CI.
           required='["Diff + PR-metadata blocklist", "PR description policy", "Build & Test with Metrics Regression", "merge-guard-tests"]'
+          owner="${REPOSITORY%%/*}"
+          repo="${REPOSITORY#*/}"
+          query='query($owner:String!,$repo:String!,$sha:GitObjectID!){repository(owner:$owner,name:$repo){object(oid:$sha){... on Commit{statusCheckRollup{contexts(first:100){totalCount nodes{__typename ... on CheckRun{name status conclusion checkSuite{app{slug}}} ... on StatusContext{context state}}}}}}}}'
           deadline=$((SECONDS + 3600))
           while (( SECONDS < deadline )); do
             assert_head
-            # Use one check-runs snapshot so the name, result and producer of an
-            # advisory check cannot come from different points in time.
-            json="$(gh api "repos/$REPOSITORY/commits/$EXPECTED_HEAD/check-runs?per_page=100")"
+            # Use one rollup snapshot so CheckRun producer data and legacy
+            # StatusContext results are classified at the same point in time.
+            json="$(gh api graphql -f query="$query" -F owner="$owner" -F repo="$repo" -F sha="$EXPECTED_HEAD")"
             printf '%s' "$json" | jq -e '
-              type == "object" and
-              (.total_count | type == "number") and
-              (.check_runs | type == "array") and
-              .total_count == (.check_runs | length) and
-              all(.check_runs[];
-                (.name | type == "string") and
-                (.status | type == "string") and
-                (.conclusion == null or (.conclusion | type == "string")) and
-                (.app.slug | type == "string"))' >/dev/null
-            other="$(printf '%s' "$json" | jq '[.check_runs[] | select(.name != "auto-merge")]')"
+              .data.repository.object.statusCheckRollup.contexts as $contexts |
+              ($contexts.totalCount | type == "number") and
+              ($contexts.nodes | type == "array") and
+              $contexts.totalCount == ($contexts.nodes | length) and
+              all($contexts.nodes[];
+                if .__typename == "CheckRun" then
+                  (.name | type == "string") and
+                  (.status | type == "string") and
+                  (.conclusion == null or (.conclusion | type == "string")) and
+                  (.checkSuite.app.slug | type == "string")
+                elif .__typename == "StatusContext" then
+                  (.context | type == "string") and (.state | type == "string")
+                else false end)' >/dev/null
+            other="$(printf '%s' "$json" | jq '[
+              .data.repository.object.statusCheckRollup.contexts.nodes[] |
+              select(.__typename != "CheckRun" or .name != "auto-merge")]')"
             # GitHub Advanced Security emits a neutral aggregate CodeQL check
             # when its default-setup analyses are absent from a Dependabot head.
             # Exclude only that concrete producer/name/result tuple. An
             # identically named run from any other app still fails closed.
             gate="$(printf '%s' "$other" | jq '[.[] | select(
               .name != "CodeQL" or
-              .status != "completed" or
-              .conclusion != "neutral" or
-              .app.slug != "github-advanced-security")]')"
+              .status != "COMPLETED" or
+              .conclusion != "NEUTRAL" or
+              .checkSuite.app.slug != "github-advanced-security")]')"
 
             # Only explicit passes qualify. Skipped, cancelled, failed and
             # unknown results cannot stand in for successful execution. The
             # single advisory CodeQL aggregate above is not execution evidence.
             if printf '%s' "$gate" | jq -e 'any(.[];
-              (.status != "queued" and .status != "in_progress" and .status != "pending" and .status != "completed") or
-              (.status == "completed" and .conclusion != "success"))' >/dev/null; then
+              if .__typename == "CheckRun" then
+                (.status != "REQUESTED" and .status != "WAITING" and .status != "QUEUED" and
+                 .status != "IN_PROGRESS" and .status != "PENDING" and .status != "COMPLETED") or
+                (.status == "COMPLETED" and .conclusion != "SUCCESS")
+              elif .__typename == "StatusContext" then
+                .state != "EXPECTED" and .state != "PENDING" and .state != "SUCCESS"
+              else true end)' >/dev/null; then
               echo "A non-self check did not pass; refusing merge."
               exit 1
             fi
             if printf '%s' "$gate" | jq -e --argjson required "$required" '
               . as $checks | length > 0 and
-              all(.[]; .status == "completed" and .conclusion == "success") and
+              all(.[];
+                if .__typename == "CheckRun" then .status == "COMPLETED" and .conclusion == "SUCCESS"
+                elif .__typename == "StatusContext" then .state == "SUCCESS"
+                else false end) and
               all($required[]; . as $name | any($checks[];
-                .name == $name and .status == "completed" and .conclusion == "success"))' >/dev/null; then
+                .__typename == "CheckRun" and .name == $name and
+                .status == "COMPLETED" and .conclusion == "SUCCESS"))' >/dev/null; then
               # Detect pushes during polling, then let the merge API enforce
               # this same SHA atomically if a push races the final read.
               assert_head
