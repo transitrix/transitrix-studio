@@ -12,6 +12,7 @@ SCRIPT = "\n".join(line[10:] for line in TEXT.split("        run: |\n", 1)[1].sp
 HEAD = "a" * 40
 REQUIRED = ["Diff + PR-metadata blocklist", "PR description policy", "Build & Test with Metrics Regression", "merge-guard-tests"]
 GREEN = [{"name": name, "bucket": "pass"} for name in REQUIRED]
+CODEQL_SKIPPED = [{"name": "CodeQL", "bucket": "skipping"}]
 FAKE_GH = r'''#!/usr/bin/env python3
 import json, os, pathlib, sys
 args = sys.argv[1:]
@@ -23,6 +24,9 @@ if args[:2] == ["pr", "view"]:
 elif args[:2] == ["pr", "checks"]:
     print(os.environ["CHECKS"])
     sys.exit(int(os.environ.get("CHECK_RC", "0")))
+elif args[:1] == ["api"]:
+    if os.environ.get("TRUSTED_CODEQL") == "1":
+        print("12345")
 elif args[:2] == ["pr", "merge"]:
     pathlib.Path(os.environ["MERGE"]).write_text(json.dumps(args))
     sys.exit(int(os.environ.get("MERGE_RC", "0")))
@@ -40,6 +44,7 @@ class Gate(unittest.TestCase):
             (p / "sleep").write_text("#!/bin/sh\nexit 88\n")
             (p / "sleep").chmod(0o755)
             env = dict(os.environ, PATH=tmp+os.pathsep+os.environ["PATH"], EXPECTED_HEAD=HEAD,
+                       REPOSITORY="example/repo",
                        PR_URL="https://github.com/example/repo/pull/1", CHECKS=json.dumps(rows),
                        CALLS=str(p/"calls"), MERGE=str(p/"merge"), **extra)
             result = subprocess.run(["bash", "-c", SCRIPT], env=env, capture_output=True, text=True, timeout=5)
@@ -56,6 +61,14 @@ class Gate(unittest.TestCase):
         self.assertEqual(rc, 0)
         self.assertIsNotNone(args)
 
+    def test_neutral_codeql_aggregate_does_not_block_green_checks(self):
+        rc, args = self.run_gate(GREEN + CODEQL_SKIPPED, CHECK_RC="1", TRUSTED_CODEQL="1")
+        self.assertEqual(rc, 0)
+        self.assertIsNotNone(args)
+
+    def test_unverified_codeql_skip_does_not_merge(self):
+        self.assertIsNone(self.run_gate(GREEN + CODEQL_SKIPPED, CHECK_RC="1")[1])
+
     def test_empty_self_missing_and_pending_do_not_merge(self):
         for rows in [[], [{"name":"auto-merge","bucket":"pending"}], GREEN[:-1],
                      GREEN + [{"name":"e2e","bucket":"pending"}]]:
@@ -66,6 +79,18 @@ class Gate(unittest.TestCase):
         for bucket in ["fail", "cancel", "skipping", "unexpected"]:
             with self.subTest(bucket=bucket):
                 self.assertIsNone(self.run_gate(GREEN + [{"name":"e2e","bucket":bucket}], CHECK_RC="1")[1])
+
+    def test_required_skips_and_non_skipped_codeql_do_not_merge(self):
+        skipped_required = [
+            {"name": name, "bucket": "skipping" if name == REQUIRED[0] else "pass"}
+            for name in REQUIRED
+        ]
+        self.assertIsNone(self.run_gate(
+            skipped_required + CODEQL_SKIPPED, CHECK_RC="1", TRUSTED_CODEQL="1"
+        )[1])
+        for bucket in ["fail", "cancel", "pending", "unexpected"]:
+            with self.subTest(bucket=bucket):
+                self.assertIsNone(self.run_gate(GREEN + [{"name":"CodeQL","bucket":bucket}], CHECK_RC="1")[1])
 
     def test_initial_and_mid_poll_push_do_not_merge(self):
         for count in ["0", "1"]:

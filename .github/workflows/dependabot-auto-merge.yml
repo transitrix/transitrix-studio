@@ -47,6 +47,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_URL: ${{ github.event.pull_request.html_url }}
           EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+          REPOSITORY: ${{ github.repository }}
         run: |
           set -euo pipefail
 
@@ -71,14 +72,27 @@ jobs:
             printf '%s' "$json" | jq -e 'type == "array" and all(.[];
               (.name | type == "string") and (.bucket | type == "string"))' >/dev/null
             other="$(printf '%s' "$json" | jq '[.[] | select(.name != "auto-merge")]')"
+            # GitHub Advanced Security emits a neutral aggregate CodeQL check
+            # when its default-setup analyses are absent from a Dependabot head.
+            # Verify the producer before treating that one aggregate as advisory;
+            # an identically named check from any other app still fails closed.
+            codeql_advisory=false
+            if codeql_ids="$(gh api "repos/$REPOSITORY/commits/$EXPECTED_HEAD/check-runs" --paginate \
+              --jq '.check_runs[] | select(.name == "CodeQL" and .conclusion == "neutral" and .app.slug == "github-advanced-security") | .id' \
+              )" && [[ -n "$codeql_ids" ]]; then
+              codeql_advisory=true
+            fi
+            gate="$(printf '%s' "$other" | jq --argjson codeql_advisory "$codeql_advisory" '[.[] |
+              select($codeql_advisory != true or .name != "CodeQL" or .bucket != "skipping")]')"
 
             # Only explicit passes qualify. Skipped, cancelled, failed and
-            # unknown results cannot stand in for successful execution.
-            if printf '%s' "$other" | jq -e 'any(.[]; .bucket != "pass" and .bucket != "pending")' >/dev/null; then
+            # unknown results cannot stand in for successful execution. The
+            # single advisory CodeQL aggregate above is not execution evidence.
+            if printf '%s' "$gate" | jq -e 'any(.[]; .bucket != "pass" and .bucket != "pending")' >/dev/null; then
               echo "A non-self check did not pass; refusing merge."
               exit 1
             fi
-            if [[ "$rc" == 0 || "$rc" == 8 ]] && printf '%s' "$other" | jq -e --argjson required "$required" '
+            if [[ "$rc" == 0 || "$rc" == 1 || "$rc" == 8 ]] && printf '%s' "$gate" | jq -e --argjson required "$required" '
               . as $checks | length > 0 and
               all(.[]; .bucket == "pass") and
               all($required[]; . as $name | any($checks[]; .name == $name))' >/dev/null; then
