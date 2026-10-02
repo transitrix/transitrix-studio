@@ -1,4 +1,4 @@
-export type ProductType = 'digital_product' | 'service' | 'platform' | 'bundle';
+export type ProductType = 'physical_product' | 'digital_product' | 'service' | 'platform' | 'bundle';
 export type ProductStatus = 'Draft' | 'Active' | 'Deprecated';
 
 export interface Product {

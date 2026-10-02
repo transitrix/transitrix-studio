@@ -7,6 +7,7 @@ import type { Product, ProductsCatalogueHeader } from '../products/types.js';
 import { escHtml } from './render-util.js';
 
 const TYPE_LABEL: Record<string, string> = {
+  physical_product: 'Physical Product',
   digital_product: 'Digital Product',
   service: 'Service',
   platform: 'Platform',

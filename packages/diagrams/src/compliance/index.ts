@@ -76,6 +76,9 @@ export type {
   TraceElementRef,
   TraceSourceRef,
 } from './types.js';
-export { buildRequirementChain, requirementReleaseCounts, selectRequirementChain, RequirementChainSnapshot, CHAIN_STAGES, chainDate } from './requirement-chain.js';
-export type { ChainInput, ChainScope, ChainSet, RequirementChainNode, RequirementChainEdge, RequirementChainProjection } from './requirement-chain.js';
+export { buildSubjectRequirementChain, buildRequirementChain, requirementReleaseCounts, selectRequirementChain, RequirementChainSnapshot, CHAIN_STAGES, chainDate } from './requirement-chain.js';
+export type { ChainSubject, ChainInput, ChainScope, ChainSet, RequirementChainNode, RequirementChainEdge, RequirementChainProjection } from './requirement-chain.js';
 export type { ChainRecord, ChainFinding } from './types.js';
+
+export { scanRequirementCatalogue } from './catalogue.js';
+export type { RequirementCatalogueIO } from './catalogue.js';

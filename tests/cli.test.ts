@@ -1,6 +1,7 @@
 import { spawnSync } from 'node:child_process'
-import { readFileSync } from 'node:fs'
+import { readFileSync, mkdtempSync, mkdirSync, writeFileSync, rmSync, symlinkSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
+import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 
 import { describe, it, expect } from 'vitest'
@@ -46,3 +47,57 @@ describe('CLI --version', () => {
     expect(stdout.trim()).toBe(`transitrix ${cliVersion} (bundles @transitrix/diagrams ${diagramsVersion})`)
   })
 })
+
+
+describe('requirements-report caller contract', () => {
+  function catalogue(run: (root: string, args: string[]) => void) {
+    const root = mkdtempSync(join(tmpdir(), 'requirements report '));
+    const put = (id: string, fields: Record<string, unknown>) => writeFileSync(join(root, 'canon', id + '.yaml'), JSON.stringify({
+      id, notation: id.split('-')[0].toLowerCase(), name: id, zone: 'canon', admitted_at: '2026-01-01', admitted_by: 'example',
+      gate_checks: { uniqueness: 'pass' }, valid_from: '2026-01-01', valid_to: null, ...fields }));
+    try {
+      writeFileSync(join(root, 'transitrix.yaml'), 'transitrix: 1'); mkdirSync(join(root, 'canon'));
+      put('APPLICATION-TEST-1', { type: 'application' }); put('RELEASE-TEST-1', { of: 'APPLICATION-TEST-1' });
+      run(root, ['requirements-report', '--root', root, '--subject-type', 'APPLICATION', '--subject-id', 'APPLICATION-TEST-1', '--release', 'RELEASE-TEST-1', '--as-at', '2026-09-24', '--json']);
+    } finally { rmSync(root, { recursive: true, force: true }); }
+  }
+  it('declares help and returns deterministic complete empty JSON for a non-Git catalogue', () => {
+    expect(runCli(['requirements-report','--help']).stdout).toContain('requirements-report/1');
+    catalogue((_root, args) => {
+      const first = runCli(args); expect(first.status, first.stderr).toBe(0); expect(first.stderr).toBe('');
+      expect(runCli(args).stdout).toBe(first.stdout);
+      const p = JSON.parse(first.stdout); expect(p.schemaVersion).toBe('requirements-report/1');
+      expect(p.source).toMatchObject({ revision: null, dirty: null, mode: 'disk' });
+      expect(p.projection.contract).toBe('requirement-chain/0.3');
+      expect(Object.values(p.projection.metrics).map((s: any) => s.total)).toEqual([0,0,0,0,0,0]);
+    });
+  });
+  it('distinguishes missing selection, malformed input, partial reads and source assertion failure', () => {
+    catalogue((root, args) => {
+      for (const extra of [['--unknown'], ['--as-at','2026-02-30'], ['--json']]) {
+        const result = runCli([...args, ...extra]); expect(result.status).toBe(1);
+        expect(JSON.parse(result.stdout)).toMatchObject({ status: 'error', projection: null, counts: null, errors: [{ code: 'USAGE' }] });
+      }
+      expect(JSON.parse(runCli([...args, '--expect-source-revision', 'a'.repeat(40)]).stdout).errors[0].code).toBe('SOURCE_REVISION');
+      const unknown = runCli(args.map(v => v === 'APPLICATION-TEST-1' ? 'APPLICATION-MISSING-1' : v));
+      expect(unknown.status).toBe(2); expect(JSON.parse(unknown.stdout).projection.metrics.unassigned.total).toBeNull();
+      writeFileSync(join(root,'canon','broken.yaml'), 'bad: [');
+      const partial = runCli(args); expect(partial.status).toBe(2);
+      const parsed = JSON.parse(partial.stdout); expect(parsed.projection.populations.selected.total).toBeNull();
+      expect(parsed.projection.findings).toEqual(expect.arrayContaining([expect.objectContaining({ code: 'LOAD', owner: 'canon/broken.yaml' })]));
+      rmSync(join(root,'transitrix.yaml'));
+      expect(JSON.parse(runCli(args).stdout)).toMatchObject({ status: 'error', projection: null, errors: [{ code: 'LOAD' }] });
+    });
+  });
+  it('keeps nested catalogues outside the boundary and treats symlinks as incomplete', () => {
+    catalogue((root,args) => {
+      mkdirSync(join(root,'canon','nested')); writeFileSync(join(root,'canon','nested','transitrix.yaml'), 'transitrix: 1');
+      writeFileSync(join(root,'canon','nested','bad.yaml'), 'bad: [');
+      expect(runCli(args).status).toBe(0);
+      if (process.platform === 'win32') return; // Windows may require an elevated symlink privilege.
+      symlinkSync(join(root,'canon','nested','bad.yaml'), join(root,'canon','link.yaml'));
+      const result = runCli(args); expect(result.status).toBe(2);
+      expect(JSON.parse(result.stdout).projection.findings).toEqual(expect.arrayContaining([expect.objectContaining({ owner: 'canon/link.yaml', code: 'LOAD' })]));
+    });
+  });
+});

@@ -4,7 +4,7 @@ import type { ValidationError, ValidationWarning, ValidationResult } from '../va
 
 export type { ValidationError, ValidationWarning, ValidationResult };
 
-const VALID_TYPES = new Set<ProductType>(['digital_product', 'service', 'platform', 'bundle']);
+const VALID_TYPES = new Set<ProductType>(['physical_product', 'digital_product', 'service', 'platform', 'bundle']);
 const VALID_STATUSES = new Set<ProductStatus>(['Draft', 'Active', 'Deprecated']);
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 

@@ -45,7 +45,7 @@ export function validateStandalone(notation: string, input: unknown, options: St
   };
   optionalText('description');
   if (notation === 'product') {
-    if (!['digital_product','service','platform','bundle'].includes(d.type as string)) fail('type', 'digital_product|service|platform|bundle', d.type);
+    if (!['physical_product', 'digital_product','service','platform','bundle'].includes(d.type as string)) fail('type', 'physical_product|digital_product|service|platform|bundle', d.type);
     optionalText('domain'); reference('owner_role', ['ROLE']);
     if ('maturity' in d && !(Number.isInteger(d.maturity) && Number(d.maturity) >= 1 && Number(d.maturity) <= 5)) fail('maturity', 'integer 1..5', d.maturity);
     references('capabilities', ['CAPABILITY']); references('processes', ['PROCESS']); references('supporting_apps', ['APPLICATION']);
