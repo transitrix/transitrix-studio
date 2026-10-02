@@ -64,44 +64,44 @@ jobs:
           deadline=$((SECONDS + 3600))
           while (( SECONDS < deadline )); do
             assert_head
-            # gh pr checks returns 8 for pending checks and 1 for failures.
-            # Keep their JSON for classification; other errors stop the run.
-            rc=0
-            json="$(gh pr checks "$PR_URL" --json name,bucket)" || rc=$?
-            [[ "$rc" == 0 || "$rc" == 1 || "$rc" == 8 ]] || exit "$rc"
-            printf '%s' "$json" | jq -e 'type == "array" and all(.[];
-              (.name | type == "string") and (.bucket | type == "string"))' >/dev/null
-            other="$(printf '%s' "$json" | jq '[.[] | select(.name != "auto-merge")]')"
+            # Use one check-runs snapshot so the name, result and producer of an
+            # advisory check cannot come from different points in time.
+            json="$(gh api "repos/$REPOSITORY/commits/$EXPECTED_HEAD/check-runs?per_page=100")"
+            printf '%s' "$json" | jq -e '
+              type == "object" and
+              (.total_count | type == "number") and
+              (.check_runs | type == "array") and
+              .total_count == (.check_runs | length) and
+              all(.check_runs[];
+                (.name | type == "string") and
+                (.status | type == "string") and
+                (.conclusion == null or (.conclusion | type == "string")) and
+                (.app.slug | type == "string"))' >/dev/null
+            other="$(printf '%s' "$json" | jq '[.check_runs[] | select(.name != "auto-merge")]')"
             # GitHub Advanced Security emits a neutral aggregate CodeQL check
             # when its default-setup analyses are absent from a Dependabot head.
-            # Verify the producer before treating that one aggregate as advisory;
-            # an identically named check from any other app still fails closed.
-            codeql_advisory=false
-            trusted_codeql_count=0
-            if codeql_ids="$(gh api "repos/$REPOSITORY/commits/$EXPECTED_HEAD/check-runs" --paginate \
-              --jq '.check_runs[] | select(.name == "CodeQL" and .conclusion == "neutral" and .app.slug == "github-advanced-security") | .id' \
-              )"; then
-              trusted_codeql_count="$(printf '%s\n' "$codeql_ids" | awk 'NF { count++ } END { print count + 0 }')"
-            fi
-            skipped_codeql_count="$(printf '%s' "$other" | jq '[.[] |
-              select(.name == "CodeQL" and .bucket == "skipping")] | length')"
-            if (( skipped_codeql_count > 0 && skipped_codeql_count == trusted_codeql_count )); then
-              codeql_advisory=true
-            fi
-            gate="$(printf '%s' "$other" | jq --argjson codeql_advisory "$codeql_advisory" '[.[] |
-              select($codeql_advisory != true or .name != "CodeQL" or .bucket != "skipping")]')"
+            # Exclude only that concrete producer/name/result tuple. An
+            # identically named run from any other app still fails closed.
+            gate="$(printf '%s' "$other" | jq '[.[] | select(
+              .name != "CodeQL" or
+              .status != "completed" or
+              .conclusion != "neutral" or
+              .app.slug != "github-advanced-security")]')"
 
             # Only explicit passes qualify. Skipped, cancelled, failed and
             # unknown results cannot stand in for successful execution. The
             # single advisory CodeQL aggregate above is not execution evidence.
-            if printf '%s' "$gate" | jq -e 'any(.[]; .bucket != "pass" and .bucket != "pending")' >/dev/null; then
+            if printf '%s' "$gate" | jq -e 'any(.[];
+              (.status != "queued" and .status != "in_progress" and .status != "pending" and .status != "completed") or
+              (.status == "completed" and .conclusion != "success"))' >/dev/null; then
               echo "A non-self check did not pass; refusing merge."
               exit 1
             fi
-            if [[ "$rc" == 0 || "$rc" == 1 || "$rc" == 8 ]] && printf '%s' "$gate" | jq -e --argjson required "$required" '
+            if printf '%s' "$gate" | jq -e --argjson required "$required" '
               . as $checks | length > 0 and
-              all(.[]; .bucket == "pass") and
-              all($required[]; . as $name | any($checks[]; .name == $name))' >/dev/null; then
+              all(.[]; .status == "completed" and .conclusion == "success") and
+              all($required[]; . as $name | any($checks[];
+                .name == $name and .status == "completed" and .conclusion == "success"))' >/dev/null; then
               # Detect pushes during polling, then let the merge API enforce
               # this same SHA atomically if a push races the final read.
               assert_head

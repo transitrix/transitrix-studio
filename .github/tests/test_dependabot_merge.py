@@ -21,12 +21,32 @@ if args[:2] == ["pr", "view"]:
     n = int(p.read_text()) if p.exists() else 0
     p.write_text(str(n+1))
     print(json.dumps({"headRefOid": os.environ["EXPECTED_HEAD"] if n < int(os.environ.get("CHANGE_AFTER", "99")) else "b"*40, "state": "OPEN", "isDraft": os.environ.get("DRAFT") == "1"}))
-elif args[:2] == ["pr", "checks"]:
-    print(os.environ["CHECKS"])
-    sys.exit(int(os.environ.get("CHECK_RC", "0")))
 elif args[:1] == ["api"]:
-    if os.environ.get("TRUSTED_CODEQL") == "1":
-        print("12345")
+    if int(os.environ.get("API_RC", "0")):
+        sys.exit(int(os.environ["API_RC"]))
+    rows = json.loads(os.environ["CHECKS"])
+    trusted_available = os.environ.get("TRUSTED_CODEQL") == "1"
+    trusted_used = False
+    runs = []
+    mapping = {
+        "pass": ("completed", "success"),
+        "pending": ("in_progress", None),
+        "fail": ("completed", "failure"),
+        "cancel": ("completed", "cancelled"),
+        "skipping": ("completed", "neutral"),
+        "unexpected": ("completed", "unexpected"),
+    }
+    for row in rows:
+        status, conclusion = mapping[row["bucket"]]
+        app = "github-actions"
+        if row["name"] == "CodeQL" and row["bucket"] == "skipping" and trusted_available and not trusted_used:
+            app = "github-advanced-security"
+            trusted_used = True
+        runs.append({"name": row["name"], "status": status, "conclusion": conclusion, "app": {"slug": app}})
+    response = {"total_count": len(runs), "check_runs": runs}
+    if os.environ.get("MALFORMED") == "1":
+        response = {"total_count": len(runs) + 1, "check_runs": runs}
+    print(json.dumps(response))
 elif args[:2] == ["pr", "merge"]:
     pathlib.Path(os.environ["MERGE"]).write_text(json.dumps(args))
     sys.exit(int(os.environ.get("MERGE_RC", "0")))
@@ -57,32 +77,32 @@ class Gate(unittest.TestCase):
         self.assertEqual(args[args.index("--match-head-commit")+1], HEAD)
 
     def test_pending_self_does_not_deadlock_green_checks(self):
-        rc, args = self.run_gate(GREEN + [{"name":"auto-merge","bucket":"pending"}], CHECK_RC="8")
+        rc, args = self.run_gate(GREEN + [{"name":"auto-merge","bucket":"pending"}])
         self.assertEqual(rc, 0)
         self.assertIsNotNone(args)
 
     def test_neutral_codeql_aggregate_does_not_block_green_checks(self):
-        rc, args = self.run_gate(GREEN + CODEQL_SKIPPED, CHECK_RC="1", TRUSTED_CODEQL="1")
+        rc, args = self.run_gate(GREEN + CODEQL_SKIPPED, TRUSTED_CODEQL="1")
         self.assertEqual(rc, 0)
         self.assertIsNotNone(args)
 
     def test_unverified_codeql_skip_does_not_merge(self):
-        self.assertIsNone(self.run_gate(GREEN + CODEQL_SKIPPED, CHECK_RC="1")[1])
+        self.assertIsNone(self.run_gate(GREEN + CODEQL_SKIPPED)[1])
 
     def test_same_name_codeql_collision_does_not_merge(self):
         rows = GREEN + CODEQL_SKIPPED + CODEQL_SKIPPED
-        self.assertIsNone(self.run_gate(rows, CHECK_RC="1", TRUSTED_CODEQL="1")[1])
+        self.assertIsNone(self.run_gate(rows, TRUSTED_CODEQL="1")[1])
 
     def test_empty_self_missing_and_pending_do_not_merge(self):
         for rows in [[], [{"name":"auto-merge","bucket":"pending"}], GREEN[:-1],
                      GREEN + [{"name":"e2e","bucket":"pending"}]]:
             with self.subTest(rows=rows):
-                self.assertIsNone(self.run_gate(rows, CHECK_RC="8")[1])
+                self.assertIsNone(self.run_gate(rows)[1])
 
     def test_unsuccessful_and_unknown_do_not_merge(self):
         for bucket in ["fail", "cancel", "skipping", "unexpected"]:
             with self.subTest(bucket=bucket):
-                self.assertIsNone(self.run_gate(GREEN + [{"name":"e2e","bucket":bucket}], CHECK_RC="1")[1])
+                self.assertIsNone(self.run_gate(GREEN + [{"name":"e2e","bucket":bucket}])[1])
 
     def test_required_skips_and_non_skipped_codeql_do_not_merge(self):
         skipped_required = [
@@ -90,11 +110,11 @@ class Gate(unittest.TestCase):
             for name in REQUIRED
         ]
         self.assertIsNone(self.run_gate(
-            skipped_required + CODEQL_SKIPPED, CHECK_RC="1", TRUSTED_CODEQL="1"
+            skipped_required + CODEQL_SKIPPED, TRUSTED_CODEQL="1"
         )[1])
         for bucket in ["fail", "cancel", "pending", "unexpected"]:
             with self.subTest(bucket=bucket):
-                self.assertIsNone(self.run_gate(GREEN + [{"name":"CodeQL","bucket":bucket}], CHECK_RC="1")[1])
+                self.assertIsNone(self.run_gate(GREEN + [{"name":"CodeQL","bucket":bucket}])[1])
 
     def test_initial_and_mid_poll_push_do_not_merge(self):
         for count in ["0", "1"]:
@@ -102,9 +122,8 @@ class Gate(unittest.TestCase):
                 self.assertIsNone(self.run_gate(GREEN, CHANGE_AFTER=count)[1])
 
     def test_api_error_and_malformed_response_do_not_merge(self):
-        self.assertIsNone(self.run_gate(GREEN, CHECK_RC="2")[1])
-        for rows in [None, {}, [{"name":"bad"}]]:
-            self.assertIsNone(self.run_gate(rows)[1])
+        self.assertIsNone(self.run_gate(GREEN, API_RC="2")[1])
+        self.assertIsNone(self.run_gate(GREEN, MALFORMED="1")[1])
 
     def test_draft_refused(self):
         self.assertIsNone(self.run_gate(GREEN, DRAFT="1")[1])
