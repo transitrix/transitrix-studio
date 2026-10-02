@@ -76,7 +76,7 @@
     "mdast-util-from-markdown": "2.0.2",
     "micromark": "4.0.2",
     "xmlbuilder2": "^4.0.3",
-    "yaml": "2.8.1"
+    "yaml": "2.9.1"
   },
   "devDependencies": {
     "@plantuml/core": "^1.2026.8",
