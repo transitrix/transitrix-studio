@@ -255,7 +255,7 @@ export function ensureCaptureDir(): void {
 export async function withRequirementChainScope<T>(root: string, product: string, release: string, project: string, asAt: string, fn: () => Promise<T>): Promise<T> {
   const win = extensionWindow();
   const open = win.showOpenDialog, pick = win.showQuickPick, input = win.showInputBox;
-  const choices = [product, release, project];
+  const choices = [product.startsWith('APPLICATION-') ? 'APPLICATION' : 'PRODUCT', product, release, project];
   win.showOpenDialog = (async () => [vscode.Uri.file(root)]) as typeof open;
   win.showQuickPick = (async () => ({ id: choices.shift() })) as unknown as typeof pick;
   win.showInputBox = (async () => asAt) as typeof input;

@@ -440,7 +440,7 @@ const stageIndices = () => [...matrix().webview.html.matchAll(/data-stage="(\d+)
 const send = (action: string, value?: string) => matrix().send({ action, value });
 function chooseScope(product = PA, release = A(2), projectId = JA, date = '2026-09-24', root = 'example') {
   reportHost.folder.mockResolvedValueOnce([{ fsPath: root }]);
-  reportHost.pick.mockResolvedValueOnce({ id: product }).mockResolvedValueOnce({ id: release }).mockResolvedValueOnce({ id: projectId });
+  reportHost.pick.mockResolvedValueOnce({ id: product.startsWith('APPLICATION-') ? 'APPLICATION' : 'PRODUCT' }).mockResolvedValueOnce({ id: product }).mockResolvedValueOnce({ id: release }).mockResolvedValueOnce({ id: projectId });
   reportHost.input.mockResolvedValueOnce(date);
 }
 
@@ -633,17 +633,45 @@ describe('requirement-chain report controls', () => {
     chooseScope(PA,A(2),JA,'2026-09-24','replacement'); await send('scope');
     expect(displayedIds()).toHaveLength(37); expect(matrix().webview.html).toContain('replacement'); restored.dispose();
   });
+  it('offers explicit subject types and only application-owned releases without a product', async () => {
+    reportHost.scan.mockResolvedValue(reportScan(subjectExample()));
+    chooseScope('APPLICATION-ALPHA-1');
+    const controller = new RequirementChainPreview(memory()); await controller.show('matrix');
+    expect(reportHost.pick.mock.calls[0][0].map((o:any)=>o.id)).toEqual(['PRODUCT','APPLICATION']);
+    expect(reportHost.pick.mock.calls[1][0].map((o:any)=>o.id)).toEqual(['','APPLICATION-ALPHA-1','APPLICATION-BETA-1']);
+    expect(reportHost.pick.mock.calls[2][0].map((o:any)=>o.id)).toEqual(['',A(1),A(2),A(3)]);
+    expect(matrix().webview.html).toContain('Application: APPLICATION-ALPHA-1');
+    expect(matrix().webview.html).toContain('Selected requirements: 12');
+    await send('export');
+    const exported = JSON.parse(reportHost.write.mock.calls[0][1].toString()).projection;
+    expect(exported.contract).toBe('requirement-chain/0.3');
+    expect(exported.scope.product).toBeUndefined(); controller.dispose();
+  });
+  it('migrates saved product navigation to explicit PRODUCT scope without prompting', async () => {
+    const storage = memory();
+    const key = JSON.stringify(['example',JA,PA,A(2),'2026-09-24']);
+    await storage.update('requirementChain.views.v1', {
+      scope: { catalogue:'example', project:JA, product:PA, release:A(2) }, asAt:'2026-09-24',
+      contexts: { [key]: { focus:R(2), direction:'upstream', pair:1, reason:'', pages:{}, viewport:{} } },
+    });
+    const controller = new RequirementChainPreview(storage); await controller.show('matrix');
+    expect(reportHost.folder).not.toHaveBeenCalled();
+    expect(stageIndices()).toEqual([1,2]); expect(matrix().webview.html).toContain(`Focus: ${R(2)} · upstream`);
+    await send('export');
+    expect(JSON.parse(reportHost.write.mock.calls[0][1].toString()).projection.scope.subject).toEqual({type:'PRODUCT',id:PA});
+    controller.dispose();
+  });
   it('offers only releases belonging to the selected product and leaves project optional', async () => {
     const {controller}=await start(); await controller.show('release');
-    expect(reportHost.pick.mock.calls[1][0].map((o:any)=>o.id)).toEqual(['',A(1),A(2),A(3)]);
+    expect(reportHost.pick.mock.calls[2][0].map((o:any)=>o.id)).toEqual(['',A(1),A(2),A(3)]);
     chooseScope(PB,B(2),''); await send('scope');
-    expect(reportHost.pick.mock.calls[4][0].map((o:any)=>o.id)).toEqual(['',B(1),B(2)]);
+    expect(reportHost.pick.mock.calls[6][0].map((o:any)=>o.id)).toEqual(['',B(1),B(2)]);
     expect(report().webview.html).toContain('Project: unselected');
     expect(report().webview.html).toContain('Selected requirements: 1'); controller.dispose();
   });
   it('opens every count as its exact distinct list and every node as the equivalent matrix projection', async () => {
     const {controller}=await start(); await controller.show('release');
-    const p=project(), counts=requirementReleaseCounts(p);
+    const p=subjectProject(chainExample(), { subject: { type: 'PRODUCT', id: PA } }), counts=requirementReleaseCounts(p);
     const listed=()=>[...report().webview.html.matchAll(/data-contributor="([^"]+)"/g)].map(m=>m[1]);
     for(const [key,item] of Object.entries(counts)) {
       expect(report().webview.html).toContain(`data-action="count" data-value="${key}"`);
@@ -769,6 +797,16 @@ function subjectProject(docs = subjectExample(), scope: Partial<Parameters<typeo
     asAt, snapshotId: 'example-1', complete: true });
 }
 describe('subject-aware requirement-chain/0.3', () => {
+  it('refreshes the same immutable subject projection used by the headless caller', async () => {
+    const canon = emptyCanon(); subjectExample().forEach(d => ingestComplianceDoc(canon, d, `${d.id}.yaml`));
+    const expected = subjectProject();
+    const store = new RequirementChainSnapshot();
+    expect(await store.refresh(async () => ({ index: buildComplianceIndex(canon), scope: expected.scope,
+      asAt: expected.asAt, snapshotId: expected.snapshotId, complete: true }))).toBe(true);
+    expect(store.current).toEqual(expected);
+    expect(store.stale).toBe(false);
+  });
+
   it.each(['application', 'internal', 'physical', 'saas'] as const)('runs the four-case exact oracle: %s', kind => {
     const subject = kind === 'application' ? { type: 'APPLICATION' as const, id: 'APPLICATION-ALPHA-1' } : { type: 'PRODUCT' as const, id: PA };
     const p = subjectProject(subjectExample(kind), { subject });

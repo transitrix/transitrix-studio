@@ -20,6 +20,7 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
+import { spawnSync } from 'node:child_process';
 import {
   captureWebviewPanels,
   captureNotifications,
@@ -401,7 +402,7 @@ describe('Packaged requirement reports: shared example and live controls', funct
   it('shows explicit context, all evidence distinctions and exact directional sets without sibling expansion', async () => {
     const initial = await reportDom(matrix);
     assert.strictEqual(initial.nodes.length, 37);
-    assert.ok(initial.text.includes('Selected requirements: 12 · Product requirements: 16'));
+    assert.ok(initial.text.includes('Selected requirements: 12 · Subject requirements: 16'));
     for (const text of [PA, A(2), JA, 'Evidence: absent', 'other release', 'unqualified', 'invalid definition', 'malformed or future execution', 'Not yet run', 'Inconclusive', 'Pass', 'Fail']) assert.ok(initial.text.includes(text), text);
     assert.ok(!initial.nodes.includes(V(2) + '.result'));
     const down = [R(2),R(3),V(2)+'.definition',V(31)+'.definition',V(31)+'.result',V(32)+'.definition',V(32)+'.result'];
@@ -527,4 +528,243 @@ describe('Packaged requirement reports: shared example and live controls', funct
     }
   });
 
+});
+
+function subjectExample(kind: 'application' | 'internal' | 'physical' | 'saas' = 'application'): Raw[] {
+  const docs = chainExample();
+  for (const d of docs) {
+    if (kind === 'application') {
+      for (const key of Object.keys(d)) {
+        if (typeof d[key] === 'string') d[key] = (d[key] as string).replace('PRODUCT-ALPHA-1', 'APPLICATION-ALPHA-1').replace('PRODUCT-BETA-1', 'APPLICATION-BETA-1');
+      }
+      if (d.type === 'product_scope') d.type = 'application_scope';
+      if (d.type === 'project_product') d.type = 'project_application';
+    }
+    if ([PA, PB, 'APPLICATION-ALPHA-1', 'APPLICATION-BETA-1'].includes(String(d.id))) {
+      d.notation = kind === 'application' ? 'application' : 'product';
+      d.type = kind === 'application' ? 'application' : kind === 'internal' ? 'service' : kind === 'physical' ? 'physical_product' : 'digital_product';
+    }
+  }
+  if (kind === 'saas') {
+    const base = docs.find(d => d.id === PA)!;
+    base.supporting_apps = ['APPLICATION-SAAS-1'];
+    docs.push({ ...base, id: 'APPLICATION-SAAS-1', notation: 'application', type: 'application', supporting_apps: undefined, products: [PA] },
+      { ...docs.find(d => d.id === A(3))!, id: 'RELEASE-SAAS-1', of: 'APPLICATION-SAAS-1', version: '1' });
+  }
+  return docs;
+}
+
+describe('Packaged subject reports and installed headless caller parity', function () {
+  this.timeout(240000);
+  let root: string, matrix: vscode.WebviewPanel, release: vscode.WebviewPanel;
+  let panels: vscode.WebviewPanel[] = [];
+  let serial = 0;
+  const ids = (...ns: number[]) => ns.map(R).sort();
+  const baseline = [ids(7,14,15,20), ids(5,8,14,15), ids(1,7,8,14,15), ids(2,5,20), ids(3), ids(9)];
+  async function waitFor<T>(read: () => Promise<T>, accept: (value: T) => boolean): Promise<T> {
+    const deadline = Date.now() + 20000;
+    do {
+      const value = await read();
+      if (accept(value)) return value;
+      await new Promise(resolve => setTimeout(resolve, 100));
+    } while (Date.now() < deadline);
+    throw new Error('Packaged report did not reach the expected state');
+  }
+  async function click(panel: vscode.WebviewPanel, action: string, value?: string) {
+    const before = await reportDom(panel);
+    await reportDom(panel, 'click', `button[data-action="${action}"]${value === undefined ? '' : `[data-value="${value}"]`}`);
+    if (!['export', 'open'].includes(action)) await waitFor(() => reportDom(panel), d => d.render !== before.render);
+  }
+  async function select(subject: string, selectedRelease = A(2), project = JA, date = '2026-09-24') {
+    await withRequirementChainScope(root, subject, selectedRelease, project, date, async () => {
+      await click(matrix, 'scope');
+      await waitFor(() => reportDom(matrix), d => d.text.includes(`${subject.startsWith('APPLICATION-') ? 'Application' : 'Product'}: ${subject}`)
+        && d.text.includes(`Release: ${selectedRelease}`) && d.text.includes(`As at ${date}`));
+    });
+  }
+  function write(docs: Raw[]) {
+    for (const zone of ['canon', 'codex', 'field']) {
+      fs.rmSync(path.join(root, zone), { recursive: true, force: true });
+      fs.mkdirSync(path.join(root, zone));
+    }
+    for (const d of docs) fs.writeFileSync(path.join(root, String(d.zone ?? 'canon'), `${d.id}.yaml`), JSON.stringify(d));
+  }
+  async function exported(panel: vscode.WebviewPanel) {
+    const target = path.join(root, `export-${++serial}.json`);
+    await withSaveDialogTarget(target, async () => {
+      await click(panel, 'export');
+      await waitFor(async () => {
+        try { return JSON.parse(fs.readFileSync(target, 'utf8')); } catch { return undefined; }
+      }, value => value !== undefined);
+    });
+    const value = JSON.parse(fs.readFileSync(target, 'utf8'));
+    assert.strictEqual(value.stale, false);
+    return value.projection;
+  }
+  async function parity(subject: string, selectedRelease = A(2), project = JA, date = '2026-09-24', lists = false) {
+    assert.ok(process.env.TX_E2E_CLI, 'Set TX_E2E_CLI to an installed CLI package, not a source function');
+    const args = [process.env.TX_E2E_CLI!, 'requirements-report', '--root', root,
+      '--subject-type', subject.split('-')[0], '--subject-id', subject, '--release', selectedRelease, '--as-at', date, '--json'];
+    if (project) args.push('--project', project);
+    const run = spawnSync(process.execPath, args, { encoding: 'utf8', env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' }, timeout: 30000 });
+    assert.ifError(run.error);
+    assert.ok(run.status === 0 || run.status === 2, run.stderr + run.stdout);
+    const caller = JSON.parse(run.stdout);
+    assert.strictEqual(caller.schemaVersion, 'requirements-report/1');
+    assert.strictEqual(caller.tool.version, '2.12.0');
+    if (process.env.TX_E2E_SOURCE_REVISION) assert.strictEqual(caller.tool.sourceRevision, process.env.TX_E2E_SOURCE_REVISION);
+    assert.strictEqual(caller.projection.contract, 'requirement-chain/0.3');
+    assert.strictEqual(caller.projection.contractRevision, 'a131b1862d86f34be8feb729e1cc6ebc994c3891');
+    await waitFor(() => reportDom(matrix), d => d.text.includes(caller.source.snapshotId));
+    await waitFor(() => reportDom(release), d => d.text.includes(caller.source.snapshotId));
+    const normalize = (projection: any) => {
+      const copy = JSON.parse(JSON.stringify(projection).split(root + path.sep).join(''));
+      copy.scope.catalogue = '.';
+      return copy;
+    };
+    const ui = normalize(await exported(matrix));
+    assert.deepStrictEqual(ui, caller.projection, 'All populations, graph identities, provenance, diagnostics and sets must match');
+    assert.deepStrictEqual(normalize(await exported(release)), caller.projection);
+    const dom = await reportDom(release);
+    for (const [key, item] of Object.entries(caller.counts) as [string, { set: { ids: string[]; total: number | null } }][]) {
+      const expected = item.set.total === null ? `Unknown (${item.set.ids.length} known; incomplete)` : String(item.set.total);
+      assert.strictEqual(dom.counts[key], expected, key);
+      if (lists) {
+        await click(release, 'count', key);
+        const list = await waitFor(() => reportDom(release), d => JSON.stringify(d.contributors) === JSON.stringify(item.set.ids));
+        assert.deepStrictEqual(list.contributors, item.set.ids, key);
+        if (key.startsWith('metric-')) for (const id of item.set.ids) {
+          await click(release, 'drill', id);
+          const focused = await waitFor(() => reportDom(matrix), d => d.text.includes(`Focus: ${id} · both`));
+          assert.ok(focused.nodes.includes(id));
+          assert.strictEqual(focused.stages.length, 9);
+        }
+      }
+    }
+    console.log(`Report parity: ${subject} ${selectedRelease} ${date} ${caller.source.snapshotId} ${caller.status}`);
+    return caller.projection;
+  }
+  before(async () => {
+    await ensureExtensionActivated();
+    root = fs.mkdtempSync(path.join(os.tmpdir(), 'subject-reports-'));
+    fs.writeFileSync(path.join(root, 'transitrix.yaml'), 'methodology_version: 3.1.0\n');
+    write(subjectExample());
+    const captured = await captureWebviewPanels(async () => {
+      await vscode.commands.executeCommand('transitrixStudio.previewRequirementChain');
+      await vscode.commands.executeCommand('transitrixStudio.previewRequirementsByRelease');
+    }, { reportDom: true });
+    panels = captured.panels;
+    matrix = panels.find(p => p.viewType === 'requirementChain-matrix')!;
+    release = panels.find(p => p.viewType === 'requirementChain-release')!;
+    assert.ok(matrix); assert.ok(release);
+  });
+  after(async () => {
+    panels.forEach(p => p.dispose()); await closeAllEditors();
+    if (root) fs.rmSync(root, { recursive: true, force: true });
+  });
+  for (const kind of ['application', 'internal', 'physical', 'saas'] as const) {
+    it(`reconciles ${kind} populations, every count, contributor and all six matrix drill-downs`, async () => {
+      write(subjectExample(kind));
+      const subject = kind === 'application' ? 'APPLICATION-ALPHA-1' : PA;
+      await select(subject);
+      const p = await parity(subject, A(2), JA, '2026-09-24', true);
+      assert.deepStrictEqual(Object.values(p.metrics).map((s: any) => s.ids), baseline);
+      assert.deepStrictEqual(p.populations.product.ids, ids(1,2,3,4,5,6,7,8,9,10,11,13,14,15,18,20));
+      assert.deepStrictEqual(p.populations.release.ids, ids(1,2,3,4,5,6,7,8,13,14,15,18,20));
+      assert.deepStrictEqual(p.populations.selected.ids, ids(1,2,3,4,5,6,7,8,14,15,18,20));
+      assert.deepStrictEqual(p.assignments.otherReleaseOnly.ids, ids(10));
+      assert.deepStrictEqual(p.assignments.invalid.ids, ids(11));
+      await select(subject, A(2), '');
+      assert.deepStrictEqual((await parity(subject, A(2), '')).metrics.noDefinition.ids, ids(1,7,8,13,14,15));
+      const beta = kind === 'application' ? 'APPLICATION-BETA-1' : PB;
+      await select(beta, B(2), JB);
+      assert.deepStrictEqual(Object.values((await parity(beta, B(2), JB)).metrics).map((s: any) => s.total), [0,0,0,0,0,0]);
+    });
+  }
+  it('keeps missing relations, invalid ownership, duplicates, temporal and evidence controls in parity', async () => {
+    const subject = 'APPLICATION-ALPHA-1';
+    const cases: { name: string; change: (docs: Raw[]) => Raw[]; release?: string; date?: string; verify: (p: any) => void }[] = [
+      { name: 'unresolved membership', change: ds => ds.filter(d => !(d.type === 'application_scope' && d.from === R(9))), verify: p => {
+        assert.deepStrictEqual(p.populations.unresolved.ids, ids(9)); assert.strictEqual(p.metrics.unassigned.total, null);
+      } },
+      { name: 'missing project pair', change: ds => ds.filter(d => !(d.type === 'project_application' && d.from === JA)), verify: p => assert.strictEqual(p.populations.selected.total, null) },
+      { name: 'wrong release owner', change: ds => ds, release: B(2), verify: p => assert.deepStrictEqual(Object.values(p.metrics).map((s: any) => s.total), [null,null,null,null,null,null]) },
+      { name: 'wrong assignment owner', change: ds => ds.map(d => d.type === 'required_for' && d.from === R(11) ? { ...d, to: B(2) } : d), verify: p => assert.deepStrictEqual(p.assignments.invalid.ids, ids(11)) },
+      { name: 'explicit second membership', change: ds => [...ds.map(d => d.type === 'required_for' && d.from === R(11) ? { ...d, to: B(2) } : d),
+        { ...ds.find(d => d.type === 'application_scope' && d.from === R(11))!, id: 'REL-SECOND-1', to: 'APPLICATION-BETA-1' }], verify: p => {
+        assert.deepStrictEqual(p.assignments.invalid.ids, []); assert.deepStrictEqual(p.metrics.unassigned.ids, ids(9,11));
+      } },
+      { name: 'valid and invalid attachments coexist', change: ds => [...ds, { ...ds.find(d => d.type === 'required_for' && d.from === R(11))!, id: 'REL-VALID-1', to: A(2) }], verify: p => {
+        assert.deepStrictEqual(p.metrics.broken.ids, ids(7,11,14,15,20)); assert.deepStrictEqual(p.metrics.noDefinition.ids, ids(1,7,8,11,14,15));
+      } },
+      { name: 'duplicate paths', change: ds => [...ds, ...['application_scope','project_scope','required_for'].map((type,i) => ({ ...ds.find(d => d.type === type && d.from === R(1))!, id: `REL-DUPLICATE-${i+1}` }))], verify: p => {
+        assert.deepStrictEqual(Object.values(p.metrics).map((s: any) => s.ids), baseline);
+        assert.strictEqual(p.assignments.provenance.find((a: any) => a.requirement === R(1)).relations.length, 2);
+      } },
+      { name: 'inclusive inherited attachment', change: ds => ds.map(d => d.type === 'required_for' && d.from === R(1) ? { ...d, valid_to: '2026-09-24' } : d), verify: p => assert.deepStrictEqual(p.metrics.unassigned.ids, ids(9)) },
+      { name: 'expired inherited attachment', date: '2026-09-25', change: ds => ds.map(d => d.type === 'required_for' && d.from === R(1) ? { ...d, valid_to: '2026-09-24' } : d), verify: p => assert.deepStrictEqual(p.metrics.unassigned.ids, ids(1,9)) },
+      { name: 'ancestor survives nearer expiry', change: ds => ds.map(d => d.type === 'required_for' && d.from === R(18) && d.to === A(2) ? { ...d, valid_to: '2026-09-23' } : d), verify: p => assert.strictEqual(p.assignments.provenance.find((a: any) => a.requirement === R(18)).depth, 1) },
+      { name: 'both attachments expired', change: ds => ds.map(d => d.type === 'required_for' && d.from === R(18) ? { ...d, valid_to: '2026-09-23' } : d), verify: p => assert.deepStrictEqual(p.metrics.unassigned.ids, ids(9,18)) },
+      { name: 'cross-owner predecessor', change: ds => ds.map(d => d.id === A(2) ? { ...d, predecessor: B(1) } : d), verify: p => assert.strictEqual(p.populations.selected.total, null) },
+      { name: 'malformed assignment window', change: ds => [...ds, { ...ds.find(d => d.type === 'required_for' && d.from === R(1))!, id: 'REL-MALFORMED-1', from: R(9), valid_from: 'not-a-date' }], verify: p => {
+        assert.deepStrictEqual(p.assignments.invalid.ids, ids(9,11)); assert.strictEqual(p.metrics.unassigned.total, null);
+      } },
+      { name: 'current release evidence', change: ds => [...ds, { ...ds.find(d => d.id === V(51))!, id: V(53), verified_on: A(2) }], verify: p => assert.deepStrictEqual(p.metrics.noResult.ids, ids(2,20)) },
+      { name: 'other-release evidence', change: ds => [...ds, { ...ds.find(d => d.id === V(51))!, id: V(53) }], verify: p => assert.deepStrictEqual(p.metrics.noResult.ids, ids(2,5,20)) },
+      { name: 'unqualified evidence', change: ds => [...ds, { ...ds.find(d => d.id === V(51))!, id: V(53), verified_on: undefined }], verify: p => assert.deepStrictEqual(p.metrics.noResult.ids, ids(2,5,20)) },
+      { name: 'future execution', change: ds => ds.map(d => d.id === V(32) ? { ...d, performed_at: '2026-10-01' } : d), verify: p => assert.deepStrictEqual(p.metrics.failed.ids, []) },
+    ];
+    for (const scenario of cases) {
+      write(scenario.change(subjectExample()));
+      const selectedRelease = scenario.release ?? A(2), date = scenario.date ?? '2026-09-24';
+      await select(subject, selectedRelease, JA, date);
+      const p = await parity(subject, selectedRelease, JA, date);
+      scenario.verify(p);
+      console.log(`Packaged subject control: ${scenario.name}`);
+    }
+  });
+  it('keeps coexisting SaaS identities and navigation separate, then refreshes the same source snapshot', async () => {
+    const docs = subjectExample('saas'); write(docs);
+    await select(PA);
+    await withReportInput(R(2), async () => { await click(matrix, 'focus'); });
+    await click(matrix, 'direction', 'upstream'); await click(matrix, 'pair');
+    await select('APPLICATION-SAAS-1', 'RELEASE-SAAS-1', '');
+    const empty = await parity('APPLICATION-SAAS-1', 'RELEASE-SAAS-1', '');
+    assert.deepStrictEqual(empty.populations.selected.ids, []);
+    assert.ok((await reportDom(matrix)).text.includes('Focus: selected population'));
+    await select(PA);
+    const restored = await reportDom(matrix);
+    assert.ok(restored.text.includes(`Focus: ${R(2)} · upstream`)); assert.deepStrictEqual(restored.stages, [0,1]);
+    const member = { ...docs.find(d => d.type === 'product_scope' && d.from === R(3))!, id: 'REL-SAAS-1', type: 'application_scope', to: 'APPLICATION-SAAS-1' };
+    const assignment = { ...docs.find(d => d.type === 'required_for' && d.from === R(3))!, id: 'REL-SAAS-2', to: 'RELEASE-SAAS-1' };
+    write([...docs, member, assignment]);
+    await select('APPLICATION-SAAS-1', 'RELEASE-SAAS-1', '');
+    const independent = await parity('APPLICATION-SAAS-1', 'RELEASE-SAAS-1', '');
+    assert.deepStrictEqual(independent.metrics.noResult.ids, ids(3)); assert.deepStrictEqual(independent.metrics.failed.ids, []);
+    const target = path.join(root, 'canon', `${V(301)}.yaml`);
+    const edit = new vscode.WorkspaceEdit(); const uri = vscode.Uri.file(target);
+    edit.createFile(uri); edit.insert(uri, new vscode.Position(0,0), JSON.stringify({ ...docs.find(d => d.id === V(31))!, id: V(301), verified_on: 'RELEASE-SAAS-1' }));
+    assert.ok(await vscode.workspace.applyEdit(edit)); await (await vscode.workspace.openTextDocument(uri)).save();
+    assert.deepStrictEqual((await parity('APPLICATION-SAAS-1', 'RELEASE-SAAS-1', '')).metrics.noResult.ids, []);
+    const doc = await vscode.workspace.openTextDocument(uri);
+    const change = new vscode.WorkspaceEdit();
+    change.replace(uri, new vscode.Range(doc.positionAt(0), doc.positionAt(doc.getText().length)), doc.getText().replace('"outcome":"pass"', '"outcome":"fail"'));
+    assert.ok(await vscode.workspace.applyEdit(change)); assert.ok(await doc.save());
+    assert.deepStrictEqual((await parity('APPLICATION-SAAS-1', 'RELEASE-SAAS-1', '')).metrics.failed.ids, ids(3));
+    await select(PA);
+    assert.deepStrictEqual((await parity(PA)).metrics.failed.ids, ids(3));
+    const remove = new vscode.WorkspaceEdit(); remove.deleteFile(uri); assert.ok(await vscode.workspace.applyEdit(remove));
+    await select('APPLICATION-SAAS-1', 'RELEASE-SAAS-1', '');
+    assert.deepStrictEqual((await parity('APPLICATION-SAAS-1', 'RELEASE-SAAS-1', '')).metrics.noResult.ids, ids(3));
+    fs.writeFileSync(path.join(root, 'canon', 'broken.yaml'), 'membership: [');
+    await click(matrix, 'refresh');
+    const incomplete = await parity('APPLICATION-SAAS-1', 'RELEASE-SAAS-1', '');
+    assert.strictEqual(incomplete.populations.selected.total, null);
+    assert.deepStrictEqual(incomplete.populations.selected.ids, ids(3));
+    fs.unlinkSync(path.join(root, 'canon', 'broken.yaml'));
+    await click(matrix, 'refresh');
+    assert.strictEqual((await parity('APPLICATION-SAAS-1', 'RELEASE-SAAS-1', '')).populations.selected.total, 1);
+    assert.notDeepStrictEqual(baseline[0], ids(7,14,15,20,999), 'negative oracle addition is detectable');
+    assert.notDeepStrictEqual(baseline[0], ids(14,15,20), 'negative oracle omission is detectable');
+  });
 });
