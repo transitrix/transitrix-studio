@@ -578,8 +578,8 @@ describe('Packaged subject reports and installed headless caller parity', functi
   async function select(subject: string, selectedRelease = A(2), project = JA, date = '2026-09-24') {
     await withRequirementChainScope(root, subject, selectedRelease, project, date, async () => {
       await click(matrix, 'scope');
-      await waitFor(() => reportDom(matrix), d => d.text.includes(`${subject.startsWith('APPLICATION-') ? 'Application' : 'Product'}: ${subject}`)
-        && d.text.includes(`Release: ${selectedRelease}`) && d.text.includes(`As at ${date}`));
+      await waitFor(() => reportDom(matrix), d => d.text.includes(`${subject.startsWith('APPLICATION-') ? 'Application' : 'Product'}:`)
+        && d.text.includes(`(${subject}) · Release:`) && d.text.includes(`(${selectedRelease}) · Project:`) && d.text.includes(`As at ${date}`));
     });
   }
   function write(docs: Raw[]) {
