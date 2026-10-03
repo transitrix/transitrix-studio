@@ -443,7 +443,10 @@ export class RequirementChainSnapshot {
     try {
       const input = await load();
       if (generation !== this.generation) return false;
-      this.current = buildRequirementChain(input); this.stale = false; return true;
+      this.current = input.scope.subject
+        ? buildSubjectRequirementChain({ ...input, scope: { ...input.scope, subject: input.scope.subject } })
+        : buildRequirementChain(input);
+      this.stale = false; return true;
     } catch {
       if (generation === this.generation) this.stale = true;
       return false;

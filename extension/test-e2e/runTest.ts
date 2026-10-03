@@ -17,6 +17,8 @@
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
+import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { runTests } from '@vscode/test-electron';
 
 async function main(): Promise<void> {
@@ -26,40 +28,62 @@ async function main(): Promise<void> {
   const extensionTestsPath = path.resolve(__dirname, 'suite', 'index.js');
   const workspacePath = path.resolve(__dirname, '..', '..', 'tests', 'fixtures', 'notation-corpus');
   const repoRoot = path.resolve(__dirname, '..', '..');
+  const consumerDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tx-e2e-cli-'));
+  try {
+    const npmCli = process.env.npm_execpath;
+    if (!npmCli) throw new Error('Run the packaged suite through npm to prepare its CLI consumer');
+    const npm = (args: string[]) => execFileSync(process.execPath, [npmCli, ...args], {
+      cwd: repoRoot, encoding: 'utf8', maxBuffer: 10 * 1024 * 1024,
+    });
+    npm(['run', 'build:diagrams']);
+    npm(['pack', '--workspace', 'packages/cli', '--pack-destination', consumerDir, '--cache', path.join(consumerDir, 'cache'), '--json']);
+    const tarball = fs.readdirSync(consumerDir).find(name => name.endsWith('.tgz'));
+    if (!tarball) throw new Error('CLI packaging produced no tarball');
+    const packagePath = path.join(consumerDir, tarball);
+    const packageHash = createHash('sha256').update(fs.readFileSync(packagePath)).digest('hex');
+    npm(['install', '--prefix', consumerDir, '--ignore-scripts', '--no-audit', '--no-fund', '--cache', path.join(consumerDir, 'cache'), packagePath]);
+    const callerPath = path.join(consumerDir, 'node_modules', '@transitrix', 'cli', 'dist', 'cli.js');
+    const sourceRevision = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: repoRoot, encoding: 'utf8' }).trim();
+    console.log(`Report caller package: ${tarball}; sha256=${packageHash}; source=${sourceRevision}`);
 
-  const captureDir = path.join(repoRoot, '.test-out', 'png-capture');
-  fs.rmSync(captureDir, { recursive: true, force: true });
-  fs.mkdirSync(captureDir, { recursive: true });
+    const captureDir = path.join(repoRoot, '.test-out', 'png-capture');
+    fs.rmSync(captureDir, { recursive: true, force: true });
+    fs.mkdirSync(captureDir, { recursive: true });
 
-  const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tx-e2e-userdata-'));
-  const extensionsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tx-e2e-extensions-'));
+    const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tx-e2e-userdata-'));
+    const extensionsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tx-e2e-extensions-'));
 
-  console.log(`extension-e2e: extensionDevelopmentPath = ${extensionDevelopmentPath}`);
+    console.log(`extension-e2e: extensionDevelopmentPath = ${extensionDevelopmentPath}`);
 
-  const exitCode = await runTests({
-    extensionDevelopmentPath,
-    extensionTestsPath,
-    extensionTestsEnv: {
-      TX_E2E_CAPTURE_DIR: captureDir,
-      // See extension.ts's E2ETestHooks — makes activate() hand back the
-      // exact `vscode` binding the extension bundle uses internally.
-      TX_E2E_TESTING: '1',
-    },
-    launchArgs: [
-      workspacePath,
-      '--disable-extensions',
-      '--disable-workspace-trust',
-      '--skip-welcome',
-      '--skip-release-notes',
-      `--user-data-dir=${userDataDir}`,
-      `--extensions-dir=${extensionsDir}`,
-    ],
-  });
+    const exitCode = await runTests({
+      extensionDevelopmentPath,
+      extensionTestsPath,
+      extensionTestsEnv: {
+        TX_E2E_CAPTURE_DIR: captureDir,
+        TX_E2E_CLI: callerPath,
+        TX_E2E_SOURCE_REVISION: sourceRevision,
+        // See extension.ts's E2ETestHooks — makes activate() hand back the
+        // exact `vscode` binding the extension bundle uses internally.
+        TX_E2E_TESTING: '1',
+      },
+      launchArgs: [
+        workspacePath,
+        '--disable-extensions',
+        '--disable-workspace-trust',
+        '--skip-welcome',
+        '--skip-release-notes',
+        `--user-data-dir=${userDataDir}`,
+        `--extensions-dir=${extensionsDir}`,
+      ],
+    });
 
-  if (exitCode !== 0) {
-    throw new Error(`extension-e2e: VS Code test host exited with code ${exitCode}`);
+    if (exitCode !== 0) {
+      throw new Error(`extension-e2e: VS Code test host exited with code ${exitCode}`);
+    }
+    console.log(`extension-e2e: all tests passed. PNG captures in ${captureDir}`);
+  } finally {
+    fs.rmSync(consumerDir, { recursive: true, force: true });
   }
-  console.log(`extension-e2e: all tests passed. PNG captures in ${captureDir}`);
 }
 
 main().catch((err) => {

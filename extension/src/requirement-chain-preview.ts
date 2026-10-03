@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'node:path';
 import { buildComplianceIndex, requirementReleaseCounts, RequirementChainSnapshot, selectRequirementChain, CHAIN_STAGES, chainDate,
-  type ChainScope, type ChainSet } from '@transitrix/diagrams/compliance';
+  type ChainScope, type ChainSet, type ChainSubject } from '@transitrix/diagrams/compliance';
 import { scanRequirementChainCatalogue } from './compliance-scan.js';
 import { escXml, outcomeBadge } from './compliance-render.js';
 
@@ -30,7 +30,16 @@ export class RequirementChainPreview implements vscode.Disposable {
   constructor(private readonly storage?: vscode.Memento) {
     const saved = storage?.get<SavedState>(STATE_KEY);
     if (saved?.scope && chainDate(saved.asAt)) {
-      this.scope = saved.scope; this.asAt = saved.asAt; this.contexts = saved.contexts ?? {};
+      const { product, ...scope } = saved.scope;
+      this.scope = { ...scope, subject: scope.subject ?? { type: 'PRODUCT', id: product ?? '' } };
+      this.asAt = saved.asAt;
+      this.contexts = {};
+      for (const [key, view] of Object.entries(saved.contexts ?? {})) {
+        try {
+          const parts = JSON.parse(key);
+          this.contexts[Array.isArray(parts) && parts.length === 5 ? JSON.stringify([...parts, 'PRODUCT']) : key] = view;
+        } catch { /* Ignore invalid saved context keys. */ }
+      }
       this.view = this.contexts[this.contextKey()] ?? emptyView();
       this.watchScope();
     }
@@ -111,27 +120,33 @@ export class RequirementChainPreview implements vscode.Disposable {
     let scan;
     try { scan = await scanRequirementChainCatalogue(root); }
     catch { void vscode.window.showErrorMessage('Cannot read transitrix.yaml in this catalogue.'); return false; }
-    const pick = async (type: string, prompt: string, product?: string) => {
-      const options = scan.canon.records.filter(r => r.type === type && (type !== 'RELEASE' || r.raw.of === product) && (type !== 'ACTION' || r.raw.type === 'Project'))
+    const pick = async (type: string, prompt: string, subject?: string) => {
+      const options = scan.canon.records.filter(r => r.type === type && (type !== 'RELEASE' || r.raw.of === subject) && (type !== 'ACTION' || r.raw.type === 'Project'))
         .map(r => ({ label: String(r.raw.name ?? r.id), description: r.id, id: r.id }));
       options.sort((a, b) => a.id.localeCompare(b.id));
       options.unshift({ label: `${prompt}: unselected`, description: '', id: '' });
       return (await vscode.window.showQuickPick(options, { title: prompt }))?.id;
     };
-    const product = await pick('PRODUCT', 'Product'); if (product === undefined) return false;
-    const release = await pick('RELEASE', 'Release', product); if (release === undefined) return false;
+    const type = await vscode.window.showQuickPick([
+      { label: 'PRODUCT', description: 'A product, including internal, physical and digital products', id: 'PRODUCT' as const },
+      { label: 'APPLICATION', description: 'An application, independently of any supported product', id: 'APPLICATION' as const },
+    ], { title: 'Subject type' });
+    if (!type) return false;
+    const id = await pick(type.id, type.id === 'PRODUCT' ? 'Product' : 'Application'); if (id === undefined) return false;
+    const subject: ChainSubject = { type: type.id, id };
+    const release = await pick('RELEASE', 'Release', id); if (release === undefined) return false;
     const project = await pick('ACTION', 'Project (optional)'); if (project === undefined) return false;
     const asAt = await vscode.window.showInputBox({ title: 'As-at date', value: this.asAt,
       validateInput: v => chainDate(v) ? undefined : 'Use a valid YYYY-MM-DD date' });
     if (!asAt) return false;
     await this.saveState();
-    this.scope = { catalogue: root, product: product || undefined, release: release || undefined, project: project || undefined }; this.asAt = asAt;
+    this.scope = { catalogue: root, subject, release: release || undefined, project: project || undefined }; this.asAt = asAt;
     this.view = this.contexts[this.contextKey()] ?? emptyView();
     this.watchScope(); await this.saveState();
     return true;
   }
   private contextKey(): string {
-    return JSON.stringify([this.scope?.catalogue, this.scope?.project, this.scope?.product, this.scope?.release, this.asAt]);
+    return JSON.stringify([this.scope?.catalogue, this.scope?.project, this.scope?.subject?.id || undefined, this.scope?.release, this.asAt, this.scope?.subject?.type]);
   }
   private async saveState(): Promise<void> {
     if (!this.scope) return;
@@ -150,7 +165,7 @@ export class RequirementChainPreview implements vscode.Disposable {
     const scope = { ...this.scope }, asAt = this.asAt;
     await this.snapshot.refresh(async () => {
       const { canon, snapshotId, sourceRevision } = await scanRequirementChainCatalogue(scope.catalogue);
-      return { index: buildComplianceIndex(canon), scope, asAt, snapshotId, sourceRevision, complete: !canon.findings.length };
+      return { index: buildComplianceIndex(canon), scope, asAt, snapshotId, sourceRevision, complete: !canon.findings.some(f => f.severity === 'error') };
     });
     this.render();
   }
@@ -218,10 +233,10 @@ export class RequirementChainPreview implements vscode.Disposable {
         ${e.identities.map(id => { const record = p.records.find(r => id === r.id || id.startsWith(r.id + '.')); return button('open', id, record?.id ?? '', !record); }).join('')}</div>`);
       const names = (id?: string) => id ? `${p.records.find(n => n.id === id)?.raw.name ?? id} (${id})` : 'unselected';
       const body = kind === 'release' ? `<h2>Quality metrics</h2>
-        <p>The first five metrics use the selected release population, intersected with a project only when selected. The sixth uses the whole product. Categories overlap; never sum them into a defect total.</p>
+        <p>The first five metrics use the selected release population, intersected with a project only when selected. The sixth uses the whole subject. Categories overlap; never sum them into a defect total.</p>
         ${table(Object.keys(counts).filter(key => key.startsWith('metric-')))}
         <h2>Requirement stages</h2><p>Distinct requirements, not completion or coverage percentages. Optional skipped stages do not imply missing requirements.</p>${table([3,4,5,6].map(i => 'stage-' + i))}
-        <h2>No effective release assignment — whole product</h2><p>At the same as-at date, no effective attachment to any modelled release of this product. Independent of the selected project. Invalid assignments and unresolved membership are separate.</p>${table([3,4,5,6].map(i => 'unassigned-' + i))}
+        <h2>No effective release assignment — whole subject</h2><p>At the same as-at date, no effective attachment to any modelled release of this subject. Independent of the selected project. Invalid assignments and unresolved membership are separate.</p>${table([3,4,5,6].map(i => 'unassigned-' + i))}
         <h2>Assignment and scope populations</h2>${table(['selected','product','here','other','invalid','unresolved'])}
         <h2>Context units</h2><p>Source documents, drivers, needs, definition parts and result parts in the equivalent unfocused matrix; these nodes are never summed as requirements.</p>${table([0,1,2,7,8].map(i => 'context-' + i))}
         <h2>Diagnostic units</h2><p>Distinct reference slots and finding records, separate from affected requirements.</p>${table(['selected-references','all-references','unattributable'])}${contributors}` :
@@ -233,12 +248,12 @@ export class RequirementChainPreview implements vscode.Disposable {
       panel.webview.html = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}'">
         <style>body{font:14px var(--vscode-font-family);color:var(--vscode-foreground);background:var(--vscode-editor-background);padding:20px}button{margin:4px;padding:6px;cursor:pointer}table{border-collapse:collapse}td,th{padding:10px;border:1px solid var(--vscode-panel-border)}.columns{display:flex;overflow:auto;max-height:65vh;gap:16px}.columns section{min-width:260px;max-width:340px}article{border:1px solid var(--vscode-panel-border);padding:12px;margin:8px 0}pre{white-space:pre-wrap;overflow-wrap:anywhere}small{display:block}.edge{margin:10px 0}.cmp-badge{font-weight:bold;border:1px solid currentColor;border-radius:8px;padding:2px 8px}.cmp-outcome-pass{color:var(--vscode-testing-iconPassed)}.cmp-outcome-fail{color:var(--vscode-testing-iconFailed)}.cmp-outcome-inconclusive{color:var(--vscode-editorWarning-foreground)}li{margin:8px}</style></head><body>
         <h1>${kind === 'matrix' ? 'Traceability Matrix' : 'Requirements by Release'}</h1>
-        <p>${escXml(path.basename(p.scope.catalogue))} · Product: ${escXml(names(p.scope.product))} · Release: ${escXml(names(p.scope.release))} · Project: ${escXml(names(p.scope.project))}</p>
+        <p>${escXml(path.basename(p.scope.catalogue))} · ${p.scope.subject?.type === 'APPLICATION' ? 'Application' : 'Product'}: ${escXml(names(p.scope.subject?.id))} · Release: ${escXml(names(p.scope.release))} · Project: ${escXml(names(p.scope.project))}</p>
         <p>As at ${p.asAt} · ${escXml(p.snapshotId)} · Base revision: ${escXml(p.sourceRevision ?? 'unavailable')} · ${p.completeness}${this.snapshot.stale ? ' — STALE: refresh failed' : ''}</p>
-        <p>Selected requirements: ${count(p.populations.selected)} · Product requirements: ${count(p.populations.product)}</p>
+        <p>Selected requirements: ${count(p.populations.selected)} · Subject requirements: ${count(p.populations.product)}</p>
         ${button('scope', 'Select scope')}${button('refresh', 'Refresh')}${button('export', 'Export shared projection')}
         <p>${escXml(p.scopeFindings.join('; '))}</p>${body}
-        <h2>Assignment provenance</h2><p>Direct obligations attach at depth 0; inherited obligations come from a same-product predecessor. The nearest active attachment is shown with all contributing relation IDs. Verification is never inherited from a parent requirement or predecessor release.</p><p>Here: ${count(p.assignments.here)} · Other release only: ${count(p.assignments.otherReleaseOnly)} · Unassigned: ${count(p.assignments.unassigned)} · Invalid: ${count(p.assignments.invalid)}</p>${page(p.assignments.provenance, 'assignments', a => `<pre>${escXml(JSON.stringify(a, null, 2))}</pre>`)}
+        <h2>Assignment provenance</h2><p>Direct obligations attach at depth 0; inherited obligations come from a same-subject predecessor. The nearest active attachment is shown with all contributing relation IDs. Verification is never inherited from a parent requirement or predecessor release.</p><p>Here: ${count(p.assignments.here)} · Other release only: ${count(p.assignments.otherReleaseOnly)} · Unassigned: ${count(p.assignments.unassigned)} · Invalid: ${count(p.assignments.invalid)}</p>${page(p.assignments.provenance, 'assignments', a => `<pre>${escXml(JSON.stringify(a, null, 2))}</pre>`)}
         <h2>Reference findings</h2><p>Selected defective references: ${count(p.selectedReferences)} · Known inventory: ${count(p.defectiveReferences)} · Unattributable findings: ${count(p.unattributableFindings)}</p>
         <details><summary>All findings and affected requirements</summary>${page(p.findings, 'findings', f => `<p>${escXml(f.id)} · ${escXml(f.message)} · ${escXml((p.affectedRequirements[f.id] ?? []).join(', '))}</p>`)}</details>
         <script nonce="${nonce}">const api=acquireVsCodeApi();const key=${JSON.stringify(this.contextKey()).replace(/</g, '\\u003c')};

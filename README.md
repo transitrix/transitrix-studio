@@ -40,7 +40,7 @@ Updated for **Studio 3.8.0** in VS Code-compatible editors, the separately insta
 - **Connect strategy to delivery.** Preview goal trees, driver–goal–change–activity chains (DGCA/DGA), activity networks and activity cards. VS Code also offers Gantt and critical-path views, plus completion percentages when model progress records are available. [Notation guide](extension/README.md#17-notations-one-extension).
 - **Describe processes in text.** Preview process maps and stage-by-stage process blueprints. In VS Code, author BPMN in YAML and preview the diagram; the CLI compiles it to BPMN 2.0 XML with automatic layout. [BPMN quick start](#quick-start--bpmn).
 - **Explore capabilities and catalogues.** Preview applications, products, nested blocks and supported inline scenarios. In VS Code, capability maturity is read from dated history records as of the current date. Catalogue previews depend on the supported document form. [Format overview](extension/README.md#17-notations-one-extension) · [Capability history](docs/validation.md#diagnostic-conformance-and-capability-history).
-- **Trace requirements and review release coverage.** In VS Code, open **Transitrix: Traceability Matrix** to follow links upstream or downstream, focus on a selected element and compare adjacent columns. **Transitrix: Requirements by Release** shows stage counts plus six distinct-requirement quality metrics: broken references, no accepted source, no verification definition, no applicable result, failed verification and no effective release assignment. Every count opens its exact contributors and links back to the matrix. Both reports share product, project, release and date selection, retain navigation context and refresh after model changes. They require the corresponding model records. [Requirements reports](#release-scoped-requirement-reports).
+- **Trace requirements and review release coverage.** In VS Code, open **Transitrix: Traceability Matrix** to follow links upstream or downstream, focus on a selected element and compare adjacent columns. **Transitrix: Requirements by Release** shows stage counts plus six distinct-requirement quality metrics: broken references, no accepted source, no verification definition, no applicable result, failed verification and no effective release assignment. Every count opens its exact contributors and links back to the matrix. Both reports share subject, project, release and date selection, retain navigation context and refresh after model changes. They require the corresponding model records. [Requirements reports](#release-scoped-requirement-reports).
 - **Inspect compliance and verification.** VS Code provides compliance impact and coverage views, a gap dashboard, and a separate requirement–verification matrix for requirements, assertions and verification results. These views need the corresponding model records. [Compliance validation](docs/validation.md#compliance-suite---scoperepo-518).
 - **Record numerical risk degrees.** Author likelihood, impact and residual risk as numbers on an explicit adopter-defined scale in Methodology 7.0.0 models, and check them with the CLI. Existing qualitative values remain supported. [Numeric risk authoring](docs/validation.md#authored-numeric-risk-degrees).
 - **Share diagrams and findings.** VS Code saves supported diagram previews as SVG or PNG. Export the gap dashboard and requirement–verification matrix as CSV, or the Traceability Matrix and Requirements by Release snapshot as JSON. PNG clipboard copying is Windows-only. The CLI exports compliance reports as Markdown or PDF; PDF requires the optional WeasyPrint executable. [Preview exports](extension/README.md#17-notations-one-extension) · [CLI commands](docs/cli.md#commands).
@@ -59,7 +59,24 @@ The editor plugins bundle their renderers; the **CLI is a separate installation*
 
 Run **Transitrix: Traceability Matrix** or **Transitrix: Requirements by Release**
 from the VS Code command palette. Select a catalogue folder containing
-`transitrix.yaml`, a product, one of its releases, an optional project, and an as-at date.
+`transitrix.yaml`, an explicit **PRODUCT** or **APPLICATION** subject, one of that
+subject's releases, an optional project, and an as-at date. **Select scope** changes
+these choices in both reports. Products may be internal services, physical products
+or digital products; an application does not need a product. A SaaS product and its
+supporting application keep separate release and requirement populations. Support
+links alone do not assign requirements or share verification results.
+
+These subject-aware reports implement `requirement-chain/0.3`. Verify that your
+installed extension offers the **Subject type** prompt; older product-only reports
+use `requirement-chain/0.2`.
+
+Both reports use the same subject-aware projection as the supported
+[`requirements-report` CLI](packages/cli/README.md#requirements-reports).
+**Export shared projection** saves all contributing IDs and the content digest.
+The base Git revision, when available, is separate from the digest of the scanned
+content, which includes unsaved editor buffers. Save those buffers before comparing
+with a disk-based CLI invocation on the same catalogue and selections. An invalid
+or unresolved selection is diagnosed with unknown totals, rather than guessed.
 Both panels use the same snapshot. Missing membership or failed source reads
 produce incomplete populations with unknown totals and visible known IDs.
 
@@ -81,10 +98,10 @@ summed into one defect total. Click a count for its exact contributors, then
 
 Scope, date, focus, direction, pair position, pages and viewport are saved per
 workspace and context. **Reset** clears focus and presentation state while keeping
-the selected scope. Product, release and project can remain explicitly unselected;
+the selected scope. Subject, release and project can remain explicitly unselected;
 invalid combinations show diagnostics instead of inferred membership. The first
 five metrics and requirement stages use the release/project intersection; no
-effective release assignment and its stage breakdown use the whole product at the
+effective release assignment and its stage breakdown use the whole subject at the
 same date. Other-release-only, invalid assignments and unresolved membership remain
 separate. Direct obligations attach to the selected release; inherited obligations
 retain their predecessor and relation identities. Verification outcomes are never
