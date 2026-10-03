@@ -17,6 +17,7 @@
  * package does not list @transitrix/diagrams as a runtime dependency.
  */
 import esbuild from 'esbuild';
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -131,3 +132,7 @@ await fs.writeFile(
 );
 
 console.log(`@transitrix/cli assembled → ${pkgRoot} (bundles @transitrix/diagrams ${diagramsVersion})`);
+
+let sourceRevision = null;
+try { sourceRevision = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim(); } catch {}
+await fs.writeFile(resolve(distOut, 'requirements-build.json'), JSON.stringify({ sourceRevision }) + '\n');

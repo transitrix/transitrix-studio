@@ -183,3 +183,20 @@ describe('release catalogue snapshot loader', () => {
     scanFs.files.delete('/catalogue/transitrix.yaml'); await expect(scanRequirementChainCatalogue('/catalogue')).rejects.toThrow();
   });
 });
+
+
+import { scanRequirementCatalogue } from '@transitrix/diagrams/compliance';
+import { createHash } from 'node:crypto';
+describe('shared catalogue content provenance', () => {
+  it('includes enumeration failures and absent zones in the content identity', async () => {
+    const io = {
+      read: async () => 'manifest', parse: () => ({ transitrix: 1 }),
+      list: async (_dir: string) => { throw new Error('missing'); },
+      missing: () => true, digest: (s: string) => createHash('sha256').update(s).digest('hex'),
+    };
+    const absent = await scanRequirementCatalogue(io);
+    const failed = await scanRequirementCatalogue({ ...io, missing: () => false });
+    expect(absent.canon.findings).toHaveLength(0); expect(failed.canon.findings).toHaveLength(3);
+    expect(failed.snapshotId).not.toBe(absent.snapshotId);
+  });
+});

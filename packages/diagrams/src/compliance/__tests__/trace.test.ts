@@ -158,7 +158,7 @@ describe('buildRequirementTrace — dangling target', () => {
 
 // Shared release and matrix oracle: source records are normalized through the public intake.
 import { emptyCanon, ingestComplianceDoc } from '../classify.js';
-import { buildRequirementChain, requirementReleaseCounts, selectRequirementChain, RequirementChainSnapshot } from '../requirement-chain.js';
+import { buildSubjectRequirementChain, buildRequirementChain, requirementReleaseCounts, selectRequirementChain, RequirementChainSnapshot } from '../requirement-chain.js';
 const R = (n: number) => `REQUIREMENT-CHAIN-${n}`;
 const V = (n: number) => `VERIFICATION-CHAIN-${n}`;
 const A = (n: number) => `RELEASE-ALPHA-${n}`;
@@ -735,5 +735,133 @@ describe('requirement-chain report controls', () => {
     listeners.get('click')!({target:{closest:()=>({disabled:false,dataset:{action:'pair',value:''}})}});
     expect(messages.at(-1)).toMatchObject({action:'pair',value:''});
     listeners.get('click')!({target:{closest:()=>({disabled:false,dataset:{action:'reset'}})}}); expect(state).toBeUndefined(); controller.dispose();
+  });
+});
+
+
+// The accepted subject oracle is the retained PRODUCT oracle with explicit substitutions.
+function subjectExample(kind: 'application' | 'internal' | 'physical' | 'saas' = 'application'): Raw[] {
+  const docs = chainExample();
+  for (const d of docs) {
+    if (kind === 'application') {
+      for (const key of Object.keys(d)) {
+        if (typeof d[key] === 'string') d[key] = (d[key] as string).replace('PRODUCT-ALPHA-1', 'APPLICATION-ALPHA-1').replace('PRODUCT-BETA-1', 'APPLICATION-BETA-1');
+      }
+      if (d.type === 'product_scope') d.type = 'application_scope';
+      if (d.type === 'project_product') d.type = 'project_application';
+    }
+    if ([PA, PB, 'APPLICATION-ALPHA-1', 'APPLICATION-BETA-1'].includes(String(d.id))) {
+      d.notation = kind === 'application' ? 'application' : 'product';
+      d.type = kind === 'application' ? 'application' : kind === 'internal' ? 'service' : kind === 'physical' ? 'physical_product' : 'digital_product';
+    }
+  }
+  if (kind === 'saas') {
+    const base = docs.find(d => d.id === PA)!;
+    base.supporting_apps = ['APPLICATION-SAAS-1'];
+    docs.push({ ...base, id: 'APPLICATION-SAAS-1', notation: 'application', type: 'application', supporting_apps: undefined, products: [PA] },
+      { ...docs.find(d => d.id === A(3))!, id: 'RELEASE-SAAS-1', of: 'APPLICATION-SAAS-1', version: '1' });
+  }
+  return docs;
+}
+function subjectProject(docs = subjectExample(), scope: Partial<Parameters<typeof buildSubjectRequirementChain>[0]['scope']> = {}, asAt = '2026-09-24') {
+  const canon = emptyCanon(); docs.forEach(d => ingestComplianceDoc(canon, d, `${d.id}.yaml`));
+  return buildSubjectRequirementChain({ index: buildComplianceIndex(canon), scope: { catalogue: 'example', subject: { type: 'APPLICATION', id: 'APPLICATION-ALPHA-1' }, release: A(2), project: JA, ...scope },
+    asAt, snapshotId: 'example-1', complete: true });
+}
+describe('subject-aware requirement-chain/0.3', () => {
+  it.each(['application', 'internal', 'physical', 'saas'] as const)('runs the four-case exact oracle: %s', kind => {
+    const subject = kind === 'application' ? { type: 'APPLICATION' as const, id: 'APPLICATION-ALPHA-1' } : { type: 'PRODUCT' as const, id: PA };
+    const p = subjectProject(subjectExample(kind), { subject });
+    expect(p.contract).toBe('requirement-chain/0.3');
+    expect(p.contractRevision).toBe('a131b1862d86f34be8feb729e1cc6ebc994c3891');
+    expect(p.populations).toEqual(project().populations);
+    expect(p.assignments).toEqual(project().assignments);
+    expect(p.stages).toEqual(project().stages);
+    expect(metricIds(p)).toEqual(baseline);
+    expect(selectRequirementChain(p).nodes).toHaveLength(37);
+    expect(p.selectedReferences.total).toBe(4); expect(p.defectiveReferences.total).toBe(6);
+    expect(p.definitions[R(1)]).toBeUndefined();
+    expect(subjectProject(subjectExample(kind), { subject, project: undefined }).metrics.noDefinition.ids).toEqual(ids(1,7,8,13,14,15));
+    expect(requirementReleaseCounts(p).product.label).toBe('Subject requirements');
+  });
+  it('keeps the explicit 0.2 adapter and rejects conflicting selectors', () => {
+    expect(project().contract).toBe('requirement-chain/0.2');
+    expect(() => subjectProject(undefined, { product: PA })).toThrow('Conflicting');
+    expect(() => project(undefined, { scope: { catalogue: 'x', subject: { type: 'PRODUCT', id: PA } } })).toThrow('buildSubjectRequirementChain');
+  });
+  it('preserves every output under shuffled input and all provenance under duplicate paths', () => {
+    const docs = subjectExample();
+    expect(JSON.stringify(subjectProject([...docs].reverse()))).toBe(JSON.stringify(subjectProject(docs)));
+    for (const [i, type] of ['application_scope', 'project_scope', 'required_for'].entries()) {
+      docs.push({ ...docs.find(d => d.type === type && d.from === R(1))!, id: `REL-DUPLICATE-${i+1}` });
+    }
+    const p = subjectProject(docs); expect(metricIds(p)).toEqual(baseline);
+    expect(p.assignments.provenance.find(a => a.requirement === R(1))).toMatchObject({ depth: 1 });
+    expect(p.assignments.provenance.find(a => a.requirement === R(1))?.relations).toHaveLength(2);
+    expect(p.edges.find(e => e.kind === 'application_scope' && e.storedFrom === R(1))?.identities).toHaveLength(2);
+  });
+  it('keeps absent membership unknown and rejects wrong owners and missing project pairs', () => {
+    const p = subjectProject(subjectExample().filter(d => !(d.type === 'application_scope' && d.from === R(9))));
+    expect(p.populations.unresolved.ids).toEqual(ids(9)); expect(p.metrics.unassigned.ids).toEqual([]); expect(p.metrics.unassigned.total).toBeNull();
+    expect(p.populations.selected.ids).toEqual(project().populations.selected.ids);
+    const wrong = subjectProject(undefined, { release: B(2) });
+    expect(Object.values(wrong.metrics).map(s => s.total)).toEqual([null,null,null,null,null,null]);
+    const missing = subjectExample().filter(d => !(d.type === 'project_application' && d.from === JA));
+    expect(subjectProject(missing).populations.selected.total).toBeNull();
+    expect(subjectProject(missing, { project: undefined }).populations.selected.total).toBe(13);
+  });
+  it('separates invalid, valid and contextual assignments across explicit subjects', () => {
+    const docs = subjectExample(); assignment(docs, 11, 'RELEASE-MISSING-1').to = B(2);
+    expect(subjectProject(docs).assignments.invalid.ids).toEqual(ids(11));
+    const membership = docs.find(d => d.type === 'application_scope' && d.from === R(11))!;
+    docs.push({ ...membership, id: 'REL-SECOND-1', to: 'APPLICATION-BETA-1' });
+    expect(subjectProject(docs).metrics.unassigned.ids).toEqual(ids(9,11));
+    expect(subjectProject(docs).assignments.invalid.ids).toEqual([]);
+    const mixed = subjectExample(); mixed.push({ ...assignment(mixed,11,'RELEASE-MISSING-1'), id: 'REL-VALID-1', to: A(2) });
+    const p = subjectProject(mixed); expect(p.assignments.invalid.ids).toEqual(ids(11));
+    expect(p.metrics.broken.ids).toEqual(ids(7,11,14,15,20)); expect(p.metrics.noDefinition.ids).toEqual(ids(1,7,8,11,14,15));
+  });
+  it('retains inclusive inheritance, malformed windows and predecessor failures', () => {
+    const docs = subjectExample(); assignment(docs,1,A(1)).valid_to = '2026-09-24';
+    expect(metricIds(subjectProject(docs))).toEqual(baseline);
+    expect(subjectProject(docs, {}, '2026-09-25').metrics.unassigned.ids).toEqual(ids(1,9));
+    const withdrawn = subjectExample(); assignment(withdrawn,18,A(2)).valid_to = '2026-09-23';
+    expect(subjectProject(withdrawn).assignments.provenance.find(a => a.requirement === R(18))?.depth).toBe(1);
+    expect(metricIds(subjectProject(withdrawn))).toEqual(baseline);
+    assignment(withdrawn,18,A(1)).valid_to = '2026-09-23'; expect(subjectProject(withdrawn).metrics.unassigned.ids).toEqual(ids(9,18));
+    const cross = subjectExample(); cross.find(d => d.id === A(2))!.predecessor = B(1);
+    expect(subjectProject(cross).populations.selected.ids).not.toContain(R(1)); expect(subjectProject(cross).populations.selected.total).toBeNull();
+    for (const predecessor of ['RELEASE-MISSING-1', A(2)]) {
+      cross.find(d => d.id === A(2))!.predecessor = predecessor;
+      expect(subjectProject(cross).scopeFindings.join()).toContain('Incomplete predecessor chain');
+    }
+    const malformed = subjectExample(); malformed.push({ ...assignment(malformed,1,A(1)), id: 'REL-MALFORMED-1', from: R(9), valid_from: 'not-a-date' });
+    expect(subjectProject(malformed).assignments.invalid.ids).toEqual(ids(9,11));
+    expect(subjectProject(malformed).metrics.unassigned.total).toBeNull(); expect(subjectProject(malformed).metrics.unassigned.ids).toEqual([]);
+  });
+  it('keeps applicability explicit and never transfers child or other-release results', () => {
+    const docs = subjectExample(); docs.push({ ...docs.find(d => d.id === V(51))!, id: V(53), verified_on: A(2) });
+    expect(subjectProject(docs).metrics.noResult.ids).toEqual(ids(2,20));
+    for (const verified_on of [A(1), undefined]) {
+      docs.find(d => d.id === V(53))!.verified_on = verified_on;
+      expect(subjectProject(docs).metrics.noResult.ids).toEqual(ids(2,5,20));
+    }
+    const future = subjectExample(); future.find(d => d.id === V(32))!.performed_at = '2026-10-01';
+    const p = subjectProject(future); expect(p.metrics.failed.ids).toEqual([]); expect(p.executions[R(3)]).toEqual([V(31)]);
+    expect(p.findings.some(f => f.owner === V(32) && f.code === 'EXECUTION-DATE')).toBe(true);
+    expect(p.metrics.noDefinition.ids).toContain(R(1));
+  });
+  it('does not infer SaaS membership from support links or transfer verification', () => {
+    const docs = subjectExample('saas'); const scope = { subject: { type: 'APPLICATION' as const, id: 'APPLICATION-SAAS-1' }, release: 'RELEASE-SAAS-1', project: undefined };
+    const empty = subjectProject(docs, scope); expect(metricIds(empty)).toEqual([[],[],[],[],[],[]]);
+    expect(Object.values(empty.metrics).map(s => s.total)).toEqual([0,0,0,0,0,0]);
+    docs.push({ ...docs.find(d => d.type === 'product_scope' && d.from === R(3))!, id: 'REL-SAAS-1', type: 'application_scope', to: 'APPLICATION-SAAS-1' },
+      { ...assignment(docs,3,A(2)), id: 'REL-SAAS-2', to: 'RELEASE-SAAS-1' });
+    const p = subjectProject(docs, scope); expect(p.populations.selected.ids).toEqual(ids(3));
+    expect(metricIds(p)).toEqual([[],[],[],ids(3),[],[]]);
+    expect(selectRequirementChain(p).nodes.map(n => n.id)).toEqual(expect.arrayContaining(ids(1,2,4)));
+    docs.push({ ...docs.find(d => d.id === V(31))!, id: V(301), verified_on: 'RELEASE-SAAS-1' });
+    expect(subjectProject(docs, scope).metrics.noResult.ids).toEqual([]);
+    expect(subjectProject(docs, { subject: { type: 'PRODUCT', id: PA } }).metrics.failed.ids).toEqual(ids(3));
   });
 });

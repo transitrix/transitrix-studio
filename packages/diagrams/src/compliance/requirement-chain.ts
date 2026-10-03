@@ -7,7 +7,8 @@ import { validateVerification } from '../verification/validate.js';
 
 export const CHAIN_STAGES = ['Source document', 'Driver', 'Need', 'Stakeholder requirement',
   'System requirement', 'Software requirement', 'Unclassified requirement', 'Verification definition', 'Result'] as const;
-export interface ChainScope { catalogue: string; product?: string; release?: string; project?: string }
+export interface ChainSubject { type: 'PRODUCT' | 'APPLICATION'; id: string }
+export interface ChainScope { catalogue: string; subject?: ChainSubject; product?: string; release?: string; project?: string }
 export interface ChainInput {
   index: ComplianceIndex; scope: ChainScope; asAt: string; snapshotId: string;
   sourceRevision?: string; complete: boolean;
@@ -23,7 +24,7 @@ export interface RequirementChainEdge {
 }
 export interface ChainAssignment { requirement: string; nearest: string; depth: number; relations: string[] }
 export interface RequirementChainProjection {
-  contract: 'requirement-chain/0.2'; contractRevision: string; asAt: string; snapshotId: string; sourceRevision?: string;
+  contract: 'requirement-chain/0.2' | 'requirement-chain/0.3'; contractRevision: string; asAt: string; snapshotId: string; sourceRevision?: string;
   scope: ChainScope; completeness: 'complete' | 'incomplete'; scopeFindings: string[];
   populations: { product: ChainSet; release: ChainSet; selected: ChainSet; inactive: ChainSet; unresolved: ChainSet };
   assignments: { here: ChainSet; otherReleaseOnly: ChainSet; unassigned: ChainSet; invalid: ChainSet; provenance: ChainAssignment[] };
@@ -53,9 +54,26 @@ function freeze<T>(value: T): T {
 const CODEX = ['LAW', 'REGULATION', 'STANDARD', 'POLICY', 'INTERNAL_STANDARD', 'PRINCIPLE'];
 const FIELD = ['INTERVIEW', 'SURVEY', 'OBSERVATION', 'DRAFT'];
 
-/** Pure, lossless release projection; no legacy coverage verdict is reinterpreted. */
+/** Explicit PRODUCT compatibility adapter for requirement-chain/0.2. */
 export function buildRequirementChain(input: ChainInput): RequirementChainProjection {
+  if (input.scope.subject) throw new Error('Use buildSubjectRequirementChain for explicit subjects');
+  return projectRequirementChain(input);
+}
+
+/** Subject-aware 0.3 entry point; both versions use the same deterministic projection. */
+export function buildSubjectRequirementChain(input: ChainInput & { scope: ChainScope & { subject: ChainSubject } }): RequirementChainProjection {
+  if (input.scope.product !== undefined) throw new Error('Conflicting product and subject selectors');
+  if (!['PRODUCT', 'APPLICATION'].includes(input.scope.subject.type)) throw new Error('Unsupported subject type');
+  return projectRequirementChain(input);
+}
+
+/** Pure, lossless release projection; no legacy coverage verdict is reinterpreted. */
+function projectRequirementChain(input: ChainInput): RequirementChainProjection {
   const { index, asAt, scope } = input;
+  const subject = scope.subject ?? { type: 'PRODUCT', id: scope.product };
+  const membershipKind = subject.type === 'APPLICATION' ? 'application_scope' : 'product_scope';
+  const pairKind = subject.type === 'APPLICATION' ? 'project_application' : 'project_product';
+  const subjectWord = scope.subject ? 'subject' : 'product';
   const findings = structuredClone(index.findings);
   const scopeFindings: string[] = [];
   const records = new Map<string, ChainRecord>();
@@ -64,7 +82,7 @@ export function buildRequirementChain(input: ChainInput): RequirementChainProjec
     const id = `${owner}.${field}`;
     if (!findings.some(f => f.id === id && f.code === code)) findings.push({ id, owner, field, code, message, reference, severity: warning ? 'warning' : 'error' });
   };
-  for (const [id, versions] of index.recordsById) {
+  for (const [id, versions] of [...index.recordsById].sort(([a], [b]) => a.localeCompare(b))) {
     if (versions.length !== 1) {
       finding(id, 'id', 'DUPLICATE', 'Ambiguous catalogue identity'); complete = false;
     } else records.set(id, structuredClone(versions[0]));
@@ -114,7 +132,7 @@ export function buildRequirementChain(input: ChainInput): RequirementChainProjec
       if (r.raw.level !== undefined && level < 0) finding(r.id, 'level', 'REQ-LEVEL', 'Invalid level; displayed as unclassified');
     } else if (r.type === 'NEED') node(r, 2);
     else if (r.type === 'DRIVER') node(r, 1);
-    else if (['PRODUCT', 'RELEASE', 'ACTION'].includes(r.type)) node(r, -1);
+    else if (['PRODUCT', 'APPLICATION', 'RELEASE', 'ACTION'].includes(r.type)) node(r, -1);
     else if (CODEX.includes(r.type) || FIELD.includes(r.type)) {
       node(r, 0);
       if (r.raw.source_document !== undefined) {
@@ -162,6 +180,8 @@ export function buildRequirementChain(input: ChainInput): RequirementChainProjec
     const src = records.get(from), dst = records.get(to);
     const endpoints = kind === 'requirement_parent' ? is(from, 'REQUIREMENT') && is(to, 'REQUIREMENT') :
       kind === 'serves' ? is(from, 'REQUIREMENT') && is(to, 'NEED') :
+      kind === 'application_scope' ? is(from, 'REQUIREMENT') && is(to, 'APPLICATION') :
+      kind === 'project_application' ? isProject(from) && is(to, 'APPLICATION') :
       kind === 'product_scope' ? is(from, 'REQUIREMENT') && is(to, 'PRODUCT') :
       kind === 'project_scope' ? is(from, 'REQUIREMENT') && isProject(to) :
       kind === 'project_product' ? isProject(from) && is(to, 'PRODUCT') :
@@ -198,38 +218,38 @@ export function buildRequirementChain(input: ChainInput): RequirementChainProjec
     }
   }
   const memberships = (id: string, kind: string) => rels.filter(r => usable.has(r.id) && r.raw.type === kind && r.raw.from === id).map(r => String(r.raw.to));
-  const unresolved = requirements.filter(r => active.get(r.id) && memberships(r.id, 'product_scope').length === 0).map(r => r.id);
-  const P = requirements.filter(r => active.get(r.id) && memberships(r.id, 'product_scope').includes(scope.product ?? '')).map(r => r.id);
+  const unresolved = requirements.filter(r => active.get(r.id) && memberships(r.id, 'product_scope').length === 0 && (!scope.subject || memberships(r.id, 'application_scope').length === 0)).map(r => r.id);
+  const P = requirements.filter(r => active.get(r.id) && memberships(r.id, membershipKind).includes(subject.id ?? '')).map(r => r.id);
   let productComplete = complete && unresolved.length === 0;
-  if (unresolved.length) scopeFindings.push('Unresolved product membership');
-  if (requirements.some(r => !envelope.get(r.id)) || rels.some(r => r.raw.type === 'product_scope' && active.get(r.id) && !usable.has(r.id))) productComplete = false;
+  if (unresolved.length) scopeFindings.push(`Unresolved ${subjectWord} membership`);
+  if (requirements.some(r => !envelope.get(r.id)) || rels.some(r => r.raw.type === membershipKind && active.get(r.id) && !usable.has(r.id))) productComplete = false;
   const invalidAssignments = new Set<string>();
   for (const r of rels.filter(r => r.raw.type === 'required_for')) {
     const from = String(r.raw.from), to = records.get(String(r.raw.to));
     const historical = chainDate(r.raw.valid_to) && r.raw.valid_to < asAt;
     const future = chainDate(r.raw.valid_from) && r.raw.valid_from > asAt;
-    if (!historical && !future && (!usable.has(r.id) || !memberships(from, 'product_scope').includes(String(to?.raw.of)))) {
+    if (!historical && !future && (!usable.has(r.id) || ![...memberships(from, 'product_scope'), ...(scope.subject ? memberships(from, 'application_scope') : [])].includes(String(to?.raw.of)))) {
       invalidAssignments.add(from);
-      finding(r.id, 'to', 'ASSIGNMENT', 'Invalid, dangling or wrong-product assignment', true);
+      finding(r.id, 'to', 'ASSIGNMENT', `Invalid, dangling or wrong-${subjectWord} assignment`, true);
       if (!envelope.get(r.id)) productComplete = false;
     }
   }
   let selectedComplete = complete;
-  if (!is(scope.product, 'PRODUCT')) { productComplete = false; selectedComplete = false; scopeFindings.push('Product unselected or unresolved'); }
-  if (!is(scope.release, 'RELEASE') || records.get(scope.release ?? '')?.raw.of !== scope.product) {
-    selectedComplete = false; scopeFindings.push('Release unselected, unresolved or wrong product');
+  if (!is(subject.id, subject.type)) { productComplete = false; selectedComplete = false; scopeFindings.push(scope.subject ? 'Subject unselected or unresolved' : 'Product unselected or unresolved'); }
+  if (!is(scope.release, 'RELEASE') || records.get(scope.release ?? '')?.raw.of !== subject.id) {
+    selectedComplete = false; scopeFindings.push(`Release unselected, unresolved or wrong ${subjectWord}`);
   }
-  if (scope.project && (!isProject(scope.project) || !memberships(scope.project, 'project_product').includes(scope.product ?? ''))) {
-    selectedComplete = false; scopeFindings.push('Invalid or unmodelled project/product pair');
+  if (scope.project && (!isProject(scope.project) || !memberships(scope.project, pairKind).includes(subject.id ?? ''))) {
+    selectedComplete = false; scopeFindings.push(`Invalid or unmodelled project/${subjectWord} pair`);
   }
   function query(release: string): { ids: string[]; provenance: ChainAssignment[]; complete: boolean } {
     const chain: string[] = []; let cursor: string | undefined = release; let valid = true;
     while (cursor) {
       const r: ChainRecord | undefined = records.get(cursor);
-      if (chain.includes(cursor) || !is(cursor, 'RELEASE') || r?.raw.of !== scope.product) {
+      if (chain.includes(cursor) || !is(cursor, 'RELEASE') || r?.raw.of !== subject.id) {
         valid = false;
         finding(chain[chain.length - 1] ?? release, 'predecessor', 'RELEASE-SCOPE',
-          chain.includes(cursor) ? 'Release predecessor cycle' : 'Missing, invalid or cross-product predecessor');
+          chain.includes(cursor) ? 'Release predecessor cycle' : `Missing, invalid or cross-${subjectWord} predecessor`);
         break;
       }
       chain.push(cursor);
@@ -251,13 +271,13 @@ export function buildRequirementChain(input: ChainInput): RequirementChainProjec
   if (scope.project && L.some(id => memberships(id, 'project_scope').length === 0 || rels.some(r => r.raw.type === 'project_scope' && r.raw.from === id && active.get(r.id) && !usable.has(r.id)))) {
     selectedComplete = false; scopeFindings.push('Unresolved project membership');
   }
-  if (rels.some(r => ['product_scope', 'project_scope', 'required_for'].includes(String(r.raw.type)) && !envelope.get(r.id))) selectedComplete = false;
-  if (scope.project && L.some(id => memberships(id, 'project_scope').some(project => !memberships(project, 'project_product').includes(scope.product ?? '')))) {
-    selectedComplete = false; scopeFindings.push('Inconsistent project/product membership');
+  if (rels.some(r => [membershipKind, 'project_scope', 'required_for'].includes(String(r.raw.type)) && !envelope.get(r.id))) selectedComplete = false;
+  if (scope.project && L.some(id => memberships(id, 'project_scope').some(project => !memberships(project, pairKind).includes(subject.id ?? '')))) {
+    selectedComplete = false; scopeFindings.push(`Inconsistent project/${subjectWord} membership`);
   }
   const S = L.filter(id => !scope.project || memberships(id, 'project_scope').includes(scope.project));
   const elsewhere = new Set<string>();
-  for (const release of records.values()) if (release.type === 'RELEASE' && release.raw.of === scope.product) {
+  for (const release of records.values()) if (release.type === 'RELEASE' && release.raw.of === subject.id) {
     const q = query(release.id); productComplete &&= q.complete; q.ids.forEach(id => elsewhere.add(id));
   }
   const unassigned = P.filter(id => !elsewhere.has(id) && !invalidAssignments.has(id));
@@ -307,7 +327,7 @@ export function buildRequirementChain(input: ChainInput): RequirementChainProjec
     const owners = new Set(ancestors);
     for (const v of verifications) if (v.raw.verifies === r.id) owners.add(v.id);
     for (const rel of rels) {
-      const ownScope = ['product_scope', 'project_scope', 'required_for'].includes(String(rel.raw.type));
+      const ownScope = [membershipKind, 'project_scope', 'required_for'].includes(String(rel.raw.type));
       if (ownScope ? rel.raw.from === r.id : owners.has(String(rel.raw.from))) owners.add(rel.id);
     }
     for (const f of findings) if (owners.has(f.owner)) (affectedRequirements[f.id] ??= []).push(r.id);
@@ -326,15 +346,16 @@ export function buildRequirementChain(input: ChainInput): RequirementChainProjec
   const selectedRefs = refs.filter(f => affectedRequirements[f.id]?.some(id => S.includes(id)));
   const broken = S.filter(id => selectedRefs.some(f => affectedRequirements[f.id]?.includes(id)));
   for (const n of nodes) if (records.get(n.recordId)?.type === 'REQUIREMENT' && !S.includes(n.recordId)) {
-    n.context.push(!active.get(n.recordId) ? 'inactive' : !P.includes(n.recordId) ? 'unresolved or other product' :
+    n.context.push(!active.get(n.recordId) ? 'inactive' : !P.includes(n.recordId) ? `unresolved or other ${subjectWord}` :
       !L.includes(n.recordId) ? 'other release or unassigned' : 'other project');
   }
+  if (scope.subject && (!is(subject.id, subject.type) || !is(scope.release, 'RELEASE') || records.get(scope.release ?? '')?.raw.of !== subject.id)) productComplete = false;
   const unassignedSet = set(unassigned, productComplete);
   const result: RequirementChainProjection = {
-    contract: 'requirement-chain/0.2', contractRevision: '97c9d41819011ead8fe192c266cba32707eae82f', asAt, snapshotId: input.snapshotId, sourceRevision: input.sourceRevision,
+    contract: scope.subject ? 'requirement-chain/0.3' : 'requirement-chain/0.2', contractRevision: scope.subject ? 'a131b1862d86f34be8feb729e1cc6ebc994c3891' : '97c9d41819011ead8fe192c266cba32707eae82f', asAt, snapshotId: input.snapshotId, sourceRevision: input.sourceRevision,
     scope: structuredClone(scope), completeness: productComplete && selectedComplete ? 'complete' : 'incomplete', scopeFindings: sorted(scopeFindings),
     populations: { product: set(P, productComplete), release: set(L, selectedComplete), selected: set(S, selectedComplete),
-      inactive: set(requirements.filter(r => envelope.get(r.id) && !active.get(r.id) && rels.some(rel => rel.raw.type === 'product_scope' && rel.raw.from === r.id && rel.raw.to === scope.product && envelope.get(rel.id))).map(r => r.id), complete),
+      inactive: set(requirements.filter(r => envelope.get(r.id) && !active.get(r.id) && rels.some(rel => rel.raw.type === membershipKind && rel.raw.from === r.id && rel.raw.to === subject.id && envelope.get(rel.id))).map(r => r.id), complete),
       unresolved: set(unresolved, complete) },
     assignments: { here: set(L, selectedComplete), otherReleaseOnly: set(P.filter(id => elsewhere.has(id) && !L.includes(id)), productComplete),
       unassigned: unassignedSet, invalid: set(P.filter(id => invalidAssignments.has(id)), complete), provenance: selected.provenance.sort((a, b) => a.requirement.localeCompare(b.requirement)) },
@@ -408,6 +429,7 @@ export function requirementReleaseCounts(p: RequirementChainProjection) {
   const contextUnits = { 0: 'source documents', 1: 'drivers', 2: 'needs', 7: 'definition parts', 8: 'result parts' } as const;
   for (const stage of [0, 1, 2, 7, 8] as const) add('context-' + stage, CHAIN_STAGES[stage],
     set(view.nodes.filter(n => n.stage === stage).map(n => n.id), p.populations.selected.completeness === 'complete'), contextUnits[stage]);
+  if (p.scope.subject) for (const count of Object.values(counts)) count.label = count.label.replace(/whole product/g, 'whole subject').replace('Product requirements', 'Subject requirements');
   return freeze(counts);
 }
 

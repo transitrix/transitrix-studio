@@ -14,6 +14,9 @@ published:
   # IntelliJ/IDEA plugin — published to JetBrains Marketplace
   - intellij/**
 
+  # Supported requirements-report CLI entry bundled into the npm distribution
+  - src/requirements-report.ts
+
   # npm packages — published to npm registry
   - packages/cli/**
   - packages/diagrams/**

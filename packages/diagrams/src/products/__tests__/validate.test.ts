@@ -127,7 +127,7 @@ describe('validateProductsCatalogue', () => {
   });
 
   it('SCHEMA_INVALID: accepts all valid types', () => {
-    for (const type of ['digital_product', 'service', 'platform', 'bundle']) {
+    for (const type of ['physical_product', 'digital_product', 'service', 'platform', 'bundle']) {
       const products = [{ product_id: 'p1', name: 'X', type, status: 'Active' }];
       const cat = { ...VALID_CATALOGUE.products_catalogue, products };
       const r = validateProductsCatalogue({ ...VALID_CATALOGUE, products_catalogue: cat });
