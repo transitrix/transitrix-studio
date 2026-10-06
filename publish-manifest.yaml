@@ -68,6 +68,11 @@ published:
   # Release-package listing guard and its positive/negative regression cases
   - scripts/verify-extension-packaging.test.mjs
 
+  # Obsidian community distribution mirror (sync script + CI)
+  - scripts/sync-obsidian-community.mjs
+  - scripts/sync-obsidian-community.test.mjs
+  - .github/workflows/sync-obsidian-plugin.yml
+
   # Read-only document checker shipped in CLI/editor and its consumer contract
   - src/document-provenance.ts
   - docs/document-provenance.md

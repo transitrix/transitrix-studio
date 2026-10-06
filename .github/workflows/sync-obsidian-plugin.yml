@@ -1,0 +1,84 @@
+name: Sync Obsidian community plugin
+
+# Mirrors packages/obsidian-plugin into transitrix/transitrix-studio-obsidian
+# and creates a GitHub Release there when manifest.version has no tag yet.
+#
+# One-time setup: add repository secret OBSIDIAN_PLUGIN_DEPLOY_TOKEN
+# (fine-grained PAT or GitHub App) with contents:write on
+# transitrix/transitrix-studio-obsidian.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'packages/obsidian-plugin/**'
+      - 'packages/diagrams/**'
+      - 'package-lock.json'
+      - 'LICENSE'
+      - 'scripts/sync-obsidian-community.mjs'
+      - 'scripts/sync-obsidian-community.test.mjs'
+      - '.github/workflows/sync-obsidian-plugin.yml'
+  workflow_dispatch:
+    inputs:
+      force_release:
+        description: Re-upload assets to the existing release for the current manifest version
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sync-obsidian-plugin
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: Mirror + release
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Require deploy token
+        env:
+          OBSIDIAN_PLUGIN_DEPLOY_TOKEN: ${{ secrets.OBSIDIAN_PLUGIN_DEPLOY_TOKEN }}
+        run: |
+          if [ -z "${OBSIDIAN_PLUGIN_DEPLOY_TOKEN}" ]; then
+            echo "::error::Missing secret OBSIDIAN_PLUGIN_DEPLOY_TOKEN (contents:write on transitrix/transitrix-studio-obsidian)"
+            exit 1
+          fi
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Test plugin
+        run: npm run test:obsidian-plugin
+
+      - name: Test sync script
+        run: npm run test:obsidian-sync
+
+      - name: Package plugin
+        run: npm run package:obsidian-plugin
+
+      - name: Sync community repository
+        env:
+          OBSIDIAN_PLUGIN_DEPLOY_TOKEN: ${{ secrets.OBSIDIAN_PLUGIN_DEPLOY_TOKEN }}
+          OBSIDIAN_COMMUNITY_REPO: transitrix/transitrix-studio-obsidian
+          GITHUB_SHA: ${{ github.sha }}
+          FORCE_RELEASE: ${{ github.event_name == 'workflow_dispatch' && inputs.force_release }}
+        run: |
+          args=()
+          if [ "${FORCE_RELEASE}" = "true" ]; then
+            args+=(--force-release)
+          fi
+          node scripts/sync-obsidian-community.mjs "${args[@]}"
