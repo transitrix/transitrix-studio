@@ -1,5 +1,14 @@
 import assert from 'node:assert/strict';
-import { copyFileSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -84,6 +93,31 @@ describe('assertSafeStagingDir', () => {
   it('rejects output/ itself, the repo root, cwd and outside paths', () => {
     for (const dir of [OUTPUT_DIR, ROOT, process.cwd(), tmpdir(), path.join(OUTPUT_DIR, '..', 'packages')]) {
       assert.throws(() => assertSafeStagingDir(dir), /must be inside/, dir);
+    }
+  });
+
+  it('rejects symlinked staging paths without touching external bytes', () => {
+    mkdirSync(OUTPUT_DIR, { recursive: true });
+    const outside = mkdtempSync(path.join(tmpdir(), 'obsidian-staging-outside-'));
+    const suffix = path.basename(outside);
+    const parentLink = path.join(OUTPUT_DIR, `${suffix}-parent`);
+    const stagingLink = path.join(OUTPUT_DIR, `${suffix}-staging`);
+    const sentinel = path.join(outside, 'sentinel');
+    writeFileSync(sentinel, 'retain');
+    symlinkSync(outside, parentLink, 'dir');
+    symlinkSync(outside, stagingLink, 'dir');
+
+    try {
+      assert.throws(
+        () => assertSafeStagingDir(path.join(parentLink, 'new-staging')),
+        /symbolic links/,
+      );
+      assert.throws(() => assertSafeStagingDir(stagingLink), /symbolic links/);
+      assert.equal(readFileSync(sentinel, 'utf8'), 'retain');
+    } finally {
+      rmSync(parentLink, { force: true });
+      rmSync(stagingLink, { force: true });
+      rmSync(outside, { recursive: true, force: true });
     }
   });
 });

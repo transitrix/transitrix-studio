@@ -30,6 +30,7 @@ import {
   copyFileSync,
   cpSync,
   existsSync,
+  lstatSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -93,6 +94,40 @@ export function assertSafeStagingDir(dir) {
   const rel = path.relative(OUTPUT_DIR, resolved);
   if (!rel || rel.startsWith('..') || path.isAbsolute(rel)) {
     throw new Error(`Staging directory must be inside ${OUTPUT_DIR}: ${resolved}`);
+  }
+
+  // The staging tree is deleted recursively below. A lexical containment check
+  // is not sufficient because an existing symlink below output/ can redirect
+  // that removal outside the repository. Walk every existing component and
+  // refuse links (including a link used as the staging directory itself).
+  let current = OUTPUT_DIR;
+  for (const segment of rel.split(path.sep)) {
+    let stat;
+    try {
+      stat = lstatSync(current);
+    } catch (err) {
+      if (err?.code === 'ENOENT') return resolved;
+      throw err;
+    }
+    if (stat.isSymbolicLink()) {
+      throw new Error(`Staging directory must not contain symbolic links: ${current}`);
+    }
+    if (!stat.isDirectory()) {
+      throw new Error(`Staging path component must be a directory: ${current}`);
+    }
+    current = path.join(current, segment);
+  }
+
+  try {
+    const stat = lstatSync(current);
+    if (stat.isSymbolicLink()) {
+      throw new Error(`Staging directory must not contain symbolic links: ${current}`);
+    }
+    if (!stat.isDirectory()) {
+      throw new Error(`Staging path component must be a directory: ${current}`);
+    }
+  } catch (err) {
+    if (err?.code !== 'ENOENT') throw err;
   }
   return resolved;
 }
