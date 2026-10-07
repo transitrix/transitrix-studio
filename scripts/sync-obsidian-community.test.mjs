@@ -5,8 +5,10 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  rmdirSync,
   rmSync,
   symlinkSync,
+  unlinkSync,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -27,6 +29,15 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PLUGIN_DIR = path.join(ROOT, 'packages', 'obsidian-plugin');
 const STAGING = path.join(OUTPUT_DIR, 'obsidian-community-mirror-test');
 const sourceManifest = JSON.parse(readFileSync(path.join(PLUGIN_DIR, 'manifest.json'), 'utf8'));
+
+/** Removes a symlink or Windows junction without following it. */
+function removeLink(target) {
+  try {
+    unlinkSync(target);
+  } catch {
+    rmdirSync(target);
+  }
+}
 
 describe('buildCommunityMirror', () => {
   let packageDir;
@@ -104,8 +115,8 @@ describe('assertSafeStagingDir', () => {
     const stagingLink = path.join(OUTPUT_DIR, `${suffix}-staging`);
     const sentinel = path.join(outside, 'sentinel');
     writeFileSync(sentinel, 'retain');
-    symlinkSync(outside, parentLink, 'dir');
-    symlinkSync(outside, stagingLink, 'dir');
+    symlinkSync(outside, parentLink, 'junction');
+    symlinkSync(outside, stagingLink, 'junction');
 
     try {
       assert.throws(
@@ -115,10 +126,61 @@ describe('assertSafeStagingDir', () => {
       assert.throws(() => assertSafeStagingDir(stagingLink), /symbolic links/);
       assert.equal(readFileSync(sentinel, 'utf8'), 'retain');
     } finally {
-      rmSync(parentLink, { force: true });
-      rmSync(stagingLink, { force: true });
+      removeLink(parentLink);
+      removeLink(stagingLink);
       rmSync(outside, { recursive: true, force: true });
     }
+  });
+});
+
+describe('staging symlink escape through buildCommunityMirror', () => {
+  const SENTINEL = 'external bytes\n';
+  let packageDir;
+  let external;
+  let link;
+
+  before(() => {
+    mkdirSync(OUTPUT_DIR, { recursive: true });
+    packageDir = mkdtempSync(path.join(tmpdir(), 'obsidian-package-'));
+    copyFileSync(path.join(PLUGIN_DIR, 'manifest.json'), path.join(packageDir, 'manifest.json'));
+    copyFileSync(path.join(PLUGIN_DIR, 'styles.css'), path.join(packageDir, 'styles.css'));
+    writeFileSync(path.join(packageDir, 'main.js'), '/* bundle */\n', 'utf8');
+    external = mkdtempSync(path.join(tmpdir(), 'obsidian-escape-'));
+    mkdirSync(path.join(external, 'victim'));
+    writeFileSync(path.join(external, 'sentinel'), SENTINEL, 'utf8');
+    writeFileSync(path.join(external, 'victim', 'sentinel'), SENTINEL, 'utf8');
+    link = path.join(OUTPUT_DIR, `symlink-proof-${process.pid}`);
+    // Junctions need no elevation on Windows; the type is ignored elsewhere.
+    symlinkSync(external, link, 'junction');
+  });
+
+  after(() => {
+    if (link) removeLink(link);
+    if (external) rmSync(external, { recursive: true, force: true });
+    if (packageDir) rmSync(packageDir, { recursive: true, force: true });
+  });
+
+  function assertExternalIntact() {
+    assert.equal(readFileSync(path.join(external, 'sentinel'), 'utf8'), SENTINEL);
+    assert.equal(readFileSync(path.join(external, 'victim', 'sentinel'), 'utf8'), SENTINEL);
+  }
+
+  it('keeps external bytes when the staging directory is a symlink', () => {
+    assert.throws(() => buildCommunityMirror({ stagingDir: link, packageDir }), /symbolic links/);
+    assertExternalIntact();
+  });
+
+  it('keeps external bytes when a staging parent is a symlink', () => {
+    const staging = path.join(link, 'victim');
+    assert.throws(() => buildCommunityMirror({ stagingDir: staging, packageDir }), /symbolic links/);
+    assertExternalIntact();
+  });
+
+  it('creates nothing outside output/ for a missing path below a symlinked parent', () => {
+    const staging = path.join(link, 'missing', 'deeper');
+    assert.throws(() => buildCommunityMirror({ stagingDir: staging, packageDir }), /symbolic links/);
+    assertExternalIntact();
+    assert.equal(existsSync(path.join(external, 'missing')), false);
   });
 });
 
