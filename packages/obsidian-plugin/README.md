@@ -53,7 +53,16 @@ Repository projections (`view_config`-only documents or `sources`) are rejected.
 
 Action Card uses Theme only. Changing settings refreshes open Reading-view diagrams.
 
-## Manual install (from this monorepo)
+## Install
+
+Once listed in the Obsidian community catalog, install **Transitrix Studio** from
+Settings → Community plugins. The public distribution repository is
+[transitrix/transitrix-studio-obsidian](https://github.com/transitrix/transitrix-studio-obsidian).
+
+Demo notes with worked fences live in `demo/`.
+
+<!-- maintainer:start -->
+### Manual install (from this monorepo)
 
 From the repository root:
 
@@ -68,7 +77,31 @@ Copy `output/obsidian-plugin/manifest.json`, `main.js`, and `styles.css` into:
 
 Enable **Transitrix Studio** under Settings → Community plugins.
 
-Demo notes live in `demo/`.
+### Community distribution sync
+
+Merges to `main` that touch `packages/obsidian-plugin/**`, `packages/diagrams/**`
+or the lockfile run `.github/workflows/sync-obsidian-plugin.yml`. That workflow:
+
+1. Runs the plugin and sync tests, then builds the production bundle
+2. Mirrors plugin sources, demos, manifest, `versions.json`, styles, README and
+   LICENSE into `transitrix/transitrix-studio-obsidian`. The mirror is not a
+   standalone build: `main.js` bundles `@transitrix/diagrams` from this monorepo,
+   and each release note links the exact source commit.
+3. Creates a GitHub Release there when `manifest.json` `version` has no tag yet
+   (assets: `main.js`, `manifest.json`, `styles.css`)
+
+Before a release, bump `version` in `manifest.json` and `package.json` together
+and add the same version to `versions.json` (value: `minAppVersion`). The sync
+fails closed if they disagree.
+
+Sections between the `maintainer` markers in this README are stripped from the
+community copy. Requires repository secret `OBSIDIAN_PLUGIN_DEPLOY_TOKEN` with
+`contents:write` on the community repo. Local dry-run:
+
+```sh
+npm run sync:obsidian-community:dry
+```
+<!-- maintainer:end -->
 
 ## Privacy and safety
 
@@ -78,4 +111,4 @@ Demo notes live in `demo/`.
 
 ## License
 
-MIT — see the repository root `LICENSE`.
+MIT — see `LICENSE` in the repository root.
