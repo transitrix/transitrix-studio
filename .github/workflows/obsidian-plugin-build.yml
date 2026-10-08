@@ -1,0 +1,99 @@
+name: Obsidian plugin build
+
+# Build, test and package the Obsidian plugin. Never publishes and needs no
+# secrets. The packaged files are uploaded as an artifact so exactly this build
+# can be accepted (manually, in a real Obsidian) before it is released with
+# obsidian-plugin-publish.yml. The main.js SHA-256 is in the run summary.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'packages/obsidian-plugin/**'
+      - 'packages/diagrams/**'
+      - 'package-lock.json'
+      - 'LICENSE'
+      - '.gitattributes'
+      - 'scripts/sync-obsidian-community.mjs'
+      - 'scripts/sync-obsidian-community.test.mjs'
+      - '.github/workflows/obsidian-plugin-build.yml'
+      - '.github/workflows/obsidian-plugin-publish.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'packages/obsidian-plugin/**'
+      - 'packages/diagrams/**'
+      - 'package-lock.json'
+      - 'LICENSE'
+      - '.gitattributes'
+      - 'scripts/sync-obsidian-community.mjs'
+      - 'scripts/sync-obsidian-community.test.mjs'
+      - '.github/workflows/obsidian-plugin-build.yml'
+      - '.github/workflows/obsidian-plugin-publish.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: obsidian-plugin-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build + test (no publish)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Test plugin
+        run: npm run test:obsidian-plugin
+
+      - name: Test sync script
+        run: npm run test:obsidian-sync
+
+      - name: Package plugin
+        run: npm run package:obsidian-plugin
+
+      - name: Dry-run community mirror
+        run: node scripts/sync-obsidian-community.mjs --dry-run
+
+      - name: Record checksums
+        working-directory: output/obsidian-plugin
+        run: |
+          sha256sum main.js manifest.json styles.css | tee SHA256SUMS
+          {
+            echo "### Obsidian plugin build"
+            echo
+            echo "Commit: \`${GITHUB_SHA}\`"
+            echo
+            echo '```'
+            cat SHA256SUMS
+            echo '```'
+            echo
+            echo "Accept this build, then publish it with *Publish Obsidian plugin* using the main.js digest above."
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          name: obsidian-plugin-${{ github.sha }}
+          path: |
+            output/obsidian-plugin/main.js
+            output/obsidian-plugin/manifest.json
+            output/obsidian-plugin/styles.css
+            output/obsidian-plugin/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 30

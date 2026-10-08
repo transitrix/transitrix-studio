@@ -3,10 +3,15 @@
  * Mirror the Obsidian plugin into transitrix/transitrix-studio-obsidian and
  * create a GitHub Release when manifest.version has no matching tag yet.
  *
+ * Published versions are immutable: assets of an existing release are never
+ * replaced. When the release already exists, the freshly built assets must
+ * match its SHA-256 digests (the source commit recorded in the notes is
+ * reported); any difference fails and requires a new version.
+ *
  * The mirror carries plugin sources, demos, manifest, versions.json, styles,
  * README and LICENSE. It is not a standalone build: main.js bundles
  * @transitrix/diagrams from this monorepo, so it ships only as a Release asset
- * and each release note links the exact source commit.
+ * and each release note links the exact source commit and lists checksums.
  *
  * Everything in the community repo except `.git/` and `.github/` is replaced
  * on every sync.
@@ -15,17 +20,18 @@
  * output/obsidian-plugin/{main.js,manifest.json,styles.css}).
  *
  * Usage:
- *   node scripts/sync-obsidian-community.mjs [--dry-run] [--force-release] [--staging <dir>]
+ *   node scripts/sync-obsidian-community.mjs [--dry-run] [--accepted-main-sha256 <hex>] [--staging <dir>]
  *
  * Env:
  *   OBSIDIAN_PLUGIN_DEPLOY_TOKEN  PAT/App token with contents:write on the
  *                                 community repo (required unless --dry-run)
  *   OBSIDIAN_COMMUNITY_REPO       default: transitrix/transitrix-studio-obsidian
- *   GITHUB_SHA                    optional source commit for release notes
+ *   GITHUB_SHA                    full source commit (required unless --dry-run)
  *   GITHUB_SERVER_URL             optional, default https://github.com
  */
 
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import {
   copyFileSync,
   cpSync,
@@ -57,21 +63,29 @@ const PRESERVED_ENTRIES = new Set(['.git', '.github']);
 const MAINTAINER_START = '<!-- maintainer:start -->';
 const MAINTAINER_END = '<!-- maintainer:end -->';
 const SEMVER = /^\d+\.\d+\.\d+$/;
+const SHA256_HEX = /^[0-9a-fA-F]{64}$/;
+const COMMIT_SHA = /^[0-9a-f]{40}$/;
 
 const TAG = '[sync-obsidian]';
 
 function parseArgs(argv) {
   const args = {
     dryRun: false,
-    forceRelease: false,
+    acceptedMainSha256: '',
     staging: DEFAULT_STAGING,
     help: false,
   };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === '--dry-run') args.dryRun = true;
-    else if (arg === '--force-release') args.forceRelease = true;
-    else if (arg === '--staging') {
+    else if (arg === '--accepted-main-sha256') {
+      const value = argv[i + 1];
+      if (!value || !SHA256_HEX.test(value)) {
+        throw new Error('--accepted-main-sha256 requires a 64-character hex digest');
+      }
+      args.acceptedMainSha256 = value.toLowerCase();
+      i += 1;
+    } else if (arg === '--staging') {
       const value = argv[i + 1];
       if (!value || value.startsWith('--')) throw new Error('--staging requires a path');
       args.staging = path.resolve(value);
@@ -189,6 +203,90 @@ function assertPackaged(packageDir, pluginDir) {
   }
 }
 
+/** SHA-256 (lowercase hex) of every release asset in `packageDir`. */
+export function computeAssetDigests(packageDir) {
+  return Object.fromEntries(
+    RELEASE_ASSETS.map((name) => [
+      name,
+      createHash('sha256').update(readFileSync(path.join(packageDir, name))).digest('hex'),
+    ]),
+  );
+}
+
+/** The accepted build is identified by the digest of its main.js. */
+export function assertAcceptedBuild(digests, acceptedMainSha256) {
+  if (!acceptedMainSha256) return;
+  if (digests['main.js'] !== acceptedMainSha256.toLowerCase()) {
+    throw new Error(
+      `main.js sha256 ${digests['main.js']} differs from the accepted build ${acceptedMainSha256.toLowerCase()}. `
+      + 'Publish only the build that passed acceptance.',
+    );
+  }
+}
+
+/** Full commit sha that a release's notes link to, or null. */
+export function parseSourceCommit(notes) {
+  const match = /\/commit\/([0-9a-f]{40})\b/.exec(String(notes ?? ''));
+  return match ? match[1] : null;
+}
+
+export function buildReleaseNotes({ sourceSha, digests, server = 'https://github.com' }) {
+  return [
+    'Automated release of Transitrix Studio for Obsidian.',
+    '',
+    `Built from [\`${SOURCE_REPO}@${sourceSha.slice(0, 7)}\`](${server}/${SOURCE_REPO}/commit/${sourceSha}).`,
+    '',
+    'SHA-256:',
+    '',
+    ...RELEASE_ASSETS.map((name) => `- \`${name}\` \`${digests[name]}\``),
+    '',
+  ].join('\n');
+}
+
+/**
+ * A published version is immutable. Given the existing release, confirm the
+ * local build is byte-identical to it; otherwise fail and require a new
+ * version. Never modifies anything.
+ *
+ * @param {{ version: string, release: { body?: string, assets?: Array<{ name: string, digest?: string | null }> },
+ *   digests: Record<string, string>, sourceSha: string }} input
+ */
+export function verifyPublishedRelease({ version, release, digests, sourceSha }) {
+  const publishedCommit = parseSourceCommit(release?.body);
+  const published = new Map((release?.assets ?? []).map((asset) => [asset.name, asset.digest]));
+
+  const unverifiable = [];
+  const differing = [];
+  for (const name of RELEASE_ASSETS) {
+    const digest = published.get(name);
+    if (!digest || !digest.startsWith('sha256:')) {
+      unverifiable.push(name);
+    } else if (digest.slice('sha256:'.length) !== digests[name]) {
+      differing.push(name);
+    }
+  }
+
+  if (unverifiable.length > 0) {
+    throw new Error(
+      `Release ${version} has no SHA-256 digest for ${unverifiable.join(', ')}; cannot verify it. `
+      + 'Published versions are never replaced: bump the version for a new build.',
+    );
+  }
+
+  if (differing.length > 0) {
+    const built = publishedCommit ? publishedCommit.slice(0, 7) : 'an unknown commit';
+    const reason = publishedCommit && publishedCommit === sourceSha
+      ? `The same commit produced different bytes (${differing.join(', ')}), so the build is not reproducible.`
+      : `Release ${version} was built from ${built} and differs in ${differing.join(', ')}.`;
+    throw new Error(
+      `${reason} Published versions are immutable: bump the version in manifest.json, `
+      + 'package.json and versions.json to publish a changed build.',
+    );
+  }
+
+  return { publishedCommit, sameCommit: publishedCommit === sourceSha };
+}
+
 function copySourcesWithoutTests(from, to) {
   cpSync(from, to, {
     recursive: true,
@@ -293,12 +391,12 @@ function gh(args, { env, stdio = 'pipe' } = {}) {
   });
 }
 
-function releaseExists(repo, version, env) {
+/** The release for `version`, or null on HTTP 404; any other failure is rethrown. */
+function fetchRelease(repo, version, env) {
   try {
-    gh(['api', `repos/${repo}/releases/tags/${version}`], { env });
-    return true;
+    return JSON.parse(gh(['api', `repos/${repo}/releases/tags/${version}`], { env }));
   } catch (err) {
-    if (/HTTP 404/.test(String(err?.stderr ?? ''))) return false;
+    if (/HTTP 404/.test(String(err?.stderr ?? ''))) return null;
     throw err;
   }
 }
@@ -336,41 +434,20 @@ function syncGitRepo({ stagingDir, repo, token, sourceSha }) {
   }
 }
 
-function publishRelease({ repo, version, token, forceRelease, sourceSha, targetSha, packageDir }) {
+/** Creates the release for a version that has none. Never touches existing releases. */
+function createRelease({ repo, version, token, sourceSha, targetSha, packageDir, digests }) {
   const env = { GH_TOKEN: token, GITHUB_TOKEN: token };
   const assets = RELEASE_ASSETS.map((name) => path.join(packageDir, name));
-  const exists = releaseExists(repo, version, env);
-
-  if (exists && !forceRelease) {
-    console.log(`${TAG} release ${version} already exists — skip`);
-    return;
-  }
-
-  const server = process.env.GITHUB_SERVER_URL || 'https://github.com';
-  const sha = sourceSha || 'unknown';
-  const notes = [
-    'Automated release of Transitrix Studio for Obsidian.',
-    '',
-    `Built from [\`${SOURCE_REPO}@${sha.slice(0, 7)}\`](${server}/${SOURCE_REPO}/commit/${sha}).`,
-  ].join('\n');
+  const notes = buildReleaseNotes({
+    sourceSha,
+    digests,
+    server: process.env.GITHUB_SERVER_URL || 'https://github.com',
+  });
   const notesDir = mkdtempSync(path.join(tmpdir(), 'obsidian-release-notes-'));
   const notesFile = path.join(notesDir, 'notes.md');
   writeFileSync(notesFile, notes, 'utf8');
 
   try {
-    if (exists) {
-      gh(['release', 'upload', version, ...assets, '--repo', repo, '--clobber'], {
-        env,
-        stdio: 'inherit',
-      });
-      gh(['release', 'edit', version, '--repo', repo, '--notes-file', notesFile], {
-        env,
-        stdio: 'inherit',
-      });
-      console.log(`${TAG} re-uploaded assets to release ${version}`);
-      return;
-    }
-
     gh(
       [
         'release', 'create', version, ...assets,
@@ -390,16 +467,20 @@ function publishRelease({ repo, version, token, forceRelease, sourceSha, targetS
 function main() {
   const args = parseArgs(process.argv.slice(2));
   if (args.help) {
-    console.log('Usage: node scripts/sync-obsidian-community.mjs [--dry-run] [--force-release] [--staging <dir>]');
+    console.log('Usage: node scripts/sync-obsidian-community.mjs [--dry-run] [--accepted-main-sha256 <hex>] [--staging <dir>]');
     return;
   }
 
   const repo = process.env.OBSIDIAN_COMMUNITY_REPO || DEFAULT_REPO;
-  const sourceSha = process.env.GITHUB_SHA || '';
+  const sourceSha = (process.env.GITHUB_SHA || '').toLowerCase();
   const mirror = buildCommunityMirror({ stagingDir: args.staging });
   const files = listFilesRecursive(mirror.stagingDir);
+  const digests = computeAssetDigests(PACKAGE_DIR);
   console.log(`${TAG} staged ${files.length} files at ${mirror.stagingDir}`);
   console.log(`${TAG} version ${mirror.version} (minAppVersion ${mirror.minAppVersion})`);
+  for (const name of RELEASE_ASSETS) console.log(`${TAG} sha256 ${digests[name]}  ${name}`);
+
+  assertAcceptedBuild(digests, args.acceptedMainSha256);
 
   if (args.dryRun) {
     console.log(`${TAG} dry-run: skipping git push and release`);
@@ -413,17 +494,38 @@ function main() {
       'OBSIDIAN_PLUGIN_DEPLOY_TOKEN is required (fine-grained PAT or GitHub App with contents:write on the community repo)',
     );
   }
+  if (!COMMIT_SHA.test(sourceSha)) {
+    throw new Error('GITHUB_SHA must be the full 40-character source commit');
+  }
+
+  // Verify an existing release before anything is pushed: a changed build under
+  // a published version must fail without touching the community repo.
+  const existing = fetchRelease(repo, mirror.version, { GH_TOKEN: token, GITHUB_TOKEN: token });
+  if (existing) {
+    const { publishedCommit, sameCommit } = verifyPublishedRelease({
+      version: mirror.version,
+      release: existing,
+      digests,
+      sourceSha,
+    });
+    const origin = sameCommit
+      ? 'the same source commit'
+      : `source commit ${publishedCommit ? publishedCommit.slice(0, 7) : 'unknown'}`;
+    console.log(`${TAG} release ${mirror.version} already published and byte-identical (${origin}); nothing to replace`);
+  }
 
   const targetSha = syncGitRepo({ stagingDir: mirror.stagingDir, repo, token, sourceSha });
-  publishRelease({
-    repo,
-    version: mirror.version,
-    token,
-    forceRelease: args.forceRelease,
-    sourceSha,
-    targetSha,
-    packageDir: PACKAGE_DIR,
-  });
+  if (!existing) {
+    createRelease({
+      repo,
+      version: mirror.version,
+      token,
+      sourceSha,
+      targetSha,
+      packageDir: PACKAGE_DIR,
+      digests,
+    });
+  }
 }
 
 const isMain = Boolean(
