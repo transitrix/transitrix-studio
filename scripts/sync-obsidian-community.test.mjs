@@ -5,28 +5,47 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  rmdirSync,
   rmSync,
   symlinkSync,
+  unlinkSync,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { after, before, describe, it } from 'node:test';
 
 import {
   OUTPUT_DIR,
+  assertAcceptedBuild,
   assertSafeStagingDir,
   buildCommunityMirror,
+  buildReleaseNotes,
+  computeAssetDigests,
+  parseSourceCommit,
   redactSecrets,
   stripMaintainerSections,
   validateReleaseMetadata,
+  verifyPublishedRelease,
 } from './sync-obsidian-community.mjs';
 
+const SCRIPT = fileURLToPath(new URL('./sync-obsidian-community.mjs', import.meta.url));
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PLUGIN_DIR = path.join(ROOT, 'packages', 'obsidian-plugin');
 const STAGING = path.join(OUTPUT_DIR, 'obsidian-community-mirror-test');
 const sourceManifest = JSON.parse(readFileSync(path.join(PLUGIN_DIR, 'manifest.json'), 'utf8'));
+
+/** Removes a symlink or Windows junction without following it. */
+function removeLink(target) {
+  try {
+    unlinkSync(target);
+  } catch {
+    rmdirSync(target);
+  }
+}
 
 describe('buildCommunityMirror', () => {
   let packageDir;
@@ -72,6 +91,16 @@ describe('buildCommunityMirror', () => {
     assert.doesNotMatch(readme, /maintainer:/);
   });
 
+  it('keeps the manual install steps in the public README but not the release process', () => {
+    const { stagingDir } = buildCommunityMirror({ stagingDir: STAGING, packageDir });
+    const readme = readFileSync(path.join(stagingDir, 'README.md'), 'utf8');
+    assert.match(readme, /Manual install \(until the plugin is in the catalog\)/);
+    assert.match(readme, /transitrix-studio-obsidian\/releases\/latest/);
+    assert.match(readme, /\.obsidian\/plugins\/transitrix-studio\//);
+    for (const asset of ['main.js', 'manifest.json', 'styles.css']) assert.ok(readme.includes(asset));
+    assert.doesNotMatch(readme, /Release process|obsidian-release|Build from source/);
+  });
+
   it('rejects a stale packaged manifest', () => {
     const stale = mkdtempSync(path.join(tmpdir(), 'obsidian-stale-'));
     try {
@@ -104,8 +133,8 @@ describe('assertSafeStagingDir', () => {
     const stagingLink = path.join(OUTPUT_DIR, `${suffix}-staging`);
     const sentinel = path.join(outside, 'sentinel');
     writeFileSync(sentinel, 'retain');
-    symlinkSync(outside, parentLink, 'dir');
-    symlinkSync(outside, stagingLink, 'dir');
+    symlinkSync(outside, parentLink, 'junction');
+    symlinkSync(outside, stagingLink, 'junction');
 
     try {
       assert.throws(
@@ -115,10 +144,61 @@ describe('assertSafeStagingDir', () => {
       assert.throws(() => assertSafeStagingDir(stagingLink), /symbolic links/);
       assert.equal(readFileSync(sentinel, 'utf8'), 'retain');
     } finally {
-      rmSync(parentLink, { force: true });
-      rmSync(stagingLink, { force: true });
+      removeLink(parentLink);
+      removeLink(stagingLink);
       rmSync(outside, { recursive: true, force: true });
     }
+  });
+});
+
+describe('staging symlink escape through buildCommunityMirror', () => {
+  const SENTINEL = 'external bytes\n';
+  let packageDir;
+  let external;
+  let link;
+
+  before(() => {
+    mkdirSync(OUTPUT_DIR, { recursive: true });
+    packageDir = mkdtempSync(path.join(tmpdir(), 'obsidian-package-'));
+    copyFileSync(path.join(PLUGIN_DIR, 'manifest.json'), path.join(packageDir, 'manifest.json'));
+    copyFileSync(path.join(PLUGIN_DIR, 'styles.css'), path.join(packageDir, 'styles.css'));
+    writeFileSync(path.join(packageDir, 'main.js'), '/* bundle */\n', 'utf8');
+    external = mkdtempSync(path.join(tmpdir(), 'obsidian-escape-'));
+    mkdirSync(path.join(external, 'victim'));
+    writeFileSync(path.join(external, 'sentinel'), SENTINEL, 'utf8');
+    writeFileSync(path.join(external, 'victim', 'sentinel'), SENTINEL, 'utf8');
+    link = path.join(OUTPUT_DIR, `symlink-proof-${process.pid}`);
+    // Junctions need no elevation on Windows; the type is ignored elsewhere.
+    symlinkSync(external, link, 'junction');
+  });
+
+  after(() => {
+    if (link) removeLink(link);
+    if (external) rmSync(external, { recursive: true, force: true });
+    if (packageDir) rmSync(packageDir, { recursive: true, force: true });
+  });
+
+  function assertExternalIntact() {
+    assert.equal(readFileSync(path.join(external, 'sentinel'), 'utf8'), SENTINEL);
+    assert.equal(readFileSync(path.join(external, 'victim', 'sentinel'), 'utf8'), SENTINEL);
+  }
+
+  it('keeps external bytes when the staging directory is a symlink', () => {
+    assert.throws(() => buildCommunityMirror({ stagingDir: link, packageDir }), /symbolic links/);
+    assertExternalIntact();
+  });
+
+  it('keeps external bytes when a staging parent is a symlink', () => {
+    const staging = path.join(link, 'victim');
+    assert.throws(() => buildCommunityMirror({ stagingDir: staging, packageDir }), /symbolic links/);
+    assertExternalIntact();
+  });
+
+  it('creates nothing outside output/ for a missing path below a symlinked parent', () => {
+    const staging = path.join(link, 'missing', 'deeper');
+    assert.throws(() => buildCommunityMirror({ stagingDir: staging, packageDir }), /symbolic links/);
+    assertExternalIntact();
+    assert.equal(existsSync(path.join(external, 'missing')), false);
   });
 });
 
@@ -175,5 +255,90 @@ describe('redactSecrets', () => {
     const out = redactSecrets(`url ${token} header ${basic}`, token);
     assert.equal(out.includes(token), false);
     assert.equal(out.includes(basic), false);
+  });
+});
+
+describe('release immutability', () => {
+  const SHA = 'a'.repeat(40);
+  const OTHER_SHA = 'b'.repeat(40);
+  const digests = {
+    'main.js': '1'.repeat(64),
+    'manifest.json': '2'.repeat(64),
+    'styles.css': '3'.repeat(64),
+  };
+  const release = (overrides = {}) => ({
+    body: buildReleaseNotes({ sourceSha: SHA, digests }),
+    assets: Object.entries(digests).map(([name, digest]) => ({ name, digest: `sha256:${digest}` })),
+    ...overrides,
+  });
+  const verify = (rel, sourceSha = SHA, local = digests) =>
+    verifyPublishedRelease({ version: '1.2.3', release: rel, digests: local, sourceSha });
+
+  it('hashes the packaged assets', () => {
+    const dir = mkdtempSync(path.join(tmpdir(), 'obsidian-digest-'));
+    try {
+      for (const name of ['main.js', 'manifest.json', 'styles.css']) {
+        writeFileSync(path.join(dir, name), `content of ${name}`, 'utf8');
+      }
+      const out = computeAssetDigests(dir);
+      assert.equal(out['main.js'], createHash('sha256').update('content of main.js').digest('hex'));
+      assert.deepEqual(Object.keys(out), ['main.js', 'manifest.json', 'styles.css']);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('round-trips the source commit through the release notes', () => {
+    const notes = buildReleaseNotes({ sourceSha: SHA, digests });
+    assert.equal(parseSourceCommit(notes), SHA);
+    for (const digest of Object.values(digests)) assert.ok(notes.includes(digest));
+    // Notes written by the first release (0.1.0) must stay readable.
+    const legacy = 'Built from [`transitrix/transitrix-studio@666682b`](https://github.com/transitrix/transitrix-studio/commit/666682b41f051742c342493bf9b78c3b97b3d5cf).';
+    assert.equal(parseSourceCommit(legacy), '666682b41f051742c342493bf9b78c3b97b3d5cf');
+    assert.equal(parseSourceCommit('no link'), null);
+    assert.equal(parseSourceCommit('/commit/abc1234'), null);
+  });
+
+  it('accepts a byte-identical rerun from the same commit', () => {
+    assert.deepEqual(verify(release()), { publishedCommit: SHA, sameCommit: true });
+  });
+
+  it('accepts a byte-identical rerun from a later commit', () => {
+    assert.deepEqual(verify(release(), OTHER_SHA), { publishedCommit: SHA, sameCommit: false });
+  });
+
+  it('rejects a changed build under a published version and asks for a new version', () => {
+    const changed = { ...digests, 'main.js': '9'.repeat(64) };
+    assert.throws(() => verify(release(), OTHER_SHA, changed), /bump the version/);
+  });
+
+  it('reports a non-reproducible build when the same commit produced different bytes', () => {
+    const changed = { ...digests, 'styles.css': '9'.repeat(64) };
+    assert.throws(() => verify(release(), SHA, changed), /not reproducible/);
+  });
+
+  it('fails closed when a published asset has no digest or is missing', () => {
+    const noDigest = release({ assets: [
+      { name: 'main.js', digest: null },
+      { name: 'manifest.json', digest: `sha256:${digests['manifest.json']}` },
+      { name: 'styles.css', digest: `sha256:${digests['styles.css']}` },
+    ] });
+    assert.throws(() => verify(noDigest), /cannot verify/);
+    assert.throws(() => verify(release({ assets: [] })), /cannot verify/);
+  });
+
+  it('requires the build to match the accepted main.js digest', () => {
+    assert.doesNotThrow(() => assertAcceptedBuild(digests, ''));
+    assert.doesNotThrow(() => assertAcceptedBuild(digests, digests['main.js'].toUpperCase()));
+    assert.throws(() => assertAcceptedBuild(digests, '9'.repeat(64)), /accepted build/);
+  });
+
+  it('has no way to replace published assets', () => {
+    const source = readFileSync(SCRIPT, 'utf8');
+    assert.doesNotMatch(source, /--clobber|release', 'upload'|release', 'edit'|release', 'delete'/);
+    assert.throws(
+      () => execFileSync(process.execPath, [SCRIPT, '--force-release', '--dry-run'], { stdio: 'pipe' }),
+      (err) => /Unknown argument: --force-release/.test(String(err.stderr)),
+    );
   });
 });

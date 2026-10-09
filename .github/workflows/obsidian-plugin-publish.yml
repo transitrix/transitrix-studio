@@ -1,0 +1,78 @@
+name: Publish Obsidian plugin
+
+# Explicitly started release of the Obsidian plugin: mirrors the sources into
+# transitrix/transitrix-studio-obsidian and creates the GitHub Release there.
+# Nothing here runs automatically; build and tests live in
+# obsidian-plugin-build.yml, which also publishes the artifact to accept.
+#
+# Published versions are immutable. If the release for manifest.version already
+# exists, the build must be byte-identical to it (SHA-256) or the run fails and
+# the version has to be bumped.
+#
+# One-time setup:
+#   1. Repository secret OBSIDIAN_PLUGIN_DEPLOY_TOKEN (fine-grained PAT or
+#      GitHub App) with contents:write on transitrix/transitrix-studio-obsidian.
+#   2. Environment "obsidian-release" with required reviewers, so each publish
+#      needs an explicit approval.
+
+on:
+  workflow_dispatch:
+    inputs:
+      accepted_main_js_sha256:
+        description: SHA-256 of main.js from the accepted build (see the summary of the Obsidian plugin build run)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-obsidian-plugin
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Mirror + release
+    if: github.ref == 'refs/heads/main'
+    environment: obsidian-release
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Require deploy token
+        env:
+          OBSIDIAN_PLUGIN_DEPLOY_TOKEN: ${{ secrets.OBSIDIAN_PLUGIN_DEPLOY_TOKEN }}
+        run: |
+          if [ -z "${OBSIDIAN_PLUGIN_DEPLOY_TOKEN}" ]; then
+            echo "::error::Missing secret OBSIDIAN_PLUGIN_DEPLOY_TOKEN (contents:write on transitrix/transitrix-studio-obsidian)"
+            exit 1
+          fi
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Test plugin
+        run: npm run test:obsidian-plugin
+
+      - name: Test sync script
+        run: npm run test:obsidian-sync
+
+      - name: Package plugin
+        run: npm run package:obsidian-plugin
+
+      - name: Publish (fails if the build differs from the accepted one)
+        env:
+          OBSIDIAN_PLUGIN_DEPLOY_TOKEN: ${{ secrets.OBSIDIAN_PLUGIN_DEPLOY_TOKEN }}
+          OBSIDIAN_COMMUNITY_REPO: transitrix/transitrix-studio-obsidian
+          GITHUB_SHA: ${{ github.sha }}
+          ACCEPTED_MAIN_JS_SHA256: ${{ inputs.accepted_main_js_sha256 }}
+        run: node scripts/sync-obsidian-community.mjs --accepted-main-sha256 "${ACCEPTED_MAIN_JS_SHA256}"

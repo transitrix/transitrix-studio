@@ -71,7 +71,8 @@ published:
   # Obsidian community distribution mirror (sync script + CI)
   - scripts/sync-obsidian-community.mjs
   - scripts/sync-obsidian-community.test.mjs
-  - .github/workflows/sync-obsidian-plugin.yml
+  - .github/workflows/obsidian-plugin-build.yml
+  - .github/workflows/obsidian-plugin-publish.yml
 
   # Read-only document checker shipped in CLI/editor and its consumer contract
   - src/document-provenance.ts
