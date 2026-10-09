@@ -32,7 +32,7 @@
   "devDependencies": {
     "@types/js-yaml": "^4.0.9",
     "jsdom": "^29.1.1",
-    "obsidian": "1.8.7",
+    "obsidian": "1.13.1",
     "typescript": "^5.8.3",
     "vitest": "^4.1.11"
   }
