@@ -8,6 +8,7 @@ import yaml from 'js-yaml';
 const provenance = {captured_by:'author',captured_on:'2026-01-01',setting:'Source observation'};
 const envelope = {name:'Example', zone:'canon', admitted_at:'2026-01-01', admitted_by:'author', gate_checks:{uniqueness:'pass',consistency:'pass',completeness:'pass'}, valid_from:'2026-01-01', valid_to:null};
 const examples: Record<string, Record<string, unknown>> = {
+ process:{...envelope,notation:'process',id:'PROCESS-1',goal:'A useful outcome',result:'Accepted output'},
  capability:{...envelope, notation:'capability',id:'CAPABILITY-V1',type:'domain'},
  product:{...envelope, notation:'product',id:'PRODUCT-1',type:'service'},
  role:{...envelope, notation:'role',id:'ROLE-1'},
@@ -78,5 +79,30 @@ describe('actual repository coverage dispatch', () => {
   expect(result.coverage?.excluded).toHaveLength(3);
   expect(result.views.filter(f=>f.ruleId==='ZONE-001')).toHaveLength(2);
   expect(result.views).toContainEqual(expect.objectContaining({ruleId:'ADMIT-012',severity:'error'}));
+ });
+});
+
+
+describe('canonical process coverage', () => {
+ const process = {...examples.process, owner_role:'ROLE-1', capability:'CAPABILITY-V1', participants:['ROLE-1'], flow:{
+  steps:[{id:'STEP-START-1',type:'startEvent',performed_by:'ROLE-1'},{id:'STEP-WORK-1',type:'task',name:'Work',performed_by:'ROLE-1'},{id:'STEP-END-1',type:'endEvent',performed_by:'ROLE-1'}],
+  sequence:[{from:'STEP-START-1',to:'STEP-WORK-1'},{from:'STEP-WORK-1',to:'STEP-END-1'}],
+ }};
+ it('accepts metadata-only and behavioural definitions; rejects malformed published fields', () => {
+  expect(validateNotationDoc('process',process).isValid).toBe(true);
+  for(const patch of [{owner_role:'ACTOR-1'},{capability:'GOAL-1'},{participants:'ROLE-1'},{participants:['ROLE-1','ROLE-1']},{goal:4},{result:[]},{parent:'PROCESS-2'},{bpmn_file:'flow.bpmn'},{maturity:2},{flow:[]},{flow:{steps:[],sequence:[]}}, {flow:{...process.flow,sequence:[{from:'STEP-START-1',to:'STEP-MISSING-1'}]}}, {flow:{...process.flow,steps:[{id:'bad',type:'unknown',performed_by:'ROLE-2'}]}}, {flow:{...process.flow,steps:[...process.flow.steps,process.flow.steps[0]]}}]) {
+   expect(validateNotationDoc('process',{...process,...patch}).isValid,JSON.stringify(patch)).toBe(false);
+  }
+ });
+ it('executes repository field and reference validation without skipping PROCESS', () => {
+  const files={'canon/elements/PROCESS-1.yaml':yaml.dump(process),'canon/elements/ROLE-1.yaml':yaml.dump(examples.role),'canon/elements/CAPABILITY-V1.yaml':yaml.dump(examples.capability)};
+  const good=repo(files);
+  expect(good.coverage).toMatchObject({discovered:3,read:3,validated:3,unvalidated:0,failed:0});
+  expect(good.views.filter(f=>f.severity==='error')).toEqual([]);
+  for(const patch of [{owner_role:'ROLE-MISSING-1'},{capability:'CAPABILITY-V9'},{participants:['ACTOR-MISSING-1']},{flow:{...process.flow,steps:[{...process.flow.steps[1],supported_by_application:'APPLICATION-MISSING-1'}]}}]) {
+   const bad=repo({...files,'canon/elements/PROCESS-1.yaml':yaml.dump({...process,...patch})});
+   expect(bad.views).toContainEqual(expect.objectContaining({ruleId:'SCHEMA_INVALID',severity:'error'}));
+   expect(bad.coverage?.unvalidated).toBe(0);
+  }
  });
 });
