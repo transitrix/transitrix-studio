@@ -103,3 +103,7 @@ published:
   - src/validators/scenario.ts
   - tests/standalone-validation.test.ts
   - changelog/fragments/standalone-validation.md
+
+  # Standalone process validator and conformance release note
+  - src/validators/process.ts
+  - changelog/fragments/process-validation.md

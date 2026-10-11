@@ -1,6 +1,6 @@
 // Standalone forms from ELEMENT_PRIMITIVES and CONTRACT (Methodology 7).
 // Field payloads are opaque: only their published identity/admission contract is checked.
-import { isCanonicalIdOfType, typeOfId, type CanonCatalog } from '../typed-id.js';
+import { isCanonicalId, isCanonicalIdOfType, typeOfId, type CanonCatalog } from '../typed-id.js';
 import type { ValidationResult } from '../validation-types.js';
 
 export const mapping = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
@@ -49,6 +49,42 @@ export function validateStandalone(notation: string, input: unknown, options: St
     optionalText('domain'); reference('owner_role', ['ROLE']);
     if ('maturity' in d && !(Number.isInteger(d.maturity) && Number(d.maturity) >= 1 && Number(d.maturity) <= 5)) fail('maturity', 'integer 1..5', d.maturity);
     references('capabilities', ['CAPABILITY']); references('processes', ['PROCESS']); references('supporting_apps', ['APPLICATION']);
+  } else if (notation === 'process') {
+    reference('owner_role', ['ROLE']); reference('capability', ['CAPABILITY']);
+    references('participants', ['ROLE', 'ACTOR']);
+    optionalText('goal'); optionalText('result');
+    for (const key of ['parent', 'bpmn_file', 'maturity']) if (key in d) fail(key, 'absent inline; use canonical relations, flow or history', d[key]);
+    if (Array.isArray(d.participants) && new Set(d.participants).size !== d.participants.length) fail('participants', 'unique references', d.participants);
+    if ('flow' in d) {
+      if (!mapping(d.flow)) fail('flow', 'mapping', d.flow);
+      else {
+        const flow = d.flow;
+        const steps = Array.isArray(flow.steps) ? flow.steps : [];
+        const sequence = Array.isArray(flow.sequence) ? flow.sequence : [];
+        if (!Array.isArray(flow.steps) || !steps.length) fail('flow.steps', 'nonempty list', flow.steps);
+        if (!Array.isArray(flow.sequence)) fail('flow.sequence', 'list', flow.sequence);
+        const ids = new Set<string>();
+        const types = ['startEvent', 'endEvent', 'task', 'userTask', 'serviceTask', 'exclusiveGateway', 'parallelGateway'];
+        steps.forEach((step, i) => {
+          const key = `flow.steps[${i}]`;
+          if (!mapping(step)) { fail(key, 'mapping', step); return; }
+          if (!isCanonicalId(step.id) || ids.has(step.id)) fail(`${key}.id`, 'unique canonical step ID', step.id);
+          else ids.add(step.id);
+          if (!types.includes(step.type as string)) fail(`${key}.type`, types.join('|'), step.type);
+          if ((!['startEvent','endEvent'].includes(step.type as string) || 'name' in step) && !text(step.name)) fail(`${key}.name`, 'nonempty string', step.name);
+          ref(`${key}.performed_by`, step.performed_by, ['ROLE','ACTOR']);
+          if (!Array.isArray(d.participants) || !d.participants.includes(step.performed_by)) fail(`${key}.performed_by`, 'member of participants', step.performed_by);
+          if ('supported_by_application' in step) ref(`${key}.supported_by_application`, step.supported_by_application, ['APPLICATION']);
+        });
+        sequence.forEach((edge, i) => {
+          const key = `flow.sequence[${i}]`;
+          if (!mapping(edge)) { fail(key, 'mapping', edge); return; }
+          for (const end of ['from', 'to']) if (typeof edge[end] !== 'string' || !ids.has(edge[end] as string)) fail(`${key}.${end}`, 'ID in flow.steps', edge[end]);
+          if ('condition' in edge && !text(edge.condition)) fail(`${key}.condition`, 'nonempty string', edge.condition);
+          if ('default' in edge && typeof edge.default !== 'boolean') fail(`${key}.default`, 'boolean', edge.default);
+        });
+      }
+    }
   } else if (notation === 'capability') {
     if (!['domain','supporting'].includes(d.type as string)) fail('type', 'domain|supporting', d.type);
     for (const key of ['current_maturity','target_maturity','owner_role','target_date']) if (key in d) fail(key, 'attribute in history sidecar, absent inline', d[key], 'VERSIONED-004');
