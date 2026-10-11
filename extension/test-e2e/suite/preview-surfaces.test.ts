@@ -754,6 +754,10 @@ describe('Packaged subject reports and installed headless caller parity', functi
     await select(PA);
     assert.deepStrictEqual((await parity(PA)).metrics.failed.ids, ids(3));
     const remove = new vscode.WorkspaceEdit(); remove.deleteFile(uri); assert.ok(await vscode.workspace.applyEdit(remove));
+    // Observe deletion in the current report before issuing a one-shot navigation
+    // click: the watcher can otherwise replace the webview between its readiness
+    // probe and the click. This also verifies deletion independently of switching.
+    assert.deepStrictEqual((await parity(PA)).metrics.noResult.ids, ids(3));
     await select('APPLICATION-SAAS-1', 'RELEASE-SAAS-1', '');
     assert.deepStrictEqual((await parity('APPLICATION-SAAS-1', 'RELEASE-SAAS-1', '')).metrics.noResult.ids, ids(3));
     fs.writeFileSync(path.join(root, 'canon', 'broken.yaml'), 'membership: [');
