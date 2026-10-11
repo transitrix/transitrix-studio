@@ -72,19 +72,38 @@ describe('requirements-report caller contract', () => {
       expect(Object.values(p.projection.metrics).map((s: any) => s.total)).toEqual([0,0,0,0,0,0]);
     });
   });
-  it('distinguishes missing selection, malformed input, partial reads and source assertion failure', () => {
-    catalogue((root, args) => {
-      for (const extra of [['--unknown'], ['--as-at','2026-02-30'], ['--json']]) {
+  // Each rejection is an independent caller contract and launches a fresh CLI.
+  // Keep the normal per-test deadline instead of charging seven processes to one.
+  for (const extra of [['--unknown'], ['--as-at','2026-02-30'], ['--json']]) {
+    it(`rejects malformed arguments: ${extra.join(' ')}`, () => {
+      catalogue((_root, args) => {
         const result = runCli([...args, ...extra]); expect(result.status).toBe(1);
         expect(JSON.parse(result.stdout)).toMatchObject({ status: 'error', projection: null, counts: null, errors: [{ code: 'USAGE' }] });
-      }
+      });
+    });
+  }
+  it('rejects a source revision assertion that cannot be met', () => {
+    catalogue((_root, args) => {
       expect(JSON.parse(runCli([...args, '--expect-source-revision', 'a'.repeat(40)]).stdout).errors[0].code).toBe('SOURCE_REVISION');
+    });
+  });
+  it('reports missing selection as incomplete rather than zero', () => {
+    catalogue((_root, args) => {
       const unknown = runCli(args.map(v => v === 'APPLICATION-TEST-1' ? 'APPLICATION-MISSING-1' : v));
       expect(unknown.status).toBe(2); expect(JSON.parse(unknown.stdout).projection.metrics.unassigned.total).toBeNull();
+    });
+  });
+  it('retains partial-read evidence and unknown counts', () => {
+    catalogue((root, args) => {
       writeFileSync(join(root,'canon','broken.yaml'), 'bad: [');
       const partial = runCli(args); expect(partial.status).toBe(2);
       const parsed = JSON.parse(partial.stdout); expect(parsed.projection.populations.selected.total).toBeNull();
       expect(parsed.projection.findings).toEqual(expect.arrayContaining([expect.objectContaining({ code: 'LOAD', owner: 'canon/broken.yaml' })]));
+    });
+  });
+  it('rejects a missing catalogue manifest even when a source file is malformed', () => {
+    catalogue((root, args) => {
+      writeFileSync(join(root,'canon','broken.yaml'), 'bad: [');
       rmSync(join(root,'transitrix.yaml'));
       expect(JSON.parse(runCli(args).stdout)).toMatchObject({ status: 'error', projection: null, errors: [{ code: 'LOAD' }] });
     });
