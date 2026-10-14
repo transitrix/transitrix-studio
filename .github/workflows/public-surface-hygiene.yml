@@ -70,3 +70,28 @@ jobs:
 
       - name: Packaged image references
         run: node scripts/ci-hygiene-image-refs.mjs
+
+      - name: Record scanned pull request subject
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          python3 - <<'PYTHON'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+
+          # Bind successful scans to the event metadata they actually checked.
+          event = json.loads(Path(os.environ['GITHUB_EVENT_PATH']).read_text())
+          pull = event['pull_request']
+          subject = {
+              'schema': 'public-hygiene-subject/v1',
+              'number': pull['number'],
+              'head': pull['head']['sha'],
+              'base': pull['base']['sha'],
+              'title': pull['title'],
+              'body': pull.get('body') or '',
+          }
+          encoded = json.dumps(subject, sort_keys=True, separators=(',', ':')).encode()
+          print('HYGIENE_SUBJECT_SHA256=' + hashlib.sha256(encoded).hexdigest())
+          PYTHON
