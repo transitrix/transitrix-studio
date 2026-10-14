@@ -13,15 +13,9 @@ If you discover a security vulnerability in Transitrix Studio, please report it 
 
 ## Supported Versions
 
-Security updates are provided for:
+Security fixes are provided only for the [latest stable release](https://github.com/transitrix/transitrix-studio/releases/latest).
 
-| Version | Support Status |
-|---------|----------------|
-| 3.5.x   | Current release |
-| 3.4.x   | Maintenance fixes |
-| < 3.4   | End of life |
-
-We recommend keeping your extension updated to the latest version to receive security patches promptly.
+Earlier versions do not receive security fixes. We recommend upgrading to the latest stable release.
 
 ## Published Verification Evidence
 
