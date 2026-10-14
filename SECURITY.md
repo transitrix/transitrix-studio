@@ -17,6 +17,8 @@ Security fixes are provided only for the [latest stable release](https://github.
 
 Earlier versions do not receive security fixes. We recommend upgrading to the latest stable release.
 
+This support policy defines which versions will receive future security fixes. It does not, by itself, indicate that earlier versions contain known vulnerabilities or malicious code.
+
 ## Published Verification Evidence
 
 The [release history](https://github.com/transitrix/transitrix-studio/releases) identifies published versions and their verification materials. Release availability does not by itself establish a security-support commitment for a version branch.
