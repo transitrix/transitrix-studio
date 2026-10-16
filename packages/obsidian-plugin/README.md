@@ -55,14 +55,40 @@ Action Card uses Theme only. Changing settings refreshes open Reading-view diagr
 
 ## Install
 
+### From the community catalog
+
 Once listed in the Obsidian community catalog, install **Transitrix Studio** from
 Settings → Community plugins. The public distribution repository is
 [transitrix/transitrix-studio-obsidian](https://github.com/transitrix/transitrix-studio-obsidian).
 
+### Manual install (until the plugin is in the catalog)
+
+Obsidian Desktop only.
+
+1. Open the [latest release](https://github.com/transitrix/transitrix-studio-obsidian/releases/latest)
+   and download the three files listed under **Assets**: `main.js`,
+   `manifest.json` and `styles.css`. Do not use "Source code (zip)" — it does not
+   contain `main.js`.
+2. In your vault, create the folder `.obsidian/plugins/transitrix-studio/`. The
+   folder name must be exactly `transitrix-studio`. `.obsidian` is hidden in most
+   file managers; show hidden files or create the folder from a terminal.
+3. Copy the three downloaded files into that folder.
+4. In Obsidian open Settings → Community plugins, turn **Restricted mode** off,
+   click the refresh icon next to "Installed plugins", and enable
+   **Transitrix Studio**.
+5. Open a note with a `transitrix-*` fence in **Reading view**.
+
+To update, download the three files from the newer release, overwrite the old
+ones and restart Obsidian (or disable and re-enable the plugin).
+
+Optional: the release notes list a SHA-256 for each file. Compare it with the
+file you downloaded (`Get-FileHash main.js` on Windows, `shasum -a 256 main.js`
+on macOS/Linux).
+
 Demo notes with worked fences live in `demo/`.
 
 <!-- maintainer:start -->
-### Manual install (from this monorepo)
+### Build from source (this monorepo)
 
 From the repository root:
 
@@ -71,32 +97,45 @@ npm ci
 npm run package:obsidian-plugin
 ```
 
-Copy `output/obsidian-plugin/manifest.json`, `main.js`, and `styles.css` into:
+Copy `output/obsidian-plugin/manifest.json`, `main.js`, and `styles.css` into
+`.obsidian/plugins/transitrix-studio/` and enable **Transitrix Studio** as above.
 
-`.obsidian/plugins/transitrix-studio/`
+### Release process
 
-Enable **Transitrix Studio** under Settings → Community plugins.
+Build and publication are separate; nothing is published automatically.
 
-### Community distribution sync
+1. **Build** — `.github/workflows/obsidian-plugin-build.yml` runs on every PR and
+   push to `main` that touches the plugin, `packages/diagrams/**`, the lockfile or
+   the sync script. It runs the plugin and sync tests, builds the production
+   bundle, dry-runs the community mirror and uploads `main.js`, `manifest.json`,
+   `styles.css` and `SHA256SUMS` as an artifact. The `main.js` digest is shown in
+   the run summary. It needs no secrets and never publishes.
+2. **Accept** — test that artifact in a real Obsidian Desktop.
+3. **Publish** — start *Publish Obsidian plugin*
+   (`.github/workflows/obsidian-plugin-publish.yml`) manually on `main` and pass
+   the accepted `main.js` digest. The run needs approval for the
+   `obsidian-release` environment, rebuilds, and fails if its `main.js` differs
+   from the accepted digest. It then mirrors plugin sources, demos, manifest,
+   `versions.json`, styles, README and LICENSE into
+   `transitrix/transitrix-studio-obsidian` and creates the GitHub Release
+   (assets: `main.js`, `manifest.json`, `styles.css`; notes: source commit and
+   SHA-256 of each asset). The mirror is not a standalone build: `main.js`
+   bundles `@transitrix/diagrams` from this monorepo.
 
-Merges to `main` that touch `packages/obsidian-plugin/**`, `packages/diagrams/**`
-or the lockfile run `.github/workflows/sync-obsidian-plugin.yml`. That workflow:
+Published versions are immutable. Assets of an existing release are never
+replaced. Publishing a version that already exists only verifies it: if the new
+build is byte-identical (SHA-256) to the release, nothing happens; otherwise the
+run fails before anything is pushed. A changed build needs a new version.
 
-1. Runs the plugin and sync tests, then builds the production bundle
-2. Mirrors plugin sources, demos, manifest, `versions.json`, styles, README and
-   LICENSE into `transitrix/transitrix-studio-obsidian`. The mirror is not a
-   standalone build: `main.js` bundles `@transitrix/diagrams` from this monorepo,
-   and each release note links the exact source commit.
-3. Creates a GitHub Release there when `manifest.json` `version` has no tag yet
-   (assets: `main.js`, `manifest.json`, `styles.css`)
-
-Before a release, bump `version` in `manifest.json` and `package.json` together
-and add the same version to `versions.json` (value: `minAppVersion`). The sync
-fails closed if they disagree.
+To release a new version, bump `version` in `manifest.json` and `package.json`
+together and add the same version to `versions.json` (value: `minAppVersion`).
+The publish run fails closed if they disagree.
 
 Sections between the `maintainer` markers in this README are stripped from the
-community copy. Requires repository secret `OBSIDIAN_PLUGIN_DEPLOY_TOKEN` with
-`contents:write` on the community repo. Local dry-run:
+community copy. One-time setup: repository secret `OBSIDIAN_PLUGIN_DEPLOY_TOKEN`
+with `contents:write` on the community repo, and an `obsidian-release`
+environment with required reviewers. Local dry-run (prints the asset digests,
+pushes nothing):
 
 ```sh
 npm run sync:obsidian-community:dry
