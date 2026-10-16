@@ -73,6 +73,10 @@ published:
   - scripts/sync-obsidian-community.test.mjs
   - .github/workflows/sync-obsidian-plugin.yml
 
+  # Manual acceptance kit for the published Obsidian plugin (vault builder + checker)
+  - scripts/obsidian-acceptance-kit.mjs
+  - scripts/obsidian-acceptance-kit.test.mjs
+
   # Read-only document checker shipped in CLI/editor and its consumer contract
   - src/document-provenance.ts
   - docs/document-provenance.md
