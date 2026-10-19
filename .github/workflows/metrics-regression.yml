@@ -48,7 +48,16 @@ jobs:
         run: npm run extension:prep
 
       - name: Verify extension packaging hygiene
-        run: node scripts/verify-extension-packaging.mjs
+        run: |
+          node --test scripts/verify-extension-packaging.test.mjs
+          node scripts/verify-extension-packaging.mjs
+
+      - name: Verify consumer package composition without publishing
+        run: |
+          node --test scripts/consumer-package-paths.test.mjs
+          npm run build:cli-package
+          npm run package:obsidian-plugin
+          node scripts/consumer-package-paths.mjs
 
       - name: Guard against new .cervin.yaml files (P6)
         run: npm run check:no-cervin-yaml

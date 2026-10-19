@@ -65,3 +65,33 @@ not the VS Code Marketplace. The same universal VSIX above publishes to
 Open VSX with `ovsx publish <vsix>` — see [`openvsx-publish-runbook.md`](openvsx-publish-runbook.md)
 for the registry-specific prerequisites (namespace claim, `OVSX_PAT`) and
 the per-release procedure.
+
+## Consumer boundaries
+
+The public developer repository includes source, tests, build tools and contributor
+instructions. The repository publish manifest inventories that surface; it does
+not authorize copying the whole repository into an installed package.
+
+| Delivery | Consumer need and retained files | Repository-only inputs |
+| --- | --- | --- |
+| VSIX | VS Code installer metadata; extension/compiler/webview bundles; schemas, syntax, CSS/fonts and icons loaded at runtime; README, changelog, gallery media and license used by the listing and installed documentation | TypeScript build inputs, development-host test harness and configuration |
+| npm CLI | Executable and validator bundles, runtime version/provenance JSON, JSON schemas, package metadata, README and license | Tests, build scripts and source trees |
+| npm diagrams SDK | Runtime exports, TypeScript declarations, CSS and the source layout explicitly documented in the package README for downstream developers; package metadata, README and license | Test fixtures, test files, source maps and build tools |
+| JetBrains | Plugin metadata/icons, JVM classes and JCEF host/renderer resources inside the plugin JAR | Kotlin sources, Gradle tooling and tests |
+| Obsidian | The installer/runtime's main.js, manifest.json and styles.css; documentation, licensing and development source remain available from the linked public repository | Build tools, test suites, examples and source files are excluded from the installed release assets |
+
+The VSIX checker validates the complete archive path set and refuses both extra
+files and missing consumer dependencies. Test sources remain in the repository
+and are compiled outside the archive for the development-host smoke tests.
+The npm/Obsidian composition check uses actual npm dry-run packlists after the
+build and the assembled Obsidian directory, without publishing anything:
+
+```sh
+node --test scripts/consumer-package-paths.test.mjs
+npm run build:cli-package
+npm run package:obsidian-plugin
+node scripts/consumer-package-paths.mjs
+```
+
+JetBrains JAR composition can be checked with the same path verifier's
+`jetbrains-jar` profile. This does not replace IDE compatibility testing.

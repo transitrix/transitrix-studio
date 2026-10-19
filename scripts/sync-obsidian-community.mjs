@@ -20,7 +20,7 @@
  * output/obsidian-plugin/{main.js,manifest.json,styles.css}).
  *
  * Usage:
- *   node scripts/sync-obsidian-community.mjs [--dry-run] [--accepted-main-sha256 <hex>] [--staging <dir>]
+ *   node scripts/sync-obsidian-community.mjs [--dry-run] [--accepted-artifact-sha256 <hex>] [--staging <dir>]
  *
  * Env:
  *   OBSIDIAN_PLUGIN_DEPLOY_TOKEN  PAT/App token with contents:write on the
@@ -71,19 +71,19 @@ const TAG = '[sync-obsidian]';
 function parseArgs(argv) {
   const args = {
     dryRun: false,
-    acceptedMainSha256: '',
+    acceptedArtifactSha256: '',
     staging: DEFAULT_STAGING,
     help: false,
   };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === '--dry-run') args.dryRun = true;
-    else if (arg === '--accepted-main-sha256') {
+    else if (arg === '--accepted-artifact-sha256') {
       const value = argv[i + 1];
       if (!value || !SHA256_HEX.test(value)) {
-        throw new Error('--accepted-main-sha256 requires a 64-character hex digest');
+        throw new Error('--accepted-artifact-sha256 requires a 64-character hex digest');
       }
-      args.acceptedMainSha256 = value.toLowerCase();
+      args.acceptedArtifactSha256 = value.toLowerCase();
       i += 1;
     } else if (arg === '--staging') {
       const value = argv[i + 1];
@@ -213,12 +213,23 @@ export function computeAssetDigests(packageDir) {
   );
 }
 
-/** The accepted build is identified by the digest of its main.js. */
-export function assertAcceptedBuild(digests, acceptedMainSha256) {
-  if (!acceptedMainSha256) return;
-  if (digests['main.js'] !== acceptedMainSha256.toLowerCase()) {
+/** Hash the canonical SHA256SUMS contents: all three names and their digests. */
+export function computeArtifactDigest(digests) {
+  const sums = RELEASE_ASSETS.map((name) => {
+    if (!SHA256_HEX.test(digests[name] ?? '')) throw new Error(`Missing or invalid digest for ${name}`);
+    return `${digests[name].toLowerCase()}  ${name}\n`;
+  }).join('');
+  return createHash('sha256').update(sums).digest('hex');
+}
+
+export function assertAcceptedBuild(digests, acceptedArtifactSha256) {
+  if (!SHA256_HEX.test(acceptedArtifactSha256 ?? '')) {
+    throw new Error('The accepted build requires a 64-character artifact SHA-256 digest');
+  }
+  const actual = computeArtifactDigest(digests);
+  if (actual !== acceptedArtifactSha256.toLowerCase()) {
     throw new Error(
-      `main.js sha256 ${digests['main.js']} differs from the accepted build ${acceptedMainSha256.toLowerCase()}. `
+      `Artifact sha256 ${actual} differs from the accepted build ${acceptedArtifactSha256.toLowerCase()}. `
       + 'Publish only the build that passed acceptance.',
     );
   }
@@ -467,7 +478,7 @@ function createRelease({ repo, version, token, sourceSha, targetSha, packageDir,
 function main() {
   const args = parseArgs(process.argv.slice(2));
   if (args.help) {
-    console.log('Usage: node scripts/sync-obsidian-community.mjs [--dry-run] [--accepted-main-sha256 <hex>] [--staging <dir>]');
+    console.log('Usage: node scripts/sync-obsidian-community.mjs [--dry-run] [--accepted-artifact-sha256 <hex>] [--staging <dir>]');
     return;
   }
 
@@ -480,7 +491,9 @@ function main() {
   console.log(`${TAG} version ${mirror.version} (minAppVersion ${mirror.minAppVersion})`);
   for (const name of RELEASE_ASSETS) console.log(`${TAG} sha256 ${digests[name]}  ${name}`);
 
-  assertAcceptedBuild(digests, args.acceptedMainSha256);
+  if (!args.dryRun || args.acceptedArtifactSha256) {
+    assertAcceptedBuild(digests, args.acceptedArtifactSha256);
+  }
 
   if (args.dryRun) {
     console.log(`${TAG} dry-run: skipping git push and release`);

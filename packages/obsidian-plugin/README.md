@@ -108,14 +108,14 @@ Build and publication are separate; nothing is published automatically.
    push to `main` that touches the plugin, `packages/diagrams/**`, the lockfile or
    the sync script. It runs the plugin and sync tests, builds the production
    bundle, dry-runs the community mirror and uploads `main.js`, `manifest.json`,
-   `styles.css` and `SHA256SUMS` as an artifact. The `main.js` digest is shown in
+   `styles.css` and `SHA256SUMS` as an artifact. The SHA-256 of `SHA256SUMS` (binding all three assets) is shown in
    the run summary. It needs no secrets and never publishes.
 2. **Accept** — test that artifact in a real Obsidian Desktop.
 3. **Publish** — start *Publish Obsidian plugin*
    (`.github/workflows/obsidian-plugin-publish.yml`) manually on `main` and pass
-   the accepted `main.js` digest. The run needs approval for the
-   `obsidian-release` environment, rebuilds, and fails if its `main.js` differs
-   from the accepted digest. It then mirrors plugin sources, demos, manifest,
+   the accepted `SHA256SUMS` digest. The run needs approval for the
+   `obsidian-release` environment, rebuilds, and fails if any of the three release files differs
+   from the accepted artifact. It then mirrors plugin sources, demos, manifest,
    `versions.json`, styles, README and LICENSE into
    `transitrix/transitrix-studio-obsidian` and creates the GitHub Release
    (assets: `main.js`, `manifest.json`, `styles.css`; notes: source commit and

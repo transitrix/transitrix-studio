@@ -25,6 +25,7 @@ import {
   buildCommunityMirror,
   buildReleaseNotes,
   computeAssetDigests,
+  computeArtifactDigest,
   parseSourceCommit,
   redactSecrets,
   stripMaintainerSections,
@@ -327,11 +328,27 @@ describe('release immutability', () => {
     assert.throws(() => verify(release({ assets: [] })), /cannot verify/);
   });
 
-  it('requires the build to match the accepted main.js digest', () => {
-    assert.doesNotThrow(() => assertAcceptedBuild(digests, ''));
-    assert.doesNotThrow(() => assertAcceptedBuild(digests, digests['main.js'].toUpperCase()));
-    assert.throws(() => assertAcceptedBuild(digests, '9'.repeat(64)), /accepted build/);
+  it('requires the complete artifact to match the accepted build', () => {
+    const accepted = computeArtifactDigest(digests);
+    const sums = ['main.js', 'manifest.json', 'styles.css']
+      .map((name) => `${digests[name]}  ${name}\n`).join('');
+    assert.equal(accepted, createHash('sha256').update(sums).digest('hex'));
+    assert.doesNotThrow(() => assertAcceptedBuild(digests, accepted.toUpperCase()));
+    for (const value of ['', undefined, 'invalid', '9'.repeat(64)]) {
+      assert.throws(() => assertAcceptedBuild(digests, value), /accepted build/);
+    }
   });
+
+  for (const name of ['main.js', 'styles.css', 'manifest.json']) {
+    it(`rejects a ${name}-only substitution of the accepted artifact`, () => {
+      const accepted = computeArtifactDigest(digests);
+      assert.throws(() => assertAcceptedBuild({ ...digests, [name]: '9'.repeat(64) }, accepted), /accepted build/);
+      assert.throws(() => computeArtifactDigest({ ...digests, [name]: undefined }), /Missing or invalid digest/);
+    });
+    it(`preserves published release immutability for ${name}`, () => {
+      assert.throws(() => verify(release(), OTHER_SHA, { ...digests, [name]: '9'.repeat(64) }), /bump the version/);
+    });
+  }
 
   it('has no way to replace published assets', () => {
     const source = readFileSync(SCRIPT, 'utf8');

@@ -13,67 +13,33 @@ If you discover a security vulnerability in Transitrix Studio, please report it 
 
 ## Supported Versions
 
-Security updates are provided for:
+Security fixes are provided only for the [latest stable release](https://github.com/transitrix/transitrix-studio/releases/latest).
 
-| Version | Support Status |
-|---------|----------------|
-| 3.5.x   | Current release |
-| 3.4.x   | Maintenance fixes |
-| < 3.4   | End of life |
+Earlier versions do not receive security fixes. We recommend upgrading to the latest stable release.
 
-We recommend keeping your extension updated to the latest version to receive security patches promptly.
+This support policy defines which versions will receive future security fixes. It does not, by itself, indicate that earlier versions contain known vulnerabilities or malicious code.
 
-## Security Audits
+## Published Verification Evidence
 
-Transitrix Studio has undergone formal security audits, including provenance verification of published artifacts. Our audit process includes:
+The [release history](https://github.com/transitrix/transitrix-studio/releases) identifies published versions and their verification materials. Release availability does not by itself establish a security-support commitment for a version branch.
 
-- Source code review
-- Dependency inventory (SBOM)
-- Build provenance attestation
-- Binary integrity verification
+The [3.2.0 audit finding](docs/internal/vsix-audit-v3.2.0/FINDING.md) covers the four packages distributed through Open VSX. It records file-origin and dependency checks, [scan results](docs/internal/vsix-audit-v3.2.0/scans.md), and a [Windows x64 rebuild](docs/internal/vsix-audit-v3.2.0/reproducibility.md) whose 519 extracted files matched by content hash. The original Microsoft-served packages were unavailable; byte-for-byte identity with those packages was not independently verified.
 
-Published audit findings are available in the [security audit record](https://github.com/transitrix/transitrix-studio/pull/518).
+Microsoft Defender reported no threats in the examined 3.2.0 packages. VirusTotal recorded zero malicious and zero suspicious results, with some engines unable to complete analysis. These point-in-time results do not guarantee safety and are not scan results for later releases, including 3.8.1.
 
-## Verifying Build Provenance
+## Verifying Release 3.8.1
 
-Each release is attested using [GitHub build provenance](https://docs.github.com/en/actions/publishing-packages/publishing-docker-images#publishing-images-to-github-packages). To verify the provenance of a released `.vsix` file:
+[Release 3.8.1](https://github.com/transitrix/transitrix-studio/releases/tag/v3.8.1) provides the VSIX, SHA-256 checksums, a CycloneDX software bill of materials (`sbom.xml`), and build-provenance verification instructions. Consult each release's notes and assets for the evidence available for that specific version.
+
+To verify the downloaded 3.8.1 VSIX's build provenance:
 
 ```bash
-gh attestation verify --owner transitrix transitrix-studio-X.Y.Z.vsix
+gh attestation verify --owner transitrix transitrix-studio-3.8.1.vsix
 ```
 
-Replace `X.Y.Z` with the version number. The command confirms that the artifact was built by our CI pipeline and has not been tampered with.
+Review the verification output for the artifact digest, source repository and build workflow. Provenance associates an artifact with its recorded build; it is not a malware scan or a guarantee of safety. Checksums establish file integrity against the published values, and the SBOM supports component review.
 
-Detailed attestation verification instructions are included in each release's notes.
-
-## Dependency Management
-
-Transitrix Studio:
-
-- Declares all production dependencies in `package.json`
-- Pins dependency versions to ensure reproducible builds
-- Receives automated dependency security updates via Dependabot
-- Does not include proprietary or closed-source components
-
-The complete component inventory for each release is available as a CycloneDX SBOM (Software Bill of Materials) attached to the release.
-
-## Software Bill of Materials (SBOM)
-
-Each published release includes a CycloneDX-format SBOM (`sbom.xml`) listing all components and their versions as shipped in the extension package. This allows you to:
-
-- Audit what is included in the release
-- Cross-reference against known vulnerabilities
-- Verify component versions against your compliance requirements
-
-The SBOM is generated during the build process from the actual packaged extension, not from source declarations.
-
-## Secure Development Practices
-
-- All commits are signed
-- Pull requests require review before merge
-- CI/CD pipeline verifies code quality and tests
-- Build artifacts are attested and signed
-- Archive hashes are reproducible and published
+Review the published evidence against your organisation's requirements and keep security protections enabled.
 
 ## Questions or Concerns?
 
