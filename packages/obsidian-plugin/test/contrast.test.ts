@@ -29,14 +29,15 @@ describe('Obsidian image canvas contrast', () => {
               await view.update(source, { ...DEFAULT_SVG_DISPLAY_SETTINGS, theme });
               const img = host.querySelector('img');
               expect(img, language).not.toBeNull();
-              const svg = new DOMParser().parseFromString(decodeURIComponent(img!.src.split(',')[1]!), 'image/svg+xml');
-              expect(svg.querySelector('parsererror'), language).toBeNull();
-              expect(svg.documentElement.getAttribute('style'), language).toBe('background:var(--ts-bg)');
+              const svg = decodeURIComponent(img!.src.split(',')[1]!);
+              // Inspect the encoded image as text; never reinterpret DOM-derived
+              // strings as markup, even in the fixture regression test.
+              expect(svg, language).toMatch(/^<svg style="background:var\(--ts-bg\)"/);
               const dark = theme === 'transitrix-dark' || (theme === 'obsidian' && darkHost);
               // The canvas resolves against the image's own embedded palette,
               // including when it deliberately differs from the host theme.
-              expect(svg.querySelector('style')?.textContent, language).toContain(`--ts-bg:${dark ? '#0a1628' : '#ffffff'}`);
-              expect(svg.querySelector('style')?.textContent, language).toContain(`--ts-text:${dark ? '#f1f5f9' : '#0f172a'}`);
+              expect(svg, language).toContain(`--ts-bg:${dark ? '#0a1628' : '#ffffff'}`);
+              expect(svg, language).toContain(`--ts-text:${dark ? '#f1f5f9' : '#0f172a'}`);
               expect(host.querySelector('svg')).toBeNull();
             } finally { view.destroy(); }
           }
