@@ -207,7 +207,7 @@ export function buildKit({ out, release, assets, expectedDigests, repo = DEFAULT
   return { outDir, vaultDir, kit };
 }
 
-export function formatAutoChecks({ kit, pluginFiles, notes, settings, checkedAt }) {
+export function formatAutoChecks({ kit, pluginFiles, notes, settings, checkedAt, errors = [] }) {
   const mark = (ok) => (ok ? 'PASS' : 'FAIL');
   const pluginOk = pluginFiles.every((f) => f.ok);
   const notesOk = notes.changed.length === 0 && notes.missing.length === 0 && notes.added.length === 0;
@@ -235,36 +235,61 @@ export function formatAutoChecks({ kit, pluginFiles, notes, settings, checkedAt 
     '',
     '## Persisted plugin settings (data.json)',
     '',
-    settings === null
+    errors.some((error) => error.startsWith('data.json:'))
+      ? 'Cannot read/parse data.json; see errors below.'
+      : settings === null
       ? 'No data.json found: the plugin never saved settings (defaults in use).'
       : ['```json', JSON.stringify(settings, null, 2), '```'].join('\n'),
     '',
-    `## Verdict: ${mark(pluginOk && notesOk)}`,
+    '## Read / parse errors',
+    '',
+    ...(errors.length ? errors.map((error) => `- ${error}`) : ['none']),
+    '',
+    `## Verdict: ${mark(pluginOk && notesOk && errors.length === 0)}`,
     '',
   ];
   return lines.join('\n');
 }
 
 export function checkKit({ out }) {
+  try {
+    return checkKitContents({ out });
+  } catch (error) {
+    // If validation or reading fails, replace any previous PASS before returning.
+    // A missing/unwritable output directory cannot contain a usable report.
+    const report = `# Automatic checks\n\nChecked at: ${new Date().toISOString()}\n\nCannot read/parse acceptance kit: ${error.message}\n\n## Verdict: FAIL\n`;
+    writeFileSync(path.join(path.resolve(out), 'AUTO-CHECKS.md'), report, 'utf8');
+    return { ok: false, report };
+  }
+}
+
+function checkKitContents({ out }) {
   const outDir = path.resolve(out);
   const kitFile = path.join(outDir, 'kit.json');
   if (!existsSync(kitFile)) throw new Error(`Not a prepared kit (kit.json missing): ${outDir}`);
   const kit = JSON.parse(readFileSync(kitFile, 'utf8'));
+  const errors = [];
+  const attempt = (label, read, fallback) => {
+    try { return read(); } catch (error) {
+      errors.push(`${label}: ${error.message}`);
+      return fallback;
+    }
+  };
   const vaultDir = path.join(outDir, 'vault');
   const pluginDir = path.join(vaultDir, '.obsidian', 'plugins', PLUGIN_ID);
 
   const pluginFiles = ASSETS.map((name) => {
     const file = path.join(pluginDir, name);
-    const actual = existsSync(file) ? sha256(readFileSync(file)) : null;
+    const actual = attempt(name, () => existsSync(file) ? sha256(readFileSync(file)) : null, null);
     return { name, actual, ok: actual === kit.release.assets[name] };
   });
-  const notes = compareNotes(kit.notes, hashNotes(vaultDir));
+  const notes = compareNotes(kit.notes, attempt('vault notes', () => hashNotes(vaultDir), {}));
   const dataFile = path.join(pluginDir, 'data.json');
-  const settings = existsSync(dataFile) ? JSON.parse(readFileSync(dataFile, 'utf8')) : null;
+  const settings = attempt('data.json', () => existsSync(dataFile) ? JSON.parse(readFileSync(dataFile, 'utf8')) : null, null);
 
-  const report = formatAutoChecks({ kit, pluginFiles, notes, settings, checkedAt: new Date().toISOString() });
+  const report = formatAutoChecks({ kit, pluginFiles, notes, settings, errors, checkedAt: new Date().toISOString() });
   writeFileSync(path.join(outDir, 'AUTO-CHECKS.md'), report, 'utf8');
-  const ok = pluginFiles.every((f) => f.ok)
+  const ok = errors.length === 0 && pluginFiles.every((f) => f.ok)
     && notes.changed.length === 0 && notes.missing.length === 0 && notes.added.length === 0;
   return { ok, report };
 }

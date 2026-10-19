@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { existsSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -158,8 +158,49 @@ describe('obsidian acceptance kit', () => {
     assert.match(report, /"curvature": 2/);
   });
 
+  it('overwrites a prior PASS after a protected note changes and data.json is malformed', () => {
+    build();
+    assert.equal(checkKit({ out }).ok, true);
+    const reportFile = path.join(out, 'AUTO-CHECKS.md');
+    writeFileSync(reportFile, readFileSync(reportFile, 'utf8').replace(/Checked at: .*/, 'Checked at: stale-pass'));
+    writeFileSync(vaultFile('valid', 'T01-goals.md'), 'changed');
+    writeFileSync(vaultFile('.obsidian', 'plugins', PLUGIN_ID, 'data.json'), '{');
+    const { ok, report } = checkKit({ out });
+    assert.equal(ok, false);
+    assert.equal(readFileSync(reportFile, 'utf8'), report);
+    assert.match(report, /changed: valid\/T01-goals.md/);
+    assert.match(report, /data.json:/);
+    assert.match(report, /Verdict: FAIL/);
+    assert.doesNotMatch(report, /stale-pass|Verdict: PASS/);
+  });
+
+  for (const target of ['data.json', 'main.js', 'kit.json', 'valid/T01-goals.md', 'missing-kit', 'invalid-kit-shape']) {
+    it(`writes a fresh FAIL on a read/parse error in ${target}`, () => {
+      build();
+      assert.equal(checkKit({ out }).ok, true);
+      const file = ['kit.json', 'missing-kit', 'invalid-kit-shape'].includes(target) ? path.join(out, 'kit.json')
+        : target.includes('/') ? vaultFile(target)
+        : vaultFile('.obsidian', 'plugins', PLUGIN_ID, target);
+      if (target === 'missing-kit') rmSync(file);
+      else if (target === 'invalid-kit-shape') writeFileSync(file, '{}');
+      else if (target === 'kit.json') writeFileSync(file, '{');
+      else {
+        rmSync(file, { force: true });
+        mkdirSync(file); // EISDIR deterministically, including when tests run as root.
+      }
+      const { ok, report } = checkKit({ out });
+      assert.equal(ok, false);
+      assert.equal(readFileSync(path.join(out, 'AUTO-CHECKS.md'), 'utf8'), report);
+      assert.match(report, /Verdict: FAIL/);
+      assert.doesNotMatch(report, /Verdict: PASS/);
+    });
+  }
+
   it('refuses to check a directory that is not a kit', () => {
-    assert.throws(() => checkKit({ out: work }), /kit\.json missing/);
+    const { ok, report } = checkKit({ out: work });
+    assert.equal(ok, false);
+    assert.match(report, /kit\.json missing/);
+    assert.match(report, /Verdict: FAIL/);
   });
 });
 

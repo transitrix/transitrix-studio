@@ -35,6 +35,7 @@ import {
   mkdtempSync,
   readFileSync,
   readdirSync,
+  realpathSync,
   rmSync,
   writeFileSync,
 } from 'node:fs';
@@ -100,13 +101,19 @@ export function assertSafeStagingDir(dir) {
   // is not sufficient because an existing symlink below output/ can redirect
   // that removal outside the repository. Walk every existing component and
   // refuse links (including a link used as the staging directory itself).
-  let current = OUTPUT_DIR;
+  // The nearest existing component must also canonicalise inside output/.
+  const components = [OUTPUT_DIR];
   for (const segment of rel.split(path.sep)) {
+    components.push(path.join(components.at(-1), segment));
+  }
+
+  let nearestExisting = null;
+  for (const current of components) {
     let stat;
     try {
       stat = lstatSync(current);
     } catch (err) {
-      if (err?.code === 'ENOENT') return resolved;
+      if (err?.code === 'ENOENT') break;
       throw err;
     }
     if (stat.isSymbolicLink()) {
@@ -115,19 +122,16 @@ export function assertSafeStagingDir(dir) {
     if (!stat.isDirectory()) {
       throw new Error(`Staging path component must be a directory: ${current}`);
     }
-    current = path.join(current, segment);
+    nearestExisting = current;
   }
 
-  try {
-    const stat = lstatSync(current);
-    if (stat.isSymbolicLink()) {
-      throw new Error(`Staging directory must not contain symbolic links: ${current}`);
+  if (nearestExisting && nearestExisting !== OUTPUT_DIR) {
+    const realOutput = realpathSync(OUTPUT_DIR);
+    const realNearest = realpathSync(nearestExisting);
+    const realRel = path.relative(realOutput, realNearest);
+    if (!realRel || realRel.startsWith('..') || path.isAbsolute(realRel)) {
+      throw new Error(`Staging directory resolves outside ${realOutput}: ${realNearest}`);
     }
-    if (!stat.isDirectory()) {
-      throw new Error(`Staging path component must be a directory: ${current}`);
-    }
-  } catch (err) {
-    if (err?.code !== 'ENOENT') throw err;
   }
   return resolved;
 }

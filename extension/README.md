@@ -108,7 +108,7 @@ Transitrix and Mermaid are **complementary, not competing**. Use **Mermaid** for
 
 ## Get started in 3 steps
 
-1. **Install this extension** — search for **Transitrix Studio** in the Extensions panel of VS Code, Cursor, VSCodium, or Windsurf.
+1. **Install this extension** — in stock **VS Code**, download the `.vsix` from [Open VSX](https://open-vsx.org/extension/transitrix/transitrix-studio) or an [official GitHub release](https://github.com/transitrix/transitrix-studio/releases), then choose **Extensions → … → Install from VSIX…**. Microsoft Marketplace search will not find Studio. In **Cursor, VSCodium, or Windsurf**, search for **Transitrix Studio** in the Extensions panel. See the [installation guide](https://transitrix.com/install/).
 2. **Create a file** ending in one of the recognised suffixes, e.g. `app.blocks.transitrix.yaml`:
 
    ```yaml
@@ -125,7 +125,7 @@ Transitrix and Mermaid are **complementary, not competing**. Use **Mermaid** for
 
 Every notation in the table above follows the same pattern: `*.<notation>.transitrix.yaml` in, live diagram out. Recognised suffixes are configurable in **Settings → Transitrix Studio**.
 
-> **Editors:** the extension ships to the [Open VSX Registry](https://open-vsx.org/extension/transitrix/transitrix-studio) — the primary install route for VS Code as well as Cursor, VSCodium, and Windsurf. Install it from the Extensions panel in your editor, or search for *Transitrix Studio*. **JetBrains IDEs** (IntelliJ IDEA and the rest) have a companion **Transitrix Studio** plugin — install it from **Settings → Plugins → Marketplace** and search for *Transitrix Studio*.
+> **Editors:** the extension ships to the [Open VSX Registry](https://open-vsx.org/extension/transitrix/transitrix-studio) — search there from the Extensions panel in Cursor, VSCodium, or Windsurf. Stock VS Code uses Microsoft Marketplace; download the Open VSX `.vsix` and use **Install from VSIX…** as described above. **JetBrains IDEs** (IntelliJ IDEA and the rest) have a companion **Transitrix Studio** plugin — install it from **Settings → Plugins → Marketplace** and search for *Transitrix Studio*.
 
 ## Creating a new element
 

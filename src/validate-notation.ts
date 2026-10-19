@@ -95,7 +95,7 @@ export function isFileValidatableNotation(notation: string): boolean {
  *  short name with no CLI validator of its own. */
 const REGISTERED_NOT_YET_VALIDATABLE_NOTATIONS: readonly string[] = [
   // Element TYPE short names with no standalone-file CLI validator yet.
-  'process', 'rule',
+  'rule',
   'registry', 'application', 'release', 'business-object', 'equipment',
   'term', 'step', 'goal',
   // Native view notations with no file-scope CLI validator of their own —
