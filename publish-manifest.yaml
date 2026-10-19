@@ -36,6 +36,7 @@ published:
   - RELEASING.md
   - SECURITY.md
   - changelog/fragments/README.md
+  - changelog/fragments/obsidian-diagram-contrast.md
   - changelog/fragments/obsidian-goals-preview.md
   - changelog/fragments/process-validation.md
   - changelog/fragments/standalone-validation.md
@@ -1153,5 +1154,6 @@ published:
   - packages/obsidian-plugin/acceptance/notes/valid/T07-process-blueprint.md
   - packages/obsidian-plugin/acceptance/notes/valid/T08-mixed.md
   - packages/obsidian-plugin/test/acceptance-fixtures.test.ts
+  - packages/obsidian-plugin/test/contrast.test.ts
   - scripts/obsidian-acceptance-kit.mjs
   - scripts/obsidian-acceptance-kit.test.mjs

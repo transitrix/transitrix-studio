@@ -36,7 +36,8 @@
 .transitrix-goals-block__empty,
 .transitrix-svg-block__empty {
   color: var(--text-error);
-  background: var(--background-modifier-error);
+  background: var(--background-secondary);
+  border-color: var(--text-error);
 }
 
 .transitrix-goals-block__warnings,
