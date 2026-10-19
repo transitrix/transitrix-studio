@@ -12,3 +12,8 @@ vendor/** text eol=lf
 # GitHub Actions workflows require LF line endings; CRLF causes the YAML parser
 # to reject the files, resulting in runs with 0 jobs and failure status.
 .github/workflows/** text eol=lf
+
+# Obsidian plugin release assets are hashed and compared with the published release;
+# they must be byte-identical on every platform (CRLF checkouts would break that).
+packages/obsidian-plugin/manifest.json text eol=lf
+packages/obsidian-plugin/styles.css text eol=lf

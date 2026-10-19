@@ -20,7 +20,8 @@ published:
   - .github/workflows/pr-description-policy.yml
   - .github/workflows/public-surface-hygiene.yml
   - .github/workflows/simple-pr-automerge.yml
-  - .github/workflows/sync-obsidian-plugin.yml
+  - .github/workflows/obsidian-plugin-build.yml
+  - .github/workflows/obsidian-plugin-publish.yml
   - .github/workflows/vscode-marketplace-publish.yml
   - .gitignore
   - .gitmessage
