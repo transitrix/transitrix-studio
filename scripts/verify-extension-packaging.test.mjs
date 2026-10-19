@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { verifyListing } from './verify-extension-packaging.mjs';
+import { verifyListing, verifyRuntimePaths, runtimePackagePaths } from './verify-extension-packaging.mjs';
 
 const version = '3.8.1';
 const manifest = {
@@ -52,4 +52,17 @@ test('packaged description names requirement traceability', () => {
     () => verifyListing(readme, { ...manifest, description: 'Diagrams as text.' }, undefined, undefined, changelog),
     /Packaged description omits requirement traceability/,
   );
+});
+
+test('consumer VSIX preserves runtime, documentation, metadata and licenses', () => {
+  assert.doesNotThrow(() => verifyRuntimePaths(runtimePackagePaths));
+  for (const path of ['extension/out/extension.js', 'extension/readme.md', 'extension/license.txt', 'extension/package.json']) {
+    assert.throws(() => verifyRuntimePaths(runtimePackagePaths.filter(item => item !== path)), /Missing package path/);
+  }
+});
+
+test('consumer VSIX excludes repository build inputs and test harnesses', () => {
+  for (const path of ['extension/test-e2e/runTest.ts', 'extension/webview/viewer.ts', 'extension/src/fixture.ts', 'extension/test-e2e-extra/fixture.txt', 'extension/package-lock.json', 'extension/.github/workflows/fixture.yml']) {
+    assert.throws(() => verifyRuntimePaths([...runtimePackagePaths, path]), /Undeclared package path/);
+  }
 });

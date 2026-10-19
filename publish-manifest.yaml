@@ -1131,3 +1131,5 @@ published:
   - vendor/methodology/document-renderer/syntax.mjs
   - vendor/methodology/vocabulary.yaml
   - vitest.config.ts
+  - scripts/consumer-package-paths.mjs
+  - scripts/consumer-package-paths.test.mjs
