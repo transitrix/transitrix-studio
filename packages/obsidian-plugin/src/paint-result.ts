@@ -1,9 +1,13 @@
 import 'obsidian';
+import { CSS_VAR } from '@transitrix/diagrams/theme/index.js';
 
 import { formatBlockDiagnostics, type BlockDiagnostic, type BlockRenderResult } from './block-types.js';
 
 function svgToImageDataUri(svg: string): string {
-  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  // Standalone renderers leave the canvas transparent. In an image document,
+  // its text palette must sit on its own background, not the host vault theme.
+  const opaqueSvg = svg.replace(/<svg\b/, `<svg style="background:var(${CSS_VAR.bg})"`);
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(opaqueSvg)}`;
 }
 
 /** Goals/Blocks empty layouts emit a zero-size SVG placeholder rather than "". */
