@@ -11,3 +11,7 @@ tsconfig.json
 # export rasterizes in the webview's own canvas). Every runtime dependency
 # is bundled inline into extension/compiler/ by build-compiler-bundle.mjs, so
 # the VSIX ships no extension/node_modules/ at all.
+
+# Build inputs and the development-host test harness are repository-only.
+test-e2e/**
+webview/**

@@ -93,14 +93,73 @@ export function verifyListing(readme, manifest, review, packageSha256, changelog
   }
 }
 
-async function readPackagedListing(vsix) {
+// Installer metadata, bundled runtime, schemas, fonts and their styles, user
+// documentation, gallery media and the license are the consumer contract.
+// Source and test harnesses remain available in the developer repository.
+export const runtimePackagePaths = [
+  "[content_types].xml",
+  "extension.vsixmanifest",
+  "extension/assets/transitrix-icon-mono.svg",
+  "extension/assets/ttrs-icon-mono.svg",
+  "extension/changelog.md",
+  "extension/compiler/compiler.js",
+  "extension/compiler/metrics.js",
+  "extension/docs/listing.gif",
+  "extension/docs/preview.png",
+  "extension/docs/vscode-dgca.png",
+  "extension/docs/vscode-goals-after.png",
+  "extension/docs/vscode-goals-before.png",
+  "extension/icon.png",
+  "extension/language-configuration.json",
+  "extension/license.txt",
+  "extension/media/bpmn-font/css/bpmn-codes.css",
+  "extension/media/bpmn-font/css/bpmn-embedded.css",
+  "extension/media/bpmn-font/css/bpmn.css",
+  "extension/media/bpmn-font/font/bpmn.eot",
+  "extension/media/bpmn-font/font/bpmn.svg",
+  "extension/media/bpmn-font/font/bpmn.ttf",
+  "extension/media/bpmn-font/font/bpmn.woff",
+  "extension/media/bpmn-font/font/bpmn.woff2",
+  "extension/media/bpmn-js.css",
+  "extension/media/diagram-js.css",
+  "extension/media/plantuml/plantuml-client.js",
+  "extension/media/plantuml/plantuml.js",
+  "extension/media/plantuml/viz-global.js",
+  "extension/media/transitrix-icon-mono.svg",
+  "extension/media/ttrs-icon-mono.svg",
+  "extension/media/viewer.js",
+  "extension/out/extension.css",
+  "extension/out/extension.js",
+  "extension/package.json",
+  "extension/readme.md",
+  "extension/schemas/bpmn-dsl.schema.json",
+  "extension/schemas/transitrixrc.schema.json",
+  "extension/syntaxes/ttrs.tmlanguage.json"
+];
+
+export function verifyRuntimePaths(paths) {
+  const expected = new Set(runtimePackagePaths);
+  const actual = new Set(paths.filter(path => !path.endsWith('/')).map(path => path.toLowerCase()));
+  for (const path of actual) {
+    if (!expected.has(path)) throw new Error(`Undeclared package path: ${JSON.stringify(path)}`);
+  }
+  for (const path of expected) {
+    if (!actual.has(path)) throw new Error(`Missing package path: ${JSON.stringify(path)}`);
+  }
+}
+
+export async function readPackagedListing(vsix) {
   return new Promise((resolve, reject) => {
     yauzl.open(vsix, { lazyEntries: true }, (error, zip) => {
       if (error) return reject(error);
       const files = new Map();
+      const paths = [];
       zip.on('error', reject);
-      zip.on('end', () => resolve(files));
+      zip.on('end', () => {
+        try { verifyRuntimePaths(paths); resolve(files); } catch (error) { reject(error); }
+      });
       zip.on('entry', entry => {
+        paths.push(entry.fileName);
         if (!['extension/package.json', 'extension/readme.md', 'extension/changelog.md'].includes(entry.fileName.toLowerCase())) return zip.readEntry();
         if (files.has(entry.fileName.toLowerCase()) || entry.uncompressedSize > 2 * 1024 * 1024) {
           zip.close();
