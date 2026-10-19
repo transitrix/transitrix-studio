@@ -1134,3 +1134,24 @@ published:
   - vitest.config.ts
   - scripts/consumer-package-paths.mjs
   - scripts/consumer-package-paths.test.mjs
+  - packages/obsidian-plugin/acceptance/MANUAL-TEST.md
+  - packages/obsidian-plugin/acceptance/REPORT-TEMPLATE.md
+  - packages/obsidian-plugin/acceptance/cases.json
+  - packages/obsidian-plugin/acceptance/notes/errors/E01-invalid-yaml.md
+  - packages/obsidian-plugin/acceptance/notes/errors/E02-invalid-document.md
+  - packages/obsidian-plugin/acceptance/notes/errors/E03-projection.md
+  - packages/obsidian-plugin/acceptance/notes/errors/E04-empty.md
+  - packages/obsidian-plugin/acceptance/notes/errors/E06-wrong-notation.md
+  - packages/obsidian-plugin/acceptance/notes/errors/E07-unknown-language.md
+  - packages/obsidian-plugin/acceptance/notes/scratch/S01-edit-me.md
+  - packages/obsidian-plugin/acceptance/notes/valid/T01-goals.md
+  - packages/obsidian-plugin/acceptance/notes/valid/T02-dgca.md
+  - packages/obsidian-plugin/acceptance/notes/valid/T03-dga.md
+  - packages/obsidian-plugin/acceptance/notes/valid/T04-action.md
+  - packages/obsidian-plugin/acceptance/notes/valid/T05-action-card.md
+  - packages/obsidian-plugin/acceptance/notes/valid/T06-blocks.md
+  - packages/obsidian-plugin/acceptance/notes/valid/T07-process-blueprint.md
+  - packages/obsidian-plugin/acceptance/notes/valid/T08-mixed.md
+  - packages/obsidian-plugin/test/acceptance-fixtures.test.ts
+  - scripts/obsidian-acceptance-kit.mjs
+  - scripts/obsidian-acceptance-kit.test.mjs
