@@ -508,8 +508,12 @@ export class ProcessBlueprintPreview {
           const wv = Number(m['value']);
           if (Number.isFinite(wv)) this.stageColumnWidth = Math.max(100, Math.min(450, wv));
         }
-        if (this.panel && this.lastYamlText) {
-          this.panel.webview.html = await this.buildHtml(this.lastYamlText, this.lastFilename);
+        if (this.panel && this.lastYamlText && this.trackedUri) {
+          const panel = this.panel;
+          const trackedUri = this.trackedUri;
+          const html = await this.buildHtml(this.lastYamlText, this.lastFilename, vscode.Uri.parse(trackedUri));
+          // The panel may close or switch documents while the canon is loading.
+          if (this.panel === panel && this.trackedUri === trackedUri) panel.webview.html = html;
         }
       });
     }
@@ -547,7 +551,7 @@ export class ProcessBlueprintPreview {
     this.panel.webview.html = html;
   }
 
-  private async buildHtml(yamlText: string, filename: string, fileUri?: vscode.Uri): Promise<string> {
+  private async buildHtml(yamlText: string, filename: string, fileUri: vscode.Uri): Promise<string> {
     let svgContent = '';
     this.lastSvgWithLegend = '';
     let errorMsg = '';
@@ -597,7 +601,7 @@ export class ProcessBlueprintPreview {
         if (file.process_blueprint.information_entities?.length) availableRows.push({ id: 'information_entities', label: 'Information' });
         if (laneCfg.enabled) availableRows.push({ id: 'compliance', label: 'Compliance' });
 
-        const elementDocs = fileUri ? await loadBlueprintElementDocs(fileUri) : [];
+        const elementDocs = await loadBlueprintElementDocs(fileUri);
         const processCatalog = collectProcessColumnRecords(elementDocs);
         const stepHomeProcess = collectStepHomeProcess(elementDocs);
         const availableStages = file.process_blueprint.stages.map(s => ({

@@ -36,6 +36,7 @@ published:
   - RELEASING.md
   - SECURITY.md
   - changelog/fragments/README.md
+  - changelog/fragments/blueprint-rerender-context.md
   - changelog/fragments/obsidian-diagram-contrast.md
   - changelog/fragments/obsidian-goals-preview.md
   - changelog/fragments/process-validation.md
@@ -1073,6 +1074,7 @@ published:
   - tests/metrics.test.ts
   - tests/notation-registry.test.ts
   - tests/preview-controls.test.ts
+  - tests/process-blueprint-preview.test.ts
   - tests/release-version-guards.test.ts
   - tests/render-compliance-impact.test.ts
   - tests/render-document.test.ts
