@@ -72,7 +72,7 @@
     "transitrix": "./dist/cli.js"
   },
   "dependencies": {
-    "@unicode/unicode-15.1.0": "2.0.7",
+    "@unicode/unicode-15.1.0": "2.0.8",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
     "elkjs": "^0.12.0",
