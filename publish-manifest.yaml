@@ -36,6 +36,7 @@ published:
   - RELEASING.md
   - SECURITY.md
   - changelog/fragments/README.md
+  - changelog/fragments/goals-canonical-parent-relations-ae3b0b5c.md
   - changelog/fragments/blueprint-rerender-context.md
   - changelog/fragments/obsidian-diagram-contrast.md
   - changelog/fragments/obsidian-goals-preview.md
