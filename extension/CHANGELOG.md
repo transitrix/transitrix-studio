@@ -1,5 +1,19 @@
 # Transitrix Studio — changelog
 
+## 3.9.0 — 2026-10-25
+
+### Added
+
+- Requirements reports and traceability support products and applications.
+- Optional requirement-language advisories assist wording review.
+
+### Fixed
+
+- Goal trees resolve canonical `goal_parent` relationships, respect date-scoped hierarchy changes and report ambiguous parents.
+- Process Blueprint previews retain source context during interactive rerenders.
+- Canonical standalone process definitions, primitives and attribute histories receive repository validation.
+
+
 ## 3.8.1 — 2026-09-29
 
 ### Fixed
