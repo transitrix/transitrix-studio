@@ -1,5 +1,28 @@
 # Changelog
 
+## [3.9.0] — 2026-10-25
+
+### Added
+
+- Requirements reports and traceability support products and applications, including headless report generation. (#711, #712)
+- Optional requirement-language advisories identify wording that may benefit from review. (#695)
+- Standalone assessment, capability, product, role and scenario validation, Field identity and provenance checks, and headerless attribute histories. Unsupported evidence forms remain visible as unvalidated.
+- Shared host-neutral SVG renderers support embedded themes. The separately released Obsidian plugin 0.1.1 uses them for self-contained Markdown diagrams and display settings; this Studio release does not republish that plugin. Its release assets are available from the Transitrix Obsidian repository; it is not listed in the community catalog.
+
+### Fixed
+
+- Canonical `goal_parent` relationships are resolved before Goals descendant selection and level inference. VS Code, repository validation and staged-impact analysis share this resolution. Date-scoped reparenting respects inclusive boundaries; ambiguous parents fail explicitly. Repository cycle checks follow canonical edges at overlapping lifecycle boundaries without inventing cycles from disjoint historical links.
+- Process Blueprint row toggles, column visibility and width changes retain document context, process labels and STEP-to-PROCESS compliance joins. (#736)
+- Canonical standalone process definitions receive admission, lifecycle, participant, reference and flow validation in file and repository scope. Unsupported notations remain coverage failures. (#723)
+- Co-located Codex source archives are handled without treating raw snapshots as model artefacts; admission and catalogue boundaries remain checked.
+- Shared YAML date normalization handles alias diamonds and cycles without amplified traversal; Obsidian loading also caps nesting depth.
+- Obsidian 0.1.1 contrast corrections are retained in the shared renderer source: embedded diagram canvases and neutral diagnostic panels remain readable across host themes.
+
+### Packages
+
+- `@transitrix/diagrams` 1.16.1 and `@transitrix/cli` 2.12.1 include canonical goal-parent resolution.
+- Updated rendering and Markdown dependencies since 3.8.1.
+
 ## [3.8.1] — 2026-09-29
 
 ### Fixed
