@@ -52,6 +52,13 @@ async function main(): Promise<void> {
 
     const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tx-e2e-userdata-'));
     const extensionsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tx-e2e-extensions-'));
+    // WorkspaceEdit deletions exercise file watchers on temporary fixtures. CI
+    // has no desktop trash service; configure only this disposable test profile.
+    const settingsDir = path.join(userDataDir, 'User');
+    fs.mkdirSync(settingsDir, { recursive: true });
+    fs.writeFileSync(path.join(settingsDir, 'settings.json'), JSON.stringify({
+      'files.enableTrash': false,
+    }));
 
     console.log(`extension-e2e: extensionDevelopmentPath = ${extensionDevelopmentPath}`);
 
