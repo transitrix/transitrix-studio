@@ -611,6 +611,7 @@ describe('Packaged subject reports and installed headless caller parity', functi
     assert.ok(run.status === 0 || run.status === 2, run.stderr + run.stdout);
     const caller = JSON.parse(run.stdout);
     assert.strictEqual(caller.schemaVersion, 'requirements-report/1');
+    assert.ok(process.env.TX_E2E_CLI_VERSION, 'Set TX_E2E_CLI_VERSION from the release CLI manifest');
     assert.strictEqual(caller.tool.version, process.env.TX_E2E_CLI_VERSION, 'Installed caller version must match the release CLI manifest');
     if (process.env.TX_E2E_SOURCE_REVISION) assert.strictEqual(caller.tool.sourceRevision, process.env.TX_E2E_SOURCE_REVISION);
     assert.strictEqual(caller.projection.contract, 'requirement-chain/0.3');
