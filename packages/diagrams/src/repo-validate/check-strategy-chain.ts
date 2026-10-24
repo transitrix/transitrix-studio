@@ -17,16 +17,10 @@ import { validateActionFields } from '../activities/action-fields.js';
 // classification (`Issue.Severity` in the Go source) and its "import
 // anyway, record the warning" policy.
 //
-// GOALS-009/011 (orphan / missing parent) are ported at warning severity even
-// though most standalone GOAL elements legitimately have no `parent` field —
-// GOAL.parent is "v0.x transitional" (ELEMENT_PRIMITIVES.md §7.2; canonical
-// home is a `goal_parent` REL file or the goals-tree view's inline `parent`).
-// `organizations/acme_corp`'s GOAL-CUST-1/GOAL-OPS-1/GOAL-EU-1 are exactly
-// this shape and do surface GOALS-011 warnings — that noise is the accepted
-// cost of a *warning* level rule (non-blocking, advisory), unlike the ERROR
-// tier this repo held the line on. This is a deliberate call, not an
-// oversight: keep the coverage rather than drop it, now that it can be
-// non-blocking.
+// GOALS-009/011 respect the canonical goal_parent records already loaded
+// from canon/relations. Static catalogue coverage considers those links;
+// date-scoped hierarchy selection and ambiguity are checked by Goals views.
+// Legacy inline parents remain supported for transitional catalogues.
 //
 // GOALS-008 (type/level mismatch) is still NOT ported, at either severity.
 // Both of DSM's cases ("type not declared in goal_types" / "level doesn't
@@ -215,11 +209,20 @@ function checkGoalParentCycle(goals: ChainElement[], findings: RepoFinding[]): v
  *  goals.go: the two are mutually exclusive per goal — a goal with no
  *  `parent` is checked for GOALS-011 (backlog, level >= 1); a goal with a
  *  `parent` is checked for GOALS-009 (orphan, parent unresolved) instead. */
-function checkGoalParentResolution(goals: ChainElement[], findings: RepoFinding[]): void {
+function checkGoalParentResolution(goals: ChainElement[], relations: RepoDoc[], findings: RepoFinding[]): void {
   const knownIds = new Set(goals.map((g) => g.id));
+  const linkedChildren = new Set<string>();
+  for (const rel of relations) {
+    const data = rel.data;
+    if (!data || data['notation'] !== 'relation' || data['type'] !== 'goal_parent') continue;
+    const child = readString(data, 'from');
+    const parent = readString(data, 'to');
+    if (child && parent && knownIds.has(child) && knownIds.has(parent)) linkedChildren.add(child);
+  }
   for (const g of goals) {
     const parent = readString(g.data, 'parent');
     if (!parent) {
+      if (linkedChildren.has(g.id)) continue;
       const level = readFiniteNumber(g.data, 'level');
       if (level !== undefined && level >= 1) {
         findings.push({
@@ -505,7 +508,7 @@ export function checkStrategyChainSemantics(input: RepoModelInput, findings: Rep
   const changes = collectByNotation(input.elements, isChangeNotation);
 
   checkGoalParentCycle(goals, findings);
-  checkGoalParentResolution(goals, findings);
+  checkGoalParentResolution(goals, input.relations, findings);
   checkActionSelfPredecessor(actions, findings);
   checkActionPredecessorCycle(actions, findings);
   checkActionOrphanReferences(actions, findings);

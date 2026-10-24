@@ -725,7 +725,13 @@ export function runViewValidate(
     // goals[] — resolve against canon/elements/** before validating, the
     // same way the VS Code Goals preview does (goals-preview.ts).
     if (notation === 'goals' && isGoalsViewDoc(data)) {
-      data = resolveGoals(data, { elements: ensureCanonModel().elements });
+      const model = ensureCanonModel();
+      try {
+        data = resolveGoals(data, { elements: model.elements, relations: model.relations });
+      } catch (e) {
+        findings.push({ file: doc.path, notation, ruleId: 'PARSE', severity: 'error', message: (e as Error).message });
+        continue;
+      }
     }
 
     const validateOpts = {

@@ -318,3 +318,20 @@ describe('checkStrategyChainSemantics — organizations/acme_corp parity shape',
     expect(findings).toHaveLength(3);
   });
 });
+
+
+describe('canonical goal_parent coverage', () => {
+  it('does not report a canonically attached goal as backlog', () => {
+    const model = emptyModel();
+    model.elements.push(goal('GOAL-ROOT-1', { level: 0 }), goal('GOAL-CHILD-1', { level: 1 }));
+    model.relations.push(el('canon/relations/REL-GOAL-PARENT-1.yaml', { notation: 'relation', id: 'REL-GOAL-PARENT-1', type: 'goal_parent', from: 'GOAL-CHILD-1', to: 'GOAL-ROOT-1' }));
+    expect(validateRepoModel(model).filter(f => f.ruleId === 'GOALS-011')).toEqual([]);
+  });
+
+  it('keeps the backlog warning if a declared canonical parent does not exist', () => {
+    const model = emptyModel();
+    model.elements.push(goal('GOAL-CHILD-1', { level: 1 }));
+    model.relations.push(el('canon/relations/REL-GOAL-PARENT-1.yaml', { notation: 'relation', id: 'REL-GOAL-PARENT-1', type: 'goal_parent', from: 'GOAL-CHILD-1', to: 'GOAL-MISSING-1' }));
+    expect(validateRepoModel(model).some(f => f.ruleId === 'GOALS-011' && f.id === 'GOAL-CHILD-1')).toBe(true);
+  });
+});
