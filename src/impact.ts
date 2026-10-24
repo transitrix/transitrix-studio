@@ -198,7 +198,7 @@ export function computeStagedImpact(root: string): ImpactResult {
     let inlineForm = false;
     if (notation === 'goals') {
       if (isGoalsViewDoc(data)) {
-        resolvedIds = idsIn(resolveGoals(data, { elements }), 'goals');
+        resolvedIds = idsIn(resolveGoals(data, { elements, relations }), 'goals');
       } else {
         inlineForm = hasKey(data, 'goals');
       }

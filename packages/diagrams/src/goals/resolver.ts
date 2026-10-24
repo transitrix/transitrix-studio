@@ -48,6 +48,7 @@ export interface GoalsViewConfig {
 
 export interface GoalsCanonSources {
   elements: unknown[];
+  relations?: unknown[];
 }
 
 /** GOAL elements by id (`notation: goal`). */
@@ -58,9 +59,51 @@ function collectGoalElements(docs: unknown[]): Map<string, Record<string, unknow
     if (str(doc['notation']) !== 'goal') continue;
     const id = str(doc['id']);
     if (!id) continue;
-    if (!out.has(id)) out.set(id, doc); // first definition wins
+    if (!out.has(id)) out.set(id, { ...doc }); // never mutate the caller's catalogue
   }
   return out;
+}
+
+/** Materialize canonical child -> parent links for a single-parent tree.
+ * Never mutate canon or silently linearize an ambiguous hierarchy.
+ */
+function applyGoalParentRelations(
+  goals: Map<string, Record<string, unknown>>,
+  relations: unknown[],
+  validAt: string | undefined,
+): void {
+  const declaredChildren = new Set<string>();
+  const parents = new Map<string, Set<string>>();
+  for (const doc of relations) {
+    if (!isObject(doc) || doc['notation'] !== 'relation' || doc['type'] !== 'goal_parent') continue;
+    const child = str(doc['from']);
+    const parent = str(doc['to']);
+    if (!child || !parent || !goals.has(child) || !goals.has(parent)) {
+      throw new Error(`goal_parent relation ${str(doc['id']) ?? '(unnamed)'} must reference two existing goals`);
+    }
+    declaredChildren.add(child);
+    const from = str(doc['valid_from']);
+    const to = str(doc['valid_to']);
+    if (validAt && ((from && validAt < from) || (to && validAt > to))) continue;
+    const choices = parents.get(child) ?? new Set<string>();
+    choices.add(parent);
+    parents.set(child, choices);
+  }
+  for (const child of declaredChildren) {
+    const goal = goals.get(child)!;
+    const choices = parents.get(child) ?? new Set<string>();
+    if (choices.size > 1) {
+      throw new Error(`goal_parent for ${child} has multiple parents in this scope; narrow valid_at or use a graph view`);
+    }
+    const parent = [...choices][0];
+    const legacyParent = str(goal['parent']);
+    if (parent && legacyParent && parent !== legacyParent) {
+      throw new Error(`goal_parent for ${child} conflicts with its inline parent`);
+    }
+    // Declared but inactive links must not fall back to an undated parent.
+    if (parent) goal['parent'] = parent;
+    else delete goal['parent'];
+  }
 }
 
 /**
@@ -91,6 +134,8 @@ export function resolveGoals(
   const scope = isObject(vc['scope']) ? vc['scope'] : {};
 
   const allGoals = collectGoalElements(sources.elements);
+  const validAt = str(scope['valid_at']);
+  applyGoalParentRelations(allGoals, sources.relations ?? [], validAt);
 
   // 1. Scope by root_goal (this goal + its descendants), or every goal when
   // omitted (§5.1: "Omit to show all root goals").
@@ -126,7 +171,6 @@ export function resolveGoals(
   // 4. Narrow by valid_at — only goals in effect on that date. Goals with no
   // valid_from are not lifecycle-tracked and are kept (permissive default,
   // matching the action/dgca resolvers' stance).
-  const validAt = str(scope['valid_at']);
   if (validAt) {
     candidateIds = new Set(
       [...candidateIds].filter((id) => {

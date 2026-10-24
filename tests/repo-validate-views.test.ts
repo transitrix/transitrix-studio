@@ -267,8 +267,10 @@ describe('repo-scope views sweep — goals canon-projection form', () => {
     write(
       root,
       'canon/elements/01_motivation/goals/GOAL-EU-1.yaml',
-      'notation: goal\nid: GOAL-EU-1\nname: Launch in EU\ntype: Strategic Goal\nlevel: 1\nparent: GOAL-REVENUE-1\n',
+      'notation: goal\nid: GOAL-EU-1\nname: Launch in EU\ntype: Strategic Goal\nlevel: 1\n',
     );
+    write(root, 'canon/relations/REL-EU-PARENT-1.yaml',
+      'notation: relation\nid: REL-EU-PARENT-1\ntype: goal_parent\nfrom: GOAL-EU-1\nto: GOAL-REVENUE-1\n');
     write(
       root,
       'views/goals/strategy.goals.transitrix.yaml',
@@ -297,7 +299,17 @@ describe('repo-scope views sweep — goals canon-projection form', () => {
     const goalsFindings = findings.filter((f) => f.notation === 'goals');
     expect(goalsFindings.filter((f) => f.severity === 'error')).toEqual([]);
     expect(goalsFindings.some((f) => f.ruleId === 'GOALS-004')).toBe(false);
+    expect(goalsFindings.filter((f) => f.severity === 'warning')).toEqual([]);
   });
+  it('reports a broken hierarchy as a file finding rather than crashing the sweep', () => {
+    const rel = 'canon/relations/REL-EU-PARENT-BAD-1.yaml';
+    write(root, rel, 'notation: relation\nid: REL-EU-PARENT-BAD-1\ntype: goal_parent\nfrom: GOAL-EU-1\nto: GOAL-MISSING-1\n');
+    try {
+      const result = runViewValidate(root);
+      expect(result.findings.some(f => f.notation === 'goals' && f.ruleId === 'PARSE' && f.severity === 'error' && f.message.includes('existing goals'))).toBe(true);
+    } finally { rmSync(join(root, rel)); }
+  });
+
 });
 
 // loadRepoModel's readDoc() previously parsed canon YAML with plain
