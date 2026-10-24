@@ -140,7 +140,11 @@ export function resolveValidatorKey(data: unknown): string | undefined {
  *  input — and therefore findings — match the preview. Throws on a YAML syntax
  *  error (the caller maps that to a parse-error report). */
 export function loadNotationYaml(text: string): unknown {
-  return coerceDatesToIsoStrings(yaml.load(text) as unknown);
+  const data = yaml.load(text) as unknown;
+  // Relation lifecycle dates must be quoted strings. Preserve YAML timestamps
+  // here so the file validator can reject them instead of silently coercing.
+  if (notationOf(data) === 'relation') return data;
+  return coerceDatesToIsoStrings(data);
 }
 
 /** Run the per-notation validator and shape its result as a ValidationReport, so

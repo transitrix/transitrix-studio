@@ -39,6 +39,7 @@ published:
   - changelog/fragments/blueprint-rerender-context.md
   - changelog/fragments/obsidian-diagram-contrast.md
   - changelog/fragments/obsidian-goals-preview.md
+  - changelog/fragments/person-reporting-validation.md
   - changelog/fragments/process-validation.md
   - changelog/fragments/standalone-validation.md
   - docs/README.md
@@ -884,6 +885,7 @@ published:
   - src/validators/process.ts
   - src/validators/product.ts
   - src/validators/products.ts
+  - src/validators/relation.ts
   - src/validators/requirement.ts
   - src/validators/risk.ts
   - src/validators/role.ts
@@ -1075,6 +1077,7 @@ published:
   - tests/notation-registry.test.ts
   - tests/preview-controls.test.ts
   - tests/process-blueprint-preview.test.ts
+  - tests/relation-validation.test.ts
   - tests/release-version-guards.test.ts
   - tests/render-compliance-impact.test.ts
   - tests/render-document.test.ts
