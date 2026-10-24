@@ -2,7 +2,7 @@
   "name": "transitrix-studio",
   "displayName": "Transitrix Studio",
   "publisher": "transitrix",
-  "version": "3.8.1",
+  "version": "3.9.0",
   "description": "Diagrams as text: 17 YAML notations plus release-scoped requirement traceability, live in your editor. Diffable in git. AI-friendly. Open source.",
   "license": "MIT",
   "icon": "icon.png",

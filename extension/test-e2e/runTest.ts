@@ -30,6 +30,8 @@ async function main(): Promise<void> {
   const repoRoot = path.resolve(__dirname, '..', '..');
   const consumerDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tx-e2e-cli-'));
   try {
+    const cliVersion: unknown = JSON.parse(fs.readFileSync(path.join(repoRoot, 'packages/cli/package.json'), 'utf8')).version;
+    if (typeof cliVersion !== 'string' || !cliVersion.trim()) throw new Error('CLI release manifest must contain a non-empty version');
     const npmCli = process.env.npm_execpath;
     if (!npmCli) throw new Error('Run the packaged suite through npm to prepare its CLI consumer');
     const npm = (args: string[]) => execFileSync(process.execPath, [npmCli, ...args], {
@@ -52,10 +54,11 @@ async function main(): Promise<void> {
 
     const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tx-e2e-userdata-'));
     const extensionsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tx-e2e-extensions-'));
-    // Temporary fixtures must be deletable even where the OS trash is unavailable.
-    // Keep WorkspaceEdit deletion and its file events, using only this test profile.
-    fs.mkdirSync(path.join(userDataDir, 'User'));
-    fs.writeFileSync(path.join(userDataDir, 'User', 'settings.json'), JSON.stringify({
+    // WorkspaceEdit deletions exercise file watchers on temporary fixtures. CI
+    // has no desktop trash service; configure only this disposable test profile.
+    const settingsDir = path.join(userDataDir, 'User');
+    fs.mkdirSync(settingsDir, { recursive: true });
+    fs.writeFileSync(path.join(settingsDir, 'settings.json'), JSON.stringify({
       'files.enableTrash': false,
     }));
 
@@ -67,6 +70,7 @@ async function main(): Promise<void> {
       extensionTestsEnv: {
         TX_E2E_CAPTURE_DIR: captureDir,
         TX_E2E_CLI: callerPath,
+        TX_E2E_CLI_VERSION: cliVersion,
         TX_E2E_SOURCE_REVISION: sourceRevision,
         // See extension.ts's E2ETestHooks — makes activate() hand back the
         // exact `vscode` binding the extension bundle uses internally.

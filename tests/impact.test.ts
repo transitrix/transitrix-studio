@@ -479,3 +479,20 @@ describe('offerDocumentRegeneration (transitrix-hq#182)', () => {
     expect(secondResult).toEqual(firstResult);
   });
 });
+
+
+describe('canonical goal hierarchy impact', () => {
+  it('finds a changed child selected through a goal_parent relation', () => {
+    const dir = initRepo();
+    try {
+      seedBaseline(dir);
+      write(dir, 'canon/elements/goals/GOAL-ROOT-1.yaml', goalYaml('GOAL-ROOT-1', 'Root goal'));
+      write(dir, 'canon/relations/REL-GOAL-PARENT-1.yaml', 'notation: relation\nid: REL-GOAL-PARENT-1\ntype: goal_parent\nfrom: GOAL-1\nto: GOAL-ROOT-1\n');
+      write(dir, 'views/goals/parent.goals.transitrix.yaml', 'notation: goals\nid: GOALS-PARENT-1\nname: Parent scope\nview_config:\n  scope:\n    root_goal: GOAL-ROOT-1\n');
+      commitAll(dir, 'baseline with canonical parent');
+      write(dir, 'canon/elements/goals/GOAL-1.yaml', goalYaml('GOAL-1', 'Changed child'));
+      git(['add', 'canon/elements/goals/GOAL-1.yaml'], dir);
+      expect(computeStagedImpact(dir).affected).toContainEqual({ file: 'views/goals/parent.goals.transitrix.yaml', notation: 'goals' });
+    } finally { rmSync(dir, { recursive: true, force: true }); }
+  });
+});
