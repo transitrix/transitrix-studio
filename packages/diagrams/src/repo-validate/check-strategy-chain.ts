@@ -17,6 +17,7 @@ import { validateActionFields } from '../activities/action-fields.js';
 // classification (`Issue.Severity` in the Go source) and its "import
 // anyway, record the warning" policy.
 //
+// GOALS-010 checks canonical and legacy edges in overlapping lifecycle slices.
 // GOALS-009/011 respect the canonical goal_parent records already loaded
 // from canon/relations. Static catalogue coverage considers those links;
 // date-scoped hierarchy selection and ambiguity are checked by Goals views.
@@ -118,17 +119,15 @@ function collectByNotation(
   return out;
 }
 
-/** DFS cycle detection over a single-parent edge (GOAL.parent), matching DSM's
+/** DFS cycle detection over resolved parent edges, matching DSM's
  *  `findCycle` (goals.go): only walks an edge to a parent that itself resolves
  *  within the set — an edge into an unresolved (orphan) parent is not walked,
  *  so an orphan can never be mistaken for a cycle. Returns the id where a
  *  back-edge was hit, or `undefined` if the graph is acyclic. */
-function findParentCycle(goals: ChainElement[]): string | undefined {
-  const parentOf = new Map<string, string | undefined>();
+function findParentCycle(goals: ChainElement[], parents: Map<string, string[]>): string | undefined {
   const known = new Set<string>();
   for (const g of goals) {
     known.add(g.id);
-    parentOf.set(g.id, readString(g.data, 'parent'));
   }
   const UNVISITED = 0;
   const VISITING = 1;
@@ -140,8 +139,8 @@ function findParentCycle(goals: ChainElement[]): string | undefined {
     if (s === DONE) return undefined;
     if (s === VISITING) return id;
     state.set(id, VISITING);
-    const parent = parentOf.get(id);
-    if (parent && known.has(parent)) {
+    for (const parent of parents.get(id) ?? []) {
+      if (!known.has(parent)) continue;
       const hit = walk(parent);
       if (hit) return hit;
     }
@@ -192,16 +191,40 @@ function findPredecessorCycle(actions: ChainElement[]): string | undefined {
   return undefined;
 }
 
-/** GOALS-010 — the GOAL `parent` chain must not contain a cycle. */
-function checkGoalParentCycle(goals: ChainElement[], findings: RepoFinding[]): void {
-  const cyc = findParentCycle(goals);
-  if (cyc) {
+/** GOALS-010 — parent links must be acyclic in every effective date slice.
+ * A cycle can first appear only when an edge starts. Inspect those boundaries
+ * and the unbounded past; do not union disjoint historical parent relations.
+ */
+function checkGoalParentCycle(goals: ChainElement[], relations: RepoDoc[], findings: RepoFinding[]): void {
+  const known = new Set(goals.map(g => g.id));
+  const links = relations.flatMap(rel => {
+    const d = rel.data;
+    if (!d || d['notation'] !== 'relation' || d['type'] !== 'goal_parent') return [];
+    const child = readString(d, 'from'), parent = readString(d, 'to');
+    if (!child || !parent || !known.has(child) || !known.has(parent)) return [];
+    return [{ child, parent, from: readString(d, 'valid_from'), to: readString(d, 'valid_to') }];
+  });
+  const declared = new Set(links.map(link => link.child));
+  const dates = [...new Set(['0000-01-01', ...links.flatMap(link => link.from ? [link.from] : [])])].sort();
+  for (const date of dates) {
+    const parents = new Map<string, string[]>();
+    for (const g of goals) {
+      const legacy = readString(g.data, 'parent');
+      if (!declared.has(g.id) && legacy) parents.set(g.id, [legacy]);
+    }
+    for (const link of links) {
+      if ((link.from && date < link.from) || (link.to && date > link.to)) continue;
+      parents.set(link.child, [...(parents.get(link.child) ?? []), link.parent]);
+    }
+    const cyc = findParentCycle(goals, parents);
+    if (!cyc) continue;
     findings.push({
       scope: PScope,
       id: cyc,
       ruleId: 'GOALS-010',
       message: `GOALS-010: parent chain contains a cycle involving goal '${cyc}'.`,
     });
+    return;
   }
 }
 
@@ -507,7 +530,7 @@ export function checkStrategyChainSemantics(input: RepoModelInput, findings: Rep
   const drivers = collectByNotation(input.elements, isDriverNotation);
   const changes = collectByNotation(input.elements, isChangeNotation);
 
-  checkGoalParentCycle(goals, findings);
+  checkGoalParentCycle(goals, input.relations, findings);
   checkGoalParentResolution(goals, input.relations, findings);
   checkActionSelfPredecessor(actions, findings);
   checkActionPredecessorCycle(actions, findings);

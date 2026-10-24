@@ -335,3 +335,47 @@ describe('canonical goal_parent coverage', () => {
     expect(validateRepoModel(model).some(f => f.ruleId === 'GOALS-011' && f.id === 'GOAL-CHILD-1')).toBe(true);
   });
 });
+
+
+describe('canonical goal_parent cycle detection', () => {
+  function modelWithLinks(links: Array<Record<string, unknown>>) {
+    const model = emptyModel();
+    model.elements.push(goal('GOAL-A-1'), goal('GOAL-B-1'), goal('GOAL-C-1'));
+    model.relations = links.map((link, i) => el(`canon/relations/REL-PARENT-${i}.yaml`, {
+      notation: 'relation', id: `REL-PARENT-${i}`, type: 'goal_parent', ...link,
+    }));
+    return model;
+  }
+  const ab = { from: 'GOAL-A-1', to: 'GOAL-B-1' };
+  const ba = { from: 'GOAL-B-1', to: 'GOAL-A-1' };
+  const cycle = (model: RepoModelInput) => validateRepoModel(model).filter(f => f.ruleId === 'GOALS-010');
+
+  it('rejects a canonical two-goal cycle without requiring a goals view', () => {
+    expect(cycle(modelWithLinks([ab, ba]))).toHaveLength(1);
+  });
+  it('rejects a canonical self-parent', () => {
+    expect(cycle(modelWithLinks([{ from: 'GOAL-A-1', to: 'GOAL-A-1' }]))).toHaveLength(1);
+  });
+  it('accepts a canonical acyclic chain and preserves source data', () => {
+    const model = modelWithLinks([ab, { from: 'GOAL-B-1', to: 'GOAL-C-1' }]);
+    const before = JSON.stringify(model);
+    expect(cycle(model)).toEqual([]);
+    expect(JSON.stringify(model)).toBe(before);
+  });
+  it('accepts opposite links in non-overlapping historical periods', () => {
+    expect(cycle(modelWithLinks([{ ...ab, valid_to: '2026-06-30' }, { ...ba, valid_from: '2026-07-01' }]))).toEqual([]);
+  });
+  it('rejects a cycle at the inclusive common lifecycle boundary', () => {
+    expect(cycle(modelWithLinks([{ ...ab, valid_to: '2026-07-01' }, { ...ba, valid_from: '2026-07-01' }]))).toHaveLength(1);
+  });
+  it('checks mixed legacy and canonical links', () => {
+    const model = modelWithLinks([ab]);
+    model.elements[1].data!['parent'] = 'GOAL-A-1';
+    expect(cycle(model)).toHaveLength(1);
+  });
+  it('does not restore an inactive declared child inline fallback', () => {
+    const model = modelWithLinks([{ ...ab, valid_to: '2026-06-30' }, { ...ba, valid_from: '2026-07-01' }]);
+    model.elements[0].data!['parent'] = 'GOAL-B-1';
+    expect(cycle(model)).toEqual([]);
+  });
+});
