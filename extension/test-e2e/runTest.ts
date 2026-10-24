@@ -52,6 +52,12 @@ async function main(): Promise<void> {
 
     const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tx-e2e-userdata-'));
     const extensionsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tx-e2e-extensions-'));
+    // Temporary fixtures must be deletable even where the OS trash is unavailable.
+    // Keep WorkspaceEdit deletion and its file events, using only this test profile.
+    fs.mkdirSync(path.join(userDataDir, 'User'));
+    fs.writeFileSync(path.join(userDataDir, 'User', 'settings.json'), JSON.stringify({
+      'files.enableTrash': false,
+    }));
 
     console.log(`extension-e2e: extensionDevelopmentPath = ${extensionDevelopmentPath}`);
 
