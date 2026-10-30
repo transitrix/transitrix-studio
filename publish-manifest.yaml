@@ -36,6 +36,7 @@ published:
   - RELEASING.md
   - SECURITY.md
   - changelog/fragments/README.md
+  - changelog/fragments/person-reporting-validation.md
   - docs/README.md
   - docs/cli.md
   - docs/document-provenance.md
@@ -879,6 +880,7 @@ published:
   - src/validators/process.ts
   - src/validators/product.ts
   - src/validators/products.ts
+  - src/validators/relation.ts
   - src/validators/requirement.ts
   - src/validators/risk.ts
   - src/validators/role.ts
@@ -1070,6 +1072,7 @@ published:
   - tests/notation-registry.test.ts
   - tests/preview-controls.test.ts
   - tests/process-blueprint-preview.test.ts
+  - tests/relation-validation.test.ts
   - tests/release-version-guards.test.ts
   - tests/render-compliance-impact.test.ts
   - tests/render-document.test.ts

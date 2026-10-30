@@ -34,6 +34,23 @@ transitrix export-compliance [--format md|pdf]  # compliance report
 transitrix serve [--port 8765]                  # local web UI
 ```
 
+For `notation: relation`, per-file validation checks the relation kind, scalar
+endpoint IDs, independent admission metadata and inclusive lifecycle dates.
+`reports_to` uses one subordinate-to-manager pair per record; both IDs must be
+ACTOR IDs. Dates must be quoted ISO calendar days, and `valid_to` is required
+(null means unbounded). Actor files reject inline `manager` and `reports_to`;
+opaque `extensions` remain permitted.
+
+This file check does not resolve people or prove a reporting graph valid.
+Studio's `validate --scope=repo` does not yet implement reporting subtype,
+admission, alias/self-link, containment, temporal-cycle or multi-manager health
+checks, nor dated reporting queries. Use Methodology's source-checkout
+`python3 tools/reporting.py --root <catalogue>` for that reporting contract and
+its `--as-at`, `--actor` and `--direction` query options. `REL-011` and `REL-012`
+are reporting errors; `REL-013` is a warning that preserves valid matrix
+relationships. Record the exact Methodology source revision when using that
+interface; file validation and source support do not establish installed support.
+
 PDF compliance export requires WeasyPrint on `PATH`
 (`pipx install weasyprint`).
 
