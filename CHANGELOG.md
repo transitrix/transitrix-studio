@@ -1,5 +1,18 @@
 # Changelog
 
+## [3.10.0] — Unreleased preparation
+
+### Added
+
+- Per-file relation validation with admission and quoted inclusive lifecycle dates; actor identity validation rejects inline reporting fields. (#742)
+
+### Changed
+
+- CLI 2.13.0 and diagrams 1.17.0 move together; requirements reports retain transport 1, projection 0.3 and the explicit 0.2 adapter.
+- Updated dependencies since 3.9.0 remain subject to exact-candidate checks.
+
+See [compatibility and candidate qualification](docs/releases/3.10.0-compatibility.md). No publication or installed support is claimed.
+
 ## [3.9.0] — 2026-10-25
 
 ### Added

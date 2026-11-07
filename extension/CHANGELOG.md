@@ -1,5 +1,10 @@
 # Transitrix Studio — changelog
 
+## 3.10.0 — Unreleased preparation
+
+- Adds relation-file conformance validation and enforces the existing actor identity boundary. Reporting graph checks remain separate.
+- Requirements report semantics and opt-in language advisories are retained. Exact versioned package/UI qualification is pending; no release is claimed.
+
 ## 3.9.0 — 2026-10-25
 
 ### Added
