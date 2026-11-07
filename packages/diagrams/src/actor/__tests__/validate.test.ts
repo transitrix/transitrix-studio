@@ -112,3 +112,11 @@ describe('validateActor — ACTOR-003 (engagement fields forbidden inline)', () 
     expect(codes({ ...valid(), unit_located_at: 'LOCATION-TBILISI-1' })).toContain('ACTOR-003');
   });
 });
+
+describe('person reporting fields', () => {
+  it.each(['manager', 'reports_to'])('rejects inline %s but preserves extensions', (field) => {
+    expect(validateActor({ ...valid(), [field]: 'ACTOR-SYN-1' }).errors).toContainEqual(
+      expect.objectContaining({ code: 'ACTOR-003', path: field }));
+    expect(validateActor({ ...valid(), extensions: { [field]: 'free-form' } }).valid).toBe(true);
+  });
+});
