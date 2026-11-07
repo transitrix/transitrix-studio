@@ -36,7 +36,6 @@ published:
   - RELEASING.md
   - SECURITY.md
   - changelog/fragments/README.md
-  - changelog/fragments/person-reporting-validation.md
   - docs/README.md
   - docs/cli.md
   - docs/document-provenance.md
@@ -74,6 +73,7 @@ published:
   - docs/internal/vsix-audit-v3.2.0/scans.md
   - docs/notation.md
   - docs/repo-layout.md
+  - docs/releases/3.10.0-compatibility.md
   - docs/requirement-advisories.md
   - docs/validation.md
   - extension/.vscodeignore
