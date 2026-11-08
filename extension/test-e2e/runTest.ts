@@ -39,10 +39,14 @@ async function main(): Promise<void> {
     });
     npm(['run', 'build:diagrams']);
     npm(['pack', '--workspace', 'packages/cli', '--pack-destination', consumerDir, '--cache', path.join(consumerDir, 'cache'), '--json']);
-    const tarball = fs.readdirSync(consumerDir).find(name => name.endsWith('.tgz'));
+    // Lifecycle stdout may precede npm's JSON. Use the manifest-bound filename
+    // and hash actual archive bytes rather than parsing mixed stdout.
+    const tarball = `transitrix-cli-${cliVersion}.tgz`;
     if (!tarball) throw new Error('CLI packaging produced no tarball');
     const packagePath = path.join(consumerDir, tarball);
-    const packageHash = createHash('sha256').update(fs.readFileSync(packagePath)).digest('hex');
+    const packageBytes = fs.readFileSync(packagePath);
+    const packageHash = createHash('sha256').update(packageBytes).digest('hex');
+    const packageIntegrity = 'sha512-' + createHash('sha512').update(packageBytes).digest('base64');
     npm(['install', '--prefix', consumerDir, '--ignore-scripts', '--no-audit', '--no-fund', '--cache', path.join(consumerDir, 'cache'), packagePath]);
     const callerPath = path.join(consumerDir, 'node_modules', '@transitrix', 'cli', 'dist', 'cli.js');
     const sourceRevision = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: repoRoot, encoding: 'utf8' }).trim();
@@ -89,6 +93,25 @@ async function main(): Promise<void> {
 
     if (exitCode !== 0) {
       throw new Error(`extension-e2e: VS Code test host exited with code ${exitCode}`);
+    }
+    // Retain the exact installed/tested archive, never a post-test rebuild.
+    const packageOutput = process.env.TX_E2E_PACKAGE_OUTPUT;
+    if (packageOutput) {
+      const audit = JSON.parse(npm(['audit', '--prefix', consumerDir, '--omit=dev', '--json']));
+      if (audit.metadata?.vulnerabilities?.total !== 0) throw new Error('Candidate runtime audit must report zero vulnerabilities');
+      fs.mkdirSync(packageOutput, { recursive: true });
+      const target = path.join(packageOutput, tarball!);
+      if (fs.existsSync(target) || fs.existsSync(path.join(packageOutput, 'cli-qualification.json'))) throw new Error('Refusing to overwrite retained candidate evidence');
+      fs.copyFileSync(packagePath, target);
+      fs.writeFileSync(path.join(packageOutput, 'runtime-audit.json'), JSON.stringify(audit, null, 2) + '\n');
+      fs.writeFileSync(path.join(packageOutput, 'cli-qualification.json'), JSON.stringify({
+        schema: 'transitrix-packaged-ui-cli-qualification/1', sourceRevision,
+        cliVersion, diagramsVersion: JSON.parse(fs.readFileSync(path.join(repoRoot, 'packages/diagrams/package.json'), 'utf8')).version,
+        artifact: tarball, sha256: packageHash, integrity: packageIntegrity,
+        vsixSha256: process.env.VSIX_SHA256 ?? null,
+        reportContract: 'requirement-chain/0.3', transport: 'requirements-report/1',
+        exactArchiveUsedByPackagedUiTests: true, runtimeAuditVulnerabilities: 0,
+      }, null, 2) + '\n');
     }
     console.log(`extension-e2e: all tests passed. PNG captures in ${captureDir}`);
   } finally {

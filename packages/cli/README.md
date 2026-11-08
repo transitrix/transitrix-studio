@@ -119,9 +119,14 @@ MIT — see [`LICENSE`](./LICENSE).
 
 ## Requirements reports
 
-The 2.12.0 source candidate adds `requirements-report`; 2.11.0 does not provide
-this command. Publication is separate from building a candidate. Install the
-supplied 2.12.0 tarball with `npm install --ignore-scripts /path/to/transitrix-cli-2.12.0.tgz`
+The 2.13.0 preparation candidate retains `requirements-report/1` and
+`requirement-chain/0.3`, including the explicit 0.2 adapter. CLI 2.11.0 does not
+provide this command. The earlier qualified 2.12.0 handoff remains historical
+evidence at its original source; it does not qualify these new package bytes.
+See [candidate compatibility](../../docs/releases/3.10.0-compatibility.md).
+Publication is separate from building a candidate. Only after its exact source
+and artifact integrity are supplied and verified, install the supplied tarball
+with `npm install --ignore-scripts /path/to/transitrix-cli-2.13.0.tgz`
 in an empty consumer project, then use its executable on Node 20 or newer:
 
 ```sh

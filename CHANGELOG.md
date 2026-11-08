@@ -1,5 +1,24 @@
 # Changelog
 
+## [3.10.0] — 2026-11-08
+
+### Added
+
+- Per-file relation validation with admission and quoted inclusive lifecycle dates; actor identity validation rejects inline reporting fields. (#742)
+
+### Changed
+
+- CLI 2.13.0 and diagrams 1.17.0 move together; requirements reports retain transport 1, projection 0.3 and the explicit 0.2 adapter.
+- Updated dependencies since 3.9.0 remain subject to exact-candidate checks.
+
+Known vocabulary limitation: the same 22 baseline drift entries (declared
+methodology 3.1.0 versus vendored 3.3.0, block-grid TYPE registry and unbound
+vocabulary registries) are explicitly renewed only until 2026-11-16. This
+release does not claim complete Methodology 8.0.0 vocabulary conformance. New,
+stale or subsequently expired exceptions still fail closed.
+
+See [compatibility and candidate qualification](docs/releases/3.10.0-compatibility.md). No publication or installed support is claimed.
+
 ## [3.9.0] — 2026-10-25
 
 ### Added

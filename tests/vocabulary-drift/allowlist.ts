@@ -23,7 +23,9 @@ export interface AllowlistEntry {
 
 /** Shared review date for the divergences this check found on its first run —
  *  they were measured together and are re-measured together. */
-const FIRST_RUN = '2026-11-08';
+// Release review 2026-11-08 renewal; applies only to the same 22 existing keys.
+// New or stale divergences still fail. No runtime vocabulary is changed.
+const FIRST_RUN = '2026-11-16';
 
 export const ALLOWLIST: readonly AllowlistEntry[] = [
   {

@@ -11,7 +11,7 @@ from CI.
 | Artifact | Pipeline | Trigger |
 |---|---|---|
 | Universal VSIX, attached to the release + SHA-256 recorded | `.github/workflows/attach-release-vsix.yml` | Explicit `workflow_dispatch` for an existing draft tag, run against its exact target commit |
-| `@transitrix/diagrams` + `@transitrix/cli` → npm | `.github/workflows/npm-publish.yml` | GitHub Release **published** (or `workflow_dispatch`) |
+| `@transitrix/diagrams` + `@transitrix/cli` → npm (verified attached archives) | `.github/workflows/npm-publish.yml` | GitHub Release **published** (or `workflow_dispatch`) |
 | VS Code extension → VS Code Marketplace | `.github/workflows/vscode-marketplace-publish.yml` | `workflow_dispatch` only — see that workflow's header before changing this |
 | VS Code extension → Open VSX (Cursor / VSCodium / Windsurf) | `.github/workflows/openvsx-publish.yml` | GitHub Release **published** (or `workflow_dispatch`); downloads the asset `attach-release-vsix.yml` attached rather than rebuilding |
 | IntelliJ plugin → JetBrains Marketplace | `.github/workflows/jetbrains-publish.yml` | GitHub Release **published** (plugin version derived from the release tag, `v` prefix stripped) |
@@ -165,3 +165,7 @@ npm deprecate @transitrix/diagrams@1.0.0 "Broken — use 1.0.1+"
   [`openvsx-publish-runbook.md`](openvsx-publish-runbook.md) — the
   marketplace-specific notes the workflows codify.
 - [`docs/cli.md`](cli.md) — CLI install docs.
+
+## Qualified package identity
+
+The draft-attachment workflow gates attachment on packaged UI/CLI tests and a zero-vulnerability runtime audit. It retains the exact tested CLI archive; publication verifies the attached archives against source/version/hash receipts and publishes those bytes with lifecycle scripts disabled. An existing registry version is skipped only when its integrity matches. No rebuild may silently replace the qualified package. Draft creation and attachment do not publish a release.
