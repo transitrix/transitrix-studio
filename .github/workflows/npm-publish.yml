@@ -44,6 +44,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ github.event.release.tag_name || inputs.tag }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -72,6 +73,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name || inputs.tag }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -85,6 +88,7 @@ jobs:
         run: npm install --global npm@11
 
       - name: Download the release-qualified package archives
+        id: release-source
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
@@ -92,11 +96,15 @@ jobs:
           set -euo pipefail
           test -n "$RELEASE_TAG"
           gh api "/repos/$GITHUB_REPOSITORY/releases/tags/$RELEASE_TAG" > release.json
-          node -e "const r=require('./release.json'); if(r.draft || r.target_commitish !== process.env.GITHUB_SHA) process.exit(1)"
+          source_sha=$(git rev-parse HEAD)
+          SOURCE_SHA="$source_sha" node -e "const r=require('./release.json'); if(r.draft || !r.published_at || r.tag_name !== process.env.RELEASE_TAG || r.target_commitish !== process.env.SOURCE_SHA) process.exit(1)"
+          echo "sha=$source_sha" >> "$GITHUB_OUTPUT"
           mkdir qualified
           gh release download "$RELEASE_TAG" -R "$GITHUB_REPOSITORY" --dir qualified \
             --pattern '*.tgz' --pattern '*.vsix' --pattern 'cli-qualification.json' --pattern 'runtime-audit.json' --pattern 'SHA256SUMS'
       - name: Verify exact qualified package identities
+        env:
+          GITHUB_SHA: ${{ steps.release-source.outputs.sha }}
         run: node scripts/verify-release-packages.mjs qualified qualified/*.vsix
 
       # These are the exact qualified archives. Never rebuild at publication.
@@ -105,7 +113,7 @@ jobs:
           set -euo pipefail
           for package in diagrams cli; do
             version=$(node -p "require('./packages/$package/package.json').version")
-            archive="qualified/transitrix-$package-$version.tgz"
+            archive="./qualified/transitrix-$package-$version.tgz"
             integrity=$(node -e "const fs=require('fs'),c=require('crypto');console.log('sha512-'+c.createHash('sha512').update(fs.readFileSync(process.argv[1])).digest('base64'))" "$archive")
             published=$(npm view "@transitrix/$package@$version" dist.integrity 2>/dev/null || true)
             if [ -n "$published" ]; then
