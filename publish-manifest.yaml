@@ -805,6 +805,8 @@ published:
   - scripts/vendor-methodology-document-renderer.mjs
   - scripts/vendor-methodology-vocabulary.mjs
   - scripts/verify-extension-packaging.mjs
+  - scripts/verify-release-packages.mjs
+  - scripts/verify-release-packages.test.mjs
   - scripts/verify-extension-packaging.test.mjs
   - src/bpmn-export-profile.ts
   - src/bpmn-moddle.d.ts

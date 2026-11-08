@@ -31,8 +31,52 @@ jobs:
     with:
       release-tag: ${{ inputs.tag }}
 
-  attach:
+  qualify:
     needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: node --test scripts/verify-release-packages.test.mjs
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.build.outputs.artifact-name }}
+          path: output
+      - name: Verify and unpack the exact candidate VSIX
+        env:
+          EXPECTED_SHA: ${{ needs.build.outputs.sha256 }}
+        run: |
+          set -euo pipefail
+          vsix=$(ls output/*.vsix)
+          test "$(sha256sum "$vsix" | cut -d' ' -f1)" = "$EXPECTED_SHA"
+          mkdir -p "$RUNNER_TEMP/draft-vsix"
+          unzip -q "$vsix" -d "$RUNNER_TEMP/draft-vsix"
+          echo "TX_E2E_EXTENSION_PATH=$RUNNER_TEMP/draft-vsix/extension" >> "$GITHUB_ENV"
+          echo "VSIX_SHA256=$EXPECTED_SHA" >> "$GITHUB_ENV"
+          echo "TX_E2E_PACKAGE_OUTPUT=$GITHUB_WORKSPACE/qualified" >> "$GITHUB_ENV"
+      - name: Qualify the packaged UI and retain its exact installed CLI archive
+        run: xvfb-run -a npm run test:e2e-extension:packaged
+      - name: Package the matching diagrams workspace
+        run: npm pack --ignore-scripts --workspace packages/diagrams --pack-destination qualified --json > qualified/diagrams-pack.json
+      - name: Hash qualified assets
+        run: |
+          cd qualified
+          sha256sum *.tgz *.json > SHA256SUMS
+      - name: Verify qualified identities and refusal controls
+        run: node scripts/verify-release-packages.mjs qualified output/*.vsix
+      - uses: actions/upload-artifact@v4
+        with:
+          name: qualified-release-packages
+          path: qualified/*
+          if-no-files-found: error
+          retention-days: 7
+
+  attach:
+    needs: [build, qualify]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -42,6 +86,14 @@ jobs:
         with:
           name: ${{ needs.build.outputs.artifact-name }}
           path: output
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: qualified-release-packages
+          path: qualified
+
+      - name: Verify qualified package hashes
+        run: cd qualified && sha256sum --check SHA256SUMS
 
       - name: Verify downloaded artifact matches the attested hash
         shell: bash
@@ -115,7 +167,7 @@ jobs:
           # host `gh api` defaults to for a bare path — `gh release upload` targets
           # the correct host itself.
           gh release upload "${{ inputs.tag }}" \
-            output/*.vsix output/*.sha256 output/sbom.xml \
+            output/*.vsix output/*.sha256 output/sbom.xml qualified/* \
             -R ${{ github.repository }}
 
       - name: Update release notes with attestation verification command

@@ -1,6 +1,6 @@
 # Changelog
 
-## [3.10.0] — Unreleased preparation
+## [3.10.0] — 2026-11-08
 
 ### Added
 

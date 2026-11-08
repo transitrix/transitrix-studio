@@ -22,7 +22,12 @@ name: npm — publish packages
 on:
   release:
     types: [published]
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Published release tag whose verified assets will be published
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -48,9 +53,12 @@ jobs:
       - name: Check npm channel selection
         run: node --test scripts/npm-publish-tag.test.mjs
 
+      - name: Test exact package refusal controls
+        run: node --test scripts/verify-release-packages.test.mjs
+
       - name: Check release package versions
         env:
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
         run: node scripts/check-release-versions.mjs
 
   publish:
@@ -76,33 +84,35 @@ jobs:
       - name: Install OIDC-capable npm
         run: npm install --global npm@11
 
-      - name: Install root dependencies
-        run: npm ci
-
-      - name: Build @transitrix/diagrams
-        run: npm run build --workspace packages/diagrams
-
-      # Each package selects next for a prerelease and latest for a stable version.
-      # Publish order matters: diagrams first, then cli (runbook convention).
-      - name: Publish @transitrix/diagrams (skips if version already published)
+      - name: Download the release-qualified package archives
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
         run: |
-          LOCAL=$(node -p "require('./packages/diagrams/package.json').version")
-          DIST_TAG=$(node scripts/npm-publish-tag.mjs "$LOCAL")
-          PUBLISHED=$(npm view "@transitrix/diagrams@$LOCAL" version 2>/dev/null || echo "")
-          if [ "$PUBLISHED" = "$LOCAL" ]; then
-            echo "@transitrix/diagrams@$LOCAL is already on the registry — skipping."
-          else
-            npm publish --workspace packages/diagrams --access public --tag "$DIST_TAG"
-          fi
+          set -euo pipefail
+          test -n "$RELEASE_TAG"
+          gh api "/repos/$GITHUB_REPOSITORY/releases/tags/$RELEASE_TAG" > release.json
+          node -e "const r=require('./release.json'); if(r.draft || r.target_commitish !== process.env.GITHUB_SHA) process.exit(1)"
+          mkdir qualified
+          gh release download "$RELEASE_TAG" -R "$GITHUB_REPOSITORY" --dir qualified \
+            --pattern '*.tgz' --pattern '*.vsix' --pattern 'cli-qualification.json' --pattern 'runtime-audit.json' --pattern 'SHA256SUMS'
+      - name: Verify exact qualified package identities
+        run: node scripts/verify-release-packages.mjs qualified qualified/*.vsix
 
-      - name: Publish @transitrix/cli (skips if version already published)
+      # These are the exact qualified archives. Never rebuild at publication.
+      - name: Publish verified archives (skip only identical registry bytes)
         run: |
-          LOCAL=$(node -p "require('./packages/cli/package.json').version")
-          DIST_TAG=$(node scripts/npm-publish-tag.mjs "$LOCAL")
-          PUBLISHED=$(npm view "@transitrix/cli@$LOCAL" version 2>/dev/null || echo "")
-          if [ "$PUBLISHED" = "$LOCAL" ]; then
-            echo "@transitrix/cli@$LOCAL is already on the registry — skipping."
-          else
-            # prepack (scripts/build-cli-package.mjs) assembles dist/ + schemas/.
-            npm publish --workspace packages/cli --access public --tag "$DIST_TAG"
-          fi
+          set -euo pipefail
+          for package in diagrams cli; do
+            version=$(node -p "require('./packages/$package/package.json').version")
+            archive="qualified/transitrix-$package-$version.tgz"
+            integrity=$(node -e "const fs=require('fs'),c=require('crypto');console.log('sha512-'+c.createHash('sha512').update(fs.readFileSync(process.argv[1])).digest('base64'))" "$archive")
+            published=$(npm view "@transitrix/$package@$version" dist.integrity 2>/dev/null || true)
+            if [ -n "$published" ]; then
+              test "$published" = "$integrity" || { echo 'Existing package integrity differs'; exit 1; }
+              echo "Identical @transitrix/$package@$version already published; skipping"
+            else
+              channel=$(node scripts/npm-publish-tag.mjs "$version")
+              npm publish "$archive" --ignore-scripts --access public --tag "$channel"
+            fi
+          done

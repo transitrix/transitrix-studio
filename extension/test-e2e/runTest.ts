@@ -38,8 +38,8 @@ async function main(): Promise<void> {
       cwd: repoRoot, encoding: 'utf8', maxBuffer: 10 * 1024 * 1024,
     });
     npm(['run', 'build:diagrams']);
-    npm(['pack', '--workspace', 'packages/cli', '--pack-destination', consumerDir, '--cache', path.join(consumerDir, 'cache'), '--json']);
-    const tarball = fs.readdirSync(consumerDir).find(name => name.endsWith('.tgz'));
+    const packed = JSON.parse(npm(['pack', '--workspace', 'packages/cli', '--pack-destination', consumerDir, '--cache', path.join(consumerDir, 'cache'), '--json']));
+    const tarball: string | undefined = packed[0]?.filename;
     if (!tarball) throw new Error('CLI packaging produced no tarball');
     const packagePath = path.join(consumerDir, tarball);
     const packageHash = createHash('sha256').update(fs.readFileSync(packagePath)).digest('hex');
@@ -89,6 +89,25 @@ async function main(): Promise<void> {
 
     if (exitCode !== 0) {
       throw new Error(`extension-e2e: VS Code test host exited with code ${exitCode}`);
+    }
+    // Retain the exact installed/tested archive, never a post-test rebuild.
+    const packageOutput = process.env.TX_E2E_PACKAGE_OUTPUT;
+    if (packageOutput) {
+      const audit = JSON.parse(npm(['audit', '--prefix', consumerDir, '--omit=dev', '--json']));
+      if (audit.metadata?.vulnerabilities?.total !== 0) throw new Error('Candidate runtime audit must report zero vulnerabilities');
+      fs.mkdirSync(packageOutput, { recursive: true });
+      const target = path.join(packageOutput, tarball!);
+      if (fs.existsSync(target) || fs.existsSync(path.join(packageOutput, 'cli-qualification.json'))) throw new Error('Refusing to overwrite retained candidate evidence');
+      fs.copyFileSync(packagePath, target);
+      fs.writeFileSync(path.join(packageOutput, 'runtime-audit.json'), JSON.stringify(audit, null, 2) + '\n');
+      fs.writeFileSync(path.join(packageOutput, 'cli-qualification.json'), JSON.stringify({
+        schema: 'transitrix-packaged-ui-cli-qualification/1', sourceRevision,
+        cliVersion, diagramsVersion: JSON.parse(fs.readFileSync(path.join(repoRoot, 'packages/diagrams/package.json'), 'utf8')).version,
+        artifact: tarball, sha256: packageHash, integrity: packed[0].integrity,
+        vsixSha256: process.env.VSIX_SHA256 ?? null,
+        reportContract: 'requirement-chain/0.3', transport: 'requirements-report/1',
+        exactArchiveUsedByPackagedUiTests: true, runtimeAuditVulnerabilities: 0,
+      }, null, 2) + '\n');
     }
     console.log(`extension-e2e: all tests passed. PNG captures in ${captureDir}`);
   } finally {
