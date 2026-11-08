@@ -104,8 +104,8 @@ jobs:
             --pattern '*.tgz' --pattern '*.vsix' --pattern 'cli-qualification.json' --pattern 'runtime-audit.json' --pattern 'SHA256SUMS'
       - name: Verify exact qualified package identities
         env:
-          GITHUB_SHA: ${{ steps.release-source.outputs.sha }}
-        run: node scripts/verify-release-packages.mjs qualified qualified/*.vsix
+          RELEASE_SOURCE_SHA: ${{ steps.release-source.outputs.sha }}
+        run: GITHUB_SHA="$RELEASE_SOURCE_SHA" node scripts/verify-release-packages.mjs qualified qualified/*.vsix
 
       # These are the exact qualified archives. Never rebuild at publication.
       - name: Publish verified archives (skip only identical registry bytes)
