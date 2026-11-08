@@ -38,11 +38,15 @@ async function main(): Promise<void> {
       cwd: repoRoot, encoding: 'utf8', maxBuffer: 10 * 1024 * 1024,
     });
     npm(['run', 'build:diagrams']);
-    const packed = JSON.parse(npm(['pack', '--workspace', 'packages/cli', '--pack-destination', consumerDir, '--cache', path.join(consumerDir, 'cache'), '--json']));
-    const tarball: string | undefined = packed[0]?.filename;
+    npm(['pack', '--workspace', 'packages/cli', '--pack-destination', consumerDir, '--cache', path.join(consumerDir, 'cache'), '--json']);
+    // Lifecycle stdout may precede npm's JSON. Use the manifest-bound filename
+    // and hash actual archive bytes rather than parsing mixed stdout.
+    const tarball = `transitrix-cli-${cliVersion}.tgz`;
     if (!tarball) throw new Error('CLI packaging produced no tarball');
     const packagePath = path.join(consumerDir, tarball);
-    const packageHash = createHash('sha256').update(fs.readFileSync(packagePath)).digest('hex');
+    const packageBytes = fs.readFileSync(packagePath);
+    const packageHash = createHash('sha256').update(packageBytes).digest('hex');
+    const packageIntegrity = 'sha512-' + createHash('sha512').update(packageBytes).digest('base64');
     npm(['install', '--prefix', consumerDir, '--ignore-scripts', '--no-audit', '--no-fund', '--cache', path.join(consumerDir, 'cache'), packagePath]);
     const callerPath = path.join(consumerDir, 'node_modules', '@transitrix', 'cli', 'dist', 'cli.js');
     const sourceRevision = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: repoRoot, encoding: 'utf8' }).trim();
@@ -103,7 +107,7 @@ async function main(): Promise<void> {
       fs.writeFileSync(path.join(packageOutput, 'cli-qualification.json'), JSON.stringify({
         schema: 'transitrix-packaged-ui-cli-qualification/1', sourceRevision,
         cliVersion, diagramsVersion: JSON.parse(fs.readFileSync(path.join(repoRoot, 'packages/diagrams/package.json'), 'utf8')).version,
-        artifact: tarball, sha256: packageHash, integrity: packed[0].integrity,
+        artifact: tarball, sha256: packageHash, integrity: packageIntegrity,
         vsixSha256: process.env.VSIX_SHA256 ?? null,
         reportContract: 'requirement-chain/0.3', transport: 'requirements-report/1',
         exactArchiveUsedByPackagedUiTests: true, runtimeAuditVulnerabilities: 0,
