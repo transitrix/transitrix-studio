@@ -9,7 +9,7 @@
 ### Changed
 
 - CLI 2.13.0 and diagrams 1.17.0 move together; requirements reports retain transport 1, projection 0.3 and the explicit 0.2 adapter.
-- Updated dependencies since 3.9.0 remain subject to exact-candidate checks.
+- Updated dependencies since 3.9.0 passed the applicable release checks.
 
 Known vocabulary limitation: the same 22 baseline drift entries (declared
 methodology 3.1.0 versus vendored 3.3.0, block-grid TYPE registry and unbound
@@ -17,7 +17,13 @@ vocabulary registries) are explicitly renewed only until 2026-11-16. This
 release does not claim complete Methodology 8.0.0 vocabulary conformance. New,
 stale or subsequently expired exceptions still fail closed.
 
-See [compatibility and candidate qualification](docs/releases/3.10.0-compatibility.md). No publication or installed support is claimed.
+Studio 3.10.0 is available on [GitHub](https://github.com/transitrix/transitrix-studio/releases/tag/v3.10.0),
+[Open VSX](https://open-vsx.org/extension/transitrix/transitrix-studio/3.10.0), and
+[JetBrains Marketplace](https://plugins.jetbrains.com/plugin/32282-transitrix-studio/versions).
+CLI 2.13.0 and diagrams 1.17.0 are published on npm. All 45 packaged UI tests
+passed with the exact CLI release archive. The public Open VSX and npm downloads
+matched the qualified artifacts. User acceptance in an installed environment remains open.
+See [compatibility and candidate qualification](docs/releases/3.10.0-compatibility.md).
 
 ## [3.9.0] — 2026-10-25
 
