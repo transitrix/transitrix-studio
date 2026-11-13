@@ -3,7 +3,8 @@
 ## 3.10.0 — 2026-11-08
 
 - Adds relation-file conformance validation and enforces the existing actor identity boundary. Reporting graph checks remain separate.
-- Requirements report semantics and opt-in language advisories are retained. Exact versioned package/UI qualification is pending; no release is claimed.
+- Requirements report semantics and opt-in language advisories are retained.
+- All 45 packaged UI tests passed with CLI 2.13.0. The published VSIX is available on [GitHub](https://github.com/transitrix/transitrix-studio/releases/tag/v3.10.0) and [Open VSX](https://open-vsx.org/extension/transitrix/transitrix-studio/3.10.0). User acceptance in an installed environment remains open.
 
 ## 3.9.0 — 2026-10-25
 
