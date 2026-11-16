@@ -4,6 +4,7 @@
 # No directory entry implicitly admits future files. The full tracked tree is checked.
 published:
   - changelog/fragments/browser-local-bpmn-compiler-ffb42ea8.md
+  - changelog/fragments/jetbrains-jcef-loading-8a96bca1.md
   - .gitattributes
   - .githooks/commit-msg
   - .github/dependabot.yml
@@ -162,6 +163,7 @@ published:
   - intellij/src/main/kotlin/com/transitrix/intellij/TransitrixNotation.kt
   - intellij/src/main/kotlin/com/transitrix/intellij/TransitrixPreviewDialog.kt
   - intellij/src/main/kotlin/com/transitrix/intellij/WebviewBundle.kt
+  - intellij/src/main/resources/META-INF/com.transitrix.studio-jcef.xml
   - intellij/src/main/resources/META-INF/plugin.xml
   - intellij/src/main/resources/META-INF/pluginIcon.svg
   - intellij/src/main/resources/META-INF/pluginIcon_dark.svg

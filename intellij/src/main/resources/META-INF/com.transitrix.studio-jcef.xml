@@ -1,0 +1,4 @@
+<idea-plugin>
+    <!-- Activates the JCEF plugin classloader dependency when it is present.
+         Preview actions stay in the main descriptor for older platforms. -->
+</idea-plugin>

@@ -1,6 +1,7 @@
 package com.transitrix.intellij
 
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.util.Disposer
@@ -63,6 +64,7 @@ class TransitrixPreviewDialog(
     }
 
     companion object {
+        private val LOG = Logger.getInstance(TransitrixPreviewDialog::class.java)
         /**
          * True iff this IntelliJ build has JCEF available. JetBrains ships
          * JCEF in IntelliJ IDEA 2020.2+ Community and Ultimate, but the
@@ -75,6 +77,7 @@ class TransitrixPreviewDialog(
         } catch (t: Throwable) {
             // Defensive: older platforms can throw during isSupported() when
             // the native binary is missing entirely. Treat as "not supported".
+            LOG.warn("Transitrix JCEF availability check failed", t)
             false
         }
 
