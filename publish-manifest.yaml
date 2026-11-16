@@ -3,6 +3,7 @@
 # VSIX, npm, JetBrains and Obsidian artifacts have their own packaging entry points.
 # No directory entry implicitly admits future files. The full tracked tree is checked.
 published:
+  - changelog/fragments/browser-local-bpmn-compiler-ffb42ea8.md
   - .gitattributes
   - .githooks/commit-msg
   - .github/dependabot.yml
@@ -1160,3 +1161,8 @@ published:
   - packages/obsidian-plugin/test/contrast.test.ts
   - scripts/obsidian-acceptance-kit.mjs
   - scripts/obsidian-acceptance-kit.test.mjs
+  - src/browser-bpmn.ts
+  - src/compiler-core.ts
+  - src/emitter-core.ts
+  - src/parser-core.ts
+  - docs/browser-bpmn.md
