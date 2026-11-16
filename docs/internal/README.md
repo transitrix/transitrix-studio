@@ -8,6 +8,7 @@ Maintainer and developer docs — release runbooks, packaging, layout/metrics sp
 | [`packaging.md`](packaging.md) | VSIX build and per-platform targets |
 | [`vscode-marketplace-publish-runbook.md`](vscode-marketplace-publish-runbook.md) | VS Code Marketplace publish |
 | [`openvsx-publish-runbook.md`](openvsx-publish-runbook.md) | Open VSX publish (Cursor / VSCodium) |
+| [`vocabulary-review-2026-11-16.md`](vocabulary-review-2026-11-16.md) | Vocabulary exception evidence and next review |
 | [`metrics.md`](metrics.md) | Layout quality metrics definitions |
 | [`bpmn-routing.md`](bpmn-routing.md) | Sequence-flow routing conventions (implementation) |
 | [`extraction/`](extraction/) | Draft module contracts for `@transitrix/diagrams` |
