@@ -3,6 +3,8 @@
 # VSIX, npm, JetBrains and Obsidian artifacts have their own packaging entry points.
 # No directory entry implicitly admits future files. The full tracked tree is checked.
 published:
+  - changelog/fragments/browser-local-bpmn-compiler-ffb42ea8.md
+  - changelog/fragments/jetbrains-jcef-loading-8a96bca1.md
   - .gitattributes
   - .githooks/commit-msg
   - .github/dependabot.yml
@@ -57,6 +59,7 @@ published:
   - docs/internal/openvsx-publish-runbook.md
   - docs/internal/packaging.md
   - docs/internal/release-runbook.md
+  - docs/internal/vocabulary-review-2026-11-16.md
   - docs/internal/vscode-marketplace-publish-runbook.md
   - docs/internal/vsix-audit-v3.2.0/FINDING.md
   - docs/internal/vsix-audit-v3.2.0/README.md
@@ -160,6 +163,7 @@ published:
   - intellij/src/main/kotlin/com/transitrix/intellij/TransitrixNotation.kt
   - intellij/src/main/kotlin/com/transitrix/intellij/TransitrixPreviewDialog.kt
   - intellij/src/main/kotlin/com/transitrix/intellij/WebviewBundle.kt
+  - intellij/src/main/resources/META-INF/com.transitrix.studio-jcef.xml
   - intellij/src/main/resources/META-INF/plugin.xml
   - intellij/src/main/resources/META-INF/pluginIcon.svg
   - intellij/src/main/resources/META-INF/pluginIcon_dark.svg
@@ -1159,3 +1163,8 @@ published:
   - packages/obsidian-plugin/test/contrast.test.ts
   - scripts/obsidian-acceptance-kit.mjs
   - scripts/obsidian-acceptance-kit.test.mjs
+  - src/browser-bpmn.ts
+  - src/compiler-core.ts
+  - src/emitter-core.ts
+  - src/parser-core.ts
+  - docs/browser-bpmn.md

@@ -39,8 +39,10 @@ class PreviewAction : AnAction() {
         if (!TransitrixPreviewDialog.isPreviewSupported()) {
             Messages.showErrorDialog(
                 event.project,
-                "This IDE build does not ship JCEF, so the Transitrix preview cannot run.\n\n" +
-                    "JCEF ships with IntelliJ IDEA Community / Ultimate 2020.2 and newer.",
+                "JCEF is unavailable to Transitrix Studio in this IDE runtime.\n\n" +
+                    "Use the IDE's bundled runtime and enable Web Browser (JCEF) if available. " +
+                    "Restart the IDE after changing plugins or runtime. " +
+                    "See the IDE log for initialization or dependency errors.",
                 "Transitrix Studio",
             )
             return

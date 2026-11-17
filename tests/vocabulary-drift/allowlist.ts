@@ -21,16 +21,15 @@ export interface AllowlistEntry {
   reason: string;
 }
 
-/** Shared review date for the divergences this check found on its first run —
- *  they were measured together and are re-measured together. */
-// Release review 2026-11-08 renewal; applies only to the same 22 existing keys.
-// New or stale divergences still fail. No runtime vocabulary is changed.
-const FIRST_RUN = '2026-11-16';
+/** Next review of the unchanged 22 divergence keys, audited on 2026-11-16.
+ *  Evidence and resolution conditions: docs/internal/vocabulary-review-2026-11-16.md.
+ *  New or stale divergences still fail; no runtime vocabulary is changed. */
+const NEXT_REVIEW = '2026-11-30';
 
 export const ALLOWLIST: readonly AllowlistEntry[] = [
   {
     key: 'methodology_version:mismatch',
-    review_by: FIRST_RUN,
+    review_by: NEXT_REVIEW,
     reason:
       'The declared version is the methodology release this build targets, not the newest that exists. ' +
       'The artefact first ships in a release later than that target, so the vendored copy is necessarily ' +
@@ -40,56 +39,56 @@ export const ALLOWLIST: readonly AllowlistEntry[] = [
   // --- element_types: TYPEs the artefact defines and this repo does not ------
   {
     key: 'element_types:missing:NEED',
-    review_by: FIRST_RUN,
+    review_by: NEXT_REVIEW,
     reason: 'NEED is modelled and validated here but is not in the block-grid TYPE registry.',
   },
   {
     key: 'element_types:missing:METRIC',
-    review_by: FIRST_RUN,
+    review_by: NEXT_REVIEW,
     reason: 'METRIC is modelled and validated here but is not in the block-grid TYPE registry.',
   },
   {
     key: 'element_types:missing:RISK',
-    review_by: FIRST_RUN,
+    review_by: NEXT_REVIEW,
     reason: 'RISK is modelled and validated here but is not in the block-grid TYPE registry.',
   },
   {
     key: 'element_types:missing:RELEASE',
-    review_by: FIRST_RUN,
-    reason: 'RELEASE arrived with a methodology release later than the one this build targets.',
+    review_by: NEXT_REVIEW,
+    reason: 'RELEASE remains absent from REGISTERED_ELEMENT_TYPES; its generic repo projection does not provide block-grid registration or complete release validation.',
   },
   {
     key: 'element_types:missing:INFORMATION_ENTITY',
-    review_by: FIRST_RUN,
+    review_by: NEXT_REVIEW,
     reason:
-      'Retired name kept in the artefact for its alias window; this repo never registered it, so there is ' +
-      'nothing here to warn on. Resolves when the alias window closes.',
+      'The pinned artefact retains this deprecated alias, but the block-grid registry does not recognise it. ' +
+      'Resolve by an explicit alias-support decision or a reviewed vendor refresh; the pinned bytes do not age out automatically.',
   },
 
   // --- element_types: TYPEs this repo registers and the artefact does not ----
   {
     key: 'element_types:extra:HAZARD',
-    review_by: FIRST_RUN,
+    review_by: NEXT_REVIEW,
     reason: 'Registered for cross-reference resolution in block grids; not a registered TYPE in the artefact.',
   },
   {
     key: 'element_types:extra:RISK_CONTROL',
-    review_by: FIRST_RUN,
+    review_by: NEXT_REVIEW,
     reason: 'Registered for cross-reference resolution in block grids; not a registered TYPE in the artefact.',
   },
   {
     key: 'element_types:extra:REL',
-    review_by: FIRST_RUN,
+    review_by: NEXT_REVIEW,
     reason: 'The relation-record id prefix, not an element TYPE — the registry conflates the two.',
   },
   {
     key: 'element_types:extra:MILESTONE',
-    review_by: FIRST_RUN,
+    review_by: NEXT_REVIEW,
     reason: 'Registered for cross-reference resolution in block grids; not a registered TYPE in the artefact.',
   },
   {
     key: 'element_types:extra:VERIFICATION',
-    review_by: FIRST_RUN,
+    review_by: NEXT_REVIEW,
     reason:
       'VERIFICATION is a modelled element here with its own notation, but the artefact does not register it ' +
       'as an element TYPE.',
@@ -98,65 +97,65 @@ export const ALLOWLIST: readonly AllowlistEntry[] = [
   // --- value vocabularies ----------------------------------------------------
   {
     key: 'value_vocabularies.ASSERTION.status:extra:pending_owner',
-    review_by: FIRST_RUN,
-    reason: 'A status this repo renders and admits that the artefact does not define.',
+    review_by: NEXT_REVIEW,
+    reason: 'ASSERTION_STATUSES, validation and compliance rendering support pending_owner; the pinned 3.3.0 artefact does not. Removing it would change existing input and coverage behaviour.',
   },
   {
     key: 'value_vocabularies.REQUIREMENT.origin:unbound',
-    review_by: FIRST_RUN,
-    reason: '`origin` is scaffolded but not modelled or validated; binding it means adding the field first.',
+    review_by: NEXT_REVIEW,
+    reason: 'Compliance IndexRequirement and classify.ts model/filter the three origin values, but expose no shared runtime constant; standalone Requirement and validateRequirement still do not model/check origin.',
   },
   {
     key: 'value_vocabularies.REQUIREMENT.severity:unbound',
-    review_by: FIRST_RUN,
+    review_by: NEXT_REVIEW,
     reason: 'Type-only union; binding it means promoting it to a runtime array at the same time.',
   },
   {
     key: 'value_vocabularies.rule.severity:unbound',
-    review_by: FIRST_RUN,
+    review_by: NEXT_REVIEW,
     reason:
       'The severity ladder here stops at error/warning/info and is a type-only union; binding it means ' +
       'promoting it to a runtime array and deciding what `deprecation` means for this repo.',
   },
   {
     key: 'value_vocabularies.target_state_satisfies_goal.degree:unbound',
-    review_by: FIRST_RUN,
+    review_by: NEXT_REVIEW,
     reason: 'Per-relation attributes are not modelled here; binding follows a relation model.',
   },
   {
     key: 'value_vocabularies.assessment_influences_goal.sign:unbound',
-    review_by: FIRST_RUN,
+    review_by: NEXT_REVIEW,
     reason: 'Per-relation attributes are not modelled here; binding follows a relation model.',
   },
   {
     key: 'value_vocabularies.assessment_influences_goal.magnitude:unbound',
-    review_by: FIRST_RUN,
+    review_by: NEXT_REVIEW,
     reason: 'Per-relation attributes are not modelled here; binding follows a relation model.',
   },
   {
     key: 'value_vocabularies.candidate.kind:unbound',
-    review_by: FIRST_RUN,
-    reason: 'The ingest candidate contract has no consumer here; it may never need one.',
+    review_by: NEXT_REVIEW,
+    reason: 'No ingest-candidate enum consumer or shared candidate-kind constant exists; admitting candidate kinds needs a separately scoped consumer contract.',
   },
   {
     key: 'value_vocabularies.candidate.extraction_confidence:unbound',
-    review_by: FIRST_RUN,
-    reason: 'The ingest candidate contract has no consumer here; it may never need one.',
+    review_by: NEXT_REVIEW,
+    reason: 'ADMIT-009 rejects extraction_confidence on admitted canon elements, irrespective of its value; it does not implement the candidate confidence enum or provide a shared constant.',
   },
 
   // --- whole sets with no expression here ------------------------------------
   {
     key: 'relation_types:unbound',
-    review_by: FIRST_RUN,
+    review_by: NEXT_REVIEW,
     reason:
-      'Relation kinds are handled by an inline branch in repo-scope validation rather than a registry, so ' +
-      'no constant can be compared. Binding means introducing the registry.',
+      'src/validators/relation.ts has a private KINDS set, while repo graph checks cover selected kinds. ' +
+      'There is no shared cross-consumer registry: binding the local set requires a separate review of its later-version extra kinds, not silently claiming vocabulary parity.',
   },
   {
     key: 'rule_codes:unbound',
-    review_by: FIRST_RUN,
+    review_by: NEXT_REVIEW,
     reason:
-      'Rule codes are string literals at their emission sites with no registry to compare. Binding means ' +
-      'introducing one, which is a change of a different size from this check.',
+      'BPMN ValidatorRegistry and requirement-advisory RULES expose local inventories, but no complete cross-notation methodology-code registry exists. ' +
+      'A local subset must not stand for the whole supported rule surface.',
   },
 ];
