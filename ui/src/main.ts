@@ -6,20 +6,14 @@ import NavigatedViewer from 'bpmn-js/lib/NavigatedViewer.js';
 import yaml from 'js-yaml';
 
 import initialYaml from '../../tests/fixtures/notation-corpus/bpmn/order-fulfillment.bpmn.transitrix.yaml?raw';
-import nestedBlocksAscii from '../../tests/fixtures/notation-corpus/nested-blocks/nested.txt?raw';
-import blocksTablesMarkdown from '../../tests/fixtures/notation-corpus/nested-blocks/tables.md?raw';
+import initialBlocksYaml from '../../tests/fixtures/notation-corpus/blocks/architecture.blocks.transitrix.yaml?raw';
+import { compileBlocksSvg } from './compile-blocks.js';
 import initialGoalsYaml from '../../tests/fixtures/notation-corpus/goals/strategy-2026.goals.transitrix.yaml?raw';
 
 import { validateGoalTree, layoutGoalTree } from '../../packages/diagrams/src/goals/index.js';
 import { escXml } from '../../packages/diagrams/src/webview/render-util.js';
 import type { GoalTree, GoalTreeLayout, LaidOutNode, LaidOutEdge } from '../../packages/diagrams/src/goals/types.js';
 
-/** Single Markdown table sample for the nested-blocks “Markdown table” input mode. */
-const SAMPLE_MARKDOWN_SINGLE_TABLE = `
-| Service       | Language |
-|---------------|----------|
-| API Gateway   | Go       |
-`.trimStart();
 import {
   DEFAULT_LAYOUT_DIAGRAM_OPTIONS,
   type LayoutDiagramOptions,
@@ -32,11 +26,8 @@ import {
 
 const THEME_STORAGE_KEY = 'transitrix-ui-theme';
 const LAYOUT_STORAGE_KEY = 'transitrix-layout-defaults';
-/** Stored value must match backends/blocks compile ``mode``. */
-const BLOCKS_MODE_STORAGE_KEY = 'transitrix-ui-blocks-mode';
 type UiTheme = 'light' | 'dark';
 
-type BlocksCompileUiMode = 'ascii' | 'markdown_table' | 'markdown_tables';
 type StudioTab = 'bpmn' | 'blocks' | 'goals';
 
 function readStoredTheme(): UiTheme {
@@ -164,7 +155,7 @@ function renderShell(root: HTMLElement): void {
 <div class="mode-toolbar">
   <div class="mode-tablist" role="tablist" aria-label="Studio tool">
     <button type="button" class="mode-tab" role="tab" id="tab-bpmn" aria-selected="true" aria-controls="split-root">BPMN diagram</button>
-    <button type="button" class="mode-tab" role="tab" id="tab-blocks" aria-selected="false" aria-controls="split-root">Nested blocks (Svgbob)</button>
+    <button type="button" class="mode-tab" role="tab" id="tab-blocks" aria-selected="false" aria-controls="split-root">Blocks</button>
     <button type="button" class="mode-tab" role="tab" id="tab-goals" aria-selected="false" aria-controls="split-root">Goals tree</button>
   </div>
 </div>
@@ -173,18 +164,11 @@ ${renderLayoutDrawer().replace('<details class="layout-drawer"', '<details class
   <section class="pane" aria-label="Source editor">
     <div class="pane-title" id="source-pane-title">BPMN YAML</div>
     <div id="blocks-controls" class="blocks-controls" hidden>
-      <label class="blocks-mode-label"><span>Input mode</span>
-        <select id="blocks-mode-select" aria-label="Nested blocks input mode">
-          <option value="ascii">ASCII nested diagram</option>
-          <option value="markdown_table">Markdown table (single)</option>
-          <option value="markdown_tables">Markdown document (all tables)</option>
-        </select>
-      </label>
-      <p class="blocks-hint muted">Nested blocks render natively from structured YAML (<code>*.blocks.transitrix.yaml</code>). Samples: <code>organizations/acme_corp/canon/views/blocks/</code>. The ASCII and Markdown table modes below are legacy input shapes for this browser UI tab.</p>
+      <p class="blocks-hint muted">Edit structured YAML (<code>*.blocks.transitrix.yaml</code>) to preview nested blocks or a grid.</p>
     </div>
     <div class="editor-wrap">
       <textarea id="yaml" spellcheck="false" aria-label="BPMN YAML source"></textarea>
-      <textarea id="blocks-source" spellcheck="false" aria-label="Nested blocks source text" hidden></textarea>
+      <textarea id="blocks-source" spellcheck="false" aria-label="Blocks YAML source" hidden></textarea>
       <textarea id="goals-source" spellcheck="false" aria-label="Goals tree YAML source" hidden></textarea>
     </div>
   </section>
@@ -218,7 +202,6 @@ const diagramHost = document.querySelector<HTMLElement>('#diagram');
 const blocksPreview = document.querySelector<HTMLElement>('#blocks-preview');
 const blocksSvgHost = document.querySelector<HTMLElement>('#blocks-svg-host');
 const blocksControls = document.querySelector<HTMLElement>('#blocks-controls');
-const blocksModeSelect = document.querySelector<HTMLSelectElement>('#blocks-mode-select');
 const sourcePaneTitle = document.querySelector<HTMLElement>('#source-pane-title');
 const previewPaneTitle = document.querySelector<HTMLElement>('#preview-pane-title');
 const tabBpmn = document.querySelector<HTMLButtonElement>('#tab-bpmn');
@@ -247,7 +230,6 @@ if (
   !blocksPreview ||
   !blocksSvgHost ||
   !blocksControls ||
-  !blocksModeSelect ||
   !goalsPreviewEl ||
   !sourcePaneTitle ||
   !previewPaneTitle ||
@@ -286,28 +268,7 @@ btnTheme.addEventListener('click', () => {
 
 textarea.value = initialYaml.trimStart();
 
-function readStoredBlocksMode(): BlocksCompileUiMode {
-  try {
-    const v = localStorage.getItem(BLOCKS_MODE_STORAGE_KEY);
-    if (v === 'ascii' || v === 'markdown_table' || v === 'markdown_tables') {
-      return v;
-    }
-  } catch {
-    /* noop */
-  }
-  return 'ascii';
-}
-
-function persistBlocksMode(mode: BlocksCompileUiMode): void {
-  try {
-    localStorage.setItem(BLOCKS_MODE_STORAGE_KEY, mode);
-  } catch {
-    /* noop */
-  }
-}
-
-blocksSource.value = nestedBlocksAscii.trimStart();
-blocksModeSelect.value = readStoredBlocksMode();
+blocksSource.value = initialBlocksYaml.trimStart();
 goalsSource.value = initialGoalsYaml.trimStart();
 
 /** Last successfully compiled BPMN XML (matches the preview). */
@@ -375,7 +336,7 @@ function setStudioTab(tab: StudioTab): void {
     sourcePaneTitle.textContent = 'Goals YAML';
     previewPaneTitle.textContent = 'Goals tree';
   } else {
-    sourcePaneTitle.textContent = 'Nested blocks source';
+    sourcePaneTitle.textContent = 'Blocks YAML';
     previewPaneTitle.textContent = 'SVG preview';
   }
   syncExportButtonsAvailability();
@@ -701,14 +662,6 @@ async function exportDiagramPng(): Promise<void> {
   }
 }
 
-function currentBlocksCompileMode(): BlocksCompileUiMode {
-  const v = blocksModeSelect.value;
-  if (v === 'ascii' || v === 'markdown_table' || v === 'markdown_tables') {
-    return v;
-  }
-  return 'ascii';
-}
-
 async function compileBlocksAndShow(): Promise<void> {
   if (studioTab() !== 'blocks') {
     return;
@@ -722,48 +675,14 @@ async function compileBlocksAndShow(): Promise<void> {
   status.classList.add('muted');
   status.textContent = 'Rendering nested blocks…';
 
-  let res: Response;
+  let svgs: string[];
   try {
-    res = await fetch('/api/blocks/compile', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json; charset=utf-8' },
-      body: JSON.stringify({
-        mode: currentBlocksCompileMode(),
-        source: blocksSource.value,
-      }),
-    });
+    svgs = [compileBlocksSvg(blocksSource.value)];
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     status.classList.add('err');
     status.classList.remove('muted', 'ready');
-    status.textContent = `Request failed: ${msg}`.slice(0, 2000);
-    return;
-  }
-
-  if (!res.ok) {
-    const msg = await res
-      .json()
-      .catch(() => ({ message: res.statusText, details: [] as string[] }));
-    const detailText = `${msg.message as string}${(msg.details as string[]).length ? '\n• ' + (msg.details as string[]).join('\n• ') : ''}`;
-    status.classList.add('err');
-    status.classList.remove('muted', 'ready');
-    status.textContent = detailText.slice(0, 2000);
-    return;
-  }
-
-  const data = (await res.json()) as { svgs?: unknown };
-  if (!Array.isArray(data.svgs) || !data.svgs.every((x) => typeof x === 'string')) {
-    status.classList.add('err');
-    status.classList.remove('muted', 'ready');
-    status.textContent = 'Nested blocks API returned an invalid response.';
-    return;
-  }
-
-  const svgs = data.svgs.filter((s): s is string => typeof s === 'string' && s.length > 0);
-  if (svgs.length === 0) {
-    status.classList.add('err');
-    status.classList.remove('muted', 'ready');
-    status.textContent = 'Nested blocks API returned no SVG output.';
+    status.textContent = `Blocks: ${msg}`.slice(0, 2000);
     return;
   }
 
@@ -825,16 +744,6 @@ tabGoals.addEventListener('click', () => {
   compileGoalsAndShow();
 });
 
-blocksModeSelect.addEventListener('change', () => {
-  const v = blocksModeSelect.value;
-  if (v === 'ascii' || v === 'markdown_table' || v === 'markdown_tables') {
-    persistBlocksMode(v);
-  }
-  lastBlocksSvgs = null;
-  syncExportButtonsAvailability();
-  debouncedBlocksCompile();
-});
-
 const layoutFieldsRoot = document.querySelector('#layout-fields-root');
 function isLayoutNumberInput(t: EventTarget | null): boolean {
   return t instanceof HTMLInputElement && t.type === 'number' && Boolean(t.closest('#layout-fields-root'));
@@ -892,14 +801,7 @@ btnCompile.addEventListener('click', () => {
 btnReset.addEventListener('click', () => {
   if (studioTab() === 'blocks') {
     lastBlocksSvgs = null;
-    const mode = currentBlocksCompileMode();
-    if (mode === 'ascii') {
-      blocksSource.value = nestedBlocksAscii.trimStart();
-    } else if (mode === 'markdown_table') {
-      blocksSource.value = SAMPLE_MARKDOWN_SINGLE_TABLE;
-    } else {
-      blocksSource.value = blocksTablesMarkdown.trimStart();
-    }
+    blocksSource.value = initialBlocksYaml.trimStart();
     void compileBlocksAndShow();
   } else if (studioTab() === 'goals') {
     goalsSource.value = initialGoalsYaml.trimStart();
