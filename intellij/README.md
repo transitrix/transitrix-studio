@@ -111,9 +111,13 @@ Smoke-test:
    extension produces. Malformed input shows the validation error panel
    instead of crashing.
 
-If the IDE lacks JCEF (rare on official 2024.2+ builds), the plugin surfaces
-a clear error dialog rather than failing silently — see
-`TransitrixPreviewDialog.kt`.
+The preview requires JCEF in the selected IDE runtime. Recent IDEs supply it
+through **Web Browser (JCEF)**; older supported platforms supply the API directly.
+Studio declares the plugin dependency as optional so the older platforms can
+still load it. If preview initialization fails, use the bundled IDE runtime,
+check that Web Browser (JCEF) is enabled where available, and restart after
+changing plugins/runtime. Initialization exceptions are recorded in the IDE log;
+the error does not by itself mean that the IDE distribution lacks JCEF.
 
 ## Versioning
 

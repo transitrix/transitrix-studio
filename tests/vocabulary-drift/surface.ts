@@ -49,19 +49,19 @@ export const BINDINGS: readonly SurfaceBinding[] = [
   {
     key: 'relation_types',
     values: null,
-    origin: 'no relation-type registry exists; repo-scope validation branches on the kind inline',
+    origin: 'private KINDS in src/validators/relation.ts and selected repo graph checks are not a shared cross-consumer registry',
   },
   {
     key: 'rule_codes',
     values: null,
-    origin: 'no rule-code registry exists; every code is a string literal at its emission site',
+    origin: 'local BPMN/advisory registries exist, but no complete cross-notation rule-code inventory',
   },
 
   // --- REQUIREMENT ---------------------------------------------------------
   {
     key: 'value_vocabularies.REQUIREMENT.origin',
     values: null,
-    origin: '`origin` is not on the Requirement model and is not validated',
+    origin: 'compliance models/filters origin inline; standalone Requirement does not, and no shared runtime constant exists',
   },
   {
     key: 'value_vocabularies.REQUIREMENT.level',
@@ -141,12 +141,12 @@ export const BINDINGS: readonly SurfaceBinding[] = [
   {
     key: 'value_vocabularies.candidate.kind',
     values: null,
-    origin: 'the ingest candidate contract has no consumer in this repo',
+    origin: 'no ingest-candidate kind enum consumer or runtime constant exists',
   },
   {
     key: 'value_vocabularies.candidate.extraction_confidence',
     values: null,
-    origin: 'the ingest candidate contract has no consumer in this repo',
+    origin: 'ADMIT-009 rejects this field on canon elements but does not implement a candidate confidence enum',
   },
 
   // --- Rule severities -----------------------------------------------------

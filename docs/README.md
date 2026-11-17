@@ -5,6 +5,7 @@ Documentation for **adopters and contributors**. Maintainer runbooks and interna
 | Document | Audience | Purpose |
 |----------|----------|---------|
 | [`cli.md`](cli.md) | CLI / CI users | Install and use `@transitrix/cli` |
+| [`browser-bpmn.md`](browser-bpmn.md) | Browser integrators | Compile BPMN locally and preserve edited models |
 | [`notation.md`](notation.md) | BPMN authors | YAML DSL reference |
 | [`validation.md`](validation.md) | Authors + preview users | Validation rule catalogue (linked from in-editor findings) |
 | [`glossary.md`](glossary.md) | Everyone | Domain terms |
