@@ -2,6 +2,8 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
+import { runInNewContext } from 'node:vm';
+import { build } from 'esbuild';
 
 import { BpmnModdle } from 'bpmn-moddle';
 import { describe, expect, it } from 'vitest';
@@ -10,9 +12,102 @@ import { transitrixPackageVersion } from '../src/package-version.js';
 import { compileTransitrixYaml, compileTransitrixYamlWithLayout } from '../src/compiler.js';
 import { layoutProcess } from '../src/layout.js';
 import { irFromValidatedDsl, parseYamlToIr, type YamlDocumentRoot } from '../src/parser.js';
+import { createBpmnTrialAdapter } from '../src/browser-bpmn.js';
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 const sampleTransitrixPath = join(repoRoot, 'tests', 'fixtures', 'notation-corpus', 'bpmn', 'order-fulfillment.bpmn.transitrix.yaml');
+
+describe('browser BPMN adapter', () => {
+  const source = JSON.stringify({ notation: 'bpmn', process: {
+    id: 'order-fulfillment-basic', name: 'Order fulfillment', pools: [{ id: 'pool', name: 'Orders',
+      lanes: [{ id: 'lane', name: 'Fulfillment', elements: [
+        { id: 'start', type: 'startEvent', name: 'Order received' },
+        { id: 'fulfill', type: 'task', name: 'Fulfill order' },
+        { id: 'end', type: 'endEvent', name: 'Order fulfilled' },
+      ] }] }], flows: [{ from: 'start', to: 'fulfill' }, { from: 'fulfill', to: 'end' }],
+  } });
+  const options = () => ({ schema: JSON.parse(readFileSync(join(repoRoot, 'schemas/bpmn-dsl.schema.json'), 'utf8')),
+    exporterVersion: transitrixPackageVersion(), example: { id: 'order-fulfillment-basic', revision: 'synthetic-1',
+      source, filename: 'order-fulfillment-basic.bpmn.transitrix.yaml' } });
+  it('preserves desktop compiler semantics and exact downloadable edits through a task rename', async () => {
+    const adapter = createBpmnTrialAdapter(options());
+    const edited = source.replace('Fulfill order', 'Pack order');
+    const result = await adapter.compile(edited);
+    expect(result.status).toBe('valid');
+    if (result.status !== 'valid') throw new Error('Expected valid compilation');
+    const desktop = await compileTransitrixYamlWithLayout(edited);
+    expect(result.ir).toEqual(desktop.ir);
+    expect(result.xml).toBe(desktop.xml);
+    expect(result.validation).toEqual(desktop.validation);
+    expect(result.xml).toContain('name="Pack order"');
+    expect(result).toMatchObject({ changed: true, source: edited, exampleId: 'order-fulfillment-basic',
+      exampleRevision: 'synthetic-1', filename: 'order-fulfillment-basic.bpmn.transitrix.yaml' });
+    expect(adapter.isCurrent(result)).toBe(true);
+  });
+  it('does not count initial, whitespace, comments or reset as a meaningful edit', async () => {
+    const adapter = createBpmnTrialAdapter(options());
+    for (const text of [source, source + '\n', '# Comment\n' + source]) {
+      expect(await adapter.compile(text)).toMatchObject({ status: 'valid', changed: false });
+    }
+    expect(await adapter.compile(source.replace('Fulfill order', 'Pack order'))).toMatchObject({ changed: true });
+    expect(await adapter.compile(source)).toMatchObject({ status: 'valid', changed: false });
+  });
+  it('exposes parser and structural errors without an exportable success', async () => {
+    const adapter = createBpmnTrialAdapter(options());
+    for (const text of ['process: [', 'process: {}', source.replace('"to":"end"', '"to":"missing"'),
+      source.replace('"startEvent"', '"task"')]) {
+      const result = await adapter.compile(text);
+      expect(result).toMatchObject({ status: 'invalid', source: text });
+      expect(result).not.toHaveProperty('xml');
+      if (result.status === 'invalid') expect(result.errors.length).toBeGreaterThan(0);
+    }
+  });
+  it('rejects obsolete success after a newer invalid edit and invalidates on disposal', async () => {
+    const adapter = createBpmnTrialAdapter(options());
+    const pending = adapter.compile(source);
+    const invalid = await adapter.compile('process: [');
+    const obsolete = await pending;
+    expect(obsolete.status).toBe('stale');
+    expect(adapter.isCurrent(obsolete)).toBe(false);
+    expect(adapter.isCurrent(invalid)).toBe(true);
+    const pendingOnDispose = adapter.compile(source);
+    adapter.invalidate();
+    expect((await pendingOnDispose).status).toBe('stale');
+    expect(adapter.isCurrent(invalid)).toBe(false);
+  });
+  it('binds results to an adapter even with the same generation, text and example', async () => {
+    const a = createBpmnTrialAdapter(options()), b = createBpmnTrialAdapter(options());
+    const first = await a.compile(source), second = await b.compile(source);
+    expect(b.isCurrent(first)).toBe(false);
+    expect(a.isCurrent(second)).toBe(false);
+    const changedExample = options(); changedExample.example.revision = 'synthetic-2';
+    const c = createBpmnTrialAdapter(changedExample);
+    expect(c.isCurrent(first)).toBe(false);
+    expect(await c.compile(source)).toMatchObject({ exampleRevision: 'synthetic-2' });
+  });
+  it('preserves compiler behavior across the retained notation corpus', async () => {
+    const text = await readFile(sampleTransitrixPath, 'utf8');
+    const config = options(); config.example.source = text;
+    const result = await createBpmnTrialAdapter(config).compile(text);
+    const desktop = await compileTransitrixYamlWithLayout(text);
+    expect(result.status).toBe(desktop.validation.isValid ? 'valid' : 'invalid');
+    if (result.status === 'stale') throw new Error('Unexpected stale result');
+    expect(result.validation).toEqual(desktop.validation);
+    if (result.status === 'valid') expect(result.xml).toBe(desktop.xml);
+  });
+  it('runs the browser bundle without Node imports or filesystem shims', async () => {
+    const bundle = await build({ entryPoints: [join(repoRoot, 'src/browser-bpmn.ts')],
+      bundle: true, platform: 'browser', format: 'iife', globalName: 'BpmnAdapter',
+      alias: { xmlbuilder2: 'xmlbuilder2/lib/xmlbuilder2.min.js' }, write: false, metafile: true });
+    expect(Object.values(bundle.metafile!.outputs).flatMap(output => output.imports)).toEqual([]);
+    const browser = runInNewContext(bundle.outputFiles[0].text + '\nBpmnAdapter;',
+      { TextEncoder, TextDecoder, URL, setTimeout, clearTimeout });
+    const text = source.replace('Fulfill order', 'Pack order');
+    const result = await browser.createBpmnTrialAdapter(options()).compile(text);
+    expect(result.status).toBe('valid');
+    expect(result.xml).toBe((await compileTransitrixYamlWithLayout(text)).xml);
+  });
+});
 
 describe('parser', () => {
   it('parses sample and collects flows', () => {

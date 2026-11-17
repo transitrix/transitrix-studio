@@ -45,6 +45,9 @@
     ]]></change-notes>
 
     <depends>com.intellij.modules.platform</depends>
+    <!-- JCEF is a separate plugin on recent IDEs. Older supported platforms
+         provide these classes directly and do not declare this alias. -->
+    <depends optional="true" config-file="com.transitrix.studio-jcef.xml">com.intellij.modules.jcef</depends>
 
     <extensions defaultExtensionNs="com.intellij">
         <!-- JCEF preview registrations land in a follow-up PR (ADR plan step 3). -->
