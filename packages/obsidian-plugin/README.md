@@ -2,6 +2,8 @@
 
 Preview **self-contained** Transitrix diagram YAML as SVG inside Obsidian Desktop notes (Reading view).
 
+[Watch the Obsidian walkthrough (1:52)](https://youtu.be/DHuerTPGtHQ). English narration, close-ups and object highlights follow source edits, the goal tree, light/dark themes and a driver-to-action chain.
+
 The plugin reuses the Studio parser, validator, and SVG renderer. It does not walk the vault, call network APIs, or rewrite notes.
 
 ## Requirements
