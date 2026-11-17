@@ -263,28 +263,14 @@ details.layout-drawer[open] > .layout-summary::before {
   gap: 6px;
 }
 
+.blocks-controls[hidden] {
+  display: none;
+}
+
 .blocks-controls p {
   margin: 0;
   font-size: 0.72rem;
   line-height: 1.35;
-}
-
-.blocks-mode-label {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 0.76rem;
-  color: var(--fg-muted);
-}
-
-.blocks-mode-label select {
-  font: inherit;
-  max-width: 100%;
-  padding: 5px 8px;
-  border-radius: 5px;
-  border: 1px solid var(--border-strong);
-  background: var(--bg-input);
-  color: var(--fg);
 }
 
 #blocks-source {

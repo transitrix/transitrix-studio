@@ -5,7 +5,6 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Plugin } from 'vite';
 
 import { PayloadTooLargeError, readHttpBodyLimited } from '../src/http-body-limit.ts';
-import { handleBlocksCompile } from '../src/serve-ui.ts';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(__dirname, '..');
@@ -115,50 +114,6 @@ function transitrixDevApi(): Plugin {
   };
 }
 
-function transitrixBlocksDevApi(): Plugin {
-  return {
-    name: 'transitrix-dev-blocks-compile-api',
-    configureServer(server) {
-      server.middlewares.use(async (req, res, next) => {
-        const pathOnly = (req.url ?? '').split('?')[0];
-        if (!(req.method === 'POST' && pathOnly === '/api/blocks/compile')) {
-          next();
-          return;
-        }
-        try {
-          await handleBlocksCompile(req as IncomingMessage, res as ServerResponse);
-        } catch (e) {
-          console.error('transitrix dev nested-blocks api: error', e);
-          if (!(res as ServerResponse & { writableEnded?: boolean }).writableEnded) {
-            res.statusCode = 500;
-            res.setHeader('Content-Type', 'application/json; charset=utf-8');
-            res.end(JSON.stringify({ message: 'Internal server error', details: [] }));
-          }
-        }
-      });
-    },
-    configurePreviewServer(server) {
-      server.middlewares.use(async (req, res, next) => {
-        const pathOnly = (req.url ?? '').split('?')[0];
-        if (!(req.method === 'POST' && pathOnly === '/api/blocks/compile')) {
-          next();
-          return;
-        }
-        try {
-          await handleBlocksCompile(req as IncomingMessage, res as ServerResponse);
-        } catch (e) {
-          console.error('transitrix preview nested-blocks api: error', e);
-          if (!(res as ServerResponse & { writableEnded?: boolean }).writableEnded) {
-            res.statusCode = 500;
-            res.setHeader('Content-Type', 'application/json; charset=utf-8');
-            res.end(JSON.stringify({ message: 'Internal server error', details: [] }));
-          }
-        }
-      });
-    },
-  };
-}
-
 export default {
   root: __dirname,
   build: {
@@ -176,5 +131,5 @@ export default {
   optimizeDeps: {
     include: ['bpmn-js', 'diagram-js', 'inherits-browser', 'min-dash'],
   },
-  plugins: [transitrixDevApi(), transitrixBlocksDevApi()],
+  plugins: [transitrixDevApi()],
 };

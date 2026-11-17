@@ -3,6 +3,9 @@
 # VSIX, npm, JetBrains and Obsidian artifacts have their own packaging entry points.
 # No directory entry implicitly admits future files. The full tracked tree is checked.
 published:
+  - changelog/fragments/native-blocks-browser-ui.md
+  - tests/ui-blocks.test.ts
+  - ui/src/compile-blocks.ts
   - changelog/fragments/browser-local-bpmn-compiler-ffb42ea8.md
   - changelog/fragments/jetbrains-jcef-loading-8a96bca1.md
   - .gitattributes
