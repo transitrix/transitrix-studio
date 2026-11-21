@@ -74,6 +74,17 @@ describe('actual repository coverage dispatch', () => {
    expect(independent.views.filter(f=>f.severity==='error')).toEqual([]);
   }
  });
+ it('checks organization field shapes without bypassing admission', () => {
+  for (const patch of [{mission:null},{vision:42},{mission:[]},{aliases:'Example'},
+   {aliases:['']},{name:''},{admitted_by:''},{gate_checks:{}},
+   {valid_from:'2026-02-30'},{valid_to:'2025-12-31'}]) {
+   expect(validateNotationDoc('organization',{...examples.organization,...patch}).isValid,JSON.stringify(patch)).toBe(false);
+  }
+  expect(validateNotationDoc('organization',{
+   ...examples.organization, description:'Envelope description', aliases:['Alternative name'],
+   mission:'', vision:'',
+  }).isValid).toBe(true);
+ });
  it('validates organization intent and inclusive windows', () => {
   expect(validateNotationDoc('organization',{...envelope,notation:'organization',id:'ORGANIZATION-1'}).findings).toContainEqual(expect.objectContaining({ruleId:'ORG-002'}));
   for (const intent of [{mission:'Mission'},{vision:'Vision'},{mission:'Mission',vision:'Vision'}]) {
