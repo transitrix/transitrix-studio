@@ -75,7 +75,7 @@
     "@unicode/unicode-15.1.0": "2.1.0",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
-    "elkjs": "^0.12.0",
+    "elkjs": "^0.12.1",
     "js-yaml": "^4.3.2",
     "mdast-util-from-markdown": "2.1.0",
     "micromark": "4.0.3",
