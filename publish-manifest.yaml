@@ -884,6 +884,7 @@ published:
   - src/validators/need.ts
   - src/validators/node.ts
   - src/validators/observation.ts
+  - src/validators/organization.ts
   - src/validators/process-blueprint.ts
   - src/validators/process-map.ts
   - src/validators/process.ts
