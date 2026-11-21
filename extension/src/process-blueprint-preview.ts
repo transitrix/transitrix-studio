@@ -308,7 +308,7 @@ function buildBlueprintScript(nonce: string, chipData: Record<string, ChipDetail
   const safeJson = JSON.stringify(chipData).replace(/<\//g, '<\\/');
   return `<script nonce="${nonce}">
 (function(){
-var vscode=acquireVsCodeApi();
+var vscode=window.__txVscodeApi||(window.__txVscodeApi=acquireVsCodeApi());
 var toggles=document.querySelectorAll('[data-bp-toggle]');
 for(var i=0;i<toggles.length;i++){(function(el){
   el.addEventListener('change',function(){

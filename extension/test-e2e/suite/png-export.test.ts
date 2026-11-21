@@ -47,6 +47,7 @@ interface PngCase {
 }
 
 const CASES: PngCase[] = [
+  { name: 'process-blueprint', fixture: 'process-blueprint/order-fulfilment.process-blueprint.transitrix.yaml', saveCommand: 'transitrixStudio.saveProcessBlueprintAsPng', outFile: 'process-blueprint.png' },
   { name: 'goals', fixture: 'goals/strategy-2026.goals.transitrix.yaml', saveCommand: 'transitrixStudio.saveGoalsAsPng', outFile: 'goals.png' },
   { name: 'blocks', fixture: 'blocks/architecture.blocks.transitrix.yaml', saveCommand: 'transitrixStudio.saveBlocksAsPng', outFile: 'blocks.png' },
   { name: 'plantuml', fixture: 'plantuml/sample.puml', saveCommand: 'transitrixStudio.savePumlAsPng', outFile: 'plantuml.png', waitForRenderedMessage: true },
