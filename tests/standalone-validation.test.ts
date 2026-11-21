@@ -8,6 +8,7 @@ import yaml from 'js-yaml';
 const provenance = {captured_by:'author',captured_on:'2026-01-01',setting:'Source observation'};
 const envelope = {name:'Example', zone:'canon', admitted_at:'2026-01-01', admitted_by:'author', gate_checks:{uniqueness:'pass',consistency:'pass',completeness:'pass'}, valid_from:'2026-01-01', valid_to:null};
 const examples: Record<string, Record<string, unknown>> = {
+ organization:{...envelope,notation:'organization',id:'ORGANIZATION-1',mission:'Serve customers'},
  process:{...envelope,notation:'process',id:'PROCESS-1',goal:'A useful outcome',result:'Accepted output'},
  capability:{...envelope, notation:'capability',id:'CAPABILITY-V1',type:'domain'},
  product:{...envelope, notation:'product',id:'PRODUCT-1',type:'service'},
@@ -56,6 +57,37 @@ function repo(files:Record<string,string>) {
  finally {rmSync(root,{recursive:true,force:true});}
 }
 describe('actual repository coverage dispatch', () => {
+ it('isolates nested catalogues and independent validation runs', () => {
+  const one = yaml.dump(examples.organization);
+  const two = yaml.dump({...examples.organization,id:'ORGANIZATION-2'});
+  const parent = repo({
+   'canon/elements/one.yaml':one,
+   'canon/child/transitrix.yaml':'methodology_version: "7.0.0"\n',
+   'canon/child/canon/elements/two.yaml':two,
+  });
+  expect(parent.coverage).toMatchObject({discovered:1,read:1,validated:1,unvalidated:0,failed:0});
+  expect(parent.coverage?.excluded).toContainEqual({path:'canon/child',reason:'independent catalogue (transitrix.yaml)'});
+  expect(parent.views.filter(f=>f.severity==='error')).toEqual([]);
+  for (const document of [one,two]) {
+   const independent = repo({'canon/elements/organization.yaml':document});
+   expect(independent.coverage).toMatchObject({discovered:1,read:1,validated:1,unvalidated:0,failed:0});
+   expect(independent.views.filter(f=>f.severity==='error')).toEqual([]);
+  }
+ });
+ it('validates organization intent and inclusive windows', () => {
+  expect(validateNotationDoc('organization',{...envelope,notation:'organization',id:'ORGANIZATION-1'}).findings).toContainEqual(expect.objectContaining({ruleId:'ORG-002'}));
+  for (const intent of [{mission:'Mission'},{vision:'Vision'},{mission:'Mission',vision:'Vision'}]) {
+   expect(validateNotationDoc('organization',{...envelope,notation:'organization',id:'ORGANIZATION-1',...intent}).isValid).toBe(true);
+  }
+  for (const [end,start,overlap] of [['2020-12-31','2020-12-31',true],['2020-12-31','2021-01-01',false],[null,'2040-01-01',true],['2040-12-31','2040-01-01',true]] as const) {
+   const result = repo({
+    'canon/elements/one.yaml':yaml.dump({...examples.organization,valid_from:'2019-01-01',valid_to:end}),
+    'canon/elements/two.yaml':yaml.dump({...examples.organization,id:'ORGANIZATION-2',valid_from:start}),
+   });
+   expect(result.coverage).toMatchObject({discovered:2,read:2,validated:2,unvalidated:0,failed:0});
+   expect(result.views.some(f=>f.ruleId==='ORG-001' && f.severity==='error')).toBe(overlap);
+  }
+ });
  it('dispatches headerless histories and standalone primitives; does not swallow invalid entries', () => {
   const files={'canon/elements/CAPABILITY-V1.yaml':yaml.dump(examples.capability),'canon/elements/CAPABILITY-V1.history.yaml':yaml.dump(history)};
   const good=repo(files);
