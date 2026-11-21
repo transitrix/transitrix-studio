@@ -44,7 +44,15 @@ export function validateStandalone(notation: string, input: unknown, options: St
     values.forEach((v, i) => ref(`${key}[${i}]`, v, types));
   };
   optionalText('description');
-  if (notation === 'product') {
+  if (notation === 'organization') {
+    for (const key of ['mission', 'vision']) {
+      if (key in d && typeof d[key] !== 'string') fail(key, 'string', d[key]);
+    }
+    if (!('mission' in d) && !('vision' in d)) fail('mission|vision', 'at least one intent statement', undefined, 'ORG-002');
+    if ('aliases' in d && (!Array.isArray(d.aliases) || d.aliases.some(v => !text(v)))) {
+      fail('aliases', 'list of nonempty strings', d.aliases);
+    }
+  } else if (notation === 'product') {
     if (!['physical_product', 'digital_product','service','platform','bundle'].includes(d.type as string)) fail('type', 'physical_product|digital_product|service|platform|bundle', d.type);
     optionalText('domain'); reference('owner_role', ['ROLE']);
     if ('maturity' in d && !(Number.isInteger(d.maturity) && Number(d.maturity) >= 1 && Number(d.maturity) <= 5)) fail('maturity', 'integer 1..5', d.maturity);

@@ -1,3 +1,4 @@
+import { isoDate } from '@transitrix/diagrams/standalone/validate.js';
 import { resolveCapabilityAttributes } from '@transitrix/diagrams/capability-map/resolve-maturity.js';
 import { collectStrategyCoverageObservations } from '@transitrix/diagrams/repo-validate/check-strategy-chain.js';
 import { readMethodologyVersion } from './methodology-version.js';
@@ -337,6 +338,7 @@ function completeRepoCoverage(
   }
   result.views.push(...inventory.findings);
   const fieldIds = new Map<string, string>();
+  const organizations: Array<{ file: string; id: string; from: string; to: string | null }> = [];
   for (const file of inventory.paths) {
     const record: RepoCoverage['files'][number] = { file, notation: '', read: false, status: 'failed' };
     coverage.files.push(record);
@@ -373,6 +375,21 @@ function completeRepoCoverage(
       }
       const notation = /\.history\.ya?ml$/i.test(file) ? 'history' : resolveValidatorKey(data) ?? '';
       record.notation = notation;
+      if (notation === 'organization' && file.startsWith('canon/') && data && typeof data === 'object' && !Array.isArray(data)) {
+        const d = data as Record<string, unknown>;
+        if (typeof d.id === 'string' && isoDate(d.valid_from)
+          && (d.valid_to === null || isoDate(d.valid_to))
+          && (d.valid_to === null || d.valid_from <= d.valid_to)) {
+          for (const previous of organizations) {
+            if (previous.id !== d.id && (previous.to === null || d.valid_from <= previous.to)
+              && (d.valid_to === null || previous.from <= d.valid_to)) {
+              result.views.push({ file, notation, ruleId: 'ORG-001', severity: 'error',
+                message: `ORGANIZATION ${d.id} overlaps ${previous.id} (${previous.file}); validity endpoints are inclusive.` });
+            }
+          }
+          organizations.push({ file, id: d.id, from: d.valid_from, to: d.valid_to });
+        }
+      }
       const inViews = file.startsWith('views/') || file.startsWith('canon/views/');
       const inElements = file.startsWith('canon/elements/');
       const swept = [...sweeps].some(([dir, notations]) =>
