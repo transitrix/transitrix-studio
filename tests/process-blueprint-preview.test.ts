@@ -121,7 +121,13 @@ describe('Process Blueprint interactive rerender', () => {
     await preview.showOrReveal(document(path.resolve('synthetic-png'), [sketch], false));
     function execute(legacy = false) {
       const html = actual.buildDiagramFrame(host.frame!);
-      const scripts = [...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/g)].map(m => m[1]);
+      // These builders emit nonce'd inline scripts with this exact opening tag.
+      const openingTag = `<script nonce="${host.frame!.interactive!.nonce}">`;
+      const scripts = html.split(openingTag).slice(1).map(part => {
+        const end = part.indexOf('</script>');
+        expect(end).toBeGreaterThanOrEqual(0);
+        return part.slice(0, end);
+      });
       expect(scripts).toHaveLength(2);
       let acquisitions = 0;
       const listener = vi.fn();
