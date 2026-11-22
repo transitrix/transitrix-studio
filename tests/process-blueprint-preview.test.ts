@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { runInNewContext } from 'node:vm';
 import * as path from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import yaml from 'js-yaml';
@@ -114,6 +115,45 @@ beforeEach(() => {
 });
 
 describe('Process Blueprint interactive rerender', () => {
+  it('executes composed scripts with one API acquisition on every render', async () => {
+    const actual = await vi.importActual<typeof import('../extension/src/diagram-frame.js')>('../extension/src/diagram-frame.js');
+    const preview = new ProcessBlueprintPreview();
+    await preview.showOrReveal(document(path.resolve('synthetic-png'), [sketch], false));
+    function execute(legacy = false) {
+      const html = actual.buildDiagramFrame(host.frame!);
+      const scripts = html
+        .split(/<\/?script\b[^>]*>/i)
+        .filter((_, idx) => idx % 2 === 1);
+      expect(scripts).toHaveLength(2);
+      let acquisitions = 0;
+      const listener = vi.fn();
+      const context = {
+        window: { addEventListener: listener },
+        document: { querySelectorAll: () => [], getElementById: () => null },
+        acquireVsCodeApi: () => {
+          if (++acquisitions > 1) throw new Error('API already acquired');
+          return {};
+        },
+      };
+      for (let script of scripts) {
+        if (legacy) script = script.replace('window.__txVscodeApi||(window.__txVscodeApi=acquireVsCodeApi())', 'acquireVsCodeApi()');
+        runInNewContext(script, context);
+      }
+      expect(acquisitions).toBe(1);
+      expect(listener).toHaveBeenCalledExactlyOnceWith('message', expect.any(Function));
+    }
+    expect(() => execute(true)).toThrow('API already acquired');
+    execute();
+    await toggle('row', 'goal', false);
+    execute();
+    await toggle('column', sketch.id, false);
+    execute();
+    await toggle('column', sketch.id, true);
+    await toggle('column-width', '', true, 300);
+    expect(svg()).toContain('width="300"');
+    execute();
+  });
+
   it.each([false, true])('retains catalog names and STEP joins with mixed sketch columns=%s', async mixed => {
     const root = path.resolve('synthetic-model-a');
     catalog(root, 'Receive orders');

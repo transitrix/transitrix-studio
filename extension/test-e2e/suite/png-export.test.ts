@@ -47,6 +47,7 @@ interface PngCase {
 }
 
 const CASES: PngCase[] = [
+  { name: 'process-blueprint', fixture: 'process-blueprint/order-fulfilment.process-blueprint.transitrix.yaml', saveCommand: 'transitrixStudio.saveProcessBlueprintAsPng', outFile: 'process-blueprint.png' },
   { name: 'goals', fixture: 'goals/strategy-2026.goals.transitrix.yaml', saveCommand: 'transitrixStudio.saveGoalsAsPng', outFile: 'goals.png' },
   { name: 'blocks', fixture: 'blocks/architecture.blocks.transitrix.yaml', saveCommand: 'transitrixStudio.saveBlocksAsPng', outFile: 'blocks.png' },
   { name: 'plantuml', fixture: 'plantuml/sample.puml', saveCommand: 'transitrixStudio.savePumlAsPng', outFile: 'plantuml.png', waitForRenderedMessage: true },
@@ -80,6 +81,24 @@ describe('PNG export produces real images (transitrix-hq#143)', function () {
         }
       }
 
+      const passes = c.name === 'process-blueprint' ? ['initial', 'repeat', 'row', 'column', 'width'] : ['initial'];
+      let previousSvg: string | undefined;
+      for (const pass of passes) {
+        if (['row', 'column', 'width'].includes(pass)) {
+          const before = panel.webview.html;
+          const nonce = /<script nonce="([^"]+)"/.exec(before)?.[1];
+          assert.ok(nonce);
+          const selector = pass === 'width' ? '#tx-bp-col-w-range' : `input[data-bp-toggle="${pass}"]`;
+          const action = pass === 'width' ? "el.value='310';el.dispatchEvent(new Event('input'));"
+            : "el.checked=!el.checked;el.dispatchEvent(new Event('change'));";
+          // Exercise the real control listener and wait for host-generated HTML.
+          panel.webview.html = before.replace('</body>', `<script nonce="${nonce}">var el=document.querySelector('${selector}');if(el){${action}}</script></body>`);
+          await waitFor(() => panel.webview.html !== before
+            && !panel.webview.html.includes('var el=document.querySelector'), {
+            timeoutMs: 15000, label: `Blueprint ${pass} rerender`,
+          });
+        }
+      previousSvg = previousSvg; // retained across exports below
       const outPath = path.join(CAPTURE_DIR!, c.outFile);
       fs.rmSync(outPath, { force: true });
 
@@ -100,6 +119,11 @@ describe('PNG export produces real images (transitrix-hq#143)', function () {
 
       const renderRequest = sent.find((m) => m.type === 'transitrix:renderPng') as { svg?: string } | undefined;
       assert.ok(renderRequest?.svg, `${c.name}: expected a transitrix:renderPng request carrying the SVG payload`);
+      if (pass === 'repeat') assert.strictEqual(renderRequest!.svg, previousSvg);
+      if (['row', 'column', 'width'].includes(pass)) {
+        assert.notStrictEqual(renderRequest!.svg, previousSvg, `${pass}: exported stale SVG`);
+      }
+      previousSvg = renderRequest!.svg;
       const svgPath = path.join(CAPTURE_DIR!, c.outFile.replace(/\.png$/, '.svg'));
       fs.writeFileSync(svgPath, renderRequest!.svg!, 'utf-8');
 
@@ -111,6 +135,7 @@ describe('PNG export produces real images (transitrix-hq#143)', function () {
 
       const png = PNG.sync.read(buf);
       assert.ok(png.width > 0 && png.height > 0, `${c.name}: PNG decoded with invalid dimensions (${png.width}x${png.height})`);
+      }
     });
   }
 });
