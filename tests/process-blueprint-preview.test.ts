@@ -121,7 +121,9 @@ describe('Process Blueprint interactive rerender', () => {
     await preview.showOrReveal(document(path.resolve('synthetic-png'), [sketch], false));
     function execute(legacy = false) {
       const html = actual.buildDiagramFrame(host.frame!);
-      const scripts = [...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)].map(m => m[1]);
+      const scripts = html
+        .split(/<\/?script\b[^>]*>/i)
+        .filter((_, idx) => idx % 2 === 1);
       expect(scripts).toHaveLength(2);
       let acquisitions = 0;
       const listener = vi.fn();
